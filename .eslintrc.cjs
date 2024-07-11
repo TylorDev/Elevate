@@ -3,7 +3,7 @@ module.exports = {
     'eslint:recommended',
     'plugin:react/recommended',
     'plugin:react/jsx-runtime',
-    '@electron-toolkit',
-    '@electron-toolkit/eslint-config-prettier'
+    '@electron-toolkit'
+    // '@electron-toolkit/eslint-config-prettier'
   ]
 }

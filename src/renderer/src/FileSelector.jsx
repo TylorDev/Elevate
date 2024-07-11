@@ -1,84 +1,216 @@
+/* eslint-disable react/prop-types */
 /* eslint-disable prettier/prettier */
 import { useState, useEffect, useRef } from 'react'
 
+import Lista from './Lista'
+
 const FilePathsComponent = () => {
-  const [filepath, setFilePath] = useState('')
+  // const [filepath, setFilePath] = useState('')
+  // const [metadata, setMetadata] = useState(null)
+  // const [loading, setLoading] = useState(false)
+
+  // const handleButtonClick = async () => {
+  //   setLoading(true)
+  //   try {
+  //     const path = await window.electron.ipcRenderer.invoke('select-file')
+  //     setFilePath(path)
+  //     console.log(path)
+  //   } catch (error) {
+  //     console.error('Error fetching file paths:', error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
+  // const getMetadata = async () => {
+  //   if (!filepath) return
+  //   setLoading(true)
+  //   try {
+  //     const fileInfo = await window.electron.ipcRenderer.invoke('get-file-info', filepath)
+  //     setMetadata(fileInfo)
+  //   } catch (error) {
+  //     console.error('Error fetching file info:', error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
   const [metadata, setMetadata] = useState(null)
-  const [loading, setLoading] = useState(false)
 
-  const handleButtonClick = async () => {
-    setLoading(true)
+  const [currentFile, setCurrentFile] = useState('')
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  // const [filePaths, setFilePaths] = useState([])
+
+  const handlePreviousClick = () => {
+    // Mover al final si estamos en el inicio de la lista
+    const newIndex = currentIndex === 0 ? metadata.length - 1 : currentIndex - 1
+    setCurrentIndex(newIndex)
+    setCurrentFile(metadata[newIndex])
+  }
+
+  const handleNextClick = () => {
+    // Mover al inicio si estamos al final de la lista
+    const newIndex = currentIndex === metadata.length - 1 ? 0 : currentIndex + 1
+    setCurrentIndex(newIndex)
+    setCurrentFile(metadata[newIndex])
+  }
+
+  // useEffect(() => {
+  //   // Asegúrate de que metadata no sea undefined o null
+  //   if (metadata && Array.isArray(metadata)) {
+  //     const paths = metadata.map((file) => file.filePath)
+  //     setFilePaths(paths)
+  //   }
+  // }, [metadata]) // El efecto se ejecutará cada vez que metadata cambie
+
+  const handleSaveClick = async (paths = null) => {
+    // Si no se proporcionaron rutas, usar las rutas de metadata
+    if (!paths) {
+      paths = metadata.map((file) => file.filePath)
+    }
+
+    // Enviar las rutas al backend para guardar como archivo M3U
     try {
-      const url = await window.electron.ipcRenderer.invoke('select-file')
-
-      setFilePath(url)
-      console.log(url)
+      const result = await window.electron.ipcRenderer.invoke('save-m3u', paths)
+      if (result.success) {
+        console.log('M3U file saved successfully at', result.path)
+      } else {
+        console.error('Failed to save M3U file:', result.error)
+      }
     } catch (error) {
-      console.error('Error fetching file paths:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error communicating with main process:', error)
     }
   }
 
-  const getMetadata = async (path) => {
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('get-file-info', path)
+  const handleSongClick = (file, index) => {
+    setCurrentFile(file)
+    setCurrentIndex(index)
+  }
 
-      setMetadata(fileInfo)
+  const selectFiles = async () => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke('select-files')
+      if (fileInfos) {
+        setMetadata(fileInfos)
+      } else {
+        console.log('No files were selected')
+      }
     } catch (error) {
-      console.error('Error fetching file info:', error)
-    } finally {
-      setLoading(false)
+      console.error('Error selecting files:', error)
+    }
+  }
+
+  const openM3U = async () => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke('open-m3u')
+      if (fileInfos) {
+        setMetadata(fileInfos)
+        console.log(fileInfos)
+      } else {
+        console.log('No files were selected')
+      }
+    } catch (error) {
+      console.error('Error selecting files:', error)
+    }
+  }
+
+  const detectM3U = async () => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke('detect-m3u')
+      if (fileInfos) {
+        setMetadata(fileInfos)
+        console.log(fileInfos)
+      } else {
+        console.log('No files were selected')
+      }
+    } catch (error) {
+      console.error('Error selecting files:', error)
     }
   }
 
   return (
     <div>
-      <button onClick={handleButtonClick} disabled={loading}>
-        {loading ? 'Loading...' : 'Select Files'}
-      </button>
+      <PlaylistActions
+        selectFiles={selectFiles}
+        handleSaveClick={handleSaveClick}
+        openM3U={openM3U}
+        detectM3U={detectM3U}
+      />
 
-      <button onClick={() => getMetadata(filepath)} disabled={loading}>
-        {loading ? 'Loading...' : 'Meta'}
-      </button>
-      <div>
-        <h3>Información del Audio</h3>
-      </div>
+      <SongData metadata={metadata} handleSongClick={handleSongClick} />
 
-      <div>{filepath && <AudioPlayer url={filepath} metadata={metadata} />}</div>
+      <AudioPlayer currentFile={currentFile} />
+      <Controls handlePreviousClick={handlePreviousClick} handleNextClick={handleNextClick} />
+
+      {/* <Lista items={filePaths} save={handleSaveClick} /> */}
     </div>
   )
 }
 
 export default FilePathsComponent
-const AudioPlayer = ({ url, metadata }) => {
-  const BinToBlob = (img, mimeType = 'image/png') => {
-    console.log(img.type)
+function PlaylistActions({ selectFiles, handleSaveClick, openM3U, detectM3U }) {
+  return (
+    <div>
+      <button onClick={selectFiles}>{'Select Files'}</button>
+      <button onClick={handleSaveClick}>Save</button>
+      <button onClick={openM3U}>cargar lista</button>
+      <button onClick={detectM3U}>Detectar lista</button>
+    </div>
+  )
+}
 
-    if (img.type != 'Other') {
+function Controls({ handlePreviousClick, handleNextClick }) {
+  return (
+    <div>
+      <button onClick={handlePreviousClick}>Previous</button>
+      <button onClick={handleNextClick}>Next</button>
+    </div>
+  )
+}
+
+function SongData({ metadata, handleSongClick }) {
+  return (
+    <div>
+      {metadata && metadata.length > 0 ? (
+        <ul>
+          {metadata.map((file, index) => (
+            <div className="div" key={index}>
+              <li
+                style={{ fontSize: '11px', cursor: 'pointer', border: '1px solid white' }}
+                onClick={() => handleSongClick(file, index)}
+              >
+                {file.fileName}
+              </li>
+            </div>
+          ))}
+        </ul>
+      ) : (
+        <p>No files selected</p>
+      )}
+    </div>
+  )
+}
+
+function AudioPlayer({ currentFile }) {
+  const BinToBlob = (img, mimeType = 'image/png') => {
+    if (img && img.data && img.type !== 'Other') {
       const blob = new Blob([img.data], { type: mimeType })
       const url = URL.createObjectURL(blob)
-      console.log(url)
       return url
-    } else {
-      return ''
     }
+    return 'https://i.pinimg.com/564x/ca/2d/fe/ca2dfe6759c3e0183f83617364edbe2c.jpg'
   }
 
   return (
     <div>
-      <img
-        src={
-          metadata?.picture?.[0]?.data
-            ? BinToBlob(metadata.picture[0])
-            : 'https://i.pinimg.com/564x/ca/2d/fe/ca2dfe6759c3e0183f83617364edbe2c.jpg'
-        }
-        style={{ width: '200px' }}
-        alt=""
-      />
-      {metadata?.picture?.[0]?.data && console.log(metadata.picture[0].data)}
-      <audio controls key={url}>
-        <source src={url} type="audio/mpeg" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <img src={BinToBlob(currentFile?.picture?.[0] || {})} style={{ width: '200px' }} alt="" />
+        <p>{currentFile.title ? currentFile.title : currentFile.fileName}</p>
+      </div>
+
+      <audio controls key={currentFile.filePath} autoPlay>
+        <source src={currentFile.filePath} type="audio/mpeg" />
         Tu navegador no soporta el elemento de audio.
       </audio>
     </div>
