@@ -7,7 +7,7 @@ function App() {
 
   return (
     <>
-      <Versions></Versions>
+      {/* <Versions></Versions> */}
       <FileSelector />
     </>
   )
