@@ -1,6 +1,8 @@
+import './PlaylistActions.scss'
+
 export function PlaylistActions({ selectFiles, handleSaveClick, openM3U, detectM3U, paths }) {
   return (
-    <div>
+    <div className="PlaylistActions">
       <button onClick={selectFiles}>Select Files</button>
       <button
         onClick={() => {

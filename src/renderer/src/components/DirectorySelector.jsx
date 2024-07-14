@@ -1,6 +1,5 @@
-/* eslint-disable prettier/prettier */
 import { useState } from 'react'
-import { remote } from 'electron' // Usamos 'remote' para acceder a las funcionalidades de Electron
+import { remote } from 'electron'
 
 const DirectorySelector = () => {
   const [files, setFiles] = useState([])

@@ -13,13 +13,15 @@ async function getFileInfos(filePaths) {
     filePaths.map(async (filePath) => {
       try {
         const stats = fs.statSync(filePath)
-        const { common } = await parseFile(filePath)
+        const { common, format } = await parseFile(filePath)
         const fileName = path.basename(filePath)
+        const duration = format.duration || 'Unknown' // Utiliza 'Unknown' si la duración no está disponible
 
         return {
           filePath,
           fileName,
           size: stats.size,
+          duration, // Añade la duración
           ...common
         }
       } catch (error) {

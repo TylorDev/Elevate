@@ -1,22 +1,17 @@
 /* eslint-disable react/prop-types */
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 
-import Lista from './Lista'
 import { AudioPlayer } from './AudioPlayer'
-import { SongData } from './SongData'
-import { Controls } from './Controls'
+
 import { PlaylistActions } from './PlaylistActions'
+import { Cola } from './Cola'
 
 const FilePathsComponent = () => {
   const [metadata, setMetadata] = useState(null)
   const [cola, setCola] = useState([])
   const [currentFile, setCurrentFile] = useState('')
   const [currentIndex, setCurrentIndex] = useState(0)
-
-  const handleList = (files) => {
-    setMetadata(files)
-  }
 
   useEffect(() => {
     if (metadata && Array.isArray(metadata)) {
@@ -105,7 +100,7 @@ const FilePathsComponent = () => {
   }
 
   return (
-    <div style={{ display: 'flex', width: '100vw', padding: '5rem' }}>
+    <div>
       <PlaylistActions
         selectFiles={selectFiles}
         handleSaveClick={handleSaveClick}
@@ -114,45 +109,9 @@ const FilePathsComponent = () => {
         paths={cola}
       />
 
-      <div style={{ maxWidth: '300px' }}>
-        <AudioPlayer
-          currentFile={currentFile}
-          next={handleNextClick}
-          previus={handlePreviousClick}
-        />
-        <h1>Anterior canción</h1>
-        <div>
-          {metadata && metadata.length > 0
-            ? metadata[(currentIndex - 1 + metadata.length) % metadata.length]?.fileName ||
-              'Archivo no disponible'
-            : 'Archivo no disponible'}
-        </div>
+      <AudioPlayer currentFile={currentFile} next={handleNextClick} previus={handlePreviousClick} />
 
-        <h1>Siguiente canción</h1>
-        <div>
-          {metadata && metadata.length > 0
-            ? metadata[(currentIndex + 1) % metadata.length]?.fileName || 'Archivo no disponible'
-            : 'Archivo no disponible'}
-        </div>
-      </div>
-
-      <Controls handlePreviousClick={handlePreviousClick} handleNextClick={handleNextClick} />
-      {/* <div>
-        <Lista
-          files={metadata}
-          save={handleSaveClick}
-          handleSongClick={handleSongClick}
-          handleList={handleList}
-        />
-      </div> */}
-
-      <div>
-        <SongData
-          metadata={metadata}
-          handleSongClick={handleSongClick}
-          currentIndex={currentIndex}
-        />
-      </div>
+      <Cola metadata={metadata} handleSongClick={handleSongClick} currentIndex={currentIndex} />
     </div>
   )
 }
