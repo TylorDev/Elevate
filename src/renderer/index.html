@@ -2,11 +2,18 @@
 <html>
   <head>
     <meta charset="UTF-8" />
-    <title>Electron</title>
+    <title>TylorDev's Music Player</title>
     <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.pinimg.com blob:; media-src 'self' file:;"
+      content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https://i.pinimg.com blob:;
+      media-src 'self' file:;
+      connect-src 'self' https://songdata.io;
+    "
     />
   </head>
 

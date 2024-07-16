@@ -1,12 +1,15 @@
+import { useAppContext } from './Contexts/AppContext'
 import './PlaylistActions.scss'
 
-export function PlaylistActions({ selectFiles, handleSaveClick, openM3U, detectM3U, paths }) {
+export function PlaylistActions() {
+  const { selectFiles, handleSaveClick, openM3U, detectM3U, cola } = useAppContext()
+
   return (
     <div className="PlaylistActions">
       <button onClick={selectFiles}>Select Files</button>
       <button
         onClick={() => {
-          handleSaveClick(paths)
+          handleSaveClick(cola)
         }}
       >
         Save

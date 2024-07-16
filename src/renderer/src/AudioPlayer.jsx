@@ -1,8 +1,15 @@
 /* eslint-disable react/prop-types */
 import './AudioPlayer.scss'
+import { useAppContext } from './Contexts/AppContext'
 import { Controls } from './Controls'
 import { useRef, useState, useEffect } from 'react'
-export function AudioPlayer({ currentFile, next, previus }) {
+export function AudioPlayer() {
+  const { currentFile, handleNextClick, handlePreviousClick, metadata, emptyList, queue } =
+    useAppContext()
+
+  const next = () => handleNextClick(queue === 'tracks' ? metadata : emptyList)
+  const previus = () => handlePreviousClick(queue === 'tracks' ? metadata : emptyList)
+
   const BinToBlob = (img, mimeType = 'image/png') => {
     if (img && img.data && img.type !== 'Other') {
       const blob = new Blob([img.data], { type: mimeType })
@@ -40,6 +47,7 @@ export function AudioPlayer({ currentFile, next, previus }) {
       <div className="data">
         <div>{currentFile.title ? currentFile.title : currentFile.fileName}</div>
         <div>{currentFile.artist}</div>
+        <div>{currentFile.BPM}</div>
       </div>
       <Controls
         handlePreviousClick={previus}

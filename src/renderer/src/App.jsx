@@ -1,11 +1,15 @@
 import FileSelector from './FileSelector'
 import './App.scss'
+
+import { AppProvider } from './Contexts/AppContext'
+
 function App() {
   return (
-    <div className="App">
-      {/* <Versions></Versions> */}
-      <FileSelector />
-    </div>
+    <AppProvider>
+      <div className="App">
+        <FileSelector />
+      </div>
+    </AppProvider>
   )
 }
 
