@@ -3,15 +3,14 @@
 import './Cola.scss'
 import { useAppContext } from './Contexts/AppContext'
 import { SongItem } from './SongItem'
-
-export function Cola() {
-  const { emptyList } = useAppContext()
+export function MainList() {
+  const { metadata } = useAppContext()
   return (
     <div className="Cola">
-      {emptyList && emptyList.length > 0 ? (
+      {metadata && metadata.length > 0 ? (
         <ul>
-          {emptyList.map((file, index) => (
-            <SongItem key={index} file={file} index={index} name={'cola'} />
+          {metadata.map((file, index) => (
+            <SongItem key={index} file={file} index={index} name={'tracks'} />
           ))}
         </ul>
       ) : (

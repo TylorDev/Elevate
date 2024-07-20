@@ -4,6 +4,7 @@ import { AudioPlayer } from './AudioPlayer'
 
 import { PlaylistActions } from './PlaylistActions'
 import { Cola } from './Cola'
+import { MainList } from './MainList'
 
 const FilePathsComponent = () => {
   return (
@@ -13,12 +14,12 @@ const FilePathsComponent = () => {
       <div className="tracks">
         <div>
           <h2>tracks</h2>
-          <Cola name={'tracks'} />
+          <MainList></MainList>
         </div>
 
         <div>
           <h2>Cola</h2>
-          <Cola name={'cola'} />
+          <Cola />
         </div>
       </div>
       <AudioPlayer />

@@ -1,0 +1,30 @@
+.navbar {
+    display: flex;
+    flex-direction: column;
+    background-color: #000;
+    width: 200px;
+    height: 100vh;
+    padding: 10px;
+
+}
+
+.navbar {
+
+    a {
+        text-decoration: none;
+        padding: 10px;
+        margin: 5px 0;
+        transition: background 0.3s;
+        outline: none;
+        color: white;
+        transition: all 100ms;
+    }
+
+    .activo {
+
+        background: linear-gradient(to right, #ffa6003a 0%, transparent 10%);
+        padding-left: 2rem;
+        border-left: 3px solid #ffa500;
+        color: #ffa500;
+    }
+}

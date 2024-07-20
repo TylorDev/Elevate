@@ -1,4 +1,9 @@
-export function Controls({ handlePreviousClick, handleNextClick, togglePlayPause, isPlaying }) {
+/* eslint-disable react/prop-types */
+import { useAppContext } from './Contexts/AppContext'
+
+export function Controls() {
+  const { handleNextClick, handlePreviousClick, togglePlayPause, isPlaying } = useAppContext()
+
   return (
     <div className="controls">
       <button onClick={handlePreviousClick}>Previous</button>
