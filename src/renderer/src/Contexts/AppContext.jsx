@@ -53,17 +53,6 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  const querySave = async (common) => {
-    const { filePath, fileName } = common
-    console.log(filePath, fileName)
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('save-file', fileName, filePath)
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error saving file:', error)
-    }
-  }
-
   const likesong = async (common) => {
     const { filePath, fileName } = common
     console.log(filePath, fileName)
@@ -96,28 +85,6 @@ export const AppProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error selecting files:', error)
-    }
-  }
-
-  const queryGetfiles = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('get-files')
-      if (fileInfos) {
-        setMetadata(fileInfos)
-      } else {
-        console.log('No files were selected')
-      }
-    } catch (error) {
-      console.error('Error selecting files:', error)
-    }
-  }
-
-  const querydeletefiles = async () => {
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('delete-all-files')
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error getting db files:', error)
     }
   }
 
@@ -239,9 +206,7 @@ export const AppProvider = ({ children }) => {
         mediaRef,
         isPlaying,
         togglePlayPause,
-        queryGetfiles,
-        querySave,
-        querydeletefiles,
+
         likesong,
         getlikes,
         unlikesong

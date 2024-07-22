@@ -2,8 +2,7 @@ import { useAppContext } from './Contexts/AppContext'
 import './PlaylistActions.scss'
 
 export function PlaylistActions() {
-  const { selectFiles, handleSaveClick, openM3U, detectM3U, cola, queryGetfiles, getlikes } =
-    useAppContext()
+  const { selectFiles, handleSaveClick, openM3U, detectM3U, cola, getlikes } = useAppContext()
 
   return (
     <div className="PlaylistActions">
@@ -18,7 +17,6 @@ export function PlaylistActions() {
       <button onClick={getlikes}>lista likes</button>
       <button onClick={openM3U}>cargar lista</button>
       <button onClick={detectM3U}>Detectar lista</button>
-      <button onClick={queryGetfiles}>cargar Database</button>
     </div>
   )
 }

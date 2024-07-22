@@ -3,9 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { fileURLToPath } from 'url'
 import icon from '../../resources/icon.png?asset'
-
 import { setupDatabase } from '../database.mjs'
-
 import { setupLikeSongHandlers } from './ipc/likehandlers.mjs'
 import { setupM3UHandlers } from './ipc/listm3uhandlers.mjs'
 import { setupFilehandlers } from './ipc/filehandlers.mjs'

@@ -6,9 +6,7 @@ export function SongItem({ file, index, name }) {
     handleSongClick,
     addItemToEmptyList,
     handleGetBPMClick,
-    querySave,
-    queryGetfiles,
-    querydeletefiles,
+
     likesong,
     unlikesong
   } = useAppContext()
@@ -31,8 +29,6 @@ export function SongItem({ file, index, name }) {
       <button onClick={() => handleGetBPMClick(file)}> getbpm </button>
       <button onClick={() => likesong(file)}> like song </button>
       <button onClick={() => unlikesong(file)}> dislike song </button>
-      <button onClick={queryGetfiles}> get likes </button>
-      <button onClick={querydeletefiles}> delete all files </button>
     </li>
   )
 }
