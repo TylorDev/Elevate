@@ -7,6 +7,7 @@ import { PlaylistActions } from './PlaylistActions'
 import Favourites from './Pages/Favourites/Favourites'
 import { AudioPlayer } from './AudioPlayer'
 import MediaPlayer from './Mediaplayer'
+import ListenLater from './Pages/ListenLater/ListenLater'
 
 function App() {
   return (
@@ -26,7 +27,8 @@ function App() {
             <Route path="*" element={<NotFound />} />
             <Route path="/playlists" element={<PlaylistActions />} />
             <Route path="/favourites" element={<Favourites />} />
-            <Route path="/4" element={<MediaPlayer />} />
+            <Route path="/listen-later" element={<ListenLater />} />
+            <Route path="/2" element={<MediaPlayer />} />
           </Route>
         </Routes>
       </div>

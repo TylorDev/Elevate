@@ -13,7 +13,7 @@ export const AppProvider = ({ children }) => {
   const [emptyList, setEmptyList] = useState([])
   const [queue, setQueue] = useState([])
   const [likes, setLikes] = useState([])
-
+  const [later, setLater] = useState([])
   const addItemToEmptyList = (item) => {
     setEmptyList([...emptyList, item])
   }
@@ -79,6 +79,45 @@ export const AppProvider = ({ children }) => {
       const fileInfos = await window.electron.ipcRenderer.invoke('get-likes')
       if (fileInfos) {
         setLikes(fileInfos)
+      } else {
+        console.log('No files were selected')
+      }
+    } catch (error) {
+      console.error('Error selecting files:', error)
+    }
+  }
+
+  const latersong = async (common) => {
+    const { filePath, fileName } = common
+    console.log(filePath, fileName)
+    try {
+      const fileInfo = await window.electron.ipcRenderer.invoke(
+        'listen-later-song',
+        filePath,
+        fileName
+      )
+      console.log('File info:', fileInfo)
+    } catch (error) {
+      console.error('Error saving file:', error)
+    }
+  }
+
+  const removelatersong = async (common) => {
+    const { filePath } = common
+    console.log(filePath)
+    try {
+      const fileInfo = await window.electron.ipcRenderer.invoke('remove-listen-later', filePath)
+      console.log('File info:', fileInfo)
+    } catch (error) {
+      console.error('Error deleting file:', error)
+    }
+  }
+
+  const getlatersongs = async () => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke('get-listen-later')
+      if (fileInfos) {
+        setLater(fileInfos)
       } else {
         console.log('No files were selected')
       }
@@ -209,7 +248,11 @@ export const AppProvider = ({ children }) => {
         likesong,
         getlikes,
         unlikesong,
-        likes
+        likes,
+        latersong,
+        removelatersong,
+        getlatersongs,
+        later
       }}
     >
       {children}

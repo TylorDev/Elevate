@@ -12,7 +12,7 @@ datasource db {
 
 model Songs {
   song_id  Int    @id @default(autoincrement())
-  filepath String
+  filepath String @unique
   filename String
 
   // Relación con UserPreferences
@@ -21,7 +21,7 @@ model Songs {
 
 model UserPreferences {
   user_preference_id Int     @id @default(autoincrement())
-  song_id            Int?
+  song_id            Int     @unique
   is_favorite        Boolean @default(false)
   listen_later       Boolean @default(false)
 
