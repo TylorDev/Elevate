@@ -4,9 +4,12 @@ import { AudioPlayer } from './AudioPlayer'
 
 import { PlaylistActions } from './PlaylistActions'
 import { Cola } from './Cola'
-import { MainList } from './MainList'
+
+import { useAppContext } from './Contexts/AppContext'
 
 const FilePathsComponent = () => {
+  const { emptyList } = useAppContext()
+  const { metadata } = useAppContext()
   return (
     <div>
       <PlaylistActions />
@@ -14,15 +17,16 @@ const FilePathsComponent = () => {
       <div className="tracks">
         <div>
           <h2>tracks</h2>
-          <MainList></MainList>
+
+          <Cola list={metadata} name={'tracks'} />
         </div>
 
         <div>
           <h2>Cola</h2>
-          <Cola />
+          <Cola list={emptyList} name={'cola'} />
         </div>
       </div>
-      <AudioPlayer />
+      {/* <AudioPlayer /> */}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { useAppContext } from './Contexts/AppContext'
 
-export function SongItem({ file, index, name }) {
+export function SongItem({ file, index, cola }) {
   const {
     currentIndex,
     handleSongClick,
@@ -15,7 +15,7 @@ export function SongItem({ file, index, name }) {
     <li
       key={index}
       className={index === currentIndex ? 'active' : ''}
-      onClick={() => handleSongClick(file, index, name)}
+      onClick={() => handleSongClick(file, index, cola)}
     >
       <span>{file.fileName}</span>
       <span>

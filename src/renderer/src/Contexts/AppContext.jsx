@@ -11,16 +11,17 @@ export const AppProvider = ({ children }) => {
   const [currentFile, setCurrentFile] = useState('')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [emptyList, setEmptyList] = useState([])
-  const [queue, setQueue] = useState('tracks')
+  const [queue, setQueue] = useState([])
+  const [likes, setLikes] = useState([])
 
   const addItemToEmptyList = (item) => {
     setEmptyList([...emptyList, item])
   }
 
-  const handleSongClick = (file, index, name) => {
+  const handleSongClick = (file, index, list) => {
     setCurrentFile(file)
     setCurrentIndex(index)
-    setQueue(name)
+    setQueue(list)
   }
 
   useEffect(() => {
@@ -31,17 +32,15 @@ export const AppProvider = ({ children }) => {
   }, [metadata])
 
   const handlePreviousClick = () => {
-    const list = queue === 'tracks' ? metadata : emptyList
-    const newIndex = currentIndex === 0 ? list.length - 1 : currentIndex - 1
+    const newIndex = currentIndex === 0 ? queue.length - 1 : currentIndex - 1
     setCurrentIndex(newIndex)
-    setCurrentFile(list[newIndex])
+    setCurrentFile(queue[newIndex])
   }
 
   const handleNextClick = () => {
-    const list = queue === 'tracks' ? metadata : emptyList
-    const newIndex = currentIndex === list.length - 1 ? 0 : currentIndex + 1
+    const newIndex = currentIndex === queue.length - 1 ? 0 : currentIndex + 1
     setCurrentIndex(newIndex)
-    setCurrentFile(list[newIndex])
+    setCurrentFile(queue[newIndex])
   }
 
   const handleGetBPMClick = async (filePath, common) => {
@@ -79,7 +78,7 @@ export const AppProvider = ({ children }) => {
     try {
       const fileInfos = await window.electron.ipcRenderer.invoke('get-likes')
       if (fileInfos) {
-        setMetadata(fileInfos)
+        setLikes(fileInfos)
       } else {
         console.log('No files were selected')
       }
@@ -209,7 +208,8 @@ export const AppProvider = ({ children }) => {
 
         likesong,
         getlikes,
-        unlikesong
+        unlikesong,
+        likes
       }}
     >
       {children}

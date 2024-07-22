@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Songs {
+  song_id  Int    @id @default(autoincrement())
+  filepath String
+  filename String
+
+  // Relación con UserPreferences
+  UserPreferences UserPreferences[]
+}
+
+model UserPreferences {
+  user_preference_id Int     @id @default(autoincrement())
+  song_id            Int?
+  is_favorite        Boolean @default(false)
+  listen_later       Boolean @default(false)
+
+  // Relación con Songs
+  Songs Songs? @relation(fields: [song_id], references: [song_id])
+}

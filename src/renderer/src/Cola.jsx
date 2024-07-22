@@ -1,17 +1,16 @@
 /* eslint-disable react/prop-types */
 
 import './Cola.scss'
-import { useAppContext } from './Contexts/AppContext'
+
 import { SongItem } from './SongItem'
 
-export function Cola() {
-  const { emptyList } = useAppContext()
+export function Cola({ list }) {
   return (
     <div className="Cola">
-      {emptyList && emptyList.length > 0 ? (
+      {list && list.length > 0 ? (
         <ul>
-          {emptyList.map((file, index) => (
-            <SongItem key={index} file={file} index={index} name={'cola'} />
+          {list.map((file, index) => (
+            <SongItem key={index} file={file} index={index} cola={list} />
           ))}
         </ul>
       ) : (

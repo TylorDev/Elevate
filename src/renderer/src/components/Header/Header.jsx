@@ -14,7 +14,7 @@ function Header() {
       <NavLink to="/2" className={getActiveClass}>
         Statistics
       </NavLink>
-      <NavLink to="/3" className={getActiveClass}>
+      <NavLink to="/favourites" className={getActiveClass}>
         Favourites
       </NavLink>
       <NavLink to="/4" className={getActiveClass}>

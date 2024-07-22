@@ -1,47 +1,50 @@
 import { ipcMain } from 'electron'
 import { openDb } from '../../database.mjs'
 import { getFileInfos } from './utils/utils.mjs'
+import { PrismaClient } from '@prisma/client'
 
+const prisma = new PrismaClient()
 export function setupLikeSongHandlers() {
   ipcMain.handle('like-song', async (event, filepath, filename) => {
     try {
       console.debug('Attempting to like song:', { filename, filepath })
-      const db = await openDb()
-      console.debug('Database opened successfully.')
 
       // Verificar si la canción ya existe en la tabla Songs
-      const song = await db.get('SELECT song_id FROM Songs WHERE filepath = ?', [filepath])
-      let songId
+      let song = await prisma.songs.findUnique({
+        where: { filepath }
+      })
 
-      if (song) {
-        // Si la canción existe, obtener el song_id
-        console.debug('Song already exists:', song)
-        songId = song.song_id
-      } else {
+      if (!song) {
         // Si la canción no existe, agregarla a la tabla Songs
-        const result = await db.run('INSERT INTO Songs (filepath, filename) VALUES (?, ?)', [
-          filepath,
-          filename
-        ])
-        songId = result.lastID
-        console.debug('Song added successfully:', { filepath, filename, songId })
+        song = await prisma.songs.create({
+          data: {
+            filepath,
+            filename
+          }
+        })
+        console.debug('Song added successfully:', { filepath, filename, songId: song.song_id })
+      } else {
+        console.debug('Song already exists:', song)
       }
 
+      const songId = song.song_id
+
       // Marcar la canción como favorita en UserPreferences
-      const favorite = await db.get(
-        'SELECT user_preference_id FROM UserPreferences WHERE song_id = ?',
-        [songId]
-      )
-      if (favorite) {
-        // Si ya está marcada como favorita, no hacer nada
-        console.debug('Song already marked as favorite:', { songId })
-      } else {
+      const favorite = await prisma.userPreferences.findUnique({
+        where: { song_id: songId }
+      })
+
+      if (!favorite) {
         // Si no está marcada como favorita, agregarla
-        await db.run('INSERT INTO UserPreferences (song_id, is_favorite) VALUES (?, ?)', [
-          songId,
-          1
-        ])
+        await prisma.userPreferences.create({
+          data: {
+            song_id: songId,
+            is_favorite: true
+          }
+        })
         console.debug('Song marked as favorite successfully:', { songId })
+      } else {
+        console.debug('Song already marked as favorite:', { songId })
       }
 
       return { success: true, songId }
@@ -50,14 +53,16 @@ export function setupLikeSongHandlers() {
       return { success: false, error: error.message }
     }
   })
+
   ipcMain.handle('unlike-song', async (event, filepath) => {
     try {
       console.debug('Attempting to unlike song:', { filepath })
-      const db = await openDb()
-      console.debug('Database opened successfully.')
 
       // Verificar si la canción existe en la tabla Songs
-      const song = await db.get('SELECT song_id FROM Songs WHERE filepath = ?', [filepath])
+      const song = await prisma.songs.findUnique({
+        where: { filepath }
+      })
+
       if (!song) {
         console.debug('Song not found:', { filepath })
         return { success: false, error: 'Song not found' }
@@ -66,13 +71,15 @@ export function setupLikeSongHandlers() {
       const songId = song.song_id
 
       // Verificar si la canción está marcada como favorita en UserPreferences
-      const favorite = await db.get(
-        'SELECT user_preference_id FROM UserPreferences WHERE song_id = ?',
-        [songId]
-      )
+      const favorite = await prisma.userPreferences.findUnique({
+        where: { song_id: songId }
+      })
+
       if (favorite) {
         // Si la canción está marcada como favorita, eliminar el like
-        await db.run('DELETE FROM UserPreferences WHERE song_id = ?', [songId])
+        await prisma.userPreferences.delete({
+          where: { song_id: songId }
+        })
         console.debug('Song unliked successfully:', { songId })
         return { success: true, songId }
       } else {
@@ -89,16 +96,21 @@ export function setupLikeSongHandlers() {
   ipcMain.handle('get-likes', async (event) => {
     try {
       console.debug('Attempting to get liked songs')
-      const db = await openDb()
-      console.debug('Database opened successfully.')
 
       // Obtener todas las canciones marcadas como favoritas
-      const likedSongs = await db.all(`
-            SELECT s.filepath, s.filename 
-            FROM Songs s
-            JOIN UserPreferences up ON s.song_id = up.song_id 
-            WHERE up.is_favorite = 1
-          `)
+      const likedSongs = await prisma.songs.findMany({
+        where: {
+          userPreferences: {
+            some: {
+              is_favorite: true
+            }
+          }
+        },
+        select: {
+          filepath: true,
+          filename: true
+        }
+      })
 
       console.debug('Liked songs retrieved successfully:', likedSongs)
 
