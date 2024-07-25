@@ -10,7 +10,8 @@ export function SongItem({ file, index, cola }) {
     likesong,
     unlikesong,
     latersong,
-    removelatersong
+    removelatersong,
+    addhistory
   } = useAppContext()
 
   return (
@@ -27,6 +28,7 @@ export function SongItem({ file, index, cola }) {
           .padStart(2, '0')}
       </span>
 
+      <button onClick={() => addhistory(file)}> add to history </button>
       <button onClick={() => addItemToEmptyList(file)}> + </button>
       <button onClick={() => handleGetBPMClick(file)}> getbpm </button>
       <button onClick={() => likesong(file)}> like song </button>

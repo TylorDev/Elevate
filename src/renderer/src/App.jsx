@@ -8,6 +8,8 @@ import Favourites from './Pages/Favourites/Favourites'
 import { AudioPlayer } from './AudioPlayer'
 import MediaPlayer from './Mediaplayer'
 import ListenLater from './Pages/ListenLater/ListenLater'
+import AllTracks from './Pages/AllTracks/AllTracks'
+import History from './Pages/History/History'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
             <Route path="/playlists" element={<PlaylistActions />} />
             <Route path="/favourites" element={<Favourites />} />
             <Route path="/listen-later" element={<ListenLater />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/tracks" element={<AllTracks />} />
             <Route path="/2" element={<MediaPlayer />} />
           </Route>
         </Routes>

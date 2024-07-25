@@ -14,6 +14,8 @@ export const AppProvider = ({ children }) => {
   const [queue, setQueue] = useState([])
   const [likes, setLikes] = useState([])
   const [later, setLater] = useState([])
+  const [history, setHistory] = useState([])
+
   const addItemToEmptyList = (item) => {
     setEmptyList([...emptyList, item])
   }
@@ -52,84 +54,8 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  const likesong = async (common) => {
-    const { filePath, fileName } = common
-    console.log(filePath, fileName)
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('like-song', filePath, fileName)
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error saving file:', error)
-    }
-  }
-
-  const unlikesong = async (common) => {
-    const { filePath } = common
-    console.log(filePath)
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('unlike-song', filePath)
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error deleting file:', error)
-    }
-  }
-
-  const getlikes = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('get-likes')
-      if (fileInfos) {
-        setLikes(fileInfos)
-      } else {
-        console.log('No files were selected')
-      }
-    } catch (error) {
-      console.error('Error selecting files:', error)
-    }
-  }
-
-  const latersong = async (common) => {
-    const { filePath, fileName } = common
-    console.log(filePath, fileName)
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke(
-        'listen-later-song',
-        filePath,
-        fileName
-      )
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error saving file:', error)
-    }
-  }
-
-  const removelatersong = async (common) => {
-    const { filePath } = common
-    console.log(filePath)
-    try {
-      const fileInfo = await window.electron.ipcRenderer.invoke('remove-listen-later', filePath)
-      console.log('File info:', fileInfo)
-    } catch (error) {
-      console.error('Error deleting file:', error)
-    }
-  }
-
-  const getlatersongs = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('get-listen-later')
-      if (fileInfos) {
-        setLater(fileInfos)
-      } else {
-        console.log('No files were selected')
-      }
-    } catch (error) {
-      console.error('Error selecting files:', error)
-    }
-  }
-
-  const handleSaveClick = async (paths = null) => {
-    if (!paths) {
-      paths = metadata.map((file) => file.filePath)
-    }
+  const handleSaveClick = async () => {
+    const paths = queue.map((file) => file.filePath)
 
     try {
       const result = await window.electron.ipcRenderer.invoke('save-m3u', paths)
@@ -143,11 +69,21 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  const selectFiles = async () => {
+  const ElectronSetter = async (action, common) => {
+    const { filePath, fileName } = common
+    console.log(filePath, fileName)
     try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('select-files')
+      const fileInfo = await window.electron.ipcRenderer.invoke(action, filePath, fileName)
+      console.log('File info:', fileInfo)
+    } catch (error) {
+      console.error('Error saving file:', error)
+    }
+  }
+  const ElectronGetter = async (action, setState) => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke(action)
       if (fileInfos) {
-        setMetadata(fileInfos)
+        setState(fileInfos)
       } else {
         console.log('No files were selected')
       }
@@ -155,34 +91,17 @@ export const AppProvider = ({ children }) => {
       console.error('Error selecting files:', error)
     }
   }
-
-  const openM3U = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('open-m3u')
-      if (fileInfos) {
-        setMetadata(fileInfos)
-        console.log(fileInfos)
-      } else {
-        console.log('No files were selected')
-      }
-    } catch (error) {
-      console.error('Error selecting files:', error)
-    }
-  }
-
-  const detectM3U = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('detect-m3u')
-      if (fileInfos) {
-        setMetadata(fileInfos)
-        console.log(fileInfos)
-      } else {
-        console.log('No files were selected')
-      }
-    } catch (error) {
-      console.error('Error selecting files:', error)
-    }
-  }
+  const likesong = (common) => ElectronSetter('like-song', common)
+  const latersong = (common) => ElectronSetter('listen-later-song', common)
+  const addhistory = (common) => ElectronSetter('add-history', common)
+  const unlikesong = (common) => ElectronSetter('unlike-song', common)
+  const removelatersong = (common) => ElectronSetter('remove-listen-later', common)
+  const getLikes = () => ElectronGetter('get-likes', setLikes)
+  const getHistory = () => ElectronGetter('get-history', setHistory)
+  const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
+  const selectFiles = () => ElectronGetter('select-files', setMetadata)
+  const openM3U = () => ElectronGetter('open-m3u', setMetadata)
+  const detectM3U = () => ElectronGetter('detect-m3u', setMetadata)
 
   const BinToBlob = (img, mimeType = 'image/png') => {
     if (img && img.data && img.type !== 'Other') {
@@ -246,13 +165,16 @@ export const AppProvider = ({ children }) => {
         togglePlayPause,
 
         likesong,
-        getlikes,
+        getlikes: getLikes,
         unlikesong,
         likes,
         latersong,
         removelatersong,
         getlatersongs,
-        later
+        later,
+        addhistory,
+        getHistory,
+        history
       }}
     >
       {children}

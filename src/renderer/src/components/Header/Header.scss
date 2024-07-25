@@ -1,7 +1,7 @@
 .navbar {
     display: flex;
     flex-direction: column;
-    background-color: #000;
+    background-color: rgb(10, 10, 10);
     width: 200px;
     height: 100vh;
     padding: 10px;
@@ -22,9 +22,9 @@
 
     .activo {
 
-        background: linear-gradient(to right, #ffa6003a 0%, transparent 10%);
+        background: linear-gradient(to right, rgba(255, 99, 55, 0.227) 0%, transparent 10%);
         padding-left: 2rem;
-        border-left: 3px solid #ffa500;
-        color: #ffa500;
+        border-left: 3px solid rgb(255, 99, 55);
+        color: rgb(255, 99, 55);
     }
 }

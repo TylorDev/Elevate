@@ -8,6 +8,9 @@ function Header() {
       <NavLink to="/" className={getActiveClass}>
         Feed
       </NavLink>
+      <NavLink to="/tracks" className={getActiveClass}>
+        Tracks
+      </NavLink>
       <NavLink to="/playlists" className={getActiveClass}>
         Playlists
       </NavLink>
@@ -20,7 +23,7 @@ function Header() {
       <NavLink to="/listen-later" className={getActiveClass}>
         Listen later
       </NavLink>
-      <NavLink to="/5" className={getActiveClass}>
+      <NavLink to="/history" className={getActiveClass}>
         History
       </NavLink>
       <NavLink to="/7" className={getActiveClass}>

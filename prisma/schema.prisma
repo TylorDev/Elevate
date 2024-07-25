@@ -17,14 +17,33 @@ model Songs {
 
   // Relación con UserPreferences
   UserPreferences UserPreferences[]
+
+  // Relación con PlayHistory
+  PlayHistory PlayHistory[]
 }
 
 model UserPreferences {
-  user_preference_id Int     @id @default(autoincrement())
-  song_id            Int     @unique
-  is_favorite        Boolean @default(false)
-  listen_later       Boolean @default(false)
+  song_id      Int     @id
+  play_count   Int     @default(0) // Campo para contar reproducciones
+  is_favorite  Boolean @default(false)
+  listen_later Boolean @default(false)
+  skip_count   Int     @default(0)
 
   // Relación con Songs
-  Songs Songs? @relation(fields: [song_id], references: [song_id])
+  Songs Songs @relation(fields: [song_id], references: [song_id])
+
+  // Relación con PlayHistory
+  PlayHistory PlayHistory[]
+}
+
+model PlayHistory {
+  id        Int      @id @default(autoincrement())
+  song_id   Int
+  timestamp DateTime @default(now()) // Fecha y hora del incremento
+
+  // Relación con Songs
+  Songs Songs @relation(fields: [song_id], references: [song_id])
+
+  // Relación con UserPreferences
+  UserPreferences UserPreferences @relation(fields: [song_id], references: [song_id])
 }

@@ -58,9 +58,13 @@ export function setupM3UHandlers() {
   })
 
   ipcMain.handle('save-m3u', async (event, filePaths) => {
-    if (filePaths.length === 0) {
-      console.log('No file paths provided.')
-      return
+    if (
+      !Array.isArray(filePaths) ||
+      filePaths.length === 0 ||
+      !filePaths.every((fp) => typeof fp === 'string')
+    ) {
+      console.log('Invalid file paths provided.')
+      return { success: false, error: 'Invalid file paths provided.' }
     }
 
     // Encontrar la ruta base común
