@@ -1,17 +1,15 @@
 import './History.scss'
-import { Cola } from '../../Cola'
-import { useAppContext } from '../../Contexts/AppContext'
-import { useEffect } from 'react'
+
+import ListComp from '../../Components/ListComp/ListComp'
 
 function History() {
-  const { history, getHistory } = useAppContext()
-  useEffect(() => {
-    getHistory()
-  }, [])
   return (
-    <div className="History">
-      <Cola list={history} name={'later'} />
-    </div>
+    <ListComp
+      dataKey="history"
+      fetchFunction="getHistory"
+      className="History"
+      listName="Historial"
+    />
   )
 }
 export default History

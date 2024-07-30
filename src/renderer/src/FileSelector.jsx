@@ -8,7 +8,7 @@ import { Cola } from './Cola'
 import { useAppContext } from './Contexts/AppContext'
 
 const FilePathsComponent = () => {
-  const { likes } = useAppContext()
+  const { emptyList } = useAppContext()
   const { metadata } = useAppContext()
   return (
     <div>
@@ -23,7 +23,7 @@ const FilePathsComponent = () => {
 
         <div>
           <h2>Cola</h2>
-          <Cola list={likes} name={'cola'} />
+          <Cola list={emptyList} name={'cola'} />
         </div>
       </div>
       {/* <AudioPlayer /> */}

@@ -26,8 +26,8 @@ function Header() {
       <NavLink to="/history" className={getActiveClass}>
         History
       </NavLink>
-      <NavLink to="/7" className={getActiveClass}>
-        Podcasts
+      <NavLink to="/directories" className={getActiveClass}>
+        Folders
       </NavLink>
     </div>
   )

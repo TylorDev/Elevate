@@ -1,17 +1,15 @@
 import './Favourites.scss'
-import { Cola } from './../../Cola'
-import { useAppContext } from '../../Contexts/AppContext'
-import { useEffect } from 'react'
+
+import ListComp from '../../Components/ListComp/ListComp'
 
 function Favourites() {
-  const { likes, getlikes } = useAppContext()
-  useEffect(() => {
-    getlikes()
-  }, [])
   return (
-    <div className="Favourites">
-      <Cola list={likes} name={'fav'} />
-    </div>
+    <ListComp
+      dataKey="likes"
+      fetchFunction="getlikes"
+      className="Favourites"
+      listName="favoritas"
+    />
   )
 }
 export default Favourites

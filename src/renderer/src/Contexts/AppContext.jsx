@@ -6,6 +6,8 @@ const AppContext = createContext()
 
 // Crea un proveedor de contexto
 export const AppProvider = ({ children }) => {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const mediaRef = useRef(null)
   const [metadata, setMetadata] = useState(null)
   const [cola, setCola] = useState([])
   const [currentFile, setCurrentFile] = useState('')
@@ -15,6 +17,29 @@ export const AppProvider = ({ children }) => {
   const [likes, setLikes] = useState([])
   const [later, setLater] = useState([])
   const [history, setHistory] = useState([])
+  const [m3ulists, setM3uLists] = useState([])
+  const [directories, setDiretories] = useState([])
+  useEffect(() => {
+    if (mediaRef.current) {
+      mediaRef.current.src = currentFile.filePath
+
+      // Manejar eventos de reproducción
+      mediaRef.current.onplay = () => {
+        setIsPlaying(true)
+      }
+
+      mediaRef.current.onpause = () => {
+        setIsPlaying(false)
+      }
+    }
+  }, [currentFile.filePath])
+
+  useEffect(() => {
+    if (metadata && Array.isArray(metadata)) {
+      const filePaths = metadata.map((file) => file.filePath)
+      setCola(filePaths)
+    }
+  }, [metadata])
 
   const addItemToEmptyList = (item) => {
     setEmptyList([...emptyList, item])
@@ -26,13 +51,6 @@ export const AppProvider = ({ children }) => {
     setQueue(list)
   }
 
-  useEffect(() => {
-    if (metadata && Array.isArray(metadata)) {
-      const filePaths = metadata.map((file) => file.filePath)
-      setCola(filePaths)
-    }
-  }, [metadata])
-
   const handlePreviousClick = () => {
     const newIndex = currentIndex === 0 ? queue.length - 1 : currentIndex - 1
     setCurrentIndex(newIndex)
@@ -43,6 +61,23 @@ export const AppProvider = ({ children }) => {
     const newIndex = currentIndex === queue.length - 1 ? 0 : currentIndex + 1
     setCurrentIndex(newIndex)
     setCurrentFile(queue[newIndex])
+  }
+  const BinToBlob = (img, mimeType = 'image/png') => {
+    if (img && img.data && img.type !== 'Other') {
+      const blob = new Blob([img.data], { type: mimeType })
+      const url = URL.createObjectURL(blob)
+      return url
+    }
+    return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
+  }
+  const togglePlayPause = () => {
+    if (mediaRef.current) {
+      if (isPlaying) {
+        mediaRef.current.pause()
+      } else {
+        mediaRef.current.play()
+      }
+    }
   }
 
   const handleGetBPMClick = async (filePath, common) => {
@@ -58,7 +93,9 @@ export const AppProvider = ({ children }) => {
     const paths = queue.map((file) => file.filePath)
 
     try {
-      const result = await window.electron.ipcRenderer.invoke('save-m3u', paths)
+      const result = await window.electron.ipcRenderer.invoke('save-m3u', {
+        filePaths: paths
+      })
       if (result.success) {
         console.log('M3U file saved successfully at', result.path)
       } else {
@@ -79,9 +116,9 @@ export const AppProvider = ({ children }) => {
       console.error('Error saving file:', error)
     }
   }
-  const ElectronGetter = async (action, setState) => {
+  const ElectronGetter = async (action, setState = null, filepath = null) => {
     try {
-      const fileInfos = await window.electron.ipcRenderer.invoke(action)
+      const fileInfos = await window.electron.ipcRenderer.invoke(action, filepath)
       if (fileInfos) {
         setState(fileInfos)
       } else {
@@ -91,6 +128,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error selecting files:', error)
     }
   }
+
   const likesong = (common) => ElectronSetter('like-song', common)
   const latersong = (common) => ElectronSetter('listen-later-song', common)
   const addhistory = (common) => ElectronSetter('add-history', common)
@@ -102,43 +140,24 @@ export const AppProvider = ({ children }) => {
   const selectFiles = () => ElectronGetter('select-files', setMetadata)
   const openM3U = () => ElectronGetter('open-m3u', setMetadata)
   const detectM3U = () => ElectronGetter('detect-m3u', setMetadata)
-
-  const BinToBlob = (img, mimeType = 'image/png') => {
-    if (img && img.data && img.type !== 'Other') {
-      const blob = new Blob([img.data], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      return url
-    }
-    return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
+  const getSavedLists = () => ElectronGetter('get-playlists', setM3uLists)
+  const getDirectories = () => ElectronGetter('get-all-directories', setDiretories)
+  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata)
+  const getUniqueList = (setState, filePath) => {
+    ElectronGetter('open-list', setState, filePath)
+    // Puedes realizar acciones adicionales con fileInfos si es necesario
   }
 
-  const [isPlaying, setIsPlaying] = useState(false)
+  const deletePlaylist = (filePath) => {
+    const setState = []
+    ElectronGetter('delete-playlist', setState, filePath)
+    // Puedes realizar acciones adicionales con fileInfos si es necesario
+  }
 
-  const mediaRef = useRef(null)
-
-  useEffect(() => {
-    if (mediaRef.current) {
-      mediaRef.current.src = currentFile.filePath
-
-      // Manejar eventos de reproducción
-      mediaRef.current.onplay = () => {
-        setIsPlaying(true)
-      }
-
-      mediaRef.current.onpause = () => {
-        setIsPlaying(false)
-      }
-    }
-  }, [currentFile.filePath])
-
-  const togglePlayPause = () => {
-    if (mediaRef.current) {
-      if (isPlaying) {
-        mediaRef.current.pause()
-      } else {
-        mediaRef.current.play()
-      }
-    }
+  const deleteDirectory = (filePath) => {
+    const setState = []
+    ElectronGetter('delete-directory', setState, filePath)
+    // Puedes realizar acciones adicionales con fileInfos si es necesario
   }
 
   return (
@@ -174,7 +193,15 @@ export const AppProvider = ({ children }) => {
         later,
         addhistory,
         getHistory,
-        history
+        history,
+        m3ulists,
+        getSavedLists,
+        getUniqueList,
+        deletePlaylist,
+        getAllSongs,
+        getDirectories,
+        directories,
+        deleteDirectory
       }}
     >
       {children}

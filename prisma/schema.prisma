@@ -47,3 +47,14 @@ model PlayHistory {
   // Relación con UserPreferences
   UserPreferences UserPreferences @relation(fields: [song_id], references: [song_id])
 }
+
+model Playlist {
+  id     Int    @id @default(autoincrement())
+  path   String @unique
+  nombre String @unique
+}
+
+model Directory {
+  id   Int    @id @default(autoincrement())
+  path String @unique
+}

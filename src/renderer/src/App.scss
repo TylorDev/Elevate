@@ -8,7 +8,21 @@ body,
 body {
 
     font-family: Arial, Helvetica, sans-serif;
+    background-color: rgb(10, 10, 10);
+    overflow: hidden;
+}
 
+.Tittlebar {
+    background-color: transparent;
+    height: 5vh;
+    width: 100%;
+    position: sticky;
+    top: 0;
+    -webkit-app-region: drag;
+    z-index: 9999;
+    cursor: grab;
+    //Develop outline
+    outline: 2px solid rgb(0, 255, 0);
 }
 
 .App {

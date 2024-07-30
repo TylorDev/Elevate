@@ -15,7 +15,12 @@ function createWindow() {
     height: 670,
     show: false,
     autoHideMenuBar: true,
-
+    frame: false,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#0a0a0a00',
+      symbolColor: '#ffffff'
+    },
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)), //

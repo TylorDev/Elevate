@@ -1,14 +1,8 @@
 import './AllTracks.scss'
-import { Cola } from '../../Cola'
-import { useAppContext } from '../../Contexts/AppContext'
+
+import ListComp from '../../Components/ListComp/ListComp'
 
 function AllTracks() {
-  const { metadata } = useAppContext()
-
-  return (
-    <div className="ListenLater">
-      <Cola list={metadata} name={'meta'} />
-    </div>
-  )
+  return <ListComp dataKey="metadata" className="AllTracks" listName="todas las canciones" />
 }
 export default AllTracks
