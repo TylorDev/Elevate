@@ -3,6 +3,7 @@ import './AudioPlayer.scss'
 import { useAppContext } from './Contexts/AppContext'
 import { Controls } from './Controls'
 import { MediaTimeDisplay } from './MediaTimeDisplay'
+
 export function AudioPlayer() {
   const { currentFile, BinToBlob, handleNextClick, mediaRef } = useAppContext()
 

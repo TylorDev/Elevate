@@ -47,7 +47,6 @@ async function getPlaylistDetails(playlistPath) {
   const tracks = await processM3UFile(playlistPath, m3uDirectory) // Suponiendo que esta función obtiene las pistas de la lista
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
   const totalTracks = tracks.length
-  console.debug(totalTracks)
 
   return { totalDuration, totalTracks }
 }

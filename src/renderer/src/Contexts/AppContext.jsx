@@ -19,6 +19,7 @@ export const AppProvider = ({ children }) => {
   const [history, setHistory] = useState([])
   const [m3ulists, setM3uLists] = useState([])
   const [directories, setDiretories] = useState([])
+  const [currentLike, setCurrentLike] = useState(false)
   useEffect(() => {
     if (mediaRef.current) {
       mediaRef.current.src = currentFile.filePath
@@ -49,6 +50,7 @@ export const AppProvider = ({ children }) => {
     setCurrentFile(file)
     setCurrentIndex(index)
     setQueue(list)
+    IsSongLiked('is-song-liked', file.filePath, file.fileName)
   }
 
   const handlePreviousClick = () => {
@@ -106,11 +108,15 @@ export const AppProvider = ({ children }) => {
     }
   }
 
-  const ElectronSetter = async (action, common) => {
+  const ElectronSetter = async (action, common, getter = undefined) => {
     const { filePath, fileName } = common
     console.log(filePath, fileName)
     try {
       const fileInfo = await window.electron.ipcRenderer.invoke(action, filePath, fileName)
+      if (getter) {
+        getter()
+      }
+
       console.log('File info:', fileInfo)
     } catch (error) {
       console.error('Error saving file:', error)
@@ -132,8 +138,8 @@ export const AppProvider = ({ children }) => {
   const likesong = (common) => ElectronSetter('like-song', common)
   const latersong = (common) => ElectronSetter('listen-later-song', common)
   const addhistory = (common) => ElectronSetter('add-history', common)
-  const unlikesong = (common) => ElectronSetter('unlike-song', common)
-  const removelatersong = (common) => ElectronSetter('remove-listen-later', common)
+  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
+  const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
   const getLikes = () => ElectronGetter('get-likes', setLikes)
   const getHistory = () => ElectronGetter('get-history', setHistory)
   const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
@@ -148,16 +154,53 @@ export const AppProvider = ({ children }) => {
     // Puedes realizar acciones adicionales con fileInfos si es necesario
   }
 
+  const IsSongLiked = async (action = 'is-song-liked', filePath, fileName) => {
+    console.log(filePath, fileName)
+    try {
+      const result = await window.electron.ipcRenderer.invoke(action, filePath, fileName)
+      if (result.success) {
+        if (action === 'is-song-liked') {
+          const isLiked = result.liked
+          console.log('Is the song liked?', isLiked)
+          setCurrentLike(isLiked)
+
+          // Aquí puedes manejar el estado 'isLiked' según lo necesites en tu aplicación.
+        } else {
+          console.log('File info:', result)
+        }
+      } else {
+        console.error('Error:', result.error)
+      }
+    } catch (error) {
+      console.error('Error saving file:', error)
+    }
+  }
+
   const deletePlaylist = (filePath) => {
     const setState = []
     ElectronGetter('delete-playlist', setState, filePath)
+
     // Puedes realizar acciones adicionales con fileInfos si es necesario
   }
 
   const deleteDirectory = (filePath) => {
     const setState = []
+    getDirectories()
     ElectronGetter('delete-directory', setState, filePath)
-    // Puedes realizar acciones adicionales con fileInfos si es necesario
+  }
+
+  const toggleLike = () => {
+    if (currentFile && currentFile.filePath && currentFile.fileName) {
+      if (currentLike) {
+        unlikesong(currentFile)
+        setCurrentLike(false)
+      } else {
+        likesong(currentFile)
+        setCurrentLike(true)
+      }
+    } else {
+      console.error('currentFile is undefined or missing required properties.')
+    }
   }
 
   return (
@@ -201,7 +244,10 @@ export const AppProvider = ({ children }) => {
         getAllSongs,
         getDirectories,
         directories,
-        deleteDirectory
+        deleteDirectory,
+        IsSongLiked,
+        currentLike,
+        toggleLike
       }}
     >
       {children}

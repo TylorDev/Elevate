@@ -44,6 +44,14 @@ async function markUserPreference(songId, preferenceField) {
   })
 }
 
+async function isSongLiked(songId) {
+  const preference = await prisma.userPreferences.findUnique({
+    where: { song_id: songId },
+    select: { is_favorite: true }
+  })
+  return preference?.is_favorite || false
+}
+
 async function getUserPreferencesByCriteria(criteria) {
   try {
     // Obtener todas las preferencias de usuario que cumplen con el criterio
@@ -181,6 +189,18 @@ export function setupLikeSongHandlers() {
       return { success: true, songId: song.song_id }
     } catch (error) {
       console.error('Error liking song:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('is-song-liked', async (event, filepath, filename) => {
+    try {
+      const song = await getOrCreateSong(filepath, filename)
+      const liked = await isSongLiked(song.song_id)
+
+      return { success: true, liked }
+    } catch (error) {
+      console.error('Error checking if song is liked:', error)
       return { success: false, error: error.message }
     }
   })

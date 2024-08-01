@@ -65,19 +65,16 @@ export const MediaTimeDisplay = () => {
   }
 
   return (
-    <div>
-      <div
-        style={{ position: 'relative', width: '95%', height: '10px', backgroundColor: '#ddd' }}
-        onClick={handleTimelineClick}
-      >
+    <div className="timeline">
+      <div id="Otimeline" onClick={handleTimelineClick}>
         <div
+          id="Itimeline"
           style={{
             position: 'absolute',
             left: 0,
             top: 0,
             bottom: 0,
-            width: `${(progress / duration) * 100}%`,
-            backgroundColor: '#2196F3'
+            width: `${(progress / duration) * 100}%`
           }}
         />
       </div>
@@ -92,22 +89,9 @@ export const MediaTimeDisplay = () => {
           .padStart(2, '0')}
       </div>
 
-      <div
-        className="volume-control"
-        onClick={handleVolumeChange}
-        style={{
-          position: 'relative',
-          width: '50%',
-          height: '20px',
-          backgroundColor: '#ddd',
-          cursor: 'pointer'
-        }}
-      >
+      <div className="volume-control" onClick={handleVolumeChange}>
         <div
           style={{
-            position: 'absolute',
-            height: '100%',
-            backgroundColor: 'green',
             width: `${volume * 100}%`
           }}
         />

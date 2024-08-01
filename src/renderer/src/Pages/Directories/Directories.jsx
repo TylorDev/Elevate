@@ -38,7 +38,6 @@ function Directories() {
           </li>
         ))}
       </ul>
-      <Cola list={currentList} />
     </div>
   )
 }

@@ -43,7 +43,7 @@ export async function getFileInfoWithSongData(common) {
     const filePath = common.filePath
     const { format } = await parseFile(filePath)
     const fileName = path.basename(filePath, path.extname(filePath))
-    const duration = format.duration || 'Unknown'
+    const duration = format.duration || 0
 
     const query = (() => {
       if (common.title && common.artist) {
@@ -80,7 +80,7 @@ export async function getFileInfos(filePaths) {
         const stats = fs.statSync(filePath)
         const { common, format } = await parseFile(filePath)
         const fileName = path.basename(filePath, path.extname(filePath))
-        const duration = format.duration || 'Unknown'
+        const duration = format.duration || 0
 
         return {
           filePath,
