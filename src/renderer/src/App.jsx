@@ -1,5 +1,5 @@
 import './App.scss'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider } from './Contexts/AppContext'
 import Main from './Layouts/Main/Main'
 
@@ -13,18 +13,17 @@ import Playlists from './Pages/Playlists/Playlists'
 import Directories from './Pages/Directories/Directories'
 import Feed from './Pages/Feed/Feed'
 
-import Header from './Components/Header/Header'
+import Music from './Pages/Music/Music'
 
 function App() {
   return (
     <AppProvider>
       <div className="App">
-        <div className="Tittlebar"></div>
-        <Header />
+        <div className="Tittlebar"> xd</div>
+
         <Routes>
           <Route path="/" element={<Main />}>
             <Route index element={<Feed />} />
-            <Route path="*" element={<NotFound />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/favourites" element={<Favourites />} />
             <Route path="/listen-later" element={<ListenLater />} />
@@ -32,9 +31,10 @@ function App() {
             <Route path="/tracks" element={<AllTracks />} />
             <Route path="/2" element={<MediaPlayer />} />
             <Route path="/directories" element={<Directories />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
+          <Route path="/music" element={<Music />} />
         </Routes>
-        <AudioPlayer />
       </div>
     </AppProvider>
   )

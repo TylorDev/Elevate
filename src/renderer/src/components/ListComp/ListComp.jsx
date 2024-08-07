@@ -4,7 +4,7 @@ import { Cola } from './../../Cola'
 import { useAppContext } from '../../Contexts/AppContext'
 import { PlaylistActions } from './../../PlaylistActions'
 
-function ListComp({ dataKey, fetchFunction, className, listName }) {
+function ListComp({ dataKey, fetchFunction, listName }) {
   const { [dataKey]: list, [fetchFunction]: fetchList } = useAppContext()
 
   useEffect(() => {
@@ -14,7 +14,7 @@ function ListComp({ dataKey, fetchFunction, className, listName }) {
   }, [])
 
   return (
-    <div className={className}>
+    <div className="default-class">
       <PlaylistActions name={listName} />
       <h1>{listName}</h1>
       <Cola list={list} name={listName} />

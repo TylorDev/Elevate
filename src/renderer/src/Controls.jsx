@@ -28,6 +28,10 @@ export function Controls() {
         {' '}
         {buttonText}
       </button>
+
+      <button>ver cola</button>
+      <button>repetir</button>
+      <button>aleatorio</button>
     </div>
   )
 }

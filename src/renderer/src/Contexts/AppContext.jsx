@@ -33,7 +33,10 @@ export const AppProvider = ({ children }) => {
         setIsPlaying(false)
       }
     }
-  }, [currentFile.filePath])
+    if (currentFile) {
+      IsSongLiked('is-song-liked', currentFile.filePath, currentFile.fileName)
+    }
+  }, [currentFile.filePath, currentIndex])
 
   useEffect(() => {
     if (metadata && Array.isArray(metadata)) {

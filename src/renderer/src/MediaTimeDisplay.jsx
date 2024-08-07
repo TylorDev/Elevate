@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAppContext } from './Contexts/AppContext'
-
+import { LuVolume2 } from 'react-icons/lu'
 export const MediaTimeDisplay = () => {
   const { mediaRef } = useAppContext()
 
@@ -88,13 +88,15 @@ export const MediaTimeDisplay = () => {
           .toString()
           .padStart(2, '0')}
       </div>
-
-      <div className="volume-control" onClick={handleVolumeChange}>
-        <div
-          style={{
-            width: `${volume * 100}%`
-          }}
-        />
+      <div className="o-vol">
+        <LuVolume2 />
+        <div className="volume-control" onClick={handleVolumeChange}>
+          <div
+            style={{
+              width: `${volume * 100}%`
+            }}
+          />
+        </div>
       </div>
     </div>
   )

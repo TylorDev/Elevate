@@ -9,41 +9,26 @@ body {
 
     font-family: Arial, Helvetica, sans-serif;
 
+
+    width: 100%;
     overflow: hidden;
-    width: 100%;
 
 
 
 }
 
-.Tittlebar {
 
-    color: black;
-    width: 100%;
-
-
-    top: 0;
-    -webkit-app-region: drag;
-    z-index: 9999;
-    cursor: grab;
-
-    grid-column: 1 / span 2; // Columna 1
-    grid-row: 1 / span 1; // Fila 1
-    background-color: transparent;
-
-}
 
 .App {
-    display: grid;
-    grid-template-columns: 0.2fr 2fr;
-    grid-template-rows: 3vh 1fr 15vh;
-
-    //Develop outline
-
-    height: 100vh;
-    background-color: #0A0A0A;
+    background-color: #3e3e3e;
     color: white;
+    display: grid;
+    padding-top: 2rem;
+
+
+    padding-bottom: 1rem;
 }
+
 
 
 

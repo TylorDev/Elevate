@@ -4,7 +4,7 @@ function Header() {
   const getActiveClass = ({ isActive }) => (isActive ? 'activo' : '')
 
   return (
-    <div className="navbar">
+    <div className="navbar" id="Header">
       <NavLink to="/" className={getActiveClass}>
         Feed
       </NavLink>

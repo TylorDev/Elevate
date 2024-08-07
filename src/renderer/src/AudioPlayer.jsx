@@ -4,19 +4,30 @@ import { useAppContext } from './Contexts/AppContext'
 import { Controls } from './Controls'
 import { MediaTimeDisplay } from './MediaTimeDisplay'
 
-export function AudioPlayer() {
-  const { currentFile, BinToBlob, handleNextClick, mediaRef } = useAppContext()
+import { useNavigate } from 'react-router-dom'
 
+export function AudioPlayer() {
+  const { currentFile, BinToBlob, handleNextClick, mediaRef, queue } = useAppContext()
+
+  const navigate = useNavigate()
   return (
-    <div className="AudioPlayer">
-      <div className="cover">
-        <img src={BinToBlob(currentFile?.picture?.[0] || {})} alt="" />
+    <div className="AudioPlayer" id="AudioPlayer">
+      <div
+        className="metadata"
+        onClick={() => {
+          navigate('/music')
+        }}
+      >
+        <div className="cover">
+          <img src={BinToBlob(currentFile?.picture?.[0] || {})} alt="" />
+        </div>
+        <div className="data">
+          <div>{currentFile.title ? currentFile.title : currentFile.fileName}</div>
+          <div>{currentFile.artist}</div>
+          <div>{currentFile.BPM}</div>
+        </div>
       </div>
-      <div className="data">
-        <div>{currentFile.title ? currentFile.title : currentFile.fileName}</div>
-        <div>{currentFile.artist}</div>
-        <div>{currentFile.BPM}</div>
-      </div>
+
       <Controls />
 
       <div className="audiosrc">

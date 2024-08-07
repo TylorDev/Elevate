@@ -1,21 +1,31 @@
 .AudioPlayer {
-
     color: #ffffff;
-
     z-index: 999;
-    grid-column: 1 / span 3; // Columna 1
-    grid-row: 3 / span 3; // Fila 1
     background-color: #151515;
     display: grid;
-    grid-template-columns: minmax(100px, auto) minmax(14rem, 0.5fr) minmax(100px, auto) minmax(200px, 2fr);
+    grid-template-columns: minmax(100px, 3fr) auto 5fr;
     align-items: center;
-    justify-items: center;
+    justify-content: space-between;
     gap: 2rem;
+    width: 100%;
+
 
 
 }
 
+.metadata {
+    margin: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 1rem;
+    border-radius: 1rem;
+    cursor: pointer;
 
+    &:hover {
+        background-color: #252525;
+    }
+}
 
 .cover {
 
@@ -88,32 +98,49 @@
     width: 100%;
 
     .timeline {
-        //Develop outline
-        outline: 2px solid rgb(0, 255, 0);
+
         display: grid;
-        grid-template-columns: 3fr auto 1fr;
+        grid-template-columns: minmax(100px, 3fr) auto minmax(100px, 1fr);
         gap: 1rem;
         align-items: center;
         justify-content: center;
         justify-items: center;
         color: #454545;
 
-        .volume-control {
-            position: relative;
-            width: 50%;
-            height: 10px;
-            border-radius: 1rem;
-            background-color: #454545;
-            cursor: pointer;
 
-            div:first-child {
-                position: absolute;
+        .o-vol {
+            //Develop outline
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+
+            width: 100%;
+
+            svg {
+                font-size: 1.5rem;
+                color: white;
+            }
+
+            .volume-control {
+                position: relative;
+                width: 50%;
+                height: 10px;
                 border-radius: 1rem;
-                height: 100%;
-                background-color: #FF6337;
+                background-color: #454545;
+                cursor: pointer;
+
+
+                div:first-child {
+                    position: absolute;
+                    border-radius: 1rem;
+                    height: 100%;
+                    background-color: #FF6337;
+                }
+
             }
 
         }
+
     }
 
     #Otimeline {
@@ -124,8 +151,10 @@
         background-color: #454545;
         border-radius: 1rem;
         overflow: hidden;
+        cursor: pointer;
 
         #Itimeline {
+
             background-color: #FF6337;
 
         }
