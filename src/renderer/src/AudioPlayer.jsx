@@ -5,10 +5,22 @@ import { Controls } from './Controls'
 import { MediaTimeDisplay } from './MediaTimeDisplay'
 
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 
 export function AudioPlayer() {
-  const { currentFile, BinToBlob, handleNextClick, mediaRef, queue } = useAppContext()
+  const {
+    currentFile,
+    BinToBlob,
+    handleNextClick,
+    mediaRef,
+    queue,
+    saveCurrentTime,
+    loadCurrentTime
+  } = useAppContext()
 
+  useEffect(() => {
+    loadCurrentTime()
+  }, [])
   const navigate = useNavigate()
   return (
     <div className="AudioPlayer" id="AudioPlayer">
@@ -16,6 +28,7 @@ export function AudioPlayer() {
         className="metadata"
         onClick={() => {
           navigate('/music')
+          saveCurrentTime()
         }}
       >
         <div className="cover">

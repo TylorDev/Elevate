@@ -20,6 +20,26 @@ export const AppProvider = ({ children }) => {
   const [m3ulists, setM3uLists] = useState([])
   const [directories, setDiretories] = useState([])
   const [currentLike, setCurrentLike] = useState(false)
+
+  const [currentTime, setCurrentTime] = useState(0)
+
+  const saveCurrentTime = () => {
+    setCurrentTime(mediaRef.current.currentTime)
+
+    setIsPlaying(false)
+
+    console.log(mediaRef.current.currentTime)
+  }
+
+  const loadCurrentTime = () => {
+    if (mediaRef.current) {
+      mediaRef.current.currentTime = currentTime
+      console.log(currentTime)
+
+      setIsPlaying(true)
+    }
+  }
+
   useEffect(() => {
     if (mediaRef.current) {
       mediaRef.current.src = currentFile.filePath
@@ -250,7 +270,9 @@ export const AppProvider = ({ children }) => {
         deleteDirectory,
         IsSongLiked,
         currentLike,
-        toggleLike
+        toggleLike,
+        saveCurrentTime,
+        loadCurrentTime
       }}
     >
       {children}
