@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAppContext } from './Contexts/AppContext'
-import { LuVolume2 } from 'react-icons/lu'
+import { LuVolume2, LuVolumeX } from 'react-icons/lu'
 export const MediaTimeDisplay = () => {
-  const { mediaRef } = useAppContext()
+  const { mediaRef, toggleMute, muted } = useAppContext()
 
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -89,7 +89,8 @@ export const MediaTimeDisplay = () => {
           .padStart(2, '0')}
       </div>
       <div className="o-vol">
-        <LuVolume2 />
+        {muted ? <LuVolumeX onClick={toggleMute} /> : <LuVolume2 onClick={toggleMute} />}
+
         <div className="volume-control" onClick={handleVolumeChange}>
           <div
             style={{

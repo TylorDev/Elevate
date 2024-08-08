@@ -3,26 +3,23 @@ import './Music.scss'
 import { AudioPlayer } from '../../AudioPlayer'
 import { useEffect } from 'react'
 import { useAppContext } from '../../Contexts/AppContext'
+import { Cola } from './../../Cola'
 
 function Music() {
-  const { loadCurrentTime, saveCurrentTime } = useAppContext()
-  useEffect(() => {
-    loadCurrentTime()
-  }, [])
-
   const navigate = useNavigate()
+  const { queue } = useAppContext()
   return (
     <div className="Music">
       Music
       <div
         onClick={() => {
           navigate('/')
-          saveCurrentTime()
         }}
       >
         volver
       </div>
-      <AudioPlayer />
+      <Cola list={queue} />
+      {console.log(queue)}
     </div>
   )
 }

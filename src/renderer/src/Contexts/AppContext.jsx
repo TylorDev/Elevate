@@ -4,6 +4,18 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react'
 // Crea el contexto
 const AppContext = createContext()
 
+const shuffleArray = (array, currentIndex) => {
+  let newArray = [...array]
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    // Intercambia elementos, evitando que el currentIndex cambie de posición
+    if (i !== currentIndex && j !== currentIndex) {
+      ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
+    }
+  }
+  return newArray
+}
+
 // Crea un proveedor de contexto
 export const AppProvider = ({ children }) => {
   const [isPlaying, setIsPlaying] = useState(false)
@@ -14,21 +26,33 @@ export const AppProvider = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [emptyList, setEmptyList] = useState([])
   const [queue, setQueue] = useState([])
+  const [originalQueue, setOriginalQueue] = useState([...queue])
   const [likes, setLikes] = useState([])
   const [later, setLater] = useState([])
   const [history, setHistory] = useState([])
   const [m3ulists, setM3uLists] = useState([])
   const [directories, setDiretories] = useState([])
   const [currentLike, setCurrentLike] = useState(false)
-
+  const [muted, setMuted] = useState(false)
+  const [loop, setLoop] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-
+  const [isShuffled, setIsShuffled] = useState(false)
   const saveCurrentTime = () => {
     setCurrentTime(mediaRef.current.currentTime)
 
     setIsPlaying(false)
 
     console.log(mediaRef.current.currentTime)
+  }
+
+  const toggleShuffle = () => {
+    if (isShuffled) {
+      setQueue(originalQueue)
+    } else {
+      const shuffledQueue = shuffleArray(queue, currentIndex)
+      setQueue(shuffledQueue)
+    }
+    setIsShuffled(!isShuffled)
   }
 
   const loadCurrentTime = () => {
@@ -73,6 +97,7 @@ export const AppProvider = ({ children }) => {
     setCurrentFile(file)
     setCurrentIndex(index)
     setQueue(list)
+    setOriginalQueue(list)
     IsSongLiked('is-song-liked', file.filePath, file.fileName)
   }
 
@@ -102,6 +127,23 @@ export const AppProvider = ({ children }) => {
       } else {
         mediaRef.current.play()
       }
+    }
+  }
+
+  const toggleMute = () => {
+    if (mediaRef.current) {
+      const newMuteState = !muted
+      mediaRef.current.muted = newMuteState
+      setMuted(newMuteState)
+    }
+  }
+
+  const toggleRepeat = () => {
+    if (mediaRef.current) {
+      const newLoopState = !loop
+      mediaRef.current.loop = newLoopState
+      setLoop(newLoopState)
+      console.log(newLoopState)
     }
   }
 
@@ -272,7 +314,13 @@ export const AppProvider = ({ children }) => {
         currentLike,
         toggleLike,
         saveCurrentTime,
-        loadCurrentTime
+        loadCurrentTime,
+        toggleMute,
+        muted,
+        toggleRepeat,
+        loop,
+        toggleShuffle,
+        isShuffled
       }}
     >
       {children}

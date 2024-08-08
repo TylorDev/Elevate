@@ -32,8 +32,8 @@ function App() {
             <Route path="/2" element={<MediaPlayer />} />
             <Route path="/directories" element={<Directories />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/music" element={<Music />} />
           </Route>
-          <Route path="/music" element={<Music />} />
         </Routes>
       </div>
     </AppProvider>

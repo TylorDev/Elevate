@@ -1,7 +1,21 @@
 /* eslint-disable react/prop-types */
 import { useAppContext } from './Contexts/AppContext'
-import { LuHeart, LuHeartOff, LuPause, LuPlay, LuSkipBack, LuSkipForward } from 'react-icons/lu'
+import { TbRepeat, TbRepeatOff, TbTrendingDown2 } from 'react-icons/tb'
+import {
+  LuCornerDownRight,
+  LuHeart,
+  LuHeartOff,
+  LuListVideo,
+  LuPause,
+  LuPlay,
+  LuRepeat,
+  LuRepeat1,
+  LuShuffle,
+  LuSkipBack,
+  LuSkipForward
+} from 'react-icons/lu'
 import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export function Controls() {
   const {
@@ -9,11 +23,14 @@ export function Controls() {
     handlePreviousClick,
     togglePlayPause,
     isPlaying,
-
+    loop,
     currentLike,
-    toggleLike
+    toggleLike,
+    toggleRepeat,
+    toggleShuffle,
+    isShuffled
   } = useAppContext()
-
+  const navigate = useNavigate()
   const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
   return (
     <div className="controls">
@@ -29,9 +46,20 @@ export function Controls() {
         {buttonText}
       </button>
 
-      <button>ver cola</button>
-      <button>repetir</button>
-      <button>aleatorio</button>
+      <button
+        onClick={() => {
+          navigate('/music')
+        }}
+      >
+        <LuListVideo />
+      </button>
+      <button onClick={toggleRepeat}>
+        {loop ? <TbRepeat color="#FF6337" /> : <TbRepeatOff color="#777" />}{' '}
+      </button>
+
+      <button onClick={toggleShuffle}>
+        {isShuffled ? <LuShuffle color="#FF6337" /> : <LuShuffle color="#777" />}
+      </button>
     </div>
   )
 }
