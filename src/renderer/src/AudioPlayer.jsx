@@ -24,7 +24,8 @@ export function AudioPlayer() {
         </div>
         <div className="data">
           <div>{currentFile.title ? currentFile.title : currentFile.fileName}</div>
-          <div>{currentFile.artist}</div>
+          <div>{currentFile.artist || 'Unknown'}</div>
+
           <div>{currentFile.BPM}</div>
         </div>
       </div>

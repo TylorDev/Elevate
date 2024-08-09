@@ -1,11 +1,39 @@
 import { useState, useEffect } from 'react'
 import { useAppContext } from './Contexts/AppContext'
 import { LuVolume2, LuVolumeX } from 'react-icons/lu'
+import { TbRepeat, TbRepeatOff, TbTrendingDown2 } from 'react-icons/tb'
+import {
+  LuCornerDownRight,
+  LuHeart,
+  LuHeartOff,
+  LuListVideo,
+  LuPause,
+  LuPlay,
+  LuRepeat,
+  LuRepeat1,
+  LuShuffle,
+  LuSkipBack,
+  LuSkipForward
+} from 'react-icons/lu'
+
+import { Link, useNavigate } from 'react-router-dom'
 export const MediaTimeDisplay = () => {
   const { mediaRef, toggleMute, muted } = useAppContext()
-
+  const {
+    handleNextClick,
+    handlePreviousClick,
+    togglePlayPause,
+    isPlaying,
+    loop,
+    currentLike,
+    toggleLike,
+    toggleRepeat,
+    toggleShuffle,
+    isShuffled
+  } = useAppContext()
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
+  const navigate = useNavigate()
 
   useEffect(() => {
     const updateProgress = () => {
@@ -78,7 +106,7 @@ export const MediaTimeDisplay = () => {
           }}
         />
       </div>
-      <div>
+      <div className="time">
         {Math.floor(progress / 60)}:
         {Math.floor(progress % 60)
           .toString()
@@ -98,6 +126,22 @@ export const MediaTimeDisplay = () => {
             }}
           />
         </div>
+      </div>
+      <div className="time-buttons">
+        <button onClick={toggleShuffle}>
+          {isShuffled ? <LuShuffle color="#FF6337" /> : <LuShuffle color="#777" />}
+        </button>
+
+        <button onClick={toggleRepeat}>
+          {loop ? <TbRepeat color="#FF6337" /> : <TbRepeatOff color="#777" />}{' '}
+        </button>
+        <button
+          onClick={() => {
+            navigate('/music')
+          }}
+        >
+          <LuListVideo />
+        </button>
       </div>
     </div>
   )
