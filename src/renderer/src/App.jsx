@@ -1,11 +1,8 @@
 import './App.scss'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { AppProvider } from './Contexts/AppContext'
 import Main from './Layouts/Main/Main'
-
 import Favourites from './Pages/Favourites/Favourites'
-import { AudioPlayer } from './AudioPlayer'
-import MediaPlayer from './Mediaplayer'
 import ListenLater from './Pages/ListenLater/ListenLater'
 import AllTracks from './Pages/AllTracks/AllTracks'
 import History from './Pages/History/History'
@@ -29,7 +26,7 @@ function App() {
             <Route path="/listen-later" element={<ListenLater />} />
             <Route path="/history" element={<History />} />
             <Route path="/tracks" element={<AllTracks />} />
-            <Route path="/2" element={<MediaPlayer />} />
+
             <Route path="/directories" element={<Directories />} />
             <Route path="*" element={<NotFound />} />
             <Route path="/music" element={<Music />} />

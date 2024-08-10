@@ -1,23 +1,16 @@
 /* eslint-disable react/prop-types */
-import { useAppContext } from './Contexts/AppContext'
-import { TbRepeat, TbRepeatOff, TbTrendingDown2 } from 'react-icons/tb'
+
 import {
-  LuCornerDownRight,
   LuHeart,
   LuHeartOff,
-  LuListVideo,
   LuPause,
   LuPlay,
-  LuRepeat,
-  LuRepeat1,
-  LuShuffle,
   LuSkipBack,
   LuSkipForward,
   LuVolume2,
   LuVolumeX
 } from 'react-icons/lu'
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useAppContext } from '../../Contexts/AppContext'
 
 export function Controls() {
   const {
@@ -25,16 +18,13 @@ export function Controls() {
     handlePreviousClick,
     togglePlayPause,
     isPlaying,
-    loop,
+
     currentLike,
     toggleLike,
-    toggleRepeat,
-    toggleShuffle,
-    isShuffled,
     muted,
     toggleMute
   } = useAppContext()
-  const navigate = useNavigate()
+
   const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
 
   return (

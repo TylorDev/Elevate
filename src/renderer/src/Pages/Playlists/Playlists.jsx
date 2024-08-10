@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppContext } from '../../Contexts/AppContext'
 import './Playlists.scss'
-
-import { Cola } from './../../Cola'
+import { Cola } from '../../Components/Cola/Cola'
 
 function Playlists() {
   const { getSavedLists, m3ulists, getUniqueList, deletePlaylist } = useAppContext()

@@ -1,8 +1,10 @@
 import './ListComp.scss'
 import { useEffect } from 'react'
-import { Cola } from './../../Cola'
+
 import { useAppContext } from '../../Contexts/AppContext'
-import { PlaylistActions } from './../../PlaylistActions'
+
+import { Cola } from '../Cola/Cola'
+import { PlaylistActions } from '../PlaylistActions/PlaylistActions'
 
 function ListComp({ dataKey, fetchFunction, listName }) {
   const { [dataKey]: list, [fetchFunction]: fetchList } = useAppContext()

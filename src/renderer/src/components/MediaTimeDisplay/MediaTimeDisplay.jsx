@@ -1,36 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useAppContext } from './Contexts/AppContext'
+import { useAppContext } from '../../Contexts/AppContext'
 import { LuVolume2, LuVolumeX } from 'react-icons/lu'
-import { TbRepeat, TbRepeatOff, TbTrendingDown2 } from 'react-icons/tb'
-import {
-  LuCornerDownRight,
-  LuHeart,
-  LuHeartOff,
-  LuListVideo,
-  LuPause,
-  LuPlay,
-  LuRepeat,
-  LuRepeat1,
-  LuShuffle,
-  LuSkipBack,
-  LuSkipForward
-} from 'react-icons/lu'
+import { TbRepeat, TbRepeatOff } from 'react-icons/tb'
+import { LuListVideo, LuShuffle } from 'react-icons/lu'
 
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 export const MediaTimeDisplay = () => {
   const { mediaRef, toggleMute, muted } = useAppContext()
-  const {
-    handleNextClick,
-    handlePreviousClick,
-    togglePlayPause,
-    isPlaying,
-    loop,
-    currentLike,
-    toggleLike,
-    toggleRepeat,
-    toggleShuffle,
-    isShuffled
-  } = useAppContext()
+  const { loop, toggleRepeat, toggleShuffle, isShuffled } = useAppContext()
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const navigate = useNavigate()

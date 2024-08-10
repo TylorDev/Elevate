@@ -1,4 +1,4 @@
-import { useAppContext } from './Contexts/AppContext'
+import { useAppContext } from '../../Contexts/AppContext'
 import './PlaylistActions.scss'
 
 export function PlaylistActions({ name }) {

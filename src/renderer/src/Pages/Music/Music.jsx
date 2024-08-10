@@ -1,9 +1,8 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import './Music.scss'
-import { AudioPlayer } from '../../AudioPlayer'
-import { useEffect } from 'react'
+
 import { useAppContext } from '../../Contexts/AppContext'
-import { Cola } from './../../Cola'
+import { Cola } from '../../Components/Cola/Cola'
 
 function Music() {
   const navigate = useNavigate()

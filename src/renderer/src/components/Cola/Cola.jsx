@@ -1,8 +1,7 @@
 /* eslint-disable react/prop-types */
 
+import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
-
-import { SongItem } from './SongItem'
 
 export function Cola({ list }) {
   return (

@@ -1,25 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAppContext } from '../../Contexts/AppContext'
 import './Directories.scss'
 
-import { Cola } from '../../Cola'
-
 function Directories() {
   const { getDirectories, directories, deleteDirectory } = useAppContext()
-  const [currentList, setCurrentList] = useState([])
+
   useEffect(() => {
     if (directories) {
       getDirectories()
     }
   }, [])
-
-  const formatDuration = (seconds) => {
-    const hrs = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60) // Asegúrate de usar Math.floor para obtener un número entero
-
-    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
 
   return (
     <div className="">

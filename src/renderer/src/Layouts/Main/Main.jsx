@@ -1,7 +1,7 @@
+import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
-import { AudioPlayer } from './../../AudioPlayer'
 
 function Main() {
   return (
