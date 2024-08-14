@@ -3,11 +3,10 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { fileURLToPath } from 'url'
 import icon from '../../resources/icon.png?asset'
-import { setupDatabase } from '../database.mjs'
-import { setupLikeSongHandlers } from './ipc/likehandlers.mjs'
+
+import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
 import { setupM3UHandlers } from './ipc/listm3uhandlers.mjs'
 import { setupFilehandlers } from './ipc/filehandlers.mjs'
-import { setupMusicHandlers } from './ipc/musichandlers.mjs'
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -39,6 +38,10 @@ function createWindow() {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
+
+  setTimeout(() => {
+    mainWindow.webContents.send('time-passed', { seconds: 10 })
+  }, 5000)
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])

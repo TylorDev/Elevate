@@ -23,7 +23,20 @@ export const ElectronGetter = async (action, setState = null, filepath = null) =
   }
 }
 
-export const ElectronSetter = async (action, common, getter = undefined) => {
+export const ElectronGetter2 = async (action, setState = null, value = null) => {
+  try {
+    const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
+    if (fileInfos) {
+      setState?.(fileInfos)
+    } else {
+      console.log('No files were selected')
+    }
+  } catch (error) {
+    console.error('Error selecting files:', error)
+  }
+}
+
+export const ElectronSetter = async (action, common = undefined, getter = undefined) => {
   const { filePath, fileName } = common
   console.log(filePath, fileName)
   try {
@@ -32,6 +45,16 @@ export const ElectronSetter = async (action, common, getter = undefined) => {
       getter()
     }
 
+    console.log('File info:', fileInfo)
+  } catch (error) {
+    console.error('Error saving file:', error)
+  }
+}
+
+export const ElectronSetter2 = async (action, value) => {
+  console.log(value)
+  try {
+    const fileInfo = await window.electron.ipcRenderer.invoke(action, value)
     console.log('File info:', fileInfo)
   } catch (error) {
     console.error('Error saving file:', error)

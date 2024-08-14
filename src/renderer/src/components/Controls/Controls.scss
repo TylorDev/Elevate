@@ -1,0 +1,31 @@
+.controls {
+    grid-area: control;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+
+    justify-content: start;
+    height: 100%;
+    gap: 0.5rem;
+
+
+    svg {
+        color: #ffffff;
+        font-size: 1.5rem;
+
+    }
+
+    .liked {
+        svg {
+
+            fill: #aa134f;
+            color: #aa134f;
+            font-size: 1.5rem;
+        }
+    }
+
+    .mutebtn {
+        display: none;
+    }
+
+}

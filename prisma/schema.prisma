@@ -28,9 +28,9 @@ model UserPreferences {
   is_favorite  Boolean @default(false)
   listen_later Boolean @default(false)
   skip_count   Int     @default(0)
-
+  bpm          Int     @default(0)
   // Relación con Songs
-  Songs Songs @relation(fields: [song_id], references: [song_id])
+  Songs        Songs   @relation(fields: [song_id], references: [song_id])
 
   // Relación con PlayHistory
   PlayHistory PlayHistory[]
@@ -49,9 +49,21 @@ model PlayHistory {
 }
 
 model Playlist {
-  id     Int    @id @default(autoincrement())
-  path   String @unique
-  nombre String @unique
+  id           Int         @id @default(autoincrement())
+  path         String      @unique
+  nombre       String      @unique
+  duracion     Int         @default(0) // Duración total en segundos, valor predeterminado 0
+  numElementos Int         @default(0) // Número de archivos en la playlist, valor predeterminado 0
+  createdAt    DateTime    @default(now())
+  historial    Historial[]
+  totalplays   Int         @default(0)
+}
+
+model Historial {
+  id         Int      @id @default(autoincrement())
+  playlistId Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playedAt   DateTime @default(now())
 }
 
 model Directory {

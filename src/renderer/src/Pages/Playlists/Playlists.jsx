@@ -4,7 +4,8 @@ import './Playlists.scss'
 import { Cola } from '../../Components/Cola/Cola'
 
 function Playlists() {
-  const { getSavedLists, m3ulists, getUniqueList, deletePlaylist } = useAppContext()
+  const { getSavedLists, m3ulists, getUniqueList, deletePlaylist, addPlaylisthistory } =
+    useAppContext()
   const [currentList, setCurrentList] = useState([])
   useEffect(() => {
     if (m3ulists) {
@@ -19,7 +20,22 @@ function Playlists() {
 
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
   }
+  function formatTimestamp(timestamp) {
+    const date = new Date(timestamp)
 
+    // Obtener el día, mes y año
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = String(date.getFullYear()).slice(-2) // Obtener solo los dos últimos dígitos del año
+
+    // Obtener la hora, minutos y segundos
+    const hours = String(date.getHours()).padStart(2, '0')
+    const minutes = String(date.getMinutes()).padStart(2, '0')
+    const seconds = String(date.getSeconds()).padStart(2, '0')
+
+    // Formatear la fecha y hora como dd/mm/aa hh:mm:ss
+    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`
+  }
   return (
     <div className="Playlists">
       <ul>
@@ -29,6 +45,7 @@ function Playlists() {
             key={playlist.id}
             onClick={() => {
               getUniqueList(setCurrentList, playlist.path)
+              addPlaylisthistory(playlist.path)
             }}
           >
             <button
@@ -39,7 +56,10 @@ function Playlists() {
               borrar
             </button>
             <strong>{playlist.nombre}</strong> Path: {playlist.path.substring(0, 20)}... count:{' '}
-            {playlist.totalTracks} - duration:{formatDuration(playlist.totalDuration)}
+            {playlist.numElementos} - duration:{formatDuration(playlist.duracion)} plays:
+            {playlist.totalplays}
+            fecha: {formatTimestamp(playlist.createdAt)}
+            {}
           </li>
         ))}
       </ul>

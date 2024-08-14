@@ -3,8 +3,42 @@ import { load } from 'cheerio'
 import { parseFile } from 'music-metadata'
 import path from 'path'
 import fs from 'fs'
+import { prisma } from '../likehandlers.mjs'
 
-const fetchSongData = async (query) => {
+export async function getOrCreateSong(filepath, filename) {
+  // Upsert the song
+  const song = await prisma.songs.upsert({
+    where: { filepath },
+    update: {}, // No actualizamos nada si la canción ya existe
+    create: { filepath, filename }
+  })
+
+  // Check if the song is newly created
+  if (song.createdAt) {
+    // Create UserPreferences if the song is new
+    await prisma.userPreferences.create({
+      data: {
+        song_id: song.song_id
+        // You can set other default values if needed
+      }
+    })
+  } else {
+    //
+  }
+
+  return song
+}
+
+const fechtBPM = async (query) => {
+  if (!query || query.trim() === '') {
+    console.debug('La canción no existe')
+    return {
+      Name: 'No name found',
+      Artist: 'No artist found',
+      bpm: '000'
+    }
+  }
+
   try {
     const response = await axios.get(
       `https://songdata.io/search?query=${encodeURIComponent(query)}`
@@ -14,6 +48,17 @@ const fetchSongData = async (query) => {
     // Usar cheerio para parsear el HTML
     const $ = load(html)
 
+    // Verificar si existe un h2 con el texto de error
+    const errorH2 = $('h2:contains("An error has occurred, please try again later.")')
+    if (errorH2.length) {
+      console.debug('Error message found: An error has occurred, please try again later.')
+      return {
+        Name: 'Error',
+        Artist: 'Error',
+        bpm: 'Error'
+      }
+    }
+
     // Obtener el primer <td> con clase "table_object"
     const firstTableObject = $('tbody .table_object').first()
 
@@ -22,50 +67,59 @@ const fetchSongData = async (query) => {
     const artistElement = firstTableObject.find('.table_artist').first()
     const trackBpm = firstTableObject.find('.table_bpm').first()
 
+    // Verificar si los elementos existen y tienen texto
+    if (!nameElement.length || !artistElement.length || !trackBpm.length) {
+      console.debug('No se encontraron elementos con las clases esperadas.')
+      return {
+        Name: 'No name found',
+        Artist: 'No artist found',
+        bpm: '000'
+      }
+    }
+
     // Extraer y devolver el texto
     return {
       Name: nameElement.text().trim() || 'No name found',
       Artist: artistElement.text().trim() || 'No artist found',
-      BPM: trackBpm.text().trim() || 'No bpm found'
+      bpm: trackBpm.text().trim() || '000'
     }
   } catch (error) {
     console.error('Error fetching the data:', error)
     return {
       Name: 'Error',
       Artist: 'Error',
-      BPM: 'Error'
+      bpm: 'Error'
     }
   }
 }
 
-export async function getFileInfoWithSongData(common) {
+export async function getSongBpm(common) {
   try {
     const filePath = common.filePath
-    const { format } = await parseFile(filePath)
-    const fileName = path.basename(filePath, path.extname(filePath))
+    const { format, fileName } = await parseFile(filePath)
+
     const duration = format.duration || 0
 
     const query = (() => {
       if (common.title && common.artist) {
         return `${common.title}-${common.artist}`
-      } else if (!common.title && common.artist) {
-        return `${fileName}-${common.artist}`
-      } else if (common.title && !common.artist) {
-        return common.title
-      } else {
-        return fileName
       }
+      return ''
     })()
 
-    // Obtener datos de la canción
-    const songData = await fetchSongData(query)
-    console.error(songData)
+    console.debug('query:', query)
+    // Obtener datos de la canción solo si la query es válida
+    const songData = await fechtBPM(query)
+    console.debug('resultados: ', songData)
+    const bpm = songData?.bpm || 0
+
+    console.log('BPM antes de retornar:', bpm)
 
     return {
       fileName,
       duration,
-      ...songData,
-      ...common
+      ...common,
+      bpm
     }
   } catch (error) {
     console.error(`Error processing file ${common.filePath}:`, error)
@@ -82,12 +136,20 @@ export async function getFileInfos(filePaths) {
         const fileName = path.basename(filePath, path.extname(filePath))
         const duration = format.duration || 0
 
+        const song = await getOrCreateSong(filePath, fileName)
+
+        const userPreference = await prisma.userPreferences.findUnique({
+          where: { song_id: song.song_id },
+          select: { bpm: true }
+        })
+
         return {
           filePath,
           fileName,
           size: stats.size,
           duration,
-          ...common
+          ...common,
+          bpm: userPreference?.bpm || 0
         }
       } catch (error) {
         console.error(`Error processing file ${filePath}:`, error)

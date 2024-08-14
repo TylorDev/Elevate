@@ -3,14 +3,17 @@ import { useAppContext } from '../../Contexts/AppContext'
 import { LuVolume2, LuVolumeX } from 'react-icons/lu'
 import { TbRepeat, TbRepeatOff } from 'react-icons/tb'
 import { LuListVideo, LuShuffle } from 'react-icons/lu'
+import './MediaTimeDisplay.scss'
 
 import { useNavigate } from 'react-router-dom'
+import { Button } from './../Button/Button'
 export const MediaTimeDisplay = () => {
   const { mediaRef, toggleMute, muted } = useAppContext()
   const { loop, toggleRepeat, toggleShuffle, isShuffled } = useAppContext()
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const navigate = useNavigate()
+  const [volume, setVolume] = useState(1)
 
   useEffect(() => {
     const updateProgress = () => {
@@ -55,7 +58,7 @@ export const MediaTimeDisplay = () => {
     // Actualiza el tiempo actual del medio
     mediaRef.current.currentTime = newTime
   }
-  const [volume, setVolume] = useState(1)
+
   const handleVolumeChange = (e) => {
     const volumeSlider = e.currentTarget
     const volumeWidth = volumeSlider.clientWidth
@@ -71,55 +74,53 @@ export const MediaTimeDisplay = () => {
 
   return (
     <div className="timeline">
-      <div id="Otimeline" onClick={handleTimelineClick}>
-        <div
-          id="Itimeline"
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: `${(progress / duration) * 100}%`
-          }}
-        />
-      </div>
-      <div className="time">
+      <div>
         {Math.floor(progress / 60)}:
         {Math.floor(progress % 60)
           .toString()
           .padStart(2, '0')}{' '}
+      </div>
+
+      <Timeline handleTimelineClick={handleTimelineClick} progress={progress} duration={duration} />
+      <div>
         /{Math.floor(duration / 60)}:
         {Math.floor(duration % 60)
           .toString()
           .padStart(2, '0')}
       </div>
-      <div className="o-vol">
-        {muted ? <LuVolumeX onClick={toggleMute} /> : <LuVolume2 onClick={toggleMute} />}
+    </div>
+  )
+}
 
-        <div className="volume-control" onClick={handleVolumeChange}>
-          <div
-            style={{
-              width: `${volume * 100}%`
-            }}
-          />
-        </div>
-      </div>
-      <div className="time-buttons">
-        <button onClick={toggleShuffle}>
-          {isShuffled ? <LuShuffle color="#FF6337" /> : <LuShuffle color="#777" />}
-        </button>
+function Volume({ muted, toggleMute, handleVolumeChange, volume }) {
+  return (
+    <div className="o-vol">
+      {muted ? <LuVolumeX onClick={toggleMute} /> : <LuVolume2 onClick={toggleMute} />}
 
-        <button onClick={toggleRepeat}>
-          {loop ? <TbRepeat color="#FF6337" /> : <TbRepeatOff color="#777" />}{' '}
-        </button>
-        <button
-          onClick={() => {
-            navigate('/music')
+      <div className="volume-control" onClick={handleVolumeChange}>
+        <div
+          style={{
+            width: `${volume * 100}%`
           }}
-        >
-          <LuListVideo />
-        </button>
+        />
       </div>
+    </div>
+  )
+}
+
+function Timeline({ handleTimelineClick, progress, duration }) {
+  return (
+    <div id="Otimeline" onClick={handleTimelineClick}>
+      <div
+        id="Itimeline"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: `${(progress / duration) * 100}%`
+        }}
+      />
     </div>
   )
 }

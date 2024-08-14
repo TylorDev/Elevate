@@ -1,45 +1,18 @@
 import { ipcMain } from 'electron'
 
-import { getFileInfos } from './utils/utils.mjs'
+import { getFileInfos, getOrCreateSong } from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
 
-const prisma = new PrismaClient()
+import { getSongBpm } from './utils/utils.mjs'
+export const prisma = new PrismaClient()
 
-async function getOrCreateSong(filepath, filename) {
-  // Upsert the song
-  const song = await prisma.songs.upsert({
-    where: { filepath },
-    update: {}, // No actualizamos nada si la canción ya existe
-    create: { filepath, filename }
-  })
-
-  // Check if the song is newly created
-  if (song.createdAt) {
-    console.debug('Song added successfully:', { filepath, filename, songId: song.song_id })
-
-    // Create UserPreferences if the song is new
-    await prisma.userPreferences.create({
-      data: {
-        song_id: song.song_id
-        // You can set other default values if needed
-      }
-    })
-
-    console.debug('User preferences created for new song:', { songId: song.song_id })
-  } else {
-    console.debug('Song already exists:', song)
-  }
-
-  return song
-}
-
-async function markUserPreference(songId, preferenceField) {
+async function markUserPreference(songId, preferenceField, preferenceValue = true) {
   await prisma.userPreferences.upsert({
     where: { song_id: songId },
-    update: { [preferenceField]: true },
+    update: { [preferenceField]: preferenceValue },
     create: {
       song_id: songId,
-      [preferenceField]: true
+      [preferenceField]: preferenceValue
     }
   })
 }
@@ -180,6 +153,62 @@ async function getPlayHistoryOrdered() {
   }
 }
 
+async function getLatestPlayHistoryRecord() {
+  try {
+    // Obtener el registro más reciente de PlayHistory ordenado por el campo timestamp
+    const latestPlayHistoryRecord = await prisma.playHistory.findFirst({
+      orderBy: {
+        timestamp: 'desc' // Ordenar de más reciente a más antiguo
+      },
+      select: {
+        song_id: true,
+        timestamp: true, // Incluye el campo timestamp para información adicional
+        Songs: {
+          select: {
+            filepath: true,
+            filename: true
+          }
+        }
+      }
+    })
+
+    if (!latestPlayHistoryRecord) {
+      return { success: false, message: 'No play history records found.' }
+    }
+
+    // console.debug('Latest play history record:', latestPlayHistoryRecord)
+
+    // Opcional: Si necesitas información adicional de la canción, puedes obtenerla aquí
+    const fileInfos = await getFileInfos([latestPlayHistoryRecord.Songs.filepath])
+
+    return fileInfos.length > 0 ? fileInfos[0] : null
+  } catch (error) {
+    console.error('Error retrieving latest play history record:', error)
+    return { success: false, error: error.message }
+  }
+}
+async function searchSongPathsByName(searchText) {
+  try {
+    const songs = await prisma.songs.findMany({
+      where: {
+        filename: {
+          contains: searchText
+        }
+      },
+      select: {
+        filepath: true // Selecciona solo el campo filepath
+      }
+    })
+
+    // Extrae solo los paths de los resultados
+    const paths = Array.isArray(songs) ? songs.map((song) => song.filepath) : []
+
+    return paths
+  } catch (error) {
+    console.error('Error al buscar canciones:', error)
+    throw error
+  }
+}
 export function setupLikeSongHandlers() {
   ipcMain.handle('like-song', async (event, filepath, filename) => {
     try {
@@ -252,6 +281,10 @@ export function setupLikeSongHandlers() {
     return getPlayHistoryOrdered()
   })
 
+  ipcMain.handle('get-lastest', async (event) => {
+    return getLatestPlayHistoryRecord()
+  })
+
   ipcMain.handle('remove-listen-later', (event, filepath, filename) => {
     return updateSongPreference(filepath, async (songId) => {
       // Actualizar el estado "Listen Later"
@@ -260,5 +293,31 @@ export function setupLikeSongHandlers() {
         data: { listen_later: false }
       })
     })
+  })
+}
+
+export function setupMusicHandlers() {
+  ipcMain.handle('getbpm', async (event, common) => {
+    try {
+      const { filePath, fileName } = common
+      const fileInfo = await getSongBpm(common)
+
+      console.log('recibido[getbpm-Handler]', fileInfo.bpm) // Verifica que fileInfo.bpm tenga el valor correcto
+
+      const song = await getOrCreateSong(filePath, fileName)
+      await markUserPreference(song.song_id, 'bpm', parseInt(fileInfo.bpm))
+
+      return fileInfo
+    } catch (error) {
+      console.error(`Error in getbpm handler:`, error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('search', async (event, query) => {
+    const results = await searchSongPathsByName(query)
+    console.debug(results)
+    const fileInfos = await getFileInfos(results)
+    return fileInfos
   })
 }

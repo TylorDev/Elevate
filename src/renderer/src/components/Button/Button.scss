@@ -1,0 +1,32 @@
+#Button {
+
+    background-color: transparent;
+
+    height: 2.5rem;
+    aspect-ratio: 1/1;
+    border-radius: 100%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid white;
+
+    &:hover {
+        background-color: #1c1b1b;
+        border-color: orangered;
+
+
+    }
+
+    &:active {
+        outline: 2px solid rgb(255, 255, 255);
+        z-index: 999;
+    }
+
+    svg {
+
+
+        font-size: 1.3rem;
+    }
+}

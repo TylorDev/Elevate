@@ -11,6 +11,13 @@ import {
   LuVolumeX
 } from 'react-icons/lu'
 import { useAppContext } from '../../Contexts/AppContext'
+import './Controls.scss'
+import { Button } from '../Button/Button'
+import { LuShuffle } from 'react-icons/lu'
+import { TbRepeat } from 'react-icons/tb'
+import { TbRepeatOff } from 'react-icons/tb'
+import { LuListVideo } from 'react-icons/lu'
+import { useNavigate } from 'react-router-dom'
 
 export function Controls() {
   const {
@@ -22,27 +29,49 @@ export function Controls() {
     currentLike,
     toggleLike,
     muted,
-    toggleMute
+    toggleMute,
+    toggleShuffle,
+    toggleRepeat,
+    isShuffled,
+    loop
   } = useAppContext()
 
   const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
-
+  const navigate = useNavigate()
   return (
-    <div className="controls">
-      <button onClick={handlePreviousClick}>
+    <div className="controls" id="controls">
+      <Button onClick={handlePreviousClick} className="btnBack">
         <LuSkipBack />
-      </button>
-      <button onClick={togglePlayPause}>{isPlaying ? <LuPause /> : <LuPlay />}</button>
-      <button onClick={handleNextClick}>
+      </Button>
+      <Button className="btnPlay" onClick={togglePlayPause}>
+        {isPlaying ? <LuPause /> : <LuPlay />}
+      </Button>
+      <Button className="btnNext" onClick={handleNextClick}>
         <LuSkipForward />
-      </button>
-      <button className={currentLike ? 'liked' : ''} onClick={toggleLike}>
+      </Button>
+      <Button className={currentLike ? 'btnLike liked' : 'btnLike'} onClick={toggleLike}>
         {' '}
         {buttonText}
-      </button>
-      <button className="mutebtn" onClick={toggleMute}>
+      </Button>
+      <Button className="btnMute" onClick={toggleMute}>
         {muted ? <LuVolumeX /> : <LuVolume2 />}
-      </button>
+      </Button>
+
+      <Button className="btnShuffle" onClick={toggleShuffle}>
+        {isShuffled ? <LuShuffle color="#FF6337" /> : <LuShuffle color="#777" />}
+      </Button>
+
+      <Button className="btnRepeat" onClick={toggleRepeat}>
+        {loop ? <TbRepeat color="#FF6337" /> : <TbRepeatOff color="#777" />}{' '}
+      </Button>
+      <Button
+        className="btnList"
+        onClick={() => {
+          navigate('/music')
+        }}
+      >
+        <LuListVideo />
+      </Button>
     </div>
   )
 }

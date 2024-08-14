@@ -1,6 +1,13 @@
 /* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { ElectronGetter, ElectronSetter, electronInvoke, BinToBlob } from './utils'
+import {
+  ElectronGetter,
+  ElectronSetter,
+  electronInvoke,
+  BinToBlob,
+  ElectronSetter2,
+  ElectronGetter2
+} from './utils'
 import { goToNext, goToPrevious, ToLike, toMute, toPlay, toRepeat, toShuffle } from './utilControls'
 import { validateLike } from './utilMenu'
 
@@ -27,6 +34,7 @@ export const AppProvider = ({ children }) => {
   const [muted, setMuted] = useState(false)
   const [loop, setLoop] = useState(false)
   const [isShuffled, setIsShuffled] = useState(false)
+  const [results, setResults] = useState([])
 
   //----------------controls
 
@@ -79,14 +87,71 @@ export const AppProvider = ({ children }) => {
       setCola(filePaths)
     }
   }, [metadata])
+
+  useEffect(() => {
+    getAllSongs()
+    getLastSong()
+  }, [])
+
+  useEffect(() => {
+    const audio = mediaRef.current
+
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentFile.title ? currentFile.title : currentFile.fileName,
+        artist: currentFile.artist || 'Unknown',
+        album: 'Unknown',
+        artwork: [
+          {
+            src: BinToBlob(currentFile?.picture?.[0] || {}),
+            sizes: '300x300',
+            type: 'image/jpeg'
+          }
+        ]
+      })
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        audio.play()
+      })
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audio.pause()
+      })
+
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0)
+      })
+
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration)
+      })
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        handlePreviousClick()
+      })
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        handleNextClick()
+      })
+    }
+  }, [currentFile])
   //------------------menu buttons
   const isSongLiked = async (filePath, fileName) => {
     await validateLike(filePath, fileName, setCurrentLike)
   }
 
-  const handleGetBPMClick = async (filePath, common) => {
-    const fileInfo = await electronInvoke('getbpm', filePath, common)
-    if (fileInfo) console.log('File info:', fileInfo)
+  const handleGetBPMClick = async (common) => {
+    const fileInfo = await electronInvoke('getbpm', common)
+
+    if (fileInfo) {
+      console.log('File info:', fileInfo.bpm)
+
+      setMetadata((prevMetadata) =>
+        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
+      )
+
+      setCurrentFile(fileInfo)
+    }
   }
 
   const handleSongClick = (file, index, list) => {
@@ -95,6 +160,7 @@ export const AppProvider = ({ children }) => {
     setQueue(list)
     setOriginalQueue(list)
     isSongLiked(file.filePath, file.fileName)
+    addhistory(file)
   }
 
   const addItemToEmptyList = (item) => {
@@ -104,6 +170,7 @@ export const AppProvider = ({ children }) => {
 
   //---------------- system list
   const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata)
+  const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile)
   const addhistory = (common) => ElectronSetter('add-history', common)
   const getHistory = () => ElectronGetter('get-history', setHistory)
   const handleSaveClick = async () => {
@@ -124,9 +191,10 @@ export const AppProvider = ({ children }) => {
     getDirectories()
     ElectronGetter('delete-directory', setState, filePath)
   }
-
+  const addPlaylisthistory = (path) => ElectronSetter2('add-list-to-history', path)
   //-----------UserLists
   const getSavedLists = () => ElectronGetter('get-playlists', setM3uLists)
+
   const getUniqueList = (setState, filePath) => {
     ElectronGetter('open-list', setState, filePath)
     // Puedes realizar acciones adicionales con fileInfos si es necesario
@@ -139,11 +207,23 @@ export const AppProvider = ({ children }) => {
   }
 
   const openM3U = () => ElectronGetter('open-m3u', setMetadata)
-
+  const searchSongs = (value) => ElectronGetter2('search', setResults, value)
   //Funciones no usadas
   const selectFiles = () => ElectronGetter('select-files', setMetadata)
   const detectM3U = () => ElectronGetter('detect-m3u', setMetadata)
 
+  const ipcHandle = () =>
+    window.electron.ipcRenderer.on('time-passed', (event, data) => {
+      if (data && data.seconds !== undefined) {
+        console.log(`Han pasado ${data.seconds} segundos.`)
+        // Aquí puedes manejar el evento, actualizar la UI, etc.
+      } else {
+        console.error('Datos inválidos recibidos:', data)
+      }
+      // Aquí puedes manejar el evento, actualizar la UI, etc.
+    })
+
+  ipcHandle()
   return (
     <AppContext.Provider
       value={{
@@ -193,7 +273,10 @@ export const AppProvider = ({ children }) => {
         toggleRepeat,
         loop,
         toggleShuffle,
-        isShuffled
+        isShuffled,
+        addPlaylisthistory,
+        searchSongs,
+        results
       }}
     >
       {children}

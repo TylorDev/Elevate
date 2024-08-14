@@ -1,10 +1,45 @@
 import { dialog, ipcMain } from 'electron'
 
-import { getFileInfos, getAllAudioFiles } from './utils/utils.mjs'
+import { getFileInfos, getAllAudioFiles, getOrCreateSong } from './utils/utils.mjs'
 
 import { PrismaClient } from '@prisma/client'
-
+import fs from 'fs'
+import path from 'path'
 const prisma = new PrismaClient()
+const watchedDirectories = new Set()
+
+function watchDirectory(dirPath) {
+  if (watchedDirectories.has(dirPath)) {
+    console.log(`El directorio ${dirPath} ya está siendo vigilado.`)
+    return
+  }
+
+  fs.watch(dirPath, (eventType, filename) => {
+    if (eventType === 'rename' && filename) {
+      const fullPath = path.join(dirPath, filename)
+      if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
+        const basenameWithoutExt = path.parse(filename).name
+        getOrCreateSong(fullPath, basenameWithoutExt)
+        // handleNewFile(fullPath, basenameWithoutExt)
+        console.log(`Archivo detectado:`)
+        console.log(`Ruta completa: ${fullPath}`)
+        console.log(`Basename sin extensión: ${basenameWithoutExt}`)
+      }
+    }
+  })
+
+  watchedDirectories.add(dirPath)
+  console.log(`Vigilando el directorio: ${dirPath}`)
+}
+
+// function handleNewFile(filepath, basenameWithoutExt) {
+//   // Envía los datos al proceso de renderizado
+//   mainWindow.webContents.send('new-file', {
+//     filepath,
+//     basenameWithoutExt
+//   })
+// }
+
 export function setupFilehandlers() {
   // // Añadir la función de selección de archivos
   // ipcMain.handle('select-file', async () => {
@@ -47,7 +82,6 @@ export function setupFilehandlers() {
         return null // O manejar la cancelación según sea necesario
       }
       const directoryPath = result.filePaths[0]
-      console.debug(directoryPath)
 
       // Upsert en Prisma para agregar o actualizar el directorio
       await prisma.directory.upsert({
@@ -65,7 +99,6 @@ export function setupFilehandlers() {
     try {
       // Obtener todos los directorios de la base de datos
       const directories = await prisma.directory.findMany()
-      console.debug(directories)
 
       if (directories.length === 0) {
         return [] // No hay directorios, devolver un array vacío
@@ -75,6 +108,7 @@ export function setupFilehandlers() {
       let allAudioFiles = []
       for (const directory of directories) {
         const audioFiles = getAllAudioFiles(directory.path)
+        watchDirectory(directory.path)
         allAudioFiles = allAudioFiles.concat(audioFiles)
       }
 

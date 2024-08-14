@@ -3,13 +3,13 @@ import './Music.scss'
 
 import { useAppContext } from '../../Contexts/AppContext'
 import { Cola } from '../../Components/Cola/Cola'
+import { AudioPlayer } from './../../Components/AudioPlayer/AudioPlayer'
 
 function Music() {
   const navigate = useNavigate()
   const { queue } = useAppContext()
   return (
     <div className="Music">
-      Music
       <div
         onClick={() => {
           navigate('/')
