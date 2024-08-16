@@ -24,7 +24,10 @@ export const AppProvider = ({ children }) => {
     IsPlayingSetter,
     loop,
     LoopSetter,
-    getAllSongs
+    getAllSongs,
+    selectFiles,
+    openM3U,
+    detectM3U
   } = useSuper()
 
   const [queue, setQueue] = useState([]) // 5 ref  - 2 ref
@@ -84,11 +87,6 @@ export const AppProvider = ({ children }) => {
     addhistory(file)
   } //0 ref
 
-  const openM3U = () => ElectronGetter('open-m3u', MetadataSetter) // 0 ref
-
-  const selectFiles = () => ElectronGetter('select-files', MetadataSetter) // 0 ref
-  const detectM3U = () => ElectronGetter('detect-m3u', MetadataSetter) //   0 ref
-
   const toggleShuffle = () => {
     toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, IsShuffledSetter)
   } //0 ref
@@ -105,8 +103,6 @@ export const AppProvider = ({ children }) => {
   const toggleLike = () => {
     ToLike(currentFile, currentLike, likesong, unlikesong, setCurrentLike)
   } //0 ref
-
-  //Mover
 
   //----------useEffect
   useEffect(() => {

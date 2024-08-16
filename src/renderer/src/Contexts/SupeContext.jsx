@@ -30,8 +30,12 @@ export const SuperProvider = ({ children }) => {
   const LoopSetter = (value) => Setter(setLoop, value)
   const IsPlayingSetter = (value) => Setter(setIsPlaying, value)
 
-  const getLastSong = () => ElectronGetter('get-lastest', CurrentFileSetter) //0 ref
-  const getAllSongs = () => ElectronGetter('get-all-audio-files', MetadataSetter) //1 ref
+  const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile) //0 ref
+  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
+
+  const openM3U = () => ElectronGetter('open-m3u', MetadataSetter) // 0 ref
+  const selectFiles = () => ElectronGetter('select-files', MetadataSetter) // 0 ref
+  const detectM3U = () => ElectronGetter('detect-m3u', MetadataSetter) //   0 ref
 
   useEffect(() => {
     getAllSongs()
@@ -56,7 +60,10 @@ export const SuperProvider = ({ children }) => {
         IsPlayingSetter,
         metadata,
         MetadataSetter,
-        getAllSongs
+        getAllSongs,
+        openM3U,
+        selectFiles,
+        detectM3U
       }}
     >
       {children}
