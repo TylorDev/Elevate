@@ -1,4 +1,5 @@
 import { useAppContext } from '../../Contexts/AppContext'
+import { useMini } from '../../Contexts/MiniContext'
 import './PlaylistActions.scss'
 
 export function PlaylistActions({ name }) {
@@ -10,9 +11,9 @@ export function PlaylistActions({ name }) {
 
     getlikes,
 
-    getSavedLists,
     getAllSongs
   } = useAppContext()
+  const { getSavedLists } = useMini()
 
   return (
     <div className="PlaylistActions">

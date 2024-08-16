@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { useAppContext } from '../../Contexts/AppContext'
+
 import './Playlists.scss'
 import { Cola } from '../../Components/Cola/Cola'
+import { useMini } from '../../Contexts/MiniContext'
 
 function Playlists() {
-  const { getSavedLists, m3ulists, getUniqueList, deletePlaylist, addPlaylisthistory } =
-    useAppContext()
+  const { getSavedLists, m3ulists } = useMini()
+
+  const { getUniqueList, deletePlaylist, addPlaylisthistory } = useMini()
   const [currentList, setCurrentList] = useState([])
   useEffect(() => {
     if (m3ulists) {

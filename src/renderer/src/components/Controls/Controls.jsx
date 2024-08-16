@@ -25,7 +25,6 @@ export function Controls() {
     handlePreviousClick,
     togglePlayPause,
     isPlaying,
-
     currentLike,
     toggleLike,
     muted,

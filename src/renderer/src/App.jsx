@@ -1,6 +1,6 @@
 import './App.scss'
 import { Route, Routes } from 'react-router-dom'
-import { AppProvider, useAppContext } from './Contexts/AppContext'
+import { useAppContext } from './Contexts/AppContext'
 import Main from './Layouts/Main/Main'
 import Favourites from './Pages/Favourites/Favourites'
 import ListenLater from './Pages/ListenLater/ListenLater'
@@ -13,6 +13,8 @@ import Feed from './Pages/Feed/Feed'
 import Music from './Pages/Music/Music'
 import Search from './Pages/Search/Search'
 import { useEffect } from 'react'
+import { MiniProvider } from './Contexts/MiniContext'
+import { useSuper } from './Contexts/SupeContext'
 
 function App() {
   const { getAllSongs } = useAppContext()
@@ -32,7 +34,7 @@ function App() {
   }, [])
 
   return (
-    <>
+    <MiniProvider>
       <div className="App">
         <div className="Tittlebar"> xd</div>
         <AudioProvider></AudioProvider>
@@ -51,12 +53,13 @@ function App() {
           <Route path="/music" element={<Music />} />
         </Routes>
       </div>
-    </>
+    </MiniProvider>
   )
 }
 
 function AudioProvider() {
   const { currentFile, handleNextClick, mediaRef } = useAppContext()
+
   return (
     <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
       <source src={currentFile.filePath} type="audio/mpeg" />

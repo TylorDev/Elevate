@@ -1,13 +1,6 @@
 /* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import {
-  ElectronGetter,
-  ElectronSetter,
-  electronInvoke,
-  BinToBlob,
-  ElectronSetter2,
-  ElectronGetter2
-} from './utils'
+import { ElectronGetter, ElectronSetter, electronInvoke, BinToBlob, ElectronSetter2 } from './utils'
 import { goToNext, goToPrevious, ToLike, toMute, toPlay, toRepeat, toShuffle } from './utilControls'
 import { validateLike } from './utilMenu'
 
@@ -16,70 +9,99 @@ const AppContext = createContext()
 
 // Crea un proveedor de contexto
 export const AppProvider = ({ children }) => {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const mediaRef = useRef(null)
-  const [metadata, setMetadata] = useState(null)
-  const [cola, setCola] = useState([])
-  const [currentFile, setCurrentFile] = useState('')
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [emptyList, setEmptyList] = useState([])
-  const [queue, setQueue] = useState([])
-  const [originalQueue, setOriginalQueue] = useState([...queue])
-  const [likes, setLikes] = useState([])
-  const [later, setLater] = useState([])
-  const [history, setHistory] = useState([])
-  const [m3ulists, setM3uLists] = useState([])
-  const [directories, setDiretories] = useState([])
-  const [currentLike, setCurrentLike] = useState(false)
-  const [muted, setMuted] = useState(false)
-  const [loop, setLoop] = useState(false)
-  const [isShuffled, setIsShuffled] = useState(false)
-  const [results, setResults] = useState([])
-  const [most, setMost] = useState([])
-  const [recents, setRecents] = useState([])
-  //----------------controls
+  const [queue, setQueue] = useState([]) // 5 ref  - 2 ref
+  const [originalQueue, setOriginalQueue] = useState([...queue]) // 1 ref check
+  const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
+  const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
+  const mediaRef = useRef(null) //2  ref
+  const [isPlaying, setIsPlaying] = useState(false) //1 ref check
+  const [metadata, setMetadata] = useState(null) // 1 ref - 5ref
+  const [currentLike, setCurrentLike] = useState(false) // 1 ref  -  2 ref
+  const [cola, setCola] = useState([]) // 0 ref  -  1 ref
+  const [likes, setLikes] = useState([]) // 1 ref   check
+  const [muted, setMuted] = useState(false) // 1 ref  check
+  const [loop, setLoop] = useState(false) //  1 ref check
+  const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
+
+  //Like
+  const isSongLiked = async (filePath, fileName) => {
+    await validateLike(filePath, fileName, setCurrentLike)
+  } //2 ref
+
+  const likesong = (common) => ElectronSetter('like-song', common) //1 ref
+  const getLikes = () => ElectronGetter('get-likes', setLikes) //1 ref
+  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes) //1 ref
+  //CurrentFile
+  //Metadata
+  //Queue
 
   const handlePreviousClick = () => {
     goToPrevious(currentIndex, queue, setCurrentIndex, setCurrentFile)
-  }
+  } //1 ref
   const handleNextClick = () => {
     goToNext(currentIndex, queue, setCurrentIndex, setCurrentFile)
-  }
+  } //1 ref
+
+  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
+
+  const addhistory = (common) => ElectronSetter('add-history', common) //1 ref
+
+  const handleGetBPMClick = async (common) => {
+    const fileInfo = await electronInvoke('getbpm', common)
+
+    if (fileInfo) {
+      console.log('File info:', fileInfo.bpm)
+
+      setMetadata((prevMetadata) =>
+        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
+      )
+
+      setCurrentFile(fileInfo)
+    }
+  } //0 ref
+
+  const handleSaveClick = async () => {
+    const paths = queue.map((file) => file.filePath)
+    const result = await electronInvoke('save-m3u', { filePaths: paths })
+    if (result && result.success) {
+      console.log('M3U file saved successfully at', result.path)
+    }
+  } //0 ref
+
+  const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile) //0 ref
+
+  const handleSongClick = (file, index, list) => {
+    setCurrentFile(file)
+    setCurrentIndex(index)
+    setQueue(list)
+    setOriginalQueue(list)
+    isSongLiked(file.filePath, file.fileName)
+    addhistory(file)
+  } //0 ref
+
+  const openM3U = () => ElectronGetter('open-m3u', setMetadata) // 0 ref
+
+  const selectFiles = () => ElectronGetter('select-files', setMetadata) // 0 ref
+  const detectM3U = () => ElectronGetter('detect-m3u', setMetadata) //   0 ref
+
   const toggleShuffle = () => {
     toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, setIsShuffled)
-  }
+  } //0 ref
   const togglePlayPause = () => {
     toPlay(mediaRef, isPlaying)
-  }
+  } //0 ref
   const toggleMute = () => {
     toMute(mediaRef, muted, setMuted)
-  }
+  } //0 ref
   const toggleRepeat = () => {
     toRepeat(mediaRef, loop, setLoop)
-  }
+  } //0 ref
 
   const toggleLike = () => {
     ToLike(currentFile, currentLike, likesong, unlikesong, setCurrentLike)
-  }
+  } //0 ref
 
-  const likesong = (common) => ElectronSetter('like-song', common)
-  useEffect(() => {
-    if (mediaRef.current) {
-      mediaRef.current.src = currentFile.filePath
-
-      // Manejar eventos de reproducción
-      mediaRef.current.onplay = () => {
-        setIsPlaying(true)
-      }
-
-      mediaRef.current.onpause = () => {
-        setIsPlaying(false)
-      }
-    }
-    if (currentFile) {
-      isSongLiked(currentFile.filePath, currentFile.fileName)
-    }
-  }, [currentFile.filePath, currentIndex])
+  //Mover
 
   //----------useEffect
   useEffect(() => {
@@ -92,7 +114,6 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     getAllSongs()
     getLastSong()
-    getRecents()
   }, [])
 
   useEffect(() => {
@@ -138,84 +159,23 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentFile])
 
-  //------------------menu buttons
-  const isSongLiked = async (filePath, fileName) => {
-    await validateLike(filePath, fileName, setCurrentLike)
-  }
+  useEffect(() => {
+    if (mediaRef.current) {
+      mediaRef.current.src = currentFile.filePath
 
-  const handleGetBPMClick = async (common) => {
-    const fileInfo = await electronInvoke('getbpm', common)
+      // Manejar eventos de reproducción
+      mediaRef.current.onplay = () => {
+        setIsPlaying(true)
+      }
 
-    if (fileInfo) {
-      console.log('File info:', fileInfo.bpm)
-
-      setMetadata((prevMetadata) =>
-        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
-      )
-
-      setCurrentFile(fileInfo)
+      mediaRef.current.onpause = () => {
+        setIsPlaying(false)
+      }
     }
-  }
-
-  const handleSongClick = (file, index, list) => {
-    setCurrentFile(file)
-    setCurrentIndex(index)
-    setQueue(list)
-    setOriginalQueue(list)
-    isSongLiked(file.filePath, file.fileName)
-    addhistory(file)
-  }
-
-  const addItemToEmptyList = (item) => {
-    setEmptyList([...emptyList, item])
-  }
-  const latersong = (common) => ElectronSetter('listen-later-song', common)
-
-  //---------------- system list
-  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata)
-  const getMost = () => ElectronGetter('get-most-played', setMost)
-  const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile)
-  const addhistory = (common) => ElectronSetter('add-history', common)
-  const getHistory = () => ElectronGetter('get-history', setHistory)
-  const handleSaveClick = async () => {
-    const paths = queue.map((file) => file.filePath)
-    const result = await electronInvoke('save-m3u', { filePaths: paths })
-    if (result && result.success) {
-      console.log('M3U file saved successfully at', result.path)
+    if (currentFile) {
+      isSongLiked(currentFile.filePath, currentFile.fileName)
     }
-  }
-  const getDirectories = () => ElectronGetter('get-all-directories', setDiretories)
-  const getRecents = () => ElectronGetter('get-recents', setRecents)
-  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
-  const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
-  const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
-  const getLikes = () => ElectronGetter('get-likes', setLikes)
-
-  const deleteDirectory = (filePath) => {
-    const setState = []
-    getDirectories()
-    ElectronGetter('delete-directory', setState, filePath)
-  }
-  const addPlaylisthistory = (path) => ElectronSetter2('add-list-to-history', path)
-  //-----------UserLists
-  const getSavedLists = () => ElectronGetter('get-playlists', setM3uLists)
-
-  const getUniqueList = (setState, filePath) => {
-    ElectronGetter('open-list', setState, filePath)
-    // Puedes realizar acciones adicionales con fileInfos si es necesario
-  }
-  const deletePlaylist = (filePath) => {
-    const setState = []
-    ElectronGetter('delete-playlist', setState, filePath)
-
-    // Puedes realizar acciones adicionales con fileInfos si es necesario
-  }
-
-  const openM3U = () => ElectronGetter('open-m3u', setMetadata)
-  const searchSongs = (value) => ElectronGetter2('search', setResults, value)
-  //Funciones no usadas
-  const selectFiles = () => ElectronGetter('select-files', setMetadata)
-  const detectM3U = () => ElectronGetter('detect-m3u', setMetadata)
+  }, [currentFile.filePath, currentIndex])
 
   return (
     <AppContext.Provider
@@ -224,9 +184,7 @@ export const AppProvider = ({ children }) => {
         cola,
         currentFile,
         currentIndex,
-        emptyList,
         queue,
-        addItemToEmptyList,
         handleSongClick,
         handlePreviousClick,
         handleNextClick,
@@ -243,21 +201,8 @@ export const AppProvider = ({ children }) => {
         getlikes: getLikes,
         unlikesong,
         likes,
-        latersong,
-        removelatersong,
-        getlatersongs,
-        later,
         addhistory,
-        getHistory,
-        history,
-        m3ulists,
-        getSavedLists,
-        getUniqueList,
-        deletePlaylist,
         getAllSongs,
-        getDirectories,
-        directories,
-        deleteDirectory,
         isSongLiked,
         currentLike,
         toggleLike,
@@ -266,13 +211,7 @@ export const AppProvider = ({ children }) => {
         toggleRepeat,
         loop,
         toggleShuffle,
-        isShuffled,
-        addPlaylisthistory,
-        searchSongs,
-        results,
-        getMost,
-        most,
-        recents
+        isShuffled
       }}
     >
       {children}

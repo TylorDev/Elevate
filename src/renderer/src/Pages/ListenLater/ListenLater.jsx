@@ -1,5 +1,6 @@
 import './ListenLater.scss'
 import ListComp from '../../Components/ListComp/ListComp'
+import { useMini } from '../../Contexts/MiniContext'
 
 function ListenLater() {
   return (
@@ -8,6 +9,7 @@ function ListenLater() {
       fetchFunction="getlatersongs"
       className="ListenLater"
       listName="Escuchar mas tarde"
+      useHook={useMini}
     />
   )
 }

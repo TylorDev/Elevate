@@ -1,18 +1,21 @@
+/* eslint-disable react/prop-types */
 import { useAppContext } from '../../Contexts/AppContext'
+import { useMini } from '../../Contexts/MiniContext'
 
 export function SongItem({ file, index, cola }) {
   const {
     currentIndex,
     handleSongClick,
-    addItemToEmptyList,
+
     handleGetBPMClick,
 
     likesong,
     unlikesong,
-    latersong,
-    removelatersong,
+
     addhistory
   } = useAppContext()
+
+  const { removelatersong, latersong, addItemToEmptyList } = useMini()
 
   return (
     <li
@@ -34,8 +37,9 @@ export function SongItem({ file, index, cola }) {
       <button onClick={() => handleGetBPMClick(file)}> getbpm </button>
       <button onClick={() => likesong(file)}> like song </button>
       <button onClick={() => unlikesong(file)}> dislike song </button>
+> */}
       <button onClick={() => latersong(file)}> later song </button>
-      <button onClick={() => removelatersong(file)}> remove later song </button> */}
+      <button onClick={() => removelatersong(file)}> remove later song </button>
     </li>
   )
 }

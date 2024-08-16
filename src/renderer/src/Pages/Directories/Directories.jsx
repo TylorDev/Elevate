@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { useAppContext } from '../../Contexts/AppContext'
+
 import './Directories.scss'
+import { useMini } from '../../Contexts/MiniContext'
 
 function Directories() {
-  const { getDirectories, directories, deleteDirectory } = useAppContext()
+  const { getDirectories, directories, deleteDirectory } = useMini()
 
   useEffect(() => {
     if (directories) {

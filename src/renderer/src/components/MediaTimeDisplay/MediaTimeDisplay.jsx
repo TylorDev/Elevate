@@ -7,8 +7,10 @@ import './MediaTimeDisplay.scss'
 
 import { useNavigate } from 'react-router-dom'
 import { Button } from './../Button/Button'
+import { useSuper } from '../../Contexts/SupeContext'
 export const MediaTimeDisplay = () => {
-  const { mediaRef, toggleMute, muted } = useAppContext()
+  const { toggleMute, muted, mediaRef } = useAppContext()
+
   const { loop, toggleRepeat, toggleShuffle, isShuffled } = useAppContext()
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)

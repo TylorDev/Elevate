@@ -1,6 +1,7 @@
 import './History.scss'
 
 import ListComp from '../../Components/ListComp/ListComp'
+import { useMini } from '../../Contexts/MiniContext'
 
 function History() {
   return (
@@ -9,6 +10,7 @@ function History() {
       fetchFunction="getHistory"
       className="History"
       listName="Historial"
+      useHook={useMini}
     />
   )
 }

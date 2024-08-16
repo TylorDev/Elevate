@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Cola } from '../../Components/Cola/Cola'
-import { useAppContext } from '../../Contexts/AppContext'
+
+import { useMini } from '../../Contexts/MiniContext'
 
 function Search() {
-  const { results, searchSongs, most, getMost, recents } = useAppContext()
   const [query, setQuery] = useState('')
+  const { recents, getRecents, most, getMost, results, searchSongs } = useMini()
+
+  useEffect(() => {
+    getRecents()
+  }, [])
 
   const handleSearch = () => {
     searchSongs(query)
-    // Aquí iría la lógica de búsqueda
   }
 
   return (
