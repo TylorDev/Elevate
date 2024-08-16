@@ -1,29 +1,38 @@
 /* eslint-disable react/prop-types */
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { ElectronGetter, ElectronSetter, electronInvoke, BinToBlob, ElectronSetter2 } from './utils'
+import { ElectronGetter, ElectronSetter, electronInvoke, BinToBlob } from './utils'
 import { goToNext, goToPrevious, ToLike, toMute, toPlay, toRepeat, toShuffle } from './utilControls'
 import { validateLike } from './utilMenu'
+import { useSuper } from './SupeContext'
 
-// Crea el contexto
 const AppContext = createContext()
 
-// Crea un proveedor de contexto
 export const AppProvider = ({ children }) => {
+  const {
+    mediaRef,
+    currentFile,
+    CurrentFileSetter,
+    metadata,
+    MetadataSetter,
+    currentIndex,
+    CurrentIndexSetter,
+    isShuffled,
+    IsShuffledSetter,
+    muted,
+    MutedSetter,
+    isPlaying,
+    IsPlayingSetter,
+    loop,
+    LoopSetter,
+    getAllSongs
+  } = useSuper()
+
   const [queue, setQueue] = useState([]) // 5 ref  - 2 ref
   const [originalQueue, setOriginalQueue] = useState([...queue]) // 1 ref check
-  const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
-  const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
-  const mediaRef = useRef(null) //2  ref
-  const [isPlaying, setIsPlaying] = useState(false) //1 ref check
-  const [metadata, setMetadata] = useState(null) // 1 ref - 5ref
   const [currentLike, setCurrentLike] = useState(false) // 1 ref  -  2 ref
   const [cola, setCola] = useState([]) // 0 ref  -  1 ref
   const [likes, setLikes] = useState([]) // 1 ref   check
-  const [muted, setMuted] = useState(false) // 1 ref  check
-  const [loop, setLoop] = useState(false) //  1 ref check
-  const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
 
-  //Like
   const isSongLiked = async (filePath, fileName) => {
     await validateLike(filePath, fileName, setCurrentLike)
   } //2 ref
@@ -36,13 +45,11 @@ export const AppProvider = ({ children }) => {
   //Queue
 
   const handlePreviousClick = () => {
-    goToPrevious(currentIndex, queue, setCurrentIndex, setCurrentFile)
+    goToPrevious(currentIndex, queue, CurrentIndexSetter, CurrentFileSetter)
   } //1 ref
   const handleNextClick = () => {
-    goToNext(currentIndex, queue, setCurrentIndex, setCurrentFile)
+    goToNext(currentIndex, queue, CurrentIndexSetter, CurrentFileSetter)
   } //1 ref
-
-  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
 
   const addhistory = (common) => ElectronSetter('add-history', common) //1 ref
 
@@ -52,13 +59,13 @@ export const AppProvider = ({ children }) => {
     if (fileInfo) {
       console.log('File info:', fileInfo.bpm)
 
-      setMetadata((prevMetadata) =>
+      MetadataSetter((prevMetadata) =>
         (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
       )
 
-      setCurrentFile(fileInfo)
+      CurrentFileSetter(fileInfo)
     }
-  } //0 ref
+  }
 
   const handleSaveClick = async () => {
     const paths = queue.map((file) => file.filePath)
@@ -68,33 +75,31 @@ export const AppProvider = ({ children }) => {
     }
   } //0 ref
 
-  const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile) //0 ref
-
   const handleSongClick = (file, index, list) => {
-    setCurrentFile(file)
-    setCurrentIndex(index)
+    CurrentFileSetter(file)
+    CurrentIndexSetter(index)
     setQueue(list)
     setOriginalQueue(list)
     isSongLiked(file.filePath, file.fileName)
     addhistory(file)
   } //0 ref
 
-  const openM3U = () => ElectronGetter('open-m3u', setMetadata) // 0 ref
+  const openM3U = () => ElectronGetter('open-m3u', MetadataSetter) // 0 ref
 
-  const selectFiles = () => ElectronGetter('select-files', setMetadata) // 0 ref
-  const detectM3U = () => ElectronGetter('detect-m3u', setMetadata) //   0 ref
+  const selectFiles = () => ElectronGetter('select-files', MetadataSetter) // 0 ref
+  const detectM3U = () => ElectronGetter('detect-m3u', MetadataSetter) //   0 ref
 
   const toggleShuffle = () => {
-    toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, setIsShuffled)
+    toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, IsShuffledSetter)
   } //0 ref
   const togglePlayPause = () => {
     toPlay(mediaRef, isPlaying)
   } //0 ref
   const toggleMute = () => {
-    toMute(mediaRef, muted, setMuted)
+    toMute(mediaRef, muted, MutedSetter)
   } //0 ref
   const toggleRepeat = () => {
-    toRepeat(mediaRef, loop, setLoop)
+    toRepeat(mediaRef, loop, LoopSetter)
   } //0 ref
 
   const toggleLike = () => {
@@ -110,11 +115,6 @@ export const AppProvider = ({ children }) => {
       setCola(filePaths)
     }
   }, [metadata])
-
-  useEffect(() => {
-    getAllSongs()
-    getLastSong()
-  }, [])
 
   useEffect(() => {
     const audio = mediaRef.current
@@ -165,11 +165,11 @@ export const AppProvider = ({ children }) => {
 
       // Manejar eventos de reproducción
       mediaRef.current.onplay = () => {
-        setIsPlaying(true)
+        IsPlayingSetter(true)
       }
 
       mediaRef.current.onpause = () => {
-        setIsPlaying(false)
+        IsPlayingSetter(false)
       }
     }
     if (currentFile) {

@@ -1,7 +1,7 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+/* eslint-disable no-unused-vars */
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import { BinToBlob } from './utils'
+import { BinToBlob, ElectronGetter } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 
 // Crear el contexto
@@ -9,102 +9,59 @@ const SuperContext = createContext()
 
 // Proveedor del contexto
 export const SuperProvider = ({ children }) => {
-  const handleSongClick = (file, index, list) => {
-    setCurrentFile(file)
-    setCurrentIndex(index)
-    setQueue(list)
-    setOriginalQueue(list)
-  } //0 ref
-
   const mediaRef = useRef(null)
   const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
   const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
-  const [isPlaying, setIsPlaying] = useState(false) //1 ref check
+  const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
-  const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
-  const [queue, setQueue] = useState([]) // 5 ref  - 2 ref
-  const [originalQueue, setOriginalQueue] = useState([...queue]) // 1 ref check
+  const [isPlaying, setIsPlaying] = useState(false) //1 ref check
+  const [metadata, setMetadata] = useState(null) // 1 ref - 5 ref
 
-  const togglePlayPause = () => {
-    toPlay(mediaRef, isPlaying)
-  } //0 ref
-  const toggleMute = () => {
-    toMute(mediaRef, muted, setMuted)
-  } //0 ref
-  const toggleRepeat = () => {
-    toRepeat(mediaRef, loop, setLoop)
-  } //0 ref
+  const Setter = (setter, value) => {
+    setter(value)
+  }
 
-  const handlePreviousClick = () => {
-    goToPrevious(currentIndex, queue, setCurrentIndex, setCurrentFile)
-  } //1 ref
-  const handleNextClick = () => {
-    goToNext(currentIndex, queue, setCurrentIndex, setCurrentFile)
-  } //1 ref
-  useEffect(() => {
-    const audio = mediaRef.current
+  const MetadataSetter = (data) => Setter(setMetadata, data)
+  const CurrentFileSetter = (file) => Setter(setCurrentFile, file)
+  const CurrentIndexSetter = (index) => Setter(setCurrentIndex, index)
+  const IsShuffledSetter = (value) => Setter(setIsShuffled, value)
+  const MutedSetter = (value) => Setter(setMuted, value)
+  const LoopSetter = (value) => Setter(setLoop, value)
+  const IsPlayingSetter = (value) => Setter(setIsPlaying, value)
 
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentFile.title ? currentFile.title : currentFile.fileName,
-        artist: currentFile.artist || 'Unknown',
-        album: 'Unknown',
-        artwork: [
-          {
-            src: BinToBlob(currentFile?.picture?.[0] || {}),
-            sizes: '300x300',
-            type: 'image/jpeg'
-          }
-        ]
-      })
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        audio.play()
-      })
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        audio.pause()
-      })
-
-      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0)
-      })
-
-      navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration)
-      })
-
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        handlePreviousClick()
-      })
-
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        handleNextClick()
-      })
-    }
-  }, [currentFile])
+  const getLastSong = () => ElectronGetter('get-lastest', CurrentFileSetter) //0 ref
+  const getAllSongs = () => ElectronGetter('get-all-audio-files', MetadataSetter) //1 ref
 
   useEffect(() => {
-    if (mediaRef.current) {
-      mediaRef.current.src = currentFile.filePath
+    getAllSongs()
+    getLastSong()
+  }, [])
 
-      // Manejar eventos de reproducción
-      mediaRef.current.onplay = () => {
-        setIsPlaying(true)
-      }
-
-      mediaRef.current.onpause = () => {
-        setIsPlaying(false)
-      }
-    }
-  }, [currentFile.filePath, currentIndex])
-
-  const toggleShuffle = () => {
-    toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, setIsShuffled)
-  } //0 ref
-
-  return <SuperContext.Provider value={{ mediaRef }}>{children}</SuperContext.Provider>
+  return (
+    <SuperContext.Provider
+      value={{
+        mediaRef,
+        currentFile,
+        CurrentFileSetter,
+        currentIndex,
+        CurrentIndexSetter,
+        isShuffled,
+        IsShuffledSetter,
+        muted,
+        MutedSetter,
+        loop,
+        LoopSetter,
+        isPlaying,
+        IsPlayingSetter,
+        metadata,
+        MetadataSetter,
+        getAllSongs
+      }}
+    >
+      {children}
+    </SuperContext.Provider>
+  )
 }
 
 // Hook personalizado para acceder al contexto
