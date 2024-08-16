@@ -3,7 +3,7 @@ import { Cola } from '../../Components/Cola/Cola'
 import { useAppContext } from '../../Contexts/AppContext'
 
 function Search() {
-  const { results, searchSongs } = useAppContext()
+  const { results, searchSongs, most, getMost, recents } = useAppContext()
   const [query, setQuery] = useState('')
 
   const handleSearch = () => {
@@ -22,6 +22,11 @@ function Search() {
       <button onClick={handleSearch}>Buscar</button>
       <h1>resultados!</h1>
       <Cola list={results} name={'resultados'} />
+      <button onClick={getMost}>Obtener mas reproducidos!</button>
+      <h1>Mas reproducidos!</h1>
+      <Cola list={most} name={'resultados'} />
+      <h1>recientes!</h1>
+      <Cola list={recents} name={'resultados'} />
     </div>
   )
 }

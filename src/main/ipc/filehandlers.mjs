@@ -5,40 +5,66 @@ import { getFileInfos, getAllAudioFiles, getOrCreateSong } from './utils/utils.m
 import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
+import { sendNotification } from '../index.mjs'
 const prisma = new PrismaClient()
 const watchedDirectories = new Set()
 
+async function startWatchingDirectories() {
+  try {
+    const directories = await prisma.directory.findMany()
+
+    directories.forEach(({ path }) => {
+      watchDirectory(path)
+    })
+  } catch (error) {
+    console.error('Error al obtener los directorios:', error)
+  }
+}
+
 function watchDirectory(dirPath) {
   if (watchedDirectories.has(dirPath)) {
-    console.log(`El directorio ${dirPath} ya está siendo vigilado.`)
+    console.debug(`El directorio ${dirPath} ya está siendo vigilado.`)
     return
   }
 
-  fs.watch(dirPath, (eventType, filename) => {
-    if (eventType === 'rename' && filename) {
-      const fullPath = path.join(dirPath, filename)
-      if (fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()) {
-        const basenameWithoutExt = path.parse(filename).name
-        getOrCreateSong(fullPath, basenameWithoutExt)
-        // handleNewFile(fullPath, basenameWithoutExt)
-        console.log(`Archivo detectado:`)
-        console.log(`Ruta completa: ${fullPath}`)
-        console.log(`Basename sin extensión: ${basenameWithoutExt}`)
-      }
-    }
-  })
-
-  watchedDirectories.add(dirPath)
-  console.log(`Vigilando el directorio: ${dirPath}`)
+  try {
+    fs.watch(dirPath, (eventType, filename) => handleFileChange(eventType, filename, dirPath))
+    watchedDirectories.add(dirPath)
+    console.debug(`Vigilando el directorio: ${dirPath}`)
+  } catch (error) {
+    console.error(`Error al intentar vigilar el directorio ${dirPath}:`, error)
+  }
 }
 
-// function handleNewFile(filepath, basenameWithoutExt) {
-//   // Envía los datos al proceso de renderizado
-//   mainWindow.webContents.send('new-file', {
-//     filepath,
-//     basenameWithoutExt
-//   })
-// }
+function handleFileChange(eventType, filename, dirPath) {
+  if (eventType !== 'rename' || !filename) return
+
+  const fullPath = buildFullPath(filename, dirPath)
+  if (isFile(fullPath)) {
+    const basenameWithoutExt = extractBasename(filename)
+    getOrCreateSong(fullPath, basenameWithoutExt)
+    debugFileDetails(fullPath, basenameWithoutExt)
+  }
+}
+
+function buildFullPath(filename, dirPath) {
+  return path.join(dirPath, filename)
+}
+
+function isFile(fullPath) {
+  return fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()
+}
+
+function extractBasename(filename) {
+  return path.parse(filename).name
+}
+
+function debugFileDetails(fullPath, basenameWithoutExt) {
+  sendNotification('NUEVo archivo!')
+  console.debug(`Archivo detectado:`)
+  console.debug(`Ruta completa: ${fullPath}`)
+  console.debug(`Basename sin extensión: ${basenameWithoutExt}`)
+}
 
 export function setupFilehandlers() {
   // // Añadir la función de selección de archivos
@@ -71,7 +97,7 @@ export function setupFilehandlers() {
   //     throw error
   //   }
   // })
-
+  startWatchingDirectories()
   ipcMain.handle('select-files', async () => {
     try {
       const result = await dialog.showOpenDialog({
@@ -108,7 +134,7 @@ export function setupFilehandlers() {
       let allAudioFiles = []
       for (const directory of directories) {
         const audioFiles = getAllAudioFiles(directory.path)
-        watchDirectory(directory.path)
+
         allAudioFiles = allAudioFiles.concat(audioFiles)
       }
 
@@ -140,6 +166,8 @@ export function setupFilehandlers() {
     try {
       // Obtener todos los directorios de la base de datos
       const directories = await prisma.directory.findMany()
+      console.log(directories[0].path)
+
       return directories
     } catch (error) {
       console.error('Error retrieving directories:', error)

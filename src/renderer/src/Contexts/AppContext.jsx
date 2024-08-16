@@ -35,7 +35,8 @@ export const AppProvider = ({ children }) => {
   const [loop, setLoop] = useState(false)
   const [isShuffled, setIsShuffled] = useState(false)
   const [results, setResults] = useState([])
-
+  const [most, setMost] = useState([])
+  const [recents, setRecents] = useState([])
   //----------------controls
 
   const handlePreviousClick = () => {
@@ -91,6 +92,7 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     getAllSongs()
     getLastSong()
+    getRecents()
   }, [])
 
   useEffect(() => {
@@ -135,6 +137,7 @@ export const AppProvider = ({ children }) => {
       })
     }
   }, [currentFile])
+
   //------------------menu buttons
   const isSongLiked = async (filePath, fileName) => {
     await validateLike(filePath, fileName, setCurrentLike)
@@ -170,6 +173,7 @@ export const AppProvider = ({ children }) => {
 
   //---------------- system list
   const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata)
+  const getMost = () => ElectronGetter('get-most-played', setMost)
   const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile)
   const addhistory = (common) => ElectronSetter('add-history', common)
   const getHistory = () => ElectronGetter('get-history', setHistory)
@@ -181,6 +185,7 @@ export const AppProvider = ({ children }) => {
     }
   }
   const getDirectories = () => ElectronGetter('get-all-directories', setDiretories)
+  const getRecents = () => ElectronGetter('get-recents', setRecents)
   const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
   const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
@@ -212,18 +217,6 @@ export const AppProvider = ({ children }) => {
   const selectFiles = () => ElectronGetter('select-files', setMetadata)
   const detectM3U = () => ElectronGetter('detect-m3u', setMetadata)
 
-  const ipcHandle = () =>
-    window.electron.ipcRenderer.on('time-passed', (event, data) => {
-      if (data && data.seconds !== undefined) {
-        console.log(`Han pasado ${data.seconds} segundos.`)
-        // Aquí puedes manejar el evento, actualizar la UI, etc.
-      } else {
-        console.error('Datos inválidos recibidos:', data)
-      }
-      // Aquí puedes manejar el evento, actualizar la UI, etc.
-    })
-
-  ipcHandle()
   return (
     <AppContext.Provider
       value={{
@@ -276,7 +269,10 @@ export const AppProvider = ({ children }) => {
         isShuffled,
         addPlaylisthistory,
         searchSongs,
-        results
+        results,
+        getMost,
+        most,
+        recents
       }}
     >
       {children}

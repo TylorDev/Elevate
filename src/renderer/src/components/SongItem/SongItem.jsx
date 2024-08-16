@@ -27,14 +27,15 @@ export function SongItem({ file, index, cola }) {
           .toString()
           .padStart(2, '0')}
       </span>
+      <span>playcount:{file.play_count}</span>
 
-      <button onClick={() => addhistory(file)}> add to history </button>
+      {/* <button onClick={() => addhistory(file)}> add to history </button>
       <button onClick={() => addItemToEmptyList(file)}> + </button>
       <button onClick={() => handleGetBPMClick(file)}> getbpm </button>
       <button onClick={() => likesong(file)}> like song </button>
       <button onClick={() => unlikesong(file)}> dislike song </button>
       <button onClick={() => latersong(file)}> later song </button>
-      <button onClick={() => removelatersong(file)}> remove later song </button>
+      <button onClick={() => removelatersong(file)}> remove later song </button> */}
     </li>
   )
 }

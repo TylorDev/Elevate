@@ -12,10 +12,27 @@ import Feed from './Pages/Feed/Feed'
 
 import Music from './Pages/Music/Music'
 import Search from './Pages/Search/Search'
+import { useEffect } from 'react'
 
 function App() {
+  const { getAllSongs } = useAppContext()
+  useEffect(() => {
+    const handleNotification = (message) => {
+      console.log(message) // Maneja el mensaje como desees
+
+      getAllSongs()
+    }
+
+    window.electron.ipcRenderer.on('notification', handleNotification)
+
+    // Cleanup listener on component unmount
+    return () => {
+      window.electron.ipcRenderer.off('notification', handleNotification)
+    }
+  }, [])
+
   return (
-    <AppProvider>
+    <>
       <div className="App">
         <div className="Tittlebar"> xd</div>
         <AudioProvider></AudioProvider>
@@ -34,7 +51,7 @@ function App() {
           <Route path="/music" element={<Music />} />
         </Routes>
       </div>
-    </AppProvider>
+    </>
   )
 }
 

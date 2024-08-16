@@ -8,6 +8,12 @@ import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mj
 import { setupM3UHandlers } from './ipc/listm3uhandlers.mjs'
 import { setupFilehandlers } from './ipc/filehandlers.mjs'
 
+let mainWin
+
+export function sendNotification(message) {
+  mainWin.webContents.send('notification', message)
+}
+
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -29,6 +35,7 @@ function createWindow() {
       webSecurity: false
     }
   })
+  mainWin = mainWindow
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -39,15 +46,16 @@ function createWindow() {
     return { action: 'deny' }
   })
 
-  setTimeout(() => {
-    mainWindow.webContents.send('time-passed', { seconds: 10 })
-  }, 5000)
-
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  // Simular un evento que envía un aviso
+  setTimeout(() => {
+    sendNotification('¡Algo ha pasado! Justo ahora.')
+  }, 5000)
 }
 
 app.whenReady().then(() => {

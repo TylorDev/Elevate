@@ -17,6 +17,9 @@ function ListComp({ dataKey, fetchFunction, listName }) {
 
   return (
     <div className="default-class">
+      <h1>
+        numero de elementos en {listName}: {list.length}
+      </h1>
       <PlaylistActions name={listName} />
       <h1>{listName}</h1>
       <Cola list={list} name={listName} />

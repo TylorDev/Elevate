@@ -118,6 +118,39 @@ async function addPlayHistory(song_id) {
   }
 }
 
+async function getMostPlayedSongsWithDetails() {
+  try {
+    // Obtener todos los registros de canciones ordenadas por play_count en orden descendente
+    const userPreferences = await prisma.userPreferences.findMany({
+      orderBy: {
+        play_count: 'desc' // Ordenar por el conteo de reproducciones
+      },
+      select: {
+        play_count: true,
+        Songs: {
+          select: {
+            filepath: true,
+            filename: true
+          }
+        }
+      }
+    })
+
+    // Extraer las canciones más escuchadas con detalles adicionales (filepath y filename)
+    const songs = userPreferences.map((record) => ({
+      filepath: record.Songs.filepath,
+      filename: record.Songs.filename,
+      play_count: record.play_count
+    }))
+    const paths = songs.map((song) => song.filepath)
+    const firstTenPaths = paths.slice(0, 10)
+    console.log(firstTenPaths)
+    return firstTenPaths
+  } catch (error) {
+    console.error('Error retrieving most played songs:', error)
+    return { success: false, error: error.message }
+  }
+}
 async function getPlayHistoryOrdered() {
   try {
     // Obtener todos los registros de PlayHistory ordenados por el campo timestamp más reciente
@@ -140,7 +173,46 @@ async function getPlayHistoryOrdered() {
     // Extraer canciones según el historial de reproducción
     const songs = playHistoryRecords.map((record) => record.Songs)
 
-    console.debug(`PlayHistory count:`, playHistoryRecords.length)
+    // Opcional: Si necesitas información adicional de las canciones, puedes obtenerla aquí
+    const filePaths = songs.map((song) => song.filepath)
+    const fileInfos = await getFileInfos(filePaths)
+
+    return fileInfos
+  } catch (error) {
+    console.error('Error retrieving play history:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+async function getRecentHistoryOrdered() {
+  try {
+    // Obtener todos los registros de PlayHistory ordenados por el campo timestamp más reciente
+    const playHistoryRecords = await prisma.playHistory.findMany({
+      orderBy: {
+        timestamp: 'desc' // Ordenar de más reciente a más antiguo
+      },
+      select: {
+        song_id: true,
+        timestamp: true, // Incluye el campo timestamp para información adicional
+        Songs: {
+          select: {
+            filepath: true,
+            filename: true
+          }
+        }
+      }
+    })
+
+    // Filtrar canciones únicas basadas en el song_id y obtener la más reciente
+    const uniqueSongs = new Map()
+    playHistoryRecords.forEach((record) => {
+      if (!uniqueSongs.has(record.song_id)) {
+        uniqueSongs.set(record.song_id, record.Songs)
+      }
+    })
+
+    // Convertir el Map a un array de canciones
+    const songs = Array.from(uniqueSongs.values())
 
     // Opcional: Si necesitas información adicional de las canciones, puedes obtenerla aquí
     const filePaths = songs.map((song) => song.filepath)
@@ -209,6 +281,7 @@ async function searchSongPathsByName(searchText) {
     throw error
   }
 }
+
 export function setupLikeSongHandlers() {
   ipcMain.handle('like-song', async (event, filepath, filename) => {
     try {
@@ -281,8 +354,18 @@ export function setupLikeSongHandlers() {
     return getPlayHistoryOrdered()
   })
 
+  ipcMain.handle('get-recents', async (event) => {
+    const likes = await getRecentHistoryOrdered()
+    return likes.slice(0, 5) // Mostrar solo los primeros 5 elementos únicos
+  })
+
   ipcMain.handle('get-lastest', async (event) => {
     return getLatestPlayHistoryRecord()
+  })
+
+  ipcMain.handle('get-most-played', async (event) => {
+    const paths = await getMostPlayedSongsWithDetails()
+    return getFileInfos(paths)
   })
 
   ipcMain.handle('remove-listen-later', (event, filepath, filename) => {

@@ -11,29 +11,22 @@ datasource db {
 }
 
 model Songs {
-  song_id  Int    @id @default(autoincrement())
-  filepath String @unique
-  filename String
-
-  // Relación con UserPreferences
+  song_id         Int               @id @default(autoincrement())
+  filepath        String            @unique
+  filename        String
   UserPreferences UserPreferences[]
-
-  // Relación con PlayHistory
-  PlayHistory PlayHistory[]
+  PlayHistory     PlayHistory[]
 }
 
 model UserPreferences {
-  song_id      Int     @id
-  play_count   Int     @default(0) // Campo para contar reproducciones
-  is_favorite  Boolean @default(false)
-  listen_later Boolean @default(false)
-  skip_count   Int     @default(0)
-  bpm          Int     @default(0)
-  // Relación con Songs
-  Songs        Songs   @relation(fields: [song_id], references: [song_id])
-
-  // Relación con PlayHistory
-  PlayHistory PlayHistory[]
+  song_id      Int           @id
+  play_count   Int           @default(0) // Campo para contar reproducciones
+  is_favorite  Boolean       @default(false)
+  listen_later Boolean       @default(false)
+  skip_count   Int           @default(0)
+  bpm          Int           @default(0)
+  Songs        Songs         @relation(fields: [song_id], references: [song_id])
+  PlayHistory  PlayHistory[]
 }
 
 model PlayHistory {
