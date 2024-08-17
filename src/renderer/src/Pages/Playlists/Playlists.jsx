@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 
 import './Playlists.scss'
 import { Cola } from '../../Components/Cola/Cola'
-import { useMini } from '../../Contexts/MiniContext'
+
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 
 function Playlists() {
-  const { getSavedLists, m3ulists } = useMini()
+  const { getSavedLists, playlists, getUniqueList, deletePlaylist, addPlaylisthistory } =
+    usePlaylists()
 
-  const { getUniqueList, deletePlaylist, addPlaylisthistory } = useMini()
   const [currentList, setCurrentList] = useState([])
   useEffect(() => {
-    if (m3ulists) {
+    if (playlists) {
       getSavedLists()
     }
   }, [])
@@ -42,7 +43,7 @@ function Playlists() {
     <div className="Playlists">
       <ul>
         <h1>Playlists</h1>
-        {m3ulists.map((playlist) => (
+        {playlists.map((playlist) => (
           <li
             key={playlist.id}
             onClick={() => {

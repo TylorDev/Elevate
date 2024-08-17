@@ -18,6 +18,7 @@ import { TbRepeat } from 'react-icons/tb'
 import { TbRepeatOff } from 'react-icons/tb'
 import { LuListVideo } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
+import { useLikes } from '../../Contexts/LikeContext'
 
 export function Controls() {
   const {
@@ -25,8 +26,6 @@ export function Controls() {
     handlePreviousClick,
     togglePlayPause,
     isPlaying,
-    currentLike,
-    toggleLike,
     muted,
     toggleMute,
     toggleShuffle,
@@ -35,6 +34,9 @@ export function Controls() {
     loop
   } = useAppContext()
 
+  const { likeState, toggleLike } = useLikes()
+
+  const { currentLike } = likeState
   const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
   const navigate = useNavigate()
   return (

@@ -14,7 +14,9 @@ import Music from './Pages/Music/Music'
 import Search from './Pages/Search/Search'
 import { useEffect } from 'react'
 import { MiniProvider } from './Contexts/MiniContext'
-import { useSuper } from './Contexts/SupeContext'
+
+import { LikesProvider } from './Contexts/LikeContext'
+import { PlaylistsProvider } from './Contexts/PlaylistsContex'
 
 function App() {
   const { getAllSongs } = useAppContext()
@@ -35,24 +37,28 @@ function App() {
 
   return (
     <MiniProvider>
-      <div className="App">
-        <div className="Tittlebar"> xd</div>
-        <AudioProvider></AudioProvider>
-        <Routes>
-          <Route path="/" element={<Main />}>
-            <Route index element={<Feed />} />
-            <Route path="/playlists" element={<Playlists />} />
-            <Route path="/favourites" element={<Favourites />} />
-            <Route path="/listen-later" element={<ListenLater />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/tracks" element={<AllTracks />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/directories" element={<Directories />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route path="/music" element={<Music />} />
-        </Routes>
-      </div>
+      <PlaylistsProvider>
+        <LikesProvider>
+          <div className="App">
+            <div className="Tittlebar"> xd</div>
+            <AudioProvider></AudioProvider>
+            <Routes>
+              <Route path="/" element={<Main />}>
+                <Route index element={<Feed />} />
+                <Route path="/playlists" element={<Playlists />} />
+                <Route path="/favourites" element={<Favourites />} />
+                <Route path="/listen-later" element={<ListenLater />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/tracks" element={<AllTracks />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/directories" element={<Directories />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+              <Route path="/music" element={<Music />} />
+            </Routes>
+          </div>
+        </LikesProvider>
+      </PlaylistsProvider>
     </MiniProvider>
   )
 }

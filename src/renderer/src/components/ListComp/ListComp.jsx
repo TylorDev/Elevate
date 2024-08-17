@@ -5,7 +5,6 @@ import { useAppContext } from '../../Contexts/AppContext'
 
 import { Cola } from '../Cola/Cola'
 import { PlaylistActions } from '../PlaylistActions/PlaylistActions'
-import { useMini } from '../../Contexts/MiniContext'
 
 function ListComp({ dataKey, fetchFunction, listName, useHook = useAppContext }) {
   const { [dataKey]: list, [fetchFunction]: fetchList } = useHook()

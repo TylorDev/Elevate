@@ -1,19 +1,13 @@
 import { useAppContext } from '../../Contexts/AppContext'
-import { useMini } from '../../Contexts/MiniContext'
+
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './PlaylistActions.scss'
+import { useLikes } from './../../Contexts/LikeContext'
 
 export function PlaylistActions({ name }) {
-  const {
-    selectFiles,
-    handleSaveClick,
-    openM3U,
-    detectM3U,
-
-    getlikes,
-
-    getAllSongs
-  } = useAppContext()
-  const { getSavedLists } = useMini()
+  const { handleSaveClick } = useAppContext()
+  const { getLikes } = useLikes()
+  const { selectFiles, getSavedLists, openM3U, detectM3U, getAllSongs } = usePlaylists()
 
   return (
     <div className="PlaylistActions">
@@ -26,7 +20,7 @@ export function PlaylistActions({ name }) {
       >
         Save
       </button>
-      <button onClick={getlikes}>lista likes</button>
+      <button onClick={getLikes}>lista likes</button>
       <button onClick={openM3U}>cargar lista</button>
       <button onClick={detectM3U}>Detectar lista</button>
 

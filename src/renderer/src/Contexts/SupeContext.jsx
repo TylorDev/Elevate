@@ -16,7 +16,7 @@ export const SuperProvider = ({ children }) => {
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
   const [isPlaying, setIsPlaying] = useState(false) //1 ref check
-  const [metadata, setMetadata] = useState(null) // 1 ref - 5 ref
+
   const [queueState, setQueueState] = useState({
     currentQueue: [],
     originalQueue: []
@@ -25,7 +25,6 @@ export const SuperProvider = ({ children }) => {
     setter(value)
   }
 
-  const MetadataSetter = (data) => Setter(setMetadata, data)
   const QueueStateSetter = (data) => Setter(setQueueState, data)
   const CurrentFileSetter = (file) => Setter(setCurrentFile, file)
   const CurrentIndexSetter = (index) => Setter(setCurrentIndex, index)
@@ -35,14 +34,8 @@ export const SuperProvider = ({ children }) => {
   const IsPlayingSetter = (value) => Setter(setIsPlaying, value)
 
   const getLastSong = () => ElectronGetter('get-lastest', setCurrentFile) //0 ref
-  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
-
-  const openM3U = () => ElectronGetter('open-m3u', MetadataSetter) // 0 ref
-  const selectFiles = () => ElectronGetter('select-files', MetadataSetter) // 0 ref
-  const detectM3U = () => ElectronGetter('detect-m3u', MetadataSetter) //   0 ref
 
   useEffect(() => {
-    getAllSongs()
     getLastSong()
   }, [])
 
@@ -63,9 +56,9 @@ export const SuperProvider = ({ children }) => {
     if (fileInfo) {
       console.log('File info:', fileInfo.bpm)
 
-      MetadataSetter((prevMetadata) =>
-        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
-      )
+      // setMetadata((prevMetadata) =>
+      //   (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
+      // )
 
       CurrentFileSetter(fileInfo)
     }
@@ -143,12 +136,6 @@ export const SuperProvider = ({ children }) => {
         LoopSetter,
         isPlaying,
         IsPlayingSetter,
-        metadata,
-        MetadataSetter,
-        getAllSongs,
-        openM3U,
-        selectFiles,
-        detectM3U,
         togglePlayPause,
         toggleMute,
         toggleRepeat,
