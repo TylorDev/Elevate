@@ -83,3 +83,45 @@ export const BinToBlob = (img, mimeType = 'image/png') => {
   }
   return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
 }
+export function WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick) {
+  const audio = mediaRef.current
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentFile.title ? currentFile.title : currentFile.fileName,
+      artist: currentFile.artist || 'Unknown',
+      album: 'Unknown',
+      artwork: [
+        {
+          src: BinToBlob(currentFile?.picture?.[0] || {}),
+          sizes: '300x300',
+          type: 'image/jpeg'
+        }
+      ]
+    })
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play()
+    })
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause()
+    })
+
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0)
+    })
+
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration)
+    })
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      handlePreviousClick()
+    })
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      handleNextClick()
+    })
+  }
+}
