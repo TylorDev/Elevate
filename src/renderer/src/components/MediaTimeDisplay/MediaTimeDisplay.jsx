@@ -7,7 +7,7 @@ import './MediaTimeDisplay.scss'
 
 import { useNavigate } from 'react-router-dom'
 import { Button } from './../Button/Button'
-import { useSuper } from '../../Contexts/SupeContext'
+
 export const MediaTimeDisplay = () => {
   const { toggleMute, muted, mediaRef } = useAppContext()
 

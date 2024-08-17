@@ -2,7 +2,6 @@
 import { useAppContext } from '../../Contexts/AppContext'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useMini } from '../../Contexts/MiniContext'
-import { useSuper } from '../../Contexts/SupeContext'
 
 export function SongItem({ file, index, cola }) {
   const {
