@@ -42,9 +42,7 @@ export const PlaylistsProvider = ({ children }) => {
         getAllSongs,
         openM3U,
         selectFiles,
-        detectM3U,
-        queueState, //lista en reproduccion
-        handleSaveClick // guarda la cola actual en la bd.
+        detectM3U
       }}
     >
       {children}
