@@ -20,7 +20,9 @@ export const AppProvider = ({ children }) => {
     handleNextClick, //player
     handleSongClick, // utils
     addhistory, // utils
-    handleGetBPMClick // utils
+    handleGetBPMClick, // utils
+    queueState, //lista en reproduccion
+    handleSaveClick // guarda la cola actual en la bd.
   } = useSuper()
 
   return (
