@@ -27,48 +27,30 @@ export const AppProvider = ({ children }) => {
     getAllSongs,
     selectFiles,
     openM3U,
-    detectM3U
+    detectM3U,
+    togglePlayPause,
+    toggleMute,
+    toggleRepeat,
+    handleGetBPMClick
   } = useSuper()
 
-  const [queue, setQueue] = useState([]) // 5 ref  - 2 ref
-  const [originalQueue, setOriginalQueue] = useState([...queue]) // 1 ref check
-  const [currentLike, setCurrentLike] = useState(false) // 1 ref  -  2 ref
-  const [cola, setCola] = useState([]) // 0 ref  -  1 ref
-  const [likes, setLikes] = useState([]) // 1 ref   check
-
+  const [queue, setQueue] = useState([])
+  const [originalQueue, setOriginalQueue] = useState([...queue])
+  const [currentLike, setCurrentLike] = useState(false)
+  const [likes, setLikes] = useState([])
   const isSongLiked = async (filePath, fileName) => {
     await validateLike(filePath, fileName, setCurrentLike)
-  } //2 ref
-
-  const likesong = (common) => ElectronSetter('like-song', common) //1 ref
-  const getLikes = () => ElectronGetter('get-likes', setLikes) //1 ref
-  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes) //1 ref
-  //CurrentFile
-  //Metadata
-  //Queue
-
+  }
+  const likesong = (common) => ElectronSetter('like-song', common)
+  const getLikes = () => ElectronGetter('get-likes', setLikes)
+  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
   const handlePreviousClick = () => {
     goToPrevious(currentIndex, queue, CurrentIndexSetter, CurrentFileSetter)
-  } //1 ref
+  }
   const handleNextClick = () => {
     goToNext(currentIndex, queue, CurrentIndexSetter, CurrentFileSetter)
-  } //1 ref
-
-  const addhistory = (common) => ElectronSetter('add-history', common) //1 ref
-
-  const handleGetBPMClick = async (common) => {
-    const fileInfo = await electronInvoke('getbpm', common)
-
-    if (fileInfo) {
-      console.log('File info:', fileInfo.bpm)
-
-      MetadataSetter((prevMetadata) =>
-        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
-      )
-
-      CurrentFileSetter(fileInfo)
-    }
   }
+  const addhistory = (common) => ElectronSetter('add-history', common) //1 ref
 
   const handleSaveClick = async () => {
     const paths = queue.map((file) => file.filePath)
@@ -76,8 +58,7 @@ export const AppProvider = ({ children }) => {
     if (result && result.success) {
       console.log('M3U file saved successfully at', result.path)
     }
-  } //0 ref
-
+  }
   const handleSongClick = (file, index, list) => {
     CurrentFileSetter(file)
     CurrentIndexSetter(index)
@@ -89,70 +70,14 @@ export const AppProvider = ({ children }) => {
 
   const toggleShuffle = () => {
     toShuffle(isShuffled, queue, originalQueue, currentIndex, setQueue, IsShuffledSetter)
-  } //0 ref
-  const togglePlayPause = () => {
-    toPlay(mediaRef, isPlaying)
-  } //0 ref
-  const toggleMute = () => {
-    toMute(mediaRef, muted, MutedSetter)
-  } //0 ref
-  const toggleRepeat = () => {
-    toRepeat(mediaRef, loop, LoopSetter)
-  } //0 ref
+  }
 
   const toggleLike = () => {
     ToLike(currentFile, currentLike, likesong, unlikesong, setCurrentLike)
-  } //0 ref
-
-  //----------useEffect
-  useEffect(() => {
-    if (metadata && Array.isArray(metadata)) {
-      const filePaths = metadata.map((file) => file.filePath)
-      setCola(filePaths)
-    }
-  }, [metadata])
+  }
 
   useEffect(() => {
-    const audio = mediaRef.current
-
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentFile.title ? currentFile.title : currentFile.fileName,
-        artist: currentFile.artist || 'Unknown',
-        album: 'Unknown',
-        artwork: [
-          {
-            src: BinToBlob(currentFile?.picture?.[0] || {}),
-            sizes: '300x300',
-            type: 'image/jpeg'
-          }
-        ]
-      })
-
-      navigator.mediaSession.setActionHandler('play', () => {
-        audio.play()
-      })
-
-      navigator.mediaSession.setActionHandler('pause', () => {
-        audio.pause()
-      })
-
-      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-        audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0)
-      })
-
-      navigator.mediaSession.setActionHandler('seekforward', (details) => {
-        audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration)
-      })
-
-      navigator.mediaSession.setActionHandler('previoustrack', () => {
-        handlePreviousClick()
-      })
-
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        handleNextClick()
-      })
-    }
+    WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
   }, [currentFile])
 
   useEffect(() => {
@@ -177,7 +102,6 @@ export const AppProvider = ({ children }) => {
     <AppContext.Provider
       value={{
         metadata,
-        cola,
         currentFile,
         currentIndex,
         queue,
@@ -218,4 +142,46 @@ export const AppProvider = ({ children }) => {
 // Hook personalizado para usar el contexto
 export const useAppContext = () => {
   return useContext(AppContext)
+}
+function WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick) {
+  const audio = mediaRef.current
+
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentFile.title ? currentFile.title : currentFile.fileName,
+      artist: currentFile.artist || 'Unknown',
+      album: 'Unknown',
+      artwork: [
+        {
+          src: BinToBlob(currentFile?.picture?.[0] || {}),
+          sizes: '300x300',
+          type: 'image/jpeg'
+        }
+      ]
+    })
+
+    navigator.mediaSession.setActionHandler('play', () => {
+      audio.play()
+    })
+
+    navigator.mediaSession.setActionHandler('pause', () => {
+      audio.pause()
+    })
+
+    navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+      audio.currentTime = Math.max(audio.currentTime - (details.seekOffset || 10), 0)
+    })
+
+    navigator.mediaSession.setActionHandler('seekforward', (details) => {
+      audio.currentTime = Math.min(audio.currentTime + (details.seekOffset || 10), audio.duration)
+    })
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      handlePreviousClick()
+    })
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      handleNextClick()
+    })
+  }
 }

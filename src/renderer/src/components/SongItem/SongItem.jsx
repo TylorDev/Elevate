@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useAppContext } from '../../Contexts/AppContext'
 import { useMini } from '../../Contexts/MiniContext'
+import { useSuper } from '../../Contexts/SupeContext'
 
 export function SongItem({ file, index, cola }) {
   const {

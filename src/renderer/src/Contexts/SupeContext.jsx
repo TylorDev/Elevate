@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import { BinToBlob, ElectronGetter } from './utils'
+import { BinToBlob, ElectronGetter, electronInvoke } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 
 // Crear el contexto
@@ -42,6 +42,31 @@ export const SuperProvider = ({ children }) => {
     getLastSong()
   }, [])
 
+  const togglePlayPause = () => {
+    toPlay(mediaRef, isPlaying)
+  }
+  const toggleMute = () => {
+    toMute(mediaRef, muted, MutedSetter)
+  }
+
+  const toggleRepeat = () => {
+    toRepeat(mediaRef, loop, LoopSetter)
+  }
+
+  const handleGetBPMClick = async (common) => {
+    const fileInfo = await electronInvoke('getbpm', common)
+
+    if (fileInfo) {
+      console.log('File info:', fileInfo.bpm)
+
+      MetadataSetter((prevMetadata) =>
+        (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
+      )
+
+      CurrentFileSetter(fileInfo)
+    }
+  }
+
   return (
     <SuperContext.Provider
       value={{
@@ -63,7 +88,11 @@ export const SuperProvider = ({ children }) => {
         getAllSongs,
         openM3U,
         selectFiles,
-        detectM3U
+        detectM3U,
+        togglePlayPause,
+        toggleMute,
+        toggleRepeat,
+        handleGetBPMClick
       }}
     >
       {children}
