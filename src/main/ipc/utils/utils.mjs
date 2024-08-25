@@ -142,7 +142,8 @@ export async function getFileInfos(filePaths) {
           where: { song_id: song.song_id },
           select: {
             bpm: true,
-            play_count: true // Incluye play_count en la selección
+            play_count: true, // Incluye play_count en la selección
+            is_favorite: true
           }
         })
 
@@ -153,7 +154,8 @@ export async function getFileInfos(filePaths) {
           duration,
           ...common,
           bpm: userPreference?.bpm || 0,
-          play_count: userPreference?.play_count || 0
+          play_count: userPreference?.play_count || 0,
+          liked: userPreference?.is_favorite || false
         }
       } catch (error) {
         // console.error(`Error processing file ${filePath}:`, error)

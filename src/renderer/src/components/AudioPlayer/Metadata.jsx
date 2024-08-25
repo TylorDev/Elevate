@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { useAppContext } from '../../Contexts/AppContext'
+
 import './Metadata.scss'
+import { BinToBlob } from '../../Contexts/utils'
+import { useSuper } from '../../Contexts/SupeContext'
 
 export function Metadata() {
-  const { currentFile, BinToBlob } = useAppContext()
+  const { currentFile } = useSuper()
   const navigate = useNavigate()
 
   return (

@@ -21,6 +21,12 @@ export const LikesProvider = ({ children }) => {
     })
   }
 
+  const isLiked = async (filePath, fileName, setState) => {
+    await validateLike(filePath, fileName, (isLiked) => {
+      setState(isLiked)
+    })
+  }
+
   const likesong = (common) => ElectronSetter('like-song', common)
 
   const getLikes = () =>
@@ -51,7 +57,8 @@ export const LikesProvider = ({ children }) => {
         likesong,
         unlikesong,
         toggleLike,
-        getLikes
+        getLikes,
+        isLiked
       }}
     >
       {children}

@@ -1,11 +1,10 @@
-import { useAppContext } from '../../Contexts/AppContext'
-
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './PlaylistActions.scss'
 import { useLikes } from './../../Contexts/LikeContext'
+import { useSuper } from '../../Contexts/SupeContext'
 
 export function PlaylistActions({ name }) {
-  const { handleSaveClick } = useAppContext()
+  const { handleSaveClick } = useSuper()
   const { getLikes } = useLikes()
   const { selectFiles, getSavedLists, openM3U, detectM3U, getAllSongs } = usePlaylists()
 

@@ -1,32 +1,35 @@
-import './Favourites.scss'
-import { useLikes } from '../../Contexts/LikeContext'
-import { Button } from '../../Components/Button/Button'
+import { useParams } from 'react-router-dom'
+import './PlaylistPage.scss'
+import { useState } from 'react'
+import { useEffect } from 'react'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { Cola } from './../../Components/Cola/Cola'
+import { formatDuration, formatTimestamp } from './../../../timeUtils'
+import { Button } from './../../Components/Button/Button'
+import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { FaPlay } from 'react-icons/fa'
 import { GoPencil } from 'react-icons/go'
-import DropdownMenu from '../../Components/DropMenu/DropMenu'
-import { Cola } from '../../Components/Cola/Cola'
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { useEffect } from 'react'
-import { BiShuffle } from 'react-icons/bi'
-
-function Favourites() {
-  const { getLikes, likes } = useLikes()
+function PlaylistPage() {
+  const { dir } = useParams() // Obtener el parámetro de la URL
+  const [current, setCurrent] = useState([])
+  const { getUniqueList } = usePlaylists()
   useEffect(() => {
-    getLikes()
-  }, [])
+    getUniqueList(setCurrent, dir)
+  }, [dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
 
   useEffect(() => {
-    console.log(likes)
-  }, [likes])
+    console.log(current)
+  }, [current])
 
-  if (!likes) {
+  if (!current || !current.playlistData) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
   }
 
+  const data = current.playlistData
   return (
     <div className="PlaylistPage">
       <div className="plg-controls">
@@ -49,17 +52,17 @@ function Favourites() {
               alt=""
             />
           </div>
-          <div className="pgl-name">{'Favourites'}</div>
+          <div className="pgl-name">{data.nombre}</div>
 
-          <div className="pgl-time">{formatTimestamp(Date.now())}</div>
+          <div className="pgl-time">{formatTimestamp(data.createdAt)}</div>
           <div className="pgl-data">
-            <span>{0} vistas •</span>
-            <span> {likes.length} pistas •</span>
-            <span> {'0h 0m 0s'} </span>
+            <span>{data.totalplays} vistas •</span>
+            <span> {data.numElementos} pistas •</span>
+            <span> {formatDuration(data.duracion)} </span>
           </div>
           <div className="pgl-buttton">
             <Button>
-              <BiShuffle />
+              <GoPencil />{' '}
             </Button>
             <Button>
               <FaPlay />
@@ -70,9 +73,9 @@ function Favourites() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={likes} />
+        <Cola list={current.processedData} />
       </div>
     </div>
   )
 }
-export default Favourites
+export default PlaylistPage

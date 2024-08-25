@@ -10,7 +10,7 @@ import {
   LuVolume2,
   LuVolumeX
 } from 'react-icons/lu'
-import { useAppContext } from '../../Contexts/AppContext'
+
 import './Controls.scss'
 import { Button } from '../Button/Button'
 import { LuShuffle } from 'react-icons/lu'
@@ -19,6 +19,7 @@ import { TbRepeatOff } from 'react-icons/tb'
 import { LuListVideo } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 import { useLikes } from '../../Contexts/LikeContext'
+import { useSuper } from '../../Contexts/SupeContext'
 
 export function Controls() {
   const {
@@ -32,7 +33,7 @@ export function Controls() {
     toggleRepeat,
     isShuffled,
     loop
-  } = useAppContext()
+  } = useSuper()
 
   const { likeState, toggleLike } = useLikes()
 

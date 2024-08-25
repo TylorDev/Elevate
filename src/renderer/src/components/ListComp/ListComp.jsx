@@ -1,12 +1,12 @@
 import './ListComp.scss'
 import { useEffect } from 'react'
 
-import { useAppContext } from '../../Contexts/AppContext'
-
 import { Cola } from '../Cola/Cola'
 import { PlaylistActions } from '../PlaylistActions/PlaylistActions'
+import { useSuper } from '../../Contexts/SupeContext'
+import { useLikes } from '../../Contexts/LikeContext'
 
-function ListComp({ dataKey, fetchFunction, listName, useHook = useAppContext }) {
+function ListComp({ dataKey, fetchFunction, listName, useHook = useSuper }) {
   const { [dataKey]: list, [fetchFunction]: fetchList } = useHook()
 
   useEffect(() => {
@@ -18,7 +18,7 @@ function ListComp({ dataKey, fetchFunction, listName, useHook = useAppContext })
   return (
     <div className="default-class">
       <h1>
-        numero de elementos en {listName}: {list.length}
+        numero de elementos en {listName}: {list?.length}
       </h1>
       <PlaylistActions name={listName} />
       <h1>{listName}</h1>

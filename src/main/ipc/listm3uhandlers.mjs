@@ -185,10 +185,25 @@ export function setupM3UHandlers() {
 
       const m3uDirectory = path.dirname(m3uFilePath) // Obtener la ruta del directorio del archivo M3U
 
-      return processM3UFile(m3uFilePath, m3uDirectory)
+      // Procesar el archivo M3U
+      const processedData = await processM3UFile(m3uFilePath, m3uDirectory)
+
+      // Obtener los datos de la playlist desde Prisma
+      const playlistData = await prisma.playlist.findUnique({
+        where: { path: m3uFilePath }
+      })
+
+      // Devolver los datos procesados y los datos de la playlist
+      return {
+        processedData,
+        playlistData
+      }
     } catch (error) {
-      console.error('Error processing M3U file:', error)
-      return []
+      console.error('Error processing M3U file or fetching playlist data:', error)
+      return {
+        processedData: [],
+        playlistData: null
+      }
     }
   })
 
@@ -201,6 +216,29 @@ export function setupM3UHandlers() {
     } catch (error) {
       console.error('Error fetching playlists:', error)
       return []
+    }
+  })
+
+  ipcMain.handle('get-random-playlist', async () => {
+    try {
+      // Obtener el número total de playlists
+      const totalPlaylists = await prisma.playlist.count()
+
+      if (totalPlaylists === 0) return null
+
+      // Generar un índice aleatorio para seleccionar una playlist
+      const randomIndex = Math.floor(Math.random() * totalPlaylists)
+
+      // Obtener una playlist aleatoria
+      const [randomPlaylist] = await prisma.playlist.findMany({
+        take: 1,
+        skip: randomIndex
+      })
+
+      return randomPlaylist
+    } catch (error) {
+      console.error('Error fetching random playlist:', error)
+      return null
     }
   })
 

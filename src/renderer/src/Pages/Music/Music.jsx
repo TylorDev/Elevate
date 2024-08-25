@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import './Music.scss'
 
-import { useAppContext } from '../../Contexts/AppContext'
 import { Cola } from '../../Components/Cola/Cola'
-import { AudioPlayer } from './../../Components/AudioPlayer/AudioPlayer'
+
+import { useSuper } from '../../Contexts/SupeContext'
 
 function Music() {
   const navigate = useNavigate()
-  const { queue } = useAppContext()
+  const { queue } = useSuper()
   return (
     <div className="Music">
       <div

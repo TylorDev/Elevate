@@ -100,7 +100,7 @@ export const SuperProvider = ({ children }) => {
         setIsPlaying(false)
       }
     }
-  }, [currentFile.filePath, currentIndex])
+  }, [currentFile?.filePath, currentIndex])
 
   useEffect(() => {
     WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)

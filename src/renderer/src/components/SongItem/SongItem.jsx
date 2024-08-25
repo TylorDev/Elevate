@@ -1,41 +1,72 @@
 /* eslint-disable react/prop-types */
-import { useAppContext } from '../../Contexts/AppContext'
+
 import { useLikes } from '../../Contexts/LikeContext'
-import { useMini } from '../../Contexts/MiniContext'
+import { FaPlay } from 'react-icons/fa'
+import { useSuper } from '../../Contexts/SupeContext'
+import { BinToBlob } from './../../Contexts/utils'
+import './SongItem.scss'
+import { Button } from './../Button/Button'
+import { LuHeart, LuHeartOff } from 'react-icons/lu'
+import { useEffect, useState } from 'react'
+import DropdownMenu from '../DropMenu/DropMenu'
 
 export function SongItem({ file, index, cola }) {
-  const {
-    currentIndex,
-    handleSongClick,
+  const { currentIndex, handleSongClick } = useSuper()
+  const [isLikedo, setIsLikedo] = useState(false)
+  const { toggleLike, isLiked } = useLikes()
 
-    handleGetBPMClick,
-    addhistory
-  } = useAppContext()
+  const buttonText = isLikedo ? <LuHeart /> : <LuHeartOff />
 
-  const { removelatersong, latersong, addItemToEmptyList } = useMini()
-  const { likesong, unlikesong } = useLikes()
+  const handleSelect = (option) => {
+    console.log(`Selected option: ${option}`)
+  }
+
+  useEffect(() => {
+    setIsLikedo(file.liked)
+    isLiked(file.filePath, file.fileName, setIsLikedo)
+  }, [file.liked])
+
+  const handleClick = () => {
+    // Llama a `toggleLike` para realizar su acción
+    toggleLike()
+    // Cambia el estado local después de la acción
+    setIsLikedo((prevState) => !prevState)
+    // Aquí puedes agregar lógica adicional si es necesario
+    console.log('Estado actualizado:', !isLikedo)
+  }
+
   return (
     <li
       key={index}
-      className={index === currentIndex ? 'active' : ''}
+      className={index === currentIndex ? 'songItem active' : 'songItem'}
       onClick={() => handleSongClick(file, index, cola)}
     >
-      <span>{file.fileName}</span>
-      <span>
+      <div className="cover">
+        <div className="ico">
+          <FaPlay />
+        </div>
+
+        <img src={BinToBlob(file?.picture?.[0] || {})} alt="" />
+      </div>
+
+      <div className="songdata">
+        <span>{file.fileName}</span>
+        <span>{file.artist || 'Unknow'}</span>
+      </div>
+
+      <div className={isLikedo ? 'optiones liked' : '  optiones'}>
+        <Button className={'btnLike'} onClick={handleClick}>
+          {buttonText}
+        </Button>
+        <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+      </div>
+
+      <div className="stime">
         {Math.floor(file.duration / 60)}:
         {Math.floor(file.duration % 60)
           .toString()
           .padStart(2, '0')}
-      </span>
-      <span>playcount:{file.play_count}</span>
-      {/* <button onClick={() => addhistory(file)}> add to history </button>
-      <button onClick={() => addItemToEmptyList(file)}> + </button>
-      <button onClick={() => handleGetBPMClick(file)}> getbpm </button> */}
-      <button onClick={() => likesong(file)}> like song </button>
-      <button onClick={() => unlikesong(file)}> dislike song </button>
-      {/* <button onClick={() => handleGetBPMClick(file)}> getbpm </button>
-      <button onClick={() => latersong(file)}> later song </button>
-      <button onClick={() => removelatersong(file)}> remove later song </button> */}
+      </div>
     </li>
   )
 }

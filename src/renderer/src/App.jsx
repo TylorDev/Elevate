@@ -1,6 +1,5 @@
 import './App.scss'
 import { Route, Routes } from 'react-router-dom'
-import { useAppContext } from './Contexts/AppContext'
 import Main from './Layouts/Main/Main'
 import Favourites from './Pages/Favourites/Favourites'
 import ListenLater from './Pages/ListenLater/ListenLater'
@@ -9,32 +8,15 @@ import History from './Pages/History/History'
 import Playlists from './Pages/Playlists/Playlists'
 import Directories from './Pages/Directories/Directories'
 import Feed from './Pages/Feed/Feed'
-
 import Music from './Pages/Music/Music'
 import Search from './Pages/Search/Search'
-import { useEffect } from 'react'
 import { MiniProvider } from './Contexts/MiniContext'
-
 import { LikesProvider } from './Contexts/LikeContext'
 import { PlaylistsProvider } from './Contexts/PlaylistsContex'
+import { useSuper } from './Contexts/SupeContext'
+import PlaylistPage from './Pages/PlaylistPage/PlaylistPage'
 
 function App() {
-  const { getAllSongs } = useAppContext()
-  useEffect(() => {
-    const handleNotification = (message) => {
-      console.log(message) // Maneja el mensaje como desees
-
-      getAllSongs()
-    }
-
-    window.electron.ipcRenderer.on('notification', handleNotification)
-
-    // Cleanup listener on component unmount
-    return () => {
-      window.electron.ipcRenderer.off('notification', handleNotification)
-    }
-  }, [])
-
   return (
     <MiniProvider>
       <PlaylistsProvider>
@@ -46,6 +28,7 @@ function App() {
               <Route path="/" element={<Main />}>
                 <Route index element={<Feed />} />
                 <Route path="/playlists" element={<Playlists />} />
+                <Route path="/playlists/:dir" element={<PlaylistPage />} />
                 <Route path="/favourites" element={<Favourites />} />
                 <Route path="/listen-later" element={<ListenLater />} />
                 <Route path="/history" element={<History />} />
@@ -64,12 +47,15 @@ function App() {
 }
 
 function AudioProvider() {
-  const { currentFile, handleNextClick, mediaRef } = useAppContext()
+  const { currentFile, handleNextClick, mediaRef } = useSuper()
 
   return (
     <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
-      <source src={currentFile.filePath} type="audio/mpeg" />
-      Tu navegador no soporta el elemento de audio.
+      {currentFile && currentFile.filePath ? (
+        <source src={currentFile.filePath} type="audio/mpeg" />
+      ) : (
+        <p>Tu navegador no soporta el elemento de audio.</p>
+      )}
     </audio>
   )
 }

@@ -1,11 +1,11 @@
 .Playlists {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
 
-    li {
-        padding: 2rem;
-        //Develop outline
-        outline: 2px solid rgb(0, 255, 0);
-        cursor: pointer;
+
+    ul {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+
+        padding: 1rem;
     }
 }

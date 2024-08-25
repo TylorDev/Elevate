@@ -1,0 +1,131 @@
+.songItem {
+    height: 5.5rem;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    position: relative;
+    cursor: pointer;
+
+
+    &:hover {
+        .ico {
+            opacity: 100%;
+        }
+
+        .optiones {
+            .btnLike {
+                opacity: 100%;
+            }
+
+            .dropdown {
+                opacity: 100%;
+            }
+
+        }
+    }
+}
+
+
+
+.cover {
+    position: relative;
+
+
+    height: 100%;
+    aspect-ratio: 1/1;
+
+
+    img {
+        object-fit: cover;
+        height: 100%;
+        border-radius: 0.3rem;
+        aspect-ratio: 1/1;
+    }
+
+
+    .ico {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.505);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+    }
+
+
+
+}
+
+.songdata {
+
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+
+
+    span:nth-child(2) {
+        font-weight: bold;
+        color: rgb(214, 214, 214);
+    }
+}
+
+.active {
+
+    color: rgb(255, 255, 255);
+
+    background-color: rgba(255, 255, 255, 0.275);
+    border-radius: 1rem;
+
+    .ico {
+        opacity: 100%;
+    }
+
+}
+
+
+
+.optiones {
+    position: absolute;
+    right: 10%;
+    display: flex;
+
+
+    .btnLike {
+
+        opacity: 0;
+    }
+
+
+    .dropdown {
+        opacity: 0;
+
+
+
+
+    }
+}
+
+.liked {
+
+
+    .btnLike {
+        opacity: 100%;
+    }
+
+    svg {
+
+        fill: #ec0043;
+        color: #ec005a;
+        font-size: 1.5rem;
+    }
+
+
+
+}
