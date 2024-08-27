@@ -29,10 +29,13 @@ function App() {
                 <Route index element={<Feed />} />
                 <Route path="/playlists" element={<Playlists />} />
                 <Route path="/playlists/:dir" element={<PlaylistPage />} />
-                <Route path="/favourites" element={<Favourites />} />
-                <Route path="/listen-later" element={<ListenLater />} />
+                <Route path="/favourites/:dir" element={<Favourites />} />
+                <Route path="/favourites/" element={<Favourites />} />
+                <Route path="/listen-later/:dir" element={<ListenLater />} />
+                <Route path="/listen-later/" element={<ListenLater />} />
                 <Route path="/history" element={<History />} />
-                <Route path="/tracks" element={<AllTracks />} />
+                <Route path="/tracks/:dir" element={<AllTracks />} />
+                <Route path="/tracks/" element={<AllTracks />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/directories" element={<Directories />} />
                 <Route path="*" element={<NotFound />} />

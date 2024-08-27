@@ -10,8 +10,8 @@ import { LuHeart, LuHeartOff } from 'react-icons/lu'
 import { useEffect, useState } from 'react'
 import DropdownMenu from '../DropMenu/DropMenu'
 
-export function SongItem({ file, index, cola }) {
-  const { currentIndex, handleSongClick } = useSuper()
+export function SongItem({ file, index, cola, name }) {
+  const { currentIndex, handleSongClick, currentFile } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { toggleLike, isLiked } = useLikes()
 
@@ -38,8 +38,8 @@ export function SongItem({ file, index, cola }) {
   return (
     <li
       key={index}
-      className={index === currentIndex ? 'songItem active' : 'songItem'}
-      onClick={() => handleSongClick(file, index, cola)}
+      className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}
+      onClick={() => handleSongClick(file, index, cola, name)}
     >
       <div className="cover">
         <div className="ico">

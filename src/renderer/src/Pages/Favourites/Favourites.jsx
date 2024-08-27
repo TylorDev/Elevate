@@ -8,12 +8,28 @@ import { Cola } from '../../Components/Cola/Cola'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useEffect } from 'react'
 import { BiShuffle } from 'react-icons/bi'
+import { useParams } from 'react-router-dom'
+import { useSuper } from '../../Contexts/SupeContext'
 
 function Favourites() {
+  const { dir } = useParams()
   const { getLikes, likes } = useLikes()
+
+  const { handleResume } = useSuper()
   useEffect(() => {
-    getLikes()
+    const fetchLikes = async () => {
+      await getLikes()
+    }
+
+    fetchLikes()
   }, [])
+
+  useEffect(() => {
+    if (dir === 'resume' && likes.length > 0) {
+      console.log('lista cargada!')
+      handleResume(likes)
+    }
+  }, [likes, dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
@@ -70,7 +86,7 @@ function Favourites() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={likes} />
+        <Cola list={likes} name={'favourites'} />
       </div>
     </div>
   )

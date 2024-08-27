@@ -9,12 +9,23 @@ import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useEffect } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
+import { useParams } from 'react-router-dom'
+import { useSuper } from '../../Contexts/SupeContext'
 
 function ListenLater() {
+  const { handleResume } = useSuper()
+  const { dir } = useParams()
   const { getlatersongs, later } = useMini()
   useEffect(() => {
     getlatersongs()
   }, [])
+
+  useEffect(() => {
+    if (dir === 'resume' && later.length > 0) {
+      console.log('lista cargada!')
+      handleResume(later)
+    }
+  }, [later, dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
@@ -71,7 +82,7 @@ function ListenLater() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={later} />
+        <Cola list={later} name={'listen-later'} />
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import { app, dialog, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { processM3UFile } from './utils/utils.mjs'
+import { getFileInfo, getFileInfos, processM3UFile } from './utils/utils.mjs'
 
 import { PrismaClient } from '@prisma/client'
 
@@ -130,6 +130,46 @@ async function countPlaylistOccurrences(filePath) {
     console.error('Error counting playlist occurrences:', error)
     // En caso de error, retorna 0
     return 0
+  }
+}
+
+// Función para recuperar la última canción de la base de datos
+
+// Función para obtener la última canción
+const getLastSong = async () => {
+  try {
+    const lastSong = await prisma.lastSong.findFirst({
+      orderBy: {
+        id: 'desc'
+      }
+    })
+
+    if (lastSong) {
+      const { file, index, queueId } = lastSong
+      const song = await getFileInfo(file)
+      return { song, index, queueId }
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error retrieving last song:', error)
+    throw error // Lanza el error para que el renderer pueda manejarlo
+  }
+}
+
+// Función para guardar la última canción
+const saveLastSong = async (file, index, queueId) => {
+  try {
+    await prisma.lastSong.create({
+      data: {
+        file,
+        index,
+        queueId // Usar queueId en lugar de queue
+      }
+    })
+  } catch (error) {
+    console.error('Error saving last song:', error)
+    throw error // Lanza el error para que el renderer pueda manejarlo
   }
 }
 
@@ -347,5 +387,12 @@ export function setupM3UHandlers() {
 
     // Guardar la playlist en la base de datos con los detalles adicionales
     return await createPlaylistInDatabase(filePath, playlistName, totalDuration, totalTracks, 0)
+  })
+
+  ipcMain.handle('save-last-data', async (event, filepath, index, queueId) => {
+    return await saveLastSong(filepath, index, queueId)
+  })
+  ipcMain.handle('get-last-data', async () => {
+    return await getLastSong()
   })
 }

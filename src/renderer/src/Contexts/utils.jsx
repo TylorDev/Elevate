@@ -38,7 +38,7 @@ export const ElectronGetter2 = async (action, setState = null, value = null) => 
 
 export const ElectronSetter = async (action, common = undefined, getter = undefined) => {
   const { filePath, fileName } = common
-  console.log(filePath, fileName)
+  console.log('[ElectronSetterLog]', filePath, fileName)
   try {
     const fileInfo = await window.electron.ipcRenderer.invoke(action, filePath, fileName)
     if (getter) {
@@ -51,10 +51,11 @@ export const ElectronSetter = async (action, common = undefined, getter = undefi
   }
 }
 
-export const ElectronSetter2 = async (action, value) => {
-  console.log(value)
+export const ElectronSetter2 = async (action, ...values) => {
+  console.log(...values)
   try {
-    const fileInfo = await window.electron.ipcRenderer.invoke(action, value)
+    const fileInfo = await window.electron.ipcRenderer.invoke(action, ...values)
+
     console.log('File info:', fileInfo)
   } catch (error) {
     console.error('Error saving file:', error)

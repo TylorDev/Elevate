@@ -9,6 +9,7 @@ import { Button } from './../../Components/Button/Button'
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { FaPlay } from 'react-icons/fa'
 import { GoPencil } from 'react-icons/go'
+import { useSuper } from '../../Contexts/SupeContext'
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
@@ -17,13 +18,10 @@ function PlaylistPage() {
     getUniqueList(setCurrent, dir)
   }, [dir])
 
+  const { handleQueueAndPlay } = useSuper()
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
-
-  useEffect(() => {
-    console.log(current)
-  }, [current])
 
   if (!current || !current.playlistData) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
@@ -64,7 +62,12 @@ function PlaylistPage() {
             <Button>
               <GoPencil />{' '}
             </Button>
-            <Button>
+            <Button
+              onClick={async () => {
+                await handleQueueAndPlay(undefined, undefined, data.path)
+                console.log('Nombre en PlaylistPagePlayClick: ' + (data.path || '[sin nombre]'))
+              }}
+            >
               <FaPlay />
             </Button>
             <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
@@ -73,7 +76,7 @@ function PlaylistPage() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={current.processedData} />
+        <Cola list={current.processedData} name={dir} />
       </div>
     </div>
   )

@@ -11,7 +11,6 @@ export const validateLike = async (filePath, fileName, setCurrentLike) => {
       return
     }
 
-    console.log('Is the song liked?', liked)
     setCurrentLike(liked)
   } catch (error) {
     console.error('Error:', error)

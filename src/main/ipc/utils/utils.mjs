@@ -93,6 +93,40 @@ const fechtBPM = async (query) => {
   }
 }
 
+export async function getFileInfo(filePath) {
+  try {
+    const stats = fs.statSync(filePath)
+    const { common, format } = await parseFile(filePath)
+    const fileName = path.basename(filePath, path.extname(filePath))
+    const duration = format.duration || 0
+
+    const song = await getOrCreateSong(filePath, fileName)
+
+    const userPreference = await prisma.userPreferences.findUnique({
+      where: { song_id: song.song_id },
+      select: {
+        bpm: true,
+        play_count: true,
+        is_favorite: true
+      }
+    })
+
+    return {
+      filePath,
+      fileName,
+      size: stats.size,
+      duration,
+      ...common,
+      bpm: userPreference?.bpm || 0,
+      play_count: userPreference?.play_count || 0,
+      liked: userPreference?.is_favorite || false
+    }
+  } catch (error) {
+    console.error(`Error processing file ${filePath}:`, error)
+    return null
+  }
+}
+
 export async function getSongBpm(common) {
   try {
     const filePath = common.filePath

@@ -45,21 +45,28 @@ model Playlist {
   id           Int         @id @default(autoincrement())
   path         String      @unique
   nombre       String      @unique
-  duracion     Int         @default(0) // Duración total en segundos, valor predeterminado 0
-  numElementos Int         @default(0) // Número de archivos en la playlist, valor predeterminado 0
+  duracion     Int         @default(0)
+  numElementos Int         @default(0)
   createdAt    DateTime    @default(now())
-  historial    Historial[]
+  historial    Historial[] // Solo especifica la relación sin onDelete
   totalplays   Int         @default(0)
 }
 
 model Historial {
   id         Int      @id @default(autoincrement())
   playlistId Int
-  playlist   Playlist @relation(fields: [playlistId], references: [id])
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade) // Especifica onDelete aquí
   playedAt   DateTime @default(now())
 }
 
 model Directory {
   id   Int    @id @default(autoincrement())
   path String @unique
+}
+
+model LastSong {
+  id      Int    @id @default(autoincrement())
+  file    String
+  index   Int
+  queueId String // Cambiado de Json a String para almacenar el ID de la lista
 }

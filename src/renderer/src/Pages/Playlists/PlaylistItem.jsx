@@ -6,27 +6,31 @@ import { Button } from './../../Components/Button/Button'
 import DropdownMenu from './../../Components/DropMenu/DropMenu'
 import { FaPlay } from 'react-icons/fa'
 import { Link, useNavigate } from 'react-router-dom'
+import { useSuper } from '../../Contexts/SupeContext'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
+
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
+  const { deletePlaylist } = usePlaylists()
+
   const handleSelect = (option) => {
+    if ('eliminar') {
+      deletePlaylist(playlist.path)
+    }
+
     console.log(`Selected option: ${option}`)
   }
+  const { handleQueueAndPlay } = useSuper()
 
   const navigate = useNavigate()
   return (
-    <li
-      className="PlaylistItem"
-      key={index}
-      onClick={() => {
-        addPlaylisthistory(playlist.path)
-      }}
-    >
+    <li className="PlaylistItem" key={index} onClick={() => {}}>
       <div
         className="pi-item cover-pi"
         onClick={() => {
           navigate(`/playlists/${playlist.path}`)
         }}
       >
-        <img src={BinToBlob(playlist[1]?.picture?.[0] || {})} alt="" />
+        <img src={BinToBlob(playlist[0]?.picture?.[0] || {})} alt="" />
       </div>
 
       <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">
@@ -38,10 +42,15 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
       </div>
 
       <div className="pi-item pi-time"> {formatTimestamp(playlist.createdAt)} </div>
-      <Button className="pi-item">
+      <Button
+        className="pi-item"
+        onClick={async () => {
+          await handleQueueAndPlay(undefined, undefined, playlist.path)
+        }}
+      >
         <FaPlay />
       </Button>
-      <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+      <DropdownMenu options={['eliminar', 'Option 2', 'Option 3']} onSelect={handleSelect} />
     </li>
   )
 }

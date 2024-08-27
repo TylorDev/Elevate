@@ -7,7 +7,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 
 function Music() {
   const navigate = useNavigate()
-  const { queue } = useSuper()
+  const { queueState } = useSuper()
   return (
     <div className="Music">
       <div
@@ -17,8 +17,7 @@ function Music() {
       >
         volver
       </div>
-      <Cola list={queue} />
-      {console.log(queue)}
+      <Cola list={queueState.currentQueue} />
     </div>
   )
 }
