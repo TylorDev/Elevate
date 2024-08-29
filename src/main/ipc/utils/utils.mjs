@@ -199,6 +199,14 @@ export async function getFileInfos(filePaths) {
   ).then((fileInfos) => fileInfos.filter((info) => info !== null))
 }
 
+export async function getTotalDuration(directory) {
+  const files = getAllAudioFiles(directory)
+  const tracks = await getFileInfos(files)
+  const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
+
+  return { totalDuration, totalTracks: tracks.length }
+}
+
 export async function processM3UFile(m3uFilePath, baseDir) {
   try {
     // Lee el contenido del archivo M3U

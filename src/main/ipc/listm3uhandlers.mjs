@@ -69,6 +69,7 @@ async function getPlaylistDetails(playlistPath) {
   const contador = countPlaylistOccurrences(playlistPath)
   return { totalDuration, totalTracks, contador }
 }
+
 async function getSaveFilePath() {
   const { filePath } = await dialog.showSaveDialog({
     title: 'Guardar lista de reproducción',

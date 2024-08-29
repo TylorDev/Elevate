@@ -1,6 +1,11 @@
 import { dialog, ipcMain } from 'electron'
 
-import { getFileInfos, getAllAudioFiles, getOrCreateSong } from './utils/utils.mjs'
+import {
+  getFileInfos,
+  getAllAudioFiles,
+  getOrCreateSong,
+  getTotalDuration
+} from './utils/utils.mjs'
 
 import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
@@ -149,6 +154,30 @@ export function setupFilehandlers() {
     }
   })
 
+  ipcMain.handle('get-audio-in-directory', async (_, directoryPath) => {
+    try {
+      // Verificar si el directorio existe en la base de datos
+      const directory = await prisma.directory.findUnique({
+        where: { path: directoryPath }
+      })
+
+      if (!directory) {
+        return [] // El directorio no existe en la base de datos, devolver un array vacío
+      }
+
+      // Obtener todos los archivos de audio del directorio específico
+      const audioFiles = getAllAudioFiles(directoryPath)
+
+      // Filtrar archivos duplicados
+      const uniqueAudioFiles = Array.from(new Set(audioFiles))
+
+      return getFileInfos(uniqueAudioFiles)
+    } catch (error) {
+      console.error('Error retrieving audio files by directory:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('delete-directory', async (event, path) => {
     try {
       // Eliminar el directorio por su ruta
@@ -166,9 +195,21 @@ export function setupFilehandlers() {
     try {
       // Obtener todos los directorios de la base de datos
       const directories = await prisma.directory.findMany()
-      console.log(directories[0].path)
 
-      return directories
+      // Iterar sobre cada directorio y agregar las propiedades totalTracks y totalDuration
+      const directoriesWithDetails = await Promise.all(
+        directories.map(async (directory) => {
+          const { totalTracks, totalDuration } = await getTotalDuration(directory.path)
+
+          return {
+            ...directory,
+            totalTracks,
+            totalDuration
+          }
+        })
+      )
+
+      return directoriesWithDetails
     } catch (error) {
       console.error('Error retrieving directories:', error)
       throw error

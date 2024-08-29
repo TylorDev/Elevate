@@ -23,6 +23,12 @@ export const MiniProvider = ({ children }) => {
     getDirectories()
     ElectronGetter('delete-directory', setState, filePath)
   }
+
+  const getDirFiles = (setState, value) => {
+    console.log(value)
+    ElectronGetter2('get-audio-in-directory', setState, value)
+  }
+
   const getHistory = () => ElectronGetter('get-history', setHistory)
   const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
@@ -43,7 +49,7 @@ export const MiniProvider = ({ children }) => {
         directories, // LISTA DIRECTORIOS
         getDirectories, //  OBTIENE LA  LISTA DIRECTORIOS
         deleteDirectory, // borra un directorio especifico
-
+        getDirFiles,
         history, // LISTA DE HISTORIAL
         getHistory, //  OBTIENE LA  LISTA DE HISTORIAL
 

@@ -17,7 +17,7 @@ export function sendNotification(message) {
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 900,
-    height: 670,
+    height: 870,
     minWidth: 500, // Ancho mínimo
     minHeight: 400, // Alto mínimo
     show: false,

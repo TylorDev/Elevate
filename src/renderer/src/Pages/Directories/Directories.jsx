@@ -3,9 +3,13 @@ import { useEffect } from 'react'
 import './Directories.scss'
 import { useMini } from '../../Contexts/MiniContext'
 
+import { DirItem } from '../../Components/DirItem/DirItem'
+import { Button } from './../../Components/Button/Button'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { MdCreateNewFolder } from 'react-icons/md'
 function Directories() {
-  const { getDirectories, directories, deleteDirectory } = useMini()
-
+  const { getDirectories, directories } = useMini()
+  const { selectFiles } = usePlaylists()
   useEffect(() => {
     if (directories) {
       getDirectories()
@@ -16,17 +20,11 @@ function Directories() {
     <div className="">
       <ul>
         <h1>Directories</h1>
-        {directories.map((playlist) => (
-          <li key={playlist.id}>
-            <button
-              onClick={() => {
-                deleteDirectory(playlist.path)
-              }}
-            >
-              borrar
-            </button>
-            <strong>{playlist.nombre}</strong> Path: {playlist.path}
-          </li>
+        <Button onClick={selectFiles}>
+          <MdCreateNewFolder />
+        </Button>
+        {directories.map((directory) => (
+          <DirItem key={directory.id} directory={directory} />
         ))}
       </ul>
     </div>

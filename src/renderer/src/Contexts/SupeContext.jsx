@@ -32,6 +32,26 @@ export const SuperProvider = ({ children }) => {
 
   const navigate = useNavigate()
 
+  const PlayQueue = (list, name) => {
+    if (list.length > 0) {
+      setCurrentFile(list[0])
+      setQueueState({
+        currentQueue: list,
+        originalQueue: list,
+        queueName: name
+      })
+      setCurrentIndex(0) // Optionally reset the index to 0
+    } else {
+      // Handle the case where the list is empty if needed
+      setCurrentFile('')
+      setQueueState({
+        currentQueue: [],
+        originalQueue: [],
+        queueName: name
+      })
+      setCurrentIndex(0)
+    }
+  }
   const navigateToResume = (route) => {
     console.error(`La ruta "${route}" no es válida.`)
     navigate(`/${route}/resume`)
@@ -170,9 +190,9 @@ export const SuperProvider = ({ children }) => {
     console.log('Nombre en ClickSong: ' + (name || '[sin nombre]'))
   }
 
-  const handleResume = (list) => {
+  const handleResume = (list, name = '') => {
     setQueueState((prevState) => ({
-      ...prevState,
+      queueName: name,
       currentQueue: list,
       originalQueue: list
     }))
@@ -218,7 +238,8 @@ export const SuperProvider = ({ children }) => {
         queueState, //lista en reproduccion
         handleSaveClick, // guarda la cola actual en la bd.
         handleResume,
-        handleQueueAndPlay
+        handleQueueAndPlay,
+        PlayQueue
       }}
     >
       {children}

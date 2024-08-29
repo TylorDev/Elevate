@@ -1,0 +1,31 @@
+.dirItem {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr auto auto;
+
+    align-items: center;
+    justify-items: start;
+
+    padding: 1rem;
+
+    gap: 1rem;
+
+    a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+}
+
+.d-datas {
+    display: flex;
+    gap: 1rem;
+
+}
+
+.d-icon {
+    font-size: 4rem;
+}

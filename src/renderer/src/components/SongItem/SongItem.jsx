@@ -51,7 +51,9 @@ export function SongItem({ file, index, cola, name }) {
 
       <div className="songdata">
         <span>{file.fileName}</span>
-        <span>{file.artist || 'Unknow'}</span>
+        <span>
+          {file.artist || 'Unknow'} • {file.play_count} vistas • {file.bpm} bpm
+        </span>
       </div>
 
       <div className={isLikedo ? 'optiones liked' : '  optiones'}>
