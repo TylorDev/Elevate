@@ -5,7 +5,8 @@ import { fileURLToPath } from 'url'
 import icon from '../../resources/icon.png?asset'
 
 import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
-import { setupM3UHandlers } from './ipc/listm3uhandlers.mjs'
+
+import { setupPlaylistHandlers } from './ipc/playlistHandlers.mjs'
 import { setupFilehandlers } from './ipc/filehandlers.mjs'
 
 let mainWin
@@ -70,7 +71,7 @@ app.whenReady().then(() => {
 
   setupMusicHandlers()
   setupFilehandlers()
-  setupM3UHandlers()
+  setupPlaylistHandlers()
   setupLikeSongHandlers()
 
   createWindow()

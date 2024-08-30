@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { createContext, useState, useContext, useEffect } from 'react'
 import { ElectronGetter, ElectronSetter2 } from './utils'
 

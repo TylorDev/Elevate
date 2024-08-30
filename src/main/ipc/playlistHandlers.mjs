@@ -1,8 +1,7 @@
 import { app, dialog, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { getFileInfo, getFileInfos, processM3UFile } from './utils/utils.mjs'
-
+import { getFileInfo, processM3UFile } from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -16,36 +15,6 @@ const validateFilePaths = (filePaths) => {
     return { valid: false, error: 'Invalid file paths provided.' }
   }
   return { valid: true }
-}
-
-async function agregarHistorial(nombre, path) {
-  try {
-    // Buscar la playlist en la base de datos por nombre y path
-    const playlist = await prisma.playlist.findFirst({
-      where: {
-        nombre: nombre,
-        path: path
-      }
-    })
-
-    if (!playlist) {
-      throw new Error('Playlist no encontrada.')
-    }
-
-    // Agregar la reproducción al historial
-    await prisma.historial.create({
-      data: {
-        playlistId: playlist.id,
-        playedAt: new Date() // Puedes omitir este campo si quieres usar el valor predeterminado
-      }
-    })
-
-    console.log('Historial agregado con éxito.')
-  } catch (error) {
-    console.error('Error al agregar al historial:', error.message)
-  } finally {
-    await prisma.$disconnect()
-  }
 }
 
 const createM3uContent = (filePaths, commonBasePath) => {
@@ -134,9 +103,6 @@ async function countPlaylistOccurrences(filePath) {
   }
 }
 
-// Función para recuperar la última canción de la base de datos
-
-// Función para obtener la última canción
 const getLastSong = async () => {
   try {
     const lastSong = await prisma.lastSong.findFirst({
@@ -158,7 +124,6 @@ const getLastSong = async () => {
   }
 }
 
-// Función para guardar la última canción
 const saveLastSong = async (file, index, queueId) => {
   try {
     await prisma.lastSong.create({
@@ -174,67 +139,112 @@ const saveLastSong = async (file, index, queueId) => {
   }
 }
 
-export function setupM3UHandlers() {
+async function selectM3UFile() {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile'],
+    filters: [{ name: 'M3U Files', extensions: ['m3u'] }]
+  })
+
+  if (result.canceled || result.filePaths.length === 0) {
+    return null
+  }
+
+  return result.filePaths[0]
+}
+
+function createPlaylistObject(m3uFilePath) {
+  const baseName = path.basename(m3uFilePath, path.extname(m3uFilePath))
+  return {
+    path: m3uFilePath,
+    nombre: baseName
+  }
+}
+
+async function savePlaylistToDatabase(playlist) {
+  try {
+    await prisma.playlist.create({ data: playlist })
+  } catch (dbError) {
+    console.error('Error creating playlist in database:', dbError)
+  }
+}
+
+function validateFilePath(m3uFilePath) {
+  if (!m3uFilePath) {
+    throw new Error('No file path provided')
+  }
+}
+
+function getM3UDirectory(m3uFilePath) {
+  return path.dirname(m3uFilePath)
+}
+
+async function fetchPlaylistData(m3uFilePath) {
+  return await prisma.playlist.findUnique({
+    where: { path: m3uFilePath }
+  })
+}
+
+async function fetchRandomPlaylist() {
+  const totalPlaylists = await prisma.playlist.count()
+  if (totalPlaylists === 0) return null
+
+  const randomIndex = getRandomIndex(totalPlaylists)
+  const [randomPlaylist] = await prisma.playlist.findMany({
+    take: 1,
+    skip: randomIndex
+  })
+
+  return randomPlaylist
+}
+
+function getRandomIndex(total) {
+  return Math.floor(Math.random() * total)
+}
+async function getPlaylistByFilePath(filePath) {
+  return await prisma.playlist.findUnique({
+    where: { path: filePath }
+  })
+}
+
+async function addToHistory(playlistId) {
+  await prisma.historial.create({
+    data: { playlistId }
+  })
+}
+
+async function incrementPlayCount(playlistId) {
+  await prisma.playlist.update({
+    where: { id: playlistId },
+    data: { totalplays: { increment: 1 } }
+  })
+}
+//------------------------------------
+export function setupPlaylistHandlers() {
   ipcMain.handle('open-m3u', async () => {
     try {
-      // Selecciona el archivo M3U
-      const result = await dialog.showOpenDialog({
-        properties: ['openFile'],
-        filters: [{ name: 'M3U Files', extensions: ['m3u'] }]
-      })
+      const m3uFilePath = await selectM3UFile()
+      if (!m3uFilePath) return []
 
-      if (result.canceled || result.filePaths.length === 0) {
-        return []
-      }
+      const playlist = createPlaylistObject(m3uFilePath)
 
-      const m3uFilePath = result.filePaths[0]
-      const m3uDirectory = path.dirname(m3uFilePath) // Obtener la ruta del directorio del archivo M3U
-      const baseName = path.basename(m3uFilePath, path.extname(m3uFilePath)) // Obtener el nombre base sin la extensión
+      await savePlaylistToDatabase(playlist)
 
-      // Crear un objeto playlist para devolver en cualquier caso
-      const playlist = {
-        path: m3uFilePath,
-        nombre: baseName
-      }
-
-      try {
-        // Intentar guardar en la base de datos
-        await prisma.playlist.create({
-          data: playlist
-        })
-      } catch (dbError) {
-        console.error('Error creating playlist in database:', dbError)
-        // Aquí podrías manejar el error de otra forma si es necesario
-      }
-
+      const m3uDirectory = path.dirname(m3uFilePath)
       return processM3UFile(m3uFilePath, m3uDirectory)
     } catch (error) {
       console.error('Error processing M3U file:', error)
-      // Devolver el playlist incluso si hubo un error
-      return {
-        path: null,
-        nombre: null
-      }
+      return { path: null, nombre: null }
     }
   })
 
   ipcMain.handle('open-list', async (event, m3uFilePath) => {
     try {
-      if (!m3uFilePath) {
-        throw new Error('No file path provided')
-      }
+      validateFilePath(m3uFilePath)
 
-      const m3uDirectory = path.dirname(m3uFilePath) // Obtener la ruta del directorio del archivo M3U
-
-      // Procesar el archivo M3U
+      const m3uDirectory = getM3UDirectory(m3uFilePath)
       const processedData = await processM3UFile(m3uFilePath, m3uDirectory)
+      const playlistData = await fetchPlaylistData(m3uFilePath)
 
-      // Obtener los datos de la playlist desde Prisma
-      const playlistData = await prisma.playlist.findUnique({
-        where: { path: m3uFilePath }
-      })
-
-      // Devolver los datos procesados y los datos de la playlist
       return {
         processedData,
         playlistData
@@ -262,20 +272,7 @@ export function setupM3UHandlers() {
 
   ipcMain.handle('get-random-playlist', async () => {
     try {
-      // Obtener el número total de playlists
-      const totalPlaylists = await prisma.playlist.count()
-
-      if (totalPlaylists === 0) return null
-
-      // Generar un índice aleatorio para seleccionar una playlist
-      const randomIndex = Math.floor(Math.random() * totalPlaylists)
-
-      // Obtener una playlist aleatoria
-      const [randomPlaylist] = await prisma.playlist.findMany({
-        take: 1,
-        skip: randomIndex
-      })
-
+      const randomPlaylist = await fetchRandomPlaylist()
       return randomPlaylist
     } catch (error) {
       console.error('Error fetching random playlist:', error)
@@ -302,26 +299,11 @@ export function setupM3UHandlers() {
 
   ipcMain.handle('add-list-to-history', async (event, filePath) => {
     try {
-      const playlist = await prisma.playlist.findUnique({
-        where: { path: filePath }
-      })
+      const playlist = await getPlaylistByFilePath(filePath)
+      if (!playlist) throw new Error('Playlist not found')
 
-      if (!playlist) {
-        throw new Error('Playlist not found')
-      }
-
-      // Crea una nueva entrada en el historial
-      await prisma.historial.create({
-        data: {
-          playlistId: playlist.id
-        }
-      })
-
-      // Incrementa el contador de reproducciones
-      await prisma.playlist.update({
-        where: { id: playlist.id },
-        data: { totalplays: { increment: 1 } }
-      })
+      await addToHistory(playlist.id)
+      await incrementPlayCount(playlist.id)
 
       console.log('Playlist added to history and play count updated successfully')
     } catch (error) {
