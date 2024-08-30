@@ -207,10 +207,10 @@ export async function getTotalDuration(directory) {
   return { totalDuration, totalTracks: tracks.length }
 }
 
-export async function processM3UFile(m3uFilePath, baseDir) {
+export async function processPlaylist(filepath, baseDir) {
   try {
     // Lee el contenido del archivo M3U
-    const fileContent = await fs.promises.readFile(m3uFilePath, 'utf-8')
+    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
     const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
 
     // Convierte rutas relativas a rutas absolutas

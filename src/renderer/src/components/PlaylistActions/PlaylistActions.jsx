@@ -6,7 +6,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 export function PlaylistActions({ name }) {
   const { handleSaveClick } = useSuper()
   const { getLikes } = useLikes()
-  const { selectFiles, getSavedLists, openM3U, detectM3U, getAllSongs } = usePlaylists()
+  const { selectFiles, getSavedLists, openM3U, getAllSongs } = usePlaylists()
 
   return (
     <div className="PlaylistActions">
@@ -21,8 +21,6 @@ export function PlaylistActions({ name }) {
       </button>
       <button onClick={getLikes}>lista likes</button>
       <button onClick={openM3U}>cargar lista</button>
-      <button onClick={detectM3U}>Detectar lista</button>
-
       <button onClick={getSavedLists}>getm3ulists</button>
     </div>
   )

@@ -13,7 +13,6 @@ export const PlaylistsProvider = ({ children }) => {
   const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
   const openM3U = () => ElectronGetter('load-list', setMetadata) // 0 ref
   const selectFiles = () => ElectronGetter('select-files', setMetadata) // 0 ref
-  const detectM3U = () => ElectronGetter('detect-m3u', setMetadata) //   0 ref
 
   const getSavedLists = () => ElectronGetter('get-playlists', setPlaylists)
   const getRandomList = () => ElectronGetter('get-random-playlist', setRandomPlaylist)
@@ -23,7 +22,7 @@ export const PlaylistsProvider = ({ children }) => {
     ElectronGetter('delete-playlist', setState, filePath)
   }
   const getUniqueList = async (setState, filePath) => {
-    await ElectronGetter('open-list', setState, filePath)
+    await ElectronGetter('get-list', setState, filePath)
   }
 
   useEffect(() => {
@@ -58,7 +57,6 @@ export const PlaylistsProvider = ({ children }) => {
         getAllSongs,
         openM3U,
         selectFiles,
-        detectM3U,
         randomPlaylist
       }}
     >

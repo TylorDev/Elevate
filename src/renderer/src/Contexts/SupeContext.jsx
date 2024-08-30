@@ -70,7 +70,7 @@ export const SuperProvider = ({ children }) => {
 
     try {
       console.log('handleQueueAndPlay[Valida]: ', filePath)
-      const newQueue = await window.electron.ipcRenderer.invoke('open-list', filePath)
+      const newQueue = await window.electron.ipcRenderer.invoke('get-list', filePath)
 
       if (newQueue) {
         const processedQueue = newQueue.processedData
