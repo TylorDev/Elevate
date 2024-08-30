@@ -11,13 +11,13 @@ export const PlaylistsProvider = ({ children }) => {
   const [playlists, setPlaylists] = useState([])
 
   const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
-  const openM3U = () => ElectronGetter('open-m3u', setMetadata) // 0 ref
+  const openM3U = () => ElectronGetter('load-list', setMetadata) // 0 ref
   const selectFiles = () => ElectronGetter('select-files', setMetadata) // 0 ref
   const detectM3U = () => ElectronGetter('detect-m3u', setMetadata) //   0 ref
 
   const getSavedLists = () => ElectronGetter('get-playlists', setPlaylists)
   const getRandomList = () => ElectronGetter('get-random-playlist', setRandomPlaylist)
-  const addPlaylisthistory = (path) => ElectronSetter2('add-list-to-history', path)
+  const addPlaylisthistory = (path) => ElectronSetter2('load-list-to-history', path)
   const deletePlaylist = (filePath) => {
     const setState = []
     ElectronGetter('delete-playlist', setState, filePath)
