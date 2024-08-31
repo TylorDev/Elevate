@@ -10,15 +10,28 @@ import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { FaPlay } from 'react-icons/fa'
 import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
+import Modal from '../../Components/Modal/Modal'
+import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
-  const { getUniqueList } = usePlaylists()
+  const [isVisible, setIsVisible] = useState(false) // Moved to the top
+
+  const { getUniqueList, updatePlaylist, playlists } = usePlaylists()
+  const { queueState, handleQueueAndPlay } = useSuper() // Combined the two useSuper calls
+
   useEffect(() => {
     getUniqueList(setCurrent, dir)
-  }, [dir])
+  }, [dir, queueState, playlists])
 
-  const { handleQueueAndPlay } = useSuper()
+  const openModal = () => {
+    setIsVisible(true)
+  }
+
+  const closeModal = () => {
+    setIsVisible(false)
+  }
+
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
@@ -30,6 +43,13 @@ function PlaylistPage() {
   const data = current.playlistData
   return (
     <div className="PlaylistPage">
+      <Modal isVisible={isVisible} closeModal={closeModal}>
+        <PlaylistForm
+          playlist={current.playlistData}
+          onUpdate={updatePlaylist}
+          close={closeModal}
+        />
+      </Modal>
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
@@ -59,7 +79,7 @@ function PlaylistPage() {
             <span> {formatDuration(data.duracion)} </span>
           </div>
           <div className="pgl-buttton">
-            <Button>
+            <Button onClick={openModal}>
               <GoPencil />{' '}
             </Button>
             <Button
@@ -76,7 +96,7 @@ function PlaylistPage() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={current.processedData} name={dir} />
+        <Cola list={current.processedData} name={dir} filePath={dir} />
       </div>
     </div>
   )

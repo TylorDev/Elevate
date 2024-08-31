@@ -9,16 +9,35 @@ import { Button } from './../Button/Button'
 import { LuHeart, LuHeartOff } from 'react-icons/lu'
 import { useEffect, useState } from 'react'
 import DropdownMenu from '../DropMenu/DropMenu'
+import Modal from './../Modal/Modal'
 
-export function SongItem({ file, index, cola, name }) {
+export function SongItem({ file, index, cola, name, filePath }) {
   const { currentIndex, handleSongClick, currentFile } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { toggleLike, isLiked } = useLikes()
+  const { removeTrack } = useSuper()
+
+  const [isVisible, setIsVisible] = useState(false)
+
+  const openModal = () => {
+    setIsVisible(true)
+  }
+
+  const closeModal = () => {
+    setIsVisible(false)
+  }
 
   const buttonText = isLikedo ? <LuHeart /> : <LuHeartOff />
 
   const handleSelect = (option) => {
-    console.log(`Selected option: ${option}`)
+    if (option === 'eliminar') {
+      console.log(`Selected option: ${option}`)
+      removeTrack(filePath, index)
+    }
+
+    if (option === 'abrir modal') {
+      openModal()
+    }
   }
 
   useEffect(() => {
@@ -60,8 +79,12 @@ export function SongItem({ file, index, cola, name }) {
         <Button className={'btnLike'} onClick={handleClick}>
           {buttonText}
         </Button>
-        <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+        <DropdownMenu options={['eliminar', 'abrir modal', 'Option 3']} onSelect={handleSelect} />
       </div>
+
+      <Modal isVisible={isVisible} closeModal={closeModal}>
+        <div> {file.filePath} </div>
+      </Modal>
 
       <div className="stime">
         {Math.floor(file.duration / 60)}:

@@ -179,6 +179,25 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
+  const removeTrack = async (path, index) => {
+    // Crear una copia de la lista de paths, excluyendo el índice seleccionado
+    const paths = queueState.currentQueue.map((file) => file.filePath).filter((_, i) => i !== index)
+
+    // Enviar los paths actualizados al proceso principal
+    const result = await electronInvoke('remove-track', { filePaths: paths, filePath: path })
+
+    // Manejar el resultado de la operación
+    if (result && result.success) {
+      console.log('M3U file saved successfully at', result.path)
+      console.log('New name in db:', result.nombre)
+      // Actualizar el estado con la nueva lista de paths
+      setQueueState((prevState) => ({
+        ...prevState,
+        currentQueue: prevState.currentQueue.filter((_, i) => i !== index)
+      }))
+    }
+  }
+
   const addhistory = (common) => ElectronSetter('add-history', common)
 
   const handleSongClick = (file, index, list, name) => {
@@ -239,7 +258,8 @@ export const SuperProvider = ({ children }) => {
         handleSaveClick, // guarda la cola actual en la bd.
         handleResume,
         handleQueueAndPlay,
-        PlayQueue
+        PlayQueue,
+        removeTrack
       }}
     >
       {children}

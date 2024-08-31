@@ -57,8 +57,14 @@ export const ElectronSetter2 = async (action, ...values) => {
     const fileInfo = await window.electron.ipcRenderer.invoke(action, ...values)
 
     console.log('File info:', fileInfo)
+
+    // Devolver un mensaje de éxito junto con la información del archivo
+    return { success: true, message: 'Data sent successfully', fileInfo }
   } catch (error) {
     console.error('Error saving file:', error)
+
+    // Devolver un mensaje de error
+    return { success: false, message: 'Error saving file', error }
   }
 }
 

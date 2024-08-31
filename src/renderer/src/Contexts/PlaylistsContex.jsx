@@ -17,6 +17,20 @@ export const PlaylistsProvider = ({ children }) => {
   const getSavedLists = () => ElectronGetter('get-playlists', setPlaylists)
   const getRandomList = () => ElectronGetter('get-random-playlist', setRandomPlaylist)
   const addPlaylisthistory = (path) => ElectronSetter2('load-list-to-history', path)
+  const updatePlaylist = async (path, data) => {
+    const response = await ElectronSetter2('change-list-name', path, data)
+
+    if (response.success) {
+      console.log(response.message)
+      getSavedLists()
+    } else {
+      console.error(response.message)
+      // Aquí puedes manejar el error
+    }
+
+    return response // Retornar la respuesta para un manejo posterior si es necesario
+  }
+
   const deletePlaylist = (filePath) => {
     const setState = []
     ElectronGetter('delete-playlist', setState, filePath)
@@ -57,7 +71,8 @@ export const PlaylistsProvider = ({ children }) => {
         getAllSongs,
         openM3U,
         selectFiles,
-        randomPlaylist
+        randomPlaylist,
+        updatePlaylist
       }}
     >
       {children}

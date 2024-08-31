@@ -7,7 +7,10 @@ const DropdownMenu = ({ options, onSelect }) => {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef(null)
 
-  const toggleMenu = () => setIsOpen(!isOpen)
+  const toggleMenu = (event) => {
+    event.stopPropagation() // Evita que el clic se propague y cierre el menú
+    setIsOpen(!isOpen)
+  }
 
   const handleClickOutside = (event) => {
     if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -38,7 +41,8 @@ const DropdownMenu = ({ options, onSelect }) => {
             <li
               key={index}
               className="dropdown__item"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation() // Evita que el clic cierre el menú
                 onSelect(option)
                 setIsOpen(false)
               }}

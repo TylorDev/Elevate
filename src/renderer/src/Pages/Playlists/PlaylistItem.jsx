@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { BinToBlob } from '../../Contexts/utils'
 import './PlaylistItem.scss'
@@ -8,17 +9,34 @@ import { FaPlay } from 'react-icons/fa'
 import { Link, useNavigate } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import Modal from '../../Components/Modal/Modal'
+import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
+import { useState } from 'react'
 
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
-  const { deletePlaylist } = usePlaylists()
+  const { deletePlaylist, updatePlaylist } = usePlaylists()
 
+  const [isVisible, setIsVisible] = useState(false)
+
+  const openModal = () => {
+    setIsVisible(true)
+  }
+
+  const closeModal = () => {
+    setIsVisible(false)
+  }
   const handleSelect = (option) => {
-    if ('eliminar') {
+    if (option === 'eliminar') {
       deletePlaylist(playlist.path)
+    }
+
+    if (option === 'editar') {
+      openModal()
     }
 
     console.log(`Selected option: ${option}`)
   }
+
   const { handleQueueAndPlay } = useSuper()
 
   const navigate = useNavigate()
@@ -50,7 +68,10 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
       >
         <FaPlay />
       </Button>
-      <DropdownMenu options={['eliminar', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+      <DropdownMenu options={['eliminar', 'editar', 'Option 3']} onSelect={handleSelect} />
+      <Modal isVisible={isVisible} closeModal={closeModal}>
+        <PlaylistForm playlist={playlist} onUpdate={updatePlaylist} close={closeModal} />
+      </Modal>
     </li>
   )
 }
