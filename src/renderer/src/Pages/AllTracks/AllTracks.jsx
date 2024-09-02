@@ -21,7 +21,7 @@ function AllTracks() {
 
   useEffect(() => {
     if (dir === 'resume' && metadata?.length > 0) {
-      console.log('lista cargada!')
+      // console.log('lista cargada!')
       handleResume(metadata, 'tracks')
     }
   }, [metadata, dir])

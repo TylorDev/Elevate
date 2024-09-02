@@ -22,7 +22,7 @@ function ListenLater() {
 
   useEffect(() => {
     if (dir === 'resume' && later.length > 0) {
-      console.log('lista cargada!')
+      // console.log('lista cargada!')
       handleResume(later)
     }
   }, [later, dir])

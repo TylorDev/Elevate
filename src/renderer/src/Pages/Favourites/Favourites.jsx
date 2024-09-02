@@ -26,7 +26,7 @@ function Favourites() {
 
   useEffect(() => {
     if (dir === 'resume' && likes.length > 0) {
-      console.log('lista cargada!')
+      // console.log('lista cargada!')
       handleResume(likes)
     }
   }, [likes, dir])

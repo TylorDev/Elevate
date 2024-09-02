@@ -12,7 +12,7 @@ import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
 
 export function SongItem({ file, index, cola, name, filePath }) {
-  const { currentIndex, handleSongClick, currentFile } = useSuper()
+  const { currentIndex, handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { toggleLike, isLiked } = useLikes()
   const { removeTrack } = useSuper()
@@ -83,7 +83,17 @@ export function SongItem({ file, index, cola, name, filePath }) {
       </div>
 
       <Modal isVisible={isVisible} closeModal={closeModal}>
-        <div> {file.filePath} </div>
+        <div>
+          {' '}
+          {file.filePath}
+          <button
+            onClick={() => {
+              addSong('C:\\Users\\yonte\\Documents\\prueba.m3u', file)
+            }}
+          >
+            agrega a XDD playlist.{' '}
+          </button>
+        </div>
       </Modal>
 
       <div className="stime">

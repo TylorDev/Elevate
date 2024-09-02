@@ -267,6 +267,77 @@ async function updatePlaylistByPath(path, newData) {
     throw error
   }
 }
+async function getM3ufilepaths(filepath, baseDir) {
+  try {
+    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+    const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+    return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  } catch (error) {
+    console.error('Error processing M3U file:', error)
+    return []
+  }
+}
+
+async function saveImageFromMp3(name, picture) {
+  try {
+    if (!picture || picture.length === 0) {
+      console.log('No image found in the MP3 file.')
+      return
+    }
+
+    // Obtener la imagen en base64
+    const imageBase64 = picture[0].data.toString('base64')
+    const imageBuffer = Buffer.from(imageBase64, 'base64')
+
+    // Obtener el directorio userData de la aplicación
+    const userDataPath = app.getPath('userData')
+    const imgDir = path.join(userDataPath, 'img')
+
+    // Crear la carpeta img si no existe
+    if (!fs.existsSync(imgDir)) {
+      fs.mkdirSync(imgDir)
+    }
+
+    // Generar un nombre único para la imagen
+    const uniqueName = name + 'Cover'
+    const imagePath = path.join(imgDir, `${uniqueName}.jpg`)
+
+    // Guardar la imagen en el disco
+    fs.writeFileSync(imagePath, imageBuffer)
+
+    console.log('Image saved to', imagePath)
+    return imagePath
+  } catch (error) {
+    console.error('Error while saving image from MP3:', error)
+  }
+}
+
+async function getRandomImages(processedData) {
+  // Ensure there are at least 4 items in the array
+  if (processedData.length < 4) {
+    throw new Error('Not enough images to select from.')
+  }
+
+  // Sort the data by play_count in descending order
+  const sortedData = processedData.slice().sort((a, b) => b.play_count - a.play_count)
+
+  // Get the top 4 elements with the highest play_count
+  const top4 = sortedData.slice(0, 4)
+
+  const filePath1 = await saveImageFromMp3(top4[0].fileName, top4[0].picture)
+  const filePath2 = await saveImageFromMp3(top4[1].fileName, top4[1].picture)
+  const filePath3 = await saveImageFromMp3(top4[2].fileName, top4[2].picture)
+  const filePath4 = await saveImageFromMp3(top4[3].fileName, top4[3].picture)
+
+  const images = {
+    image1: top4[0].picture[0],
+    image2: top4[1].picture[0],
+    image3: top4[2].picture[0],
+    image4: top4[3].picture[0]
+  }
+
+  return images
+}
 
 export function setupPlaylistHandlers() {
   ipcMain.handle('load-list', async () => {
@@ -296,9 +367,11 @@ export function setupPlaylistHandlers() {
       const baseDir = path.dirname(filepath)
       const processedData = await processPlaylist(filepath, baseDir) //
       const playlistData = await getPlaylist(filepath)
+      const images = await getRandomImages(processedData)
       return {
         processedData,
-        playlistData
+        playlistData,
+        images
       }
     } catch (error) {
       console.error('Error processing M3U file or fetching playlist data:', error)
@@ -339,8 +412,36 @@ export function setupPlaylistHandlers() {
       console.error('Error adding playlist to history:', error)
     }
   })
-  ipcMain.handle('remove-track', async (event, { filePaths, filePath }) => {
+
+  ipcMain.handle('update-list', async (event, { filePath, index }) => {
     console.log(filePath)
+
+    const baseDir = path.dirname(filePath)
+    const filePaths = await getM3ufilepaths(filePath, baseDir) //
+    filePaths.splice(index, 1)
+    const saveResult = await savePlaylist(filePath, filePaths)
+    if (!saveResult.success) {
+      return { success: false, error: saveResult.error }
+    }
+
+    console.log('cancion eliminada en:', saveResult.playlistName)
+    const playlistDetails = await getPlaylistDetails(filePath)
+    console.log('cancion eliminada en:', playlistDetails.totalTracks)
+    const playlistData = {
+      path: filePath,
+      duracion: playlistDetails.totalDuration,
+      numElementos: playlistDetails.totalTracks,
+      totalplays: 0
+    }
+
+    return removeTrack(playlistData.path, playlistData)
+  })
+
+  ipcMain.handle('add-new-song', async (event, { filePath, song }) => {
+    console.log(filePath)
+    const baseDir = path.dirname(filePath)
+    const filePaths = await getM3ufilepaths(filePath, baseDir) //
+    filePaths.push(song)
     const saveResult = await savePlaylist(filePath, filePaths)
     if (!saveResult.success) {
       return { success: false, error: saveResult.error }

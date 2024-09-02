@@ -12,6 +12,7 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
+import { BinToBlob } from './../../Contexts/utils'
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
@@ -53,22 +54,10 @@ function PlaylistPage() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img
-              src="https://i.pinimg.com/736x/d5/db/17/d5db1719cc626f12e9fdae3ac8a829ea.jpg"
-              alt=""
-            />
-            <img
-              src="https://i.pinimg.com/736x/db/d5/d2/dbd5d2dcc677ac92ddeb12fe4da2e198.jpg"
-              alt=""
-            />
-            <img
-              src="https://i.pinimg.com/736x/2d/55/10/2d5510158e18e0c483b008d8f4e71a7f.jpg"
-              alt=""
-            />
-            <img
-              src="https://i.pinimg.com/736x/3e/40/e0/3e40e0e3a22196f2839d718c26f06ebd.jpg"
-              alt=""
-            />
+            <img src={BinToBlob(current.images.image1)} alt="" />
+            <img src={BinToBlob(current.images.image2)} alt="" />
+            <img src={BinToBlob(current.images.image3)} alt="" />
+            <img src={BinToBlob(current.images.image4)} alt="" />
           </div>
           <div className="pgl-name">{data.nombre}</div>
 
@@ -85,7 +74,7 @@ function PlaylistPage() {
             <Button
               onClick={async () => {
                 await handleQueueAndPlay(undefined, undefined, data.path)
-                console.log('Nombre en PlaylistPagePlayClick: ' + (data.path || '[sin nombre]'))
+                // console.log('Nombre en PlaylistPagePlayClick: ' + (data.path || '[sin nombre]'))
               }}
             >
               <FaPlay />

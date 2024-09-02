@@ -1,14 +1,7 @@
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import {
-  ElectronGetter,
-  electronInvoke,
-  ElectronSetter,
-  ElectronSetter2,
-  WindowsPlayer
-} from './utils'
+import { electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
-import native from 'i/lib/native'
 
 // Crear el contexto
 const SuperContext = createContext()
@@ -53,7 +46,7 @@ export const SuperProvider = ({ children }) => {
     }
   }
   const navigateToResume = (route) => {
-    console.error(`La ruta "${route}" no es válida.`)
+    // console.error(`La ruta "${route}" no es válida.`)
     navigate(`/${route}/resume`)
   }
 
@@ -61,7 +54,7 @@ export const SuperProvider = ({ children }) => {
     const invalidRoutes = ['favourites', 'listen-later', 'tracks', 'stats']
 
     if (invalidRoutes.includes(filePath)) {
-      console.log('handleQueueAndPlay[Ruta Invalida]: ', filePath)
+      // console.log('handleQueueAndPlay[Ruta Invalida]: ', filePath)
       navigateToResume(filePath)
       setCurrentFile(song)
       setCurrentIndex(index)
@@ -108,7 +101,7 @@ export const SuperProvider = ({ children }) => {
   }
 
   const saveLastData = async (file, index, queueId) => {
-    console.log('Nombre en SaveLastData: ' + (queueId || '[sin nombre]'))
+    // console.log('Nombre en SaveLastData: ' + (queueId || '[sin nombre]'))
     try {
       await window.electron.ipcRenderer.invoke('save-last-data', file, index, queueId)
     } catch (error) {
@@ -119,7 +112,7 @@ export const SuperProvider = ({ children }) => {
   useEffect(() => {
     if (currentFile && currentIndex !== null) {
       saveLastData(currentFile.filePath, currentIndex, queueState.queueName)
-      console.log('Nombre en useEffect: ' + (queueState.queueName || '[sin nombre]'))
+      // console.log('Nombre en useEffect: ' + (queueState.queueName || '[sin nombre]'))
     }
   }, [currentIndex, currentFile, queueState.queueName])
 
@@ -179,12 +172,15 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
-  const removeTrack = async (path, index) => {
+  const removeTrack = async (playlistPath, index) => {
     // Crear una copia de la lista de paths, excluyendo el índice seleccionado
-    const paths = queueState.currentQueue.map((file) => file.filePath).filter((_, i) => i !== index)
+    // const paths = queueState.currentQueue.map((file) => file.filePath).filter((_, i) => i !== index)
 
     // Enviar los paths actualizados al proceso principal
-    const result = await electronInvoke('remove-track', { filePaths: paths, filePath: path })
+    const result = await electronInvoke('update-list', {
+      filePath: playlistPath,
+      index
+    })
 
     // Manejar el resultado de la operación
     if (result && result.success) {
@@ -198,6 +194,25 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
+  const addSong = async (playlistPath, newTrack) => {
+    // Enviar los paths actualizados al proceso principal
+    const result = await electronInvoke('add-new-song', {
+      filePath: playlistPath,
+      song: newTrack.filePath
+    })
+
+    // Manejar el resultado de la operación
+    if (result && result.success) {
+      console.log('M3U file updated successfully at', result.path)
+      console.log('New name in db:', result.nombre)
+      // Actualizar el estado con la nueva lista de paths
+      setQueueState((prevState) => ({
+        ...prevState,
+        currentQueue: [...prevState.currentQueue, newTrack]
+      }))
+    }
+  }
+
   const addhistory = (common) => ElectronSetter('add-history', common)
 
   const handleSongClick = (file, index, list, name) => {
@@ -206,7 +221,7 @@ export const SuperProvider = ({ children }) => {
     setQueueState({ currentQueue: list, originalQueue: list, queueName: name })
     addhistory(file)
     saveLastData(file.filePath, index, name)
-    console.log('Nombre en ClickSong: ' + (name || '[sin nombre]'))
+    // console.log('Nombre en ClickSong: ' + (name || '[sin nombre]'))
   }
 
   const handleResume = (list, name = '') => {
@@ -259,7 +274,8 @@ export const SuperProvider = ({ children }) => {
         handleResume,
         handleQueueAndPlay,
         PlayQueue,
-        removeTrack
+        removeTrack,
+        addSong
       }}
     >
       {children}

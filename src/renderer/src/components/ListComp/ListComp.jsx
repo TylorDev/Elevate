@@ -19,7 +19,7 @@ function ListComp({ dataKey, fetchFunction, listName, useHook = useSuper }) {
 
   useEffect(() => {
     if (dir === 'resume' && list?.length > 0) {
-      console.log('lista cargada!')
+      // console.log('lista cargada!')
       handleResume(list)
     }
   }, [list, dir])
