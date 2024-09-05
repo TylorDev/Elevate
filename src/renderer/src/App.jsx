@@ -16,6 +16,7 @@ import { PlaylistsProvider } from './Contexts/PlaylistsContex'
 import { useSuper } from './Contexts/SupeContext'
 import PlaylistPage from './Pages/PlaylistPage/PlaylistPage'
 import DirPage from './Pages/DirPage/DirPage'
+import Lista from './Pages/Lista/Lista'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                 <Route path="/history" element={<History />} />
                 <Route path="/tracks/:dir" element={<AllTracks />} />
                 <Route path="/tracks/" element={<AllTracks />} />
+                <Route path="/list" element={<Lista />} />
                 <Route path="/search" element={<Search />} />
                 <Route path="/directories" element={<Directories />} />
                 <Route path="/directories/:directory/:play" element={<DirPage />} />

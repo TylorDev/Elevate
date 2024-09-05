@@ -199,6 +199,36 @@ export async function getFileInfos(filePaths) {
   ).then((fileInfos) => fileInfos.filter((info) => info !== null))
 }
 
+export async function getFileCovers(filePaths) {
+  return Promise.all(
+    filePaths.map(async (filePath) => {
+      try {
+        const stats = fs.statSync(filePath)
+        const { common } = await parseFile(filePath)
+        const fileName = path.basename(filePath, path.extname(filePath))
+
+        const song = await getOrCreateSong(filePath, fileName)
+
+        const userPreference = await prisma.userPreferences.findUnique({
+          where: { song_id: song.song_id },
+          select: {
+            play_count: true // Incluye play_count en la selección
+          }
+        })
+
+        return {
+          ...common,
+
+          play_count: userPreference?.play_count || 0
+        }
+      } catch (error) {
+        // console.error(`Error processing file ${filePath}:`, error)
+        return null
+      }
+    })
+  ).then((fileInfos) => fileInfos.filter((info) => info !== null))
+}
+
 export async function getTotalDuration(directory) {
   const files = getAllAudioFiles(directory)
   const tracks = await getFileInfos(files)
@@ -223,6 +253,24 @@ export async function processPlaylist(filepath, baseDir) {
     return []
   }
 }
+
+export async function processPlaylistCover(filepath, baseDir) {
+  try {
+    // Lee el contenido del archivo M3U
+    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+    const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+
+    // Convierte rutas relativas a rutas absolutas
+    const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+
+    // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
+    return getFileCovers(absolutePaths)
+  } catch (error) {
+    console.error('Error processing M3U file:', error)
+    return []
+  }
+}
+
 const audioExtensions = ['.mp3', '.wav', '.flac']
 export function getAllAudioFiles(dirPath) {
   let audioFiles = []

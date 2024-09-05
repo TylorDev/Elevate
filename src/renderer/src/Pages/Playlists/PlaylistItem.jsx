@@ -40,6 +40,18 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const { handleQueueAndPlay } = useSuper()
 
   const navigate = useNavigate()
+
+  function uint8ArrayToImageUrl(uint8Array, mimeType) {
+    // Convertir el Uint8Array a Blob
+    const blob = new Blob([uint8Array], { type: mimeType })
+
+    // Crear una URL para el Blob
+    const imageUrl = URL.createObjectURL(blob)
+
+    // Devolver la URL
+    return imageUrl
+  }
+
   return (
     <li className="PlaylistItem" key={index} onClick={() => {}}>
       <div
@@ -48,7 +60,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
           navigate(`/playlists/${playlist.path}`)
         }}
       >
-        <img src={BinToBlob(playlist[0]?.picture?.[0] || {})} alt="" />
+        <img src={uint8ArrayToImageUrl(playlist.cover || {})} alt="" />
       </div>
 
       <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">

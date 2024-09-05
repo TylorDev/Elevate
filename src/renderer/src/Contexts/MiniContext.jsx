@@ -13,6 +13,17 @@ export const MiniProvider = ({ children }) => {
   const [directories, setDiretories] = useState([])
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
+  const [lista, setLista] = useState([])
+
+  // Función para agregar un elemento al final de la lista
+  function agregarElemento(elemento) {
+    setLista([...lista, elemento])
+  }
+
+  // Función para eliminar un elemento por su índice
+  function eliminarElemento(elemento) {
+    setLista(lista.filter((item) => item !== elemento))
+  }
 
   const getRecents = () => ElectronGetter('get-recents', setRecents)
   const getMost = () => ElectronGetter('get-most-played', setMost)
@@ -56,7 +67,10 @@ export const MiniProvider = ({ children }) => {
         later, //  LISTA MAS TARDE
         getlatersongs, //  OBTIENE LA LISTA MAS TARDE
         removelatersong, // QUITA UNA CANCION DE ESCUCHAR MAS TARDE
-        latersong // agrega una cancion a la LISTA MAS TARDE
+        latersong, // agrega una cancion a la LISTA MAS TARDE
+        lista, // lista personalizada
+        agregarElemento,
+        eliminarElemento
       }}
     >
       {children}

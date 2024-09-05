@@ -36,6 +36,18 @@ function PlaylistPage() {
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
+  const mimeType = 'image/png'
+
+  function uint8ArrayToImageUrl(uint8Array, mimeType) {
+    // Convertir el Uint8Array a Blob
+    const blob = new Blob([uint8Array], { type: mimeType })
+
+    // Crear una URL para el Blob
+    const imageUrl = URL.createObjectURL(blob)
+
+    // Devolver la URL
+    return imageUrl
+  }
 
   if (!current || !current.playlistData) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
@@ -54,10 +66,7 @@ function PlaylistPage() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img src={BinToBlob(current.images.image1)} alt="" />
-            <img src={BinToBlob(current.images.image2)} alt="" />
-            <img src={BinToBlob(current.images.image3)} alt="" />
-            <img src={BinToBlob(current.images.image4)} alt="" />
+            <img src={uint8ArrayToImageUrl(current.cover, mimeType)} alt="" />
           </div>
           <div className="pgl-name">{data.nombre}</div>
 

@@ -1,9 +1,9 @@
 import { app, dialog, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { getFileInfo, processPlaylist } from './utils/utils.mjs'
+import { getFileInfo, processPlaylist, processPlaylistCover } from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
-
+import sharp from 'sharp'
 const prisma = new PrismaClient()
 
 async function removeTrack(filepath, data) {
@@ -132,12 +132,24 @@ async function getPlaylists({ take = null, skip = null } = {}) {
     if (skip !== null) options.skip = skip
 
     const playlists = await prisma.playlist.findMany(options)
+
+    for (const playlist of playlists) {
+      const baseDir = path.dirname(playlist.path)
+      const songs = await processPlaylistCover(playlist.path, baseDir)
+      console.log(`Canciones procesadas: ${songs.length}`)
+
+      const cover = await generateCover(songs)
+
+      playlist.cover = cover
+    }
+
     return playlists
   } catch (error) {
     console.error('Error fetching playlists:', error)
     return []
   }
 }
+
 async function getRandomPlaylist() {
   try {
     const totalPlaylists = await prisma.playlist.count()
@@ -278,65 +290,66 @@ async function getM3ufilepaths(filepath, baseDir) {
   }
 }
 
-async function saveImageFromMp3(name, picture) {
+async function createTile(imageBuffers) {
+  if (imageBuffers.length !== 4) {
+    throw new Error('Se requiere un array de exactamente 4 imageBuffers')
+  }
+
   try {
-    if (!picture || picture.length === 0) {
-      console.log('No image found in the MP3 file.')
-      return
-    }
+    // Redimensionar cada imagen a 250x250 píxeles
+    const resizedImages = await Promise.all(
+      imageBuffers.map((buffer) => sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer())
+    )
 
-    // Obtener la imagen en base64
-    const imageBase64 = picture[0].data.toString('base64')
-    const imageBuffer = Buffer.from(imageBase64, 'base64')
+    // Crear un collage 2x2 con las imágenes redimensionadas
+    const tile = await sharp({
+      create: {
+        width: 500,
+        height: 500,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      }
+    })
+      .composite([
+        { input: resizedImages[0], top: 0, left: 0 },
+        { input: resizedImages[1], top: 0, left: 250 },
+        { input: resizedImages[2], top: 250, left: 0 },
+        { input: resizedImages[3], top: 250, left: 250 }
+      ])
+      .png()
+      .toBuffer()
 
-    // Obtener el directorio userData de la aplicación
-    const userDataPath = app.getPath('userData')
-    const imgDir = path.join(userDataPath, 'img')
-
-    // Crear la carpeta img si no existe
-    if (!fs.existsSync(imgDir)) {
-      fs.mkdirSync(imgDir)
-    }
-
-    // Generar un nombre único para la imagen
-    const uniqueName = name + 'Cover'
-    const imagePath = path.join(imgDir, `${uniqueName}.jpg`)
-
-    // Guardar la imagen en el disco
-    fs.writeFileSync(imagePath, imageBuffer)
-
-    console.log('Image saved to', imagePath)
-    return imagePath
+    return tile
   } catch (error) {
-    console.error('Error while saving image from MP3:', error)
+    console.error('Error creando el tile:', error)
+    throw error
   }
 }
 
-async function getRandomImages(processedData) {
+async function generateCover(processedData) {
   // Ensure there are at least 4 items in the array
   if (processedData.length < 4) {
     throw new Error('Not enough images to select from.')
   }
+  const filteredData = processedData.filter((item) => item.picture[0].type !== 'Other')
 
-  // Sort the data by play_count in descending order
-  const sortedData = processedData.slice().sort((a, b) => b.play_count - a.play_count)
+  const sortedData = filteredData.slice().sort((a, b) => b.play_count - a.play_count)
 
-  // Get the top 4 elements with the highest play_count
   const top4 = sortedData.slice(0, 4)
 
-  const filePath1 = await saveImageFromMp3(top4[0].fileName, top4[0].picture)
-  const filePath2 = await saveImageFromMp3(top4[1].fileName, top4[1].picture)
-  const filePath3 = await saveImageFromMp3(top4[2].fileName, top4[2].picture)
-  const filePath4 = await saveImageFromMp3(top4[3].fileName, top4[3].picture)
+  const img1 = top4[0].picture[0]
+  const img2 = top4[1].picture[0]
+  const img3 = top4[2].picture[0]
+  const img4 = top4[3].picture[0]
 
-  const images = {
-    image1: top4[0].picture[0],
-    image2: top4[1].picture[0],
-    image3: top4[2].picture[0],
-    image4: top4[3].picture[0]
-  }
+  const imageBuffer1 = Buffer.from(img1.data, 'base64')
+  const imageBuffer2 = Buffer.from(img2.data, 'base64')
+  const imageBuffer3 = Buffer.from(img3.data, 'base64')
+  const imageBuffer4 = Buffer.from(img4.data, 'base64')
 
-  return images
+  const cover = await createTile([imageBuffer1, imageBuffer2, imageBuffer3, imageBuffer4])
+
+  return cover
 }
 
 export function setupPlaylistHandlers() {
@@ -367,11 +380,11 @@ export function setupPlaylistHandlers() {
       const baseDir = path.dirname(filepath)
       const processedData = await processPlaylist(filepath, baseDir) //
       const playlistData = await getPlaylist(filepath)
-      const images = await getRandomImages(processedData)
+      const cover = await generateCover(processedData)
       return {
         processedData,
         playlistData,
-        images
+        cover
       }
     } catch (error) {
       console.error('Error processing M3U file or fetching playlist data:', error)

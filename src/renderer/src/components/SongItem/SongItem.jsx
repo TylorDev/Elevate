@@ -1,6 +1,8 @@
 /* eslint-disable react/prop-types */
 
 import { useLikes } from '../../Contexts/LikeContext'
+
+import { useMini } from '../../Contexts/MiniContext'
 import { FaPlay } from 'react-icons/fa'
 import { useSuper } from '../../Contexts/SupeContext'
 import { BinToBlob } from './../../Contexts/utils'
@@ -16,7 +18,7 @@ export function SongItem({ file, index, cola, name, filePath }) {
   const [isLikedo, setIsLikedo] = useState(false)
   const { toggleLike, isLiked } = useLikes()
   const { removeTrack } = useSuper()
-
+  const { agregarElemento, eliminarElemento } = useMini()
   const [isVisible, setIsVisible] = useState(false)
 
   const openModal = () => {
@@ -37,6 +39,14 @@ export function SongItem({ file, index, cola, name, filePath }) {
 
     if (option === 'abrir modal') {
       openModal()
+    }
+
+    if (option === 'agregar a cola') {
+      agregarElemento(file)
+    }
+
+    if (option === 'quitar elemento') {
+      eliminarElemento(file)
     }
   }
 
@@ -79,7 +89,10 @@ export function SongItem({ file, index, cola, name, filePath }) {
         <Button className={'btnLike'} onClick={handleClick}>
           {buttonText}
         </Button>
-        <DropdownMenu options={['eliminar', 'abrir modal', 'Option 3']} onSelect={handleSelect} />
+        <DropdownMenu
+          options={['eliminar', 'abrir modal', 'agregar a cola', 'quitar elemento']}
+          onSelect={handleSelect}
+        />
       </div>
 
       <Modal isVisible={isVisible} closeModal={closeModal}>
