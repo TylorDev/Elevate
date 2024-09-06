@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import './Feed.scss'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { uint8ArrayToImageUrl } from '../../Contexts/utils'
+import { useNavigate } from 'react-router-dom'
 
 function Feed() {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth)
@@ -24,12 +26,26 @@ function Feed() {
     return `${hrs.toString().padStart(2, '0')}h:${mins.toString().padStart(2, '0')}m:${secs.toString().padStart(2, '0')}s`
   }
 
+  const img = uint8ArrayToImageUrl(randomPlaylist?.cover)
+  const navigate = useNavigate()
   return (
     <div className="grid-container">
-      <div className="grid-item item1">
-        {randomPlaylist?.nombre} <br />
-        {randomPlaylist?.numElementos} tracks <br />
-        {formatDuration(randomPlaylist?.duracion)}
+      <div
+        className="grid-item r-list"
+        onClick={() => {
+          navigate(`/playlists/${randomPlaylist.path}`)
+        }}
+        style={{ backgroundImage: `url(${img})` }}
+      >
+        <div className="r-name">
+          <span>
+            {randomPlaylist?.numElementos} tracks • {formatDuration(randomPlaylist?.duracion)}
+          </span>
+
+          <span>{randomPlaylist?.nombre} </span>
+        </div>
+        <img src={img} alt="" />
+        <div className="blur"></div>
       </div>
       <div className="grid-item item2">Cancion randon</div>
 

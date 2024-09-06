@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { BinToBlob } from '../../Contexts/utils'
+import { BinToBlob, uint8ArrayToImageUrl } from '../../Contexts/utils'
 import './PlaylistItem.scss'
 
 import { Button } from './../../Components/Button/Button'
@@ -40,17 +40,6 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const { handleQueueAndPlay } = useSuper()
 
   const navigate = useNavigate()
-
-  function uint8ArrayToImageUrl(uint8Array, mimeType) {
-    // Convertir el Uint8Array a Blob
-    const blob = new Blob([uint8Array], { type: mimeType })
-
-    // Crear una URL para el Blob
-    const imageUrl = URL.createObjectURL(blob)
-
-    // Devolver la URL
-    return imageUrl
-  }
 
   return (
     <li className="PlaylistItem" key={index} onClick={() => {}}>

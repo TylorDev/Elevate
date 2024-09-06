@@ -1,6 +1,6 @@
 .Main {
     display: grid;
-    grid-template-columns: 0.1fr 1fr;
+    grid-template-columns: 0.2fr 1fr;
 
     height: 100vh;
     min-height: 100vh;
@@ -11,7 +11,7 @@
 }
 
 .Tittlebar {
-    color: black;
+    color: rgb(255, 255, 255);
     top: 0;
     -webkit-app-region: drag;
     z-index: 9999;
@@ -19,8 +19,15 @@
     width: 100%;
 
     height: 2rem;
-    background-color: rgb(0, 140, 255);
+    background-color: transparent;
     position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    letter-spacing: 1rem;
+    padding-left: 1rem;
+    font-weight: bolder;
+    text-transform: uppercase;
 
 }
 

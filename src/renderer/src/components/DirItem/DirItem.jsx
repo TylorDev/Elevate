@@ -40,7 +40,7 @@ export function DirItem({ directory }) {
           deleteDirectory(directory.path)
         }}
       >
-        <BsFolderMinus />
+        <BsFolderMinus color="red" />
       </Button>
     </li>
   )

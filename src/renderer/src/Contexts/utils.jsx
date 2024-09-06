@@ -10,6 +10,17 @@ export const shuffleArray = (array, currentIndex) => {
   return newArray
 }
 
+export const uint8ArrayToImageUrl = (uint8Array, mimeType) => {
+  // Convertir el Uint8Array a Blob
+  const blob = new Blob([uint8Array], { type: mimeType })
+
+  // Crear una URL para el Blob
+  const imageUrl = URL.createObjectURL(blob)
+
+  // Devolver la URL
+  return imageUrl
+}
+
 export const ElectronGetter = async (action, setState = null, filepath = null) => {
   try {
     const fileInfos = await window.electron.ipcRenderer.invoke(action, filepath)

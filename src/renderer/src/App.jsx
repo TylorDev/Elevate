@@ -24,7 +24,7 @@ function App() {
       <PlaylistsProvider>
         <LikesProvider>
           <div className="App">
-            <div className="Tittlebar"> xd</div>
+            <div className="Tittlebar">Taylord</div>
             <AudioProvider></AudioProvider>
             <Routes>
               <Route path="/" element={<Main />}>

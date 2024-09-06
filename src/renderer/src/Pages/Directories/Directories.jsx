@@ -21,7 +21,7 @@ function Directories() {
       <ul>
         <h1>Directories</h1>
         <Button onClick={selectFiles}>
-          <MdCreateNewFolder />
+          <MdCreateNewFolder color="green" size={35} />
         </Button>
         {directories.map((directory) => (
           <DirItem key={directory.id} directory={directory} />

@@ -232,6 +232,7 @@ export async function getFileCovers(filePaths) {
 export async function getTotalDuration(directory) {
   const files = getAllAudioFiles(directory)
   const tracks = await getFileInfos(files)
+
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
 
   return { totalDuration, totalTracks: tracks.length }
