@@ -17,11 +17,9 @@ function Favourites() {
 
   const { handleResume } = useSuper()
   useEffect(() => {
-    const fetchLikes = async () => {
-      await getLikes()
+    if (!likes || likes.length === 0) {
+      getLikes
     }
-
-    fetchLikes()
   }, [])
 
   useEffect(() => {

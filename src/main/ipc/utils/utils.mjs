@@ -239,37 +239,27 @@ export async function getTotalDuration(directory) {
 }
 
 export async function processPlaylist(filepath, baseDir) {
-  try {
-    // Lee el contenido del archivo M3U
-    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-    const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  // Lee el contenido del archivo M3U
+  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
 
-    // Convierte rutas relativas a rutas absolutas
-    const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  // Convierte rutas relativas a rutas absolutas
+  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
 
-    // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
-    return getFileInfos(absolutePaths)
-  } catch (error) {
-    console.error('Error processing M3U file:', error)
-    return []
-  }
+  // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
+  return getFileInfos(absolutePaths)
 }
 
 export async function processPlaylistCover(filepath, baseDir) {
-  try {
-    // Lee el contenido del archivo M3U
-    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-    const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  // Lee el contenido del archivo M3U
+  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
 
-    // Convierte rutas relativas a rutas absolutas
-    const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  // Convierte rutas relativas a rutas absolutas
+  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
 
-    // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
-    return getFileCovers(absolutePaths)
-  } catch (error) {
-    console.error('Error processing M3U file:', error)
-    return []
-  }
+  // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
+  return getFileCovers(absolutePaths)
 }
 
 const audioExtensions = ['.mp3', '.wav', '.flac']

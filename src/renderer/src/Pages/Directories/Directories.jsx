@@ -8,10 +8,10 @@ import { Button } from './../../Components/Button/Button'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { MdCreateNewFolder } from 'react-icons/md'
 function Directories() {
-  const { getDirectories, directories } = useMini()
-  const { selectFiles } = usePlaylists()
+  const { getDirectories, directories, addDirectory } = useMini()
+
   useEffect(() => {
-    if (directories) {
+    if (!directories || directories.length === 0) {
       getDirectories()
     }
   }, [])
@@ -20,7 +20,7 @@ function Directories() {
     <div className="">
       <ul>
         <h1>Directories</h1>
-        <Button onClick={selectFiles}>
+        <Button onClick={addDirectory}>
           <MdCreateNewFolder color="green" size={35} />
         </Button>
         {directories.map((directory) => (

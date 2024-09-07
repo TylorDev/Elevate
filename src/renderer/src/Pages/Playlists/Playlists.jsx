@@ -10,7 +10,7 @@ function Playlists() {
   const { getSavedLists, playlists, addPlaylisthistory } = usePlaylists()
 
   useEffect(() => {
-    if (playlists) {
+    if (!playlists || playlists.length === 0) {
       getSavedLists()
     }
   }, [])

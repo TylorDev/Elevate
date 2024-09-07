@@ -103,7 +103,7 @@ export function setupFilehandlers() {
   //   }
   // })
   startWatchingDirectories()
-  ipcMain.handle('select-files', async () => {
+  ipcMain.handle('add-directory', async () => {
     try {
       const result = await dialog.showOpenDialog({
         properties: ['openDirectory']
@@ -120,6 +120,8 @@ export function setupFilehandlers() {
         update: {},
         create: { path: directoryPath }
       })
+
+      return { success: true, message: 'Directory added sucessfully.' }
     } catch (error) {
       console.error('Error selecting files:', error)
       throw error

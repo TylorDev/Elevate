@@ -30,9 +30,14 @@ export const LikesProvider = ({ children }) => {
   const likesong = (common) => ElectronSetter('like-song', common)
 
   const getLikes = () =>
-    ElectronGetter('get-likes', (likes) => {
-      setLikeState((prevState) => ({ ...prevState, likes }))
-    })
+    ElectronGetter(
+      'get-likes',
+      (likes) => {
+        setLikeState((prevState) => ({ ...prevState, likes }))
+      },
+      null,
+      'Se obtuvieron los likes!'
+    )
 
   const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
 

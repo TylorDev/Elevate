@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from 'react'
-import { ElectronGetter, ElectronGetter2, ElectronSetter } from './utils'
+import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter } from './utils'
 
 // Crear el contexto
 const MiniContext = createContext()
@@ -25,23 +25,26 @@ export const MiniProvider = ({ children }) => {
     setLista(lista.filter((item) => item !== elemento))
   }
 
-  const getRecents = () => ElectronGetter('get-recents', setRecents)
-  const getMost = () => ElectronGetter('get-most-played', setMost)
+  const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
+  const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
   const searchSongs = (value) => ElectronGetter2('search', setResults, value)
-  const getDirectories = () => ElectronGetter('get-all-directories', setDiretories)
-  const deleteDirectory = (filePath) => {
-    const setState = []
-    getDirectories()
-    ElectronGetter('delete-directory', setState, filePath)
+  const getDirectories = () =>
+    ElectronGetter('get-all-directories', setDiretories, null, 'directorios obtenidos!')
+  const deleteDirectory = async (path) => {
+    await ElectronDelete('delete-directory', path, 'directorio eliminado!')
+    setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
   }
-
+  const addDirectory = async () => {
+    await ElectronGetter('add-directory', null, null, 'Directorio agregado!') // 0 ref
+    getDirectories()
+  }
   const getDirFiles = (setState, value) => {
-    console.log(value)
     ElectronGetter2('get-audio-in-directory', setState, value)
   }
 
-  const getHistory = () => ElectronGetter('get-history', setHistory)
-  const getlatersongs = () => ElectronGetter('get-listen-later', setLater)
+  const getHistory = () => ElectronGetter('get-history', setHistory, null, 'se obtuvo el historial')
+  const getlatersongs = () =>
+    ElectronGetter('get-listen-later', setLater, null, 'listen later cargados!')
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
   const latersong = (common) => ElectronSetter('listen-later-song', common)
 
@@ -58,6 +61,7 @@ export const MiniProvider = ({ children }) => {
         searchSongs, // BUSCA CANCIONES EN LA BD
 
         directories, // LISTA DIRECTORIOS
+        addDirectory,
         getDirectories, //  OBTIENE LA  LISTA DIRECTORIOS
         deleteDirectory, // borra un directorio especifico
         getDirFiles,

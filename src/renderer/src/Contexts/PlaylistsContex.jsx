@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react'
-import { ElectronGetter, ElectronSetter2 } from './utils'
+import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter2 } from './utils'
 import { Bounce, toast } from 'react-toastify'
 
 const ContextLikes = createContext()
@@ -11,12 +11,17 @@ export const PlaylistsProvider = ({ children }) => {
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
 
-  const getAllSongs = () => ElectronGetter('get-all-audio-files', setMetadata) //1 ref
-  const openM3U = () => ElectronGetter('load-list', setMetadata) // 0 ref
-  const selectFiles = () => ElectronGetter('select-files', setMetadata) // 0 ref
+  const getAllSongs = () =>
+    ElectronGetter('get-all-audio-files', setMetadata, null, 'Se obtuvieron todas las canciones!') //1 ref
+  const openM3U = async () => {
+    await ElectronGetter('load-list', setMetadata, null, 'se cargo correctamente la lista nueva') // 0 ref
+    getSavedLists()
+  }
 
-  const getSavedLists = () => ElectronGetter('get-playlists', setPlaylists)
-  const getRandomList = () => ElectronGetter('get-random-playlist', setRandomPlaylist)
+  const getSavedLists = () =>
+    ElectronGetter('get-playlists', setPlaylists, null, 'todas las listas cargadas!')
+  const getRandomList = () =>
+    ElectronGetter('get-random-playlist', setRandomPlaylist, null, 'random list cargada')
   const addPlaylisthistory = (path) => ElectronSetter2('load-list-to-history', path)
   const updatePlaylist = async (path, data) => {
     const response = await ElectronSetter2('change-list-name', path, data)
@@ -42,12 +47,12 @@ export const PlaylistsProvider = ({ children }) => {
     return response // Retornar la respuesta para un manejo posterior si es necesario
   }
 
-  const deletePlaylist = (filePath) => {
-    const setState = []
-    ElectronGetter('delete-playlist', setState, filePath)
+  const deletePlaylist = async (filePath) => {
+    await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
+    setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
   }
   const getUniqueList = async (setState, filePath) => {
-    await ElectronGetter('get-list', setState, filePath)
+    await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
   }
 
   useEffect(() => {
@@ -81,7 +86,7 @@ export const PlaylistsProvider = ({ children }) => {
         getUniqueList,
         getAllSongs,
         openM3U,
-        selectFiles,
+
         randomPlaylist,
         updatePlaylist
       }}

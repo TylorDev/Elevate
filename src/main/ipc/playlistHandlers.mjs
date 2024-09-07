@@ -126,28 +126,27 @@ async function getPlays(filePath) {
   }
 }
 async function getPlaylists({ take = null, skip = null } = {}) {
-  try {
-    const options = {}
-    if (take !== null) options.take = take
-    if (skip !== null) options.skip = skip
+  const options = {}
+  if (take !== null) options.take = take
+  if (skip !== null) options.skip = skip
 
-    const playlists = await prisma.playlist.findMany(options)
+  const playlists = await prisma.playlist.findMany(options)
 
-    for (const playlist of playlists) {
-      const baseDir = path.dirname(playlist.path)
-      const songs = await processPlaylistCover(playlist.path, baseDir)
-      console.log(`Canciones procesadas: ${songs.length}`)
-
+  for (const playlist of playlists) {
+    const baseDir = path.dirname(playlist.path)
+    const songs = await processPlaylistCover(playlist.path, baseDir)
+    console.log(`Canciones procesadas: ${songs.length}`)
+    playlist.cover = null
+    try {
+      // Intentar generar el cover
       const cover = await generateCover(songs)
-
       playlist.cover = cover
+    } catch (error) {
+      console.error(`Error al generar el cover para la playlist ${playlist.id}:`, error)
     }
-
-    return playlists
-  } catch (error) {
-    console.error('Error fetching playlists:', error)
-    return []
   }
+
+  return playlists
 }
 
 async function getRandomPlaylist() {
@@ -349,50 +348,37 @@ async function generateCover(processedData) {
 
 export function setupPlaylistHandlers() {
   ipcMain.handle('load-list', async () => {
-    try {
-      const filepath = await selectFile()
-      if (!filepath) return []
+    const filepath = await selectFile()
+    if (!filepath) return []
 
-      const baseName = extractPlaylistName(filepath)
+    const baseName = extractPlaylistName(filepath)
 
-      const playlist = {
-        path: filepath,
-        nombre: baseName
-      }
-
-      await removeTrack(playlist.path, playlist)
-
-      const baseDir = path.dirname(filepath)
-      return processPlaylist(filepath, baseDir) //externa
-    } catch (error) {
-      console.error('Error processing M3U file:', error)
-      return { path: null, nombre: null }
+    const playlist = {
+      path: filepath,
+      nombre: baseName
     }
+
+    await removeTrack(playlist.path, playlist)
+
+    const baseDir = path.dirname(filepath)
+    return processPlaylist(filepath, baseDir) //externa
   })
 
   ipcMain.handle('get-list', async (event, filepath) => {
-    try {
-      const baseDir = path.dirname(filepath)
-      const processedData = await processPlaylist(filepath, baseDir) //
-      const playlistData = await getPlaylist(filepath)
-      const cover = await generateCover(processedData)
-      return {
-        processedData,
-        playlistData,
-        cover
-      }
-    } catch (error) {
-      console.error('Error processing M3U file or fetching playlist data:', error)
-      return {
-        processedData: [],
-        playlistData: null
-      }
+    const baseDir = path.dirname(filepath)
+    const processedData = await processPlaylist(filepath, baseDir) //
+    const playlistData = await getPlaylist(filepath)
+    const cover = await generateCover(processedData)
+    return {
+      processedData,
+      playlistData,
+      cover
     }
   })
 
   //Simple
   ipcMain.handle('get-playlists', async () => {
-    return getPlaylists()
+    return await getPlaylists()
   })
 
   ipcMain.handle('get-random-playlist', async () => {
