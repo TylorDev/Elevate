@@ -12,7 +12,8 @@ import { LuHeart, LuHeartOff } from 'react-icons/lu'
 import { useEffect, useState } from 'react'
 import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
-
+import { Bounce, toast, ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 export function SongItem({ file, index, cola, name, filePath }) {
   const { currentIndex, handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)

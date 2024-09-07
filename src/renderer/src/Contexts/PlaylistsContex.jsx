@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react'
 import { ElectronGetter, ElectronSetter2 } from './utils'
+import { Bounce, toast } from 'react-toastify'
 
 const ContextLikes = createContext()
 
@@ -25,7 +26,17 @@ export const PlaylistsProvider = ({ children }) => {
       getSavedLists()
     } else {
       console.error(response.message)
-      // Aquí puedes manejar el error
+      toast.error(response.message, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
     }
 
     return response // Retornar la respuesta para un manejo posterior si es necesario

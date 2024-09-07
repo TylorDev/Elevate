@@ -280,14 +280,9 @@ async function updatePlaylistByPath(path, newData) {
   }
 }
 async function getM3ufilepaths(filepath, baseDir) {
-  try {
-    const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-    const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
-    return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
-  } catch (error) {
-    console.error('Error processing M3U file:', error)
-    return []
-  }
+  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
 }
 
 async function createTile(imageBuffers) {

@@ -1,3 +1,5 @@
+import { Bounce, toast } from 'react-toastify'
+
 export const shuffleArray = (array, currentIndex) => {
   let newArray = [...array]
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -30,6 +32,17 @@ export const ElectronGetter = async (action, setState = null, filepath = null) =
       console.log('No files were selected')
     }
   } catch (error) {
+    toast.error(error, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
     console.error('Error selecting files:', error)
   }
 }
@@ -43,6 +56,17 @@ export const ElectronGetter2 = async (action, setState = null, value = null) => 
       console.log('No files were selected')
     }
   } catch (error) {
+    toast.error(error, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
     console.error('Error selecting files:', error)
   }
 }
@@ -58,6 +82,17 @@ export const ElectronSetter = async (action, common = undefined, getter = undefi
 
     console.log('File info:', fileInfo)
   } catch (error) {
+    toast.error(error, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
     console.error('Error saving file:', error)
   }
 }
@@ -72,6 +107,18 @@ export const ElectronSetter2 = async (action, ...values) => {
     // Devolver un mensaje de éxito junto con la información del archivo
     return { success: true, message: 'Data sent successfully', fileInfo }
   } catch (error) {
+    toast.error(error, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
+
     console.error('Error saving file:', error)
 
     // Devolver un mensaje de error
@@ -89,6 +136,17 @@ export const electronInvoke = async (action, ...args) => {
     }
     return result
   } catch (error) {
+    toast.error(error, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
     console.error(`Error during ${action}:`, error)
   }
 }

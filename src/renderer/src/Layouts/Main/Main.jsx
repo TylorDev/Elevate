@@ -1,3 +1,4 @@
+import { Bounce, ToastContainer } from 'react-toastify'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import './Main.scss'
@@ -12,6 +13,8 @@ function Main() {
       </div>
 
       <AudioPlayer />
+
+      <ToastContainer />
     </div>
   )
 }

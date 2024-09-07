@@ -2,6 +2,7 @@ import { createContext, useContext, useRef, useEffect, useState } from 'react'
 import { electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
+import { Bounce, toast } from 'react-toastify'
 
 // Crear el contexto
 const SuperContext = createContext()
@@ -173,10 +174,6 @@ export const SuperProvider = ({ children }) => {
   }
 
   const removeTrack = async (playlistPath, index) => {
-    // Crear una copia de la lista de paths, excluyendo el índice seleccionado
-    // const paths = queueState.currentQueue.map((file) => file.filePath).filter((_, i) => i !== index)
-
-    // Enviar los paths actualizados al proceso principal
     const result = await electronInvoke('update-list', {
       filePath: playlistPath,
       index
@@ -184,13 +181,24 @@ export const SuperProvider = ({ children }) => {
 
     // Manejar el resultado de la operación
     if (result && result.success) {
-      console.log('M3U file saved successfully at', result.path)
-      console.log('New name in db:', result.nombre)
-      // Actualizar el estado con la nueva lista de paths
       setQueueState((prevState) => ({
         ...prevState,
         currentQueue: prevState.currentQueue.filter((_, i) => i !== index)
       }))
+
+      setTimeout(() => {
+        toast.success('Eliminada correctamente!', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+      }, 1000)
     }
   }
 
