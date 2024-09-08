@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import './Feed.scss'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { uint8ArrayToImageUrl } from '../../Contexts/utils'
+import { BinToBlob, uint8ArrayToImageUrl } from '../../Contexts/utils'
 import { useNavigate } from 'react-router-dom'
+import { useSuper } from '../../Contexts/SupeContext'
 
 function Feed() {
   const [screenWidth, setScreenWidth] = useState(window.innerWidth)
   const { randomPlaylist } = usePlaylists()
-
+  const { currentFile } = useSuper()
   useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth)
 
@@ -44,10 +45,33 @@ function Feed() {
 
           <span>{randomPlaylist?.nombre} </span>
         </div>
-        <img src={img} alt="" />
+        <div className="r-img">
+          <img src={img} alt="" />
+        </div>
+
         <div className="blur"></div>
       </div>
-      <div className="grid-item item2">Cancion randon</div>
+      <div
+        className="grid-item current-play"
+        style={{ backgroundImage: `url(${BinToBlob(currentFile?.picture?.[0])})` }}
+      >
+        <div className="grp">
+          <div className="grp-1">
+            <div className="cc-artist">{currentFile.artist || 'Unknown'} - Septiembre, 2024 </div>
+            <div className="cc-like">Like :</div>
+
+            <div className="cc-titulo">
+              {currentFile.title ? currentFile.title : currentFile.fileName}
+            </div>
+          </div>
+
+          <div className="grp-2">Play</div>
+          <div className="grp-3">
+            <div className="cc-timeline">-</div>
+            <div className="cc-time">0:00/4:12</div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid-item item4">
         Playlists, Carpetas, Favoritos.

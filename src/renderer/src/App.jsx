@@ -18,6 +18,8 @@ import PlaylistPage from './Pages/PlaylistPage/PlaylistPage'
 import DirPage from './Pages/DirPage/DirPage'
 import Lista from './Pages/Lista/Lista'
 
+import SearchBar from './Components/SearchBar/SearchBar'
+
 function App() {
   return (
     <MiniProvider>
@@ -25,6 +27,7 @@ function App() {
         <LikesProvider>
           <div className="App">
             <div className="Tittlebar">Taylord</div>
+            <SearchBar />
             <AudioProvider></AudioProvider>
             <Routes>
               <Route path="/" element={<Main />}>

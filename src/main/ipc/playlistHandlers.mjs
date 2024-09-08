@@ -283,85 +283,100 @@ async function getM3ufilepaths(filepath, baseDir) {
   const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
   return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
 }
-
-async function createTile(imageBuffers) {
-  if (imageBuffers.length !== 4) {
-    throw new Error('Se requiere un array de exactamente 4 imageBuffers')
+async function generateCover(processedData) {
+  if (processedData.length === 0) {
+    throw new Error('At least one image is required.')
   }
 
+  // Limit to a maximum of 4 images
+  const topImages = processedData
+    .filter((item) => item.picture[0].type !== 'Other')
+    .sort((a, b) => b.play_count - a.play_count)
+    .slice(0, 4)
+
+  if (topImages.length === 0) {
+    throw new Error('No valid images to process.')
+  }
+
+  const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data, 'base64'))
+
   try {
-    // Redimensionar cada imagen a 250x250 píxeles
-    const resizedImages = await Promise.all(
-      imageBuffers.map((buffer) => sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer())
+    // Resize all images to 250x250
+    const resizePromises = imageBuffers.map((buffer) =>
+      sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
     )
 
-    // Crear un collage 2x2 con las imágenes redimensionadas
-    const tile = await sharp({
+    const resizedImages = await Promise.all(resizePromises)
+
+    // Calculate the grid size based on the number of images
+    const numImages = resizedImages.length
+    const gridSize = Math.ceil(Math.sqrt(numImages))
+    const tileSize = 250 // Each tile is 250x250
+    const totalSize = gridSize * tileSize
+
+    // Create a blank canvas
+    const canvas = sharp({
       create: {
-        width: 500,
-        height: 500,
+        width: totalSize,
+        height: totalSize,
         channels: 4,
         background: { r: 0, g: 0, b: 0, alpha: 0 }
       }
     })
-      .composite([
-        { input: resizedImages[0], top: 0, left: 0 },
-        { input: resizedImages[1], top: 0, left: 250 },
-        { input: resizedImages[2], top: 250, left: 0 },
-        { input: resizedImages[3], top: 250, left: 250 }
-      ])
-      .png()
-      .toBuffer()
 
-    return tile
+    // Generate composite input array
+    const composites = resizedImages.map((img, index) => {
+      const row = Math.floor(index / gridSize)
+      const col = index % gridSize
+      return {
+        input: img,
+        top: row * tileSize,
+        left: col * tileSize
+      }
+    })
+
+    const tileBuffer = await canvas.composite(composites).png().toBuffer()
+
+    return tileBuffer
   } catch (error) {
-    console.error('Error creando el tile:', error)
+    console.error('Error creating the cover:', error)
     throw error
   }
 }
 
-async function generateCover(processedData) {
-  // Ensure there are at least 4 items in the array
-  if (processedData.length < 4) {
-    throw new Error('Not enough images to select from.')
-  }
-  const filteredData = processedData.filter((item) => item.picture[0].type !== 'Other')
-
-  const sortedData = filteredData.slice().sort((a, b) => b.play_count - a.play_count)
-
-  const top4 = sortedData.slice(0, 4)
-
-  const img1 = top4[0].picture[0]
-  const img2 = top4[1].picture[0]
-  const img3 = top4[2].picture[0]
-  const img4 = top4[3].picture[0]
-
-  const imageBuffer1 = Buffer.from(img1.data, 'base64')
-  const imageBuffer2 = Buffer.from(img2.data, 'base64')
-  const imageBuffer3 = Buffer.from(img3.data, 'base64')
-  const imageBuffer4 = Buffer.from(img4.data, 'base64')
-
-  const cover = await createTile([imageBuffer1, imageBuffer2, imageBuffer3, imageBuffer4])
-
-  return cover
-}
-
+///-----------------
 export function setupPlaylistHandlers() {
   ipcMain.handle('load-list', async () => {
-    const filepath = await selectFile()
-    if (!filepath) return []
+    try {
+      const filePath = await selectFile()
+      if (!filePath) return []
+      const baseDir = path.dirname(filePath)
+      const filePaths = await getM3ufilepaths(filePath, baseDir) //
+      const { success, playlistName, error } = await savePlaylist(filePath, filePaths)
 
-    const baseName = extractPlaylistName(filepath)
+      if (!success) {
+        return { success: false, error }
+      }
 
-    const playlist = {
-      path: filepath,
-      nombre: baseName
+      const { totalDuration, totalTracks } = await getPlaylistDetails(filePath)
+      const playlistData = {
+        path: filePath,
+        nombre: playlistName,
+        duracion: totalDuration,
+        numElementos: totalTracks,
+        totalplays: 0
+      }
+
+      return await updatePlaylist(
+        playlistData.path,
+        playlistData.nombre,
+        playlistData.duracion,
+        playlistData.numElementos,
+        playlistData.totalplays
+      )
+    } catch (err) {
+      return { success: false, error: err.message }
     }
-
-    await removeTrack(playlist.path, playlist)
-
-    const baseDir = path.dirname(filepath)
-    return processPlaylist(filepath, baseDir) //externa
   })
 
   ipcMain.handle('get-list', async (event, filepath) => {
@@ -455,30 +470,33 @@ export function setupPlaylistHandlers() {
   })
 
   ipcMain.handle('save-m3u', async (event, { filePaths }) => {
-    const filePath = await saveDialog()
+    try {
+      const filePath = await saveDialog()
+      const { success, playlistName, error } = await savePlaylist(filePath, filePaths)
 
-    const saveResult = await savePlaylist(filePath, filePaths)
-    if (!saveResult.success) {
-      return { success: false, error: saveResult.error }
+      if (!success) {
+        return { success: false, error }
+      }
+
+      const { totalDuration, totalTracks } = await getPlaylistDetails(filePath)
+      const playlistData = {
+        path: filePath,
+        nombre: playlistName,
+        duracion: totalDuration,
+        numElementos: totalTracks,
+        totalplays: 0
+      }
+
+      return await updatePlaylist(
+        playlistData.path,
+        playlistData.nombre,
+        playlistData.duracion,
+        playlistData.numElementos,
+        playlistData.totalplays
+      )
+    } catch (err) {
+      return { success: false, error: err.message }
     }
-
-    const playlistDetails = await getPlaylistDetails(filePath)
-
-    const playlistData = {
-      path: filePath,
-      nombre: saveResult.playlistName,
-      duracion: playlistDetails.totalDuration,
-      numElementos: playlistDetails.totalTracks,
-      totalplays: 0
-    }
-
-    return await updatePlaylist(
-      playlistData.path,
-      playlistData.nombre,
-      playlistData.duracion,
-      playlistData.numElementos,
-      playlistData.totalplays
-    )
   })
 
   ipcMain.handle('save-last-data', async (event, filepath, index, queueId) => {

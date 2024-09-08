@@ -17,9 +17,7 @@ function Favourites() {
 
   const { handleResume } = useSuper()
   useEffect(() => {
-    if (!likes || likes.length === 0) {
-      getLikes
-    }
+    getLikes()
   }, [])
 
   useEffect(() => {

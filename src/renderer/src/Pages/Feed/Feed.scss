@@ -6,12 +6,16 @@
     width: 100%;
     height: fit-content;
     overflow-x: auto;
+    justify-items: center;
+    align-items: center;
 
     grid-template-areas:
         "list song  song stats"
         "data data data  stats"
         "banner banner btn stats"
     ;
+
+
 
     .grid-item {
 
@@ -20,7 +24,9 @@
         align-items: center;
         justify-content: center;
         height: 100%;
-
+        width: 100%;
+        //Develop outline
+        outline: 2px solid white;
     }
 
 
@@ -32,9 +38,13 @@
         position: relative;
         border-radius: 1rem;
         overflow: hidden;
-        aspect-ratio: 1/1;
-        padding: 1rem;
+
+
         background-size: cover;
+        width: 15rem;
+        height: 15rem;
+
+        //Develop outline
 
 
 
@@ -52,11 +62,21 @@
 
         .r-name {
             display: grid;
-            justify-items: center;
+            justify-items: start;
             z-index: 1;
+            align-items: center;
+            width: 100%;
+            padding: 1rem;
+
+            span:first-child {
+
+                font-size: 0.8rem;
+            }
 
             span:nth-child(2) {
-                font-size: 2rem;
+
+                font-size: 1.5rem;
+                ;
 
                 &:hover {
                     text-decoration: underline;
@@ -66,19 +86,87 @@
 
         }
 
-
-        img {
-            border-radius: 1rem;
+        .r-img {
+            width: 55%;
+            aspect-ratio: 1/1;
             overflow: hidden;
-            width: 100px;
             z-index: 1;
+            border-radius: 1rem;
+
+            &:hover {
+                //Develop outline
+                outline: 2px solid white;
+            }
+
+            img {
+
+                object-fit: cover;
+                width: 100%;
+                height: 100%;
+
+                aspect-ratio: 1/1;
+
+            }
         }
+
 
 
     }
 
-    .item2 {
+    .current-play {
         grid-area: song;
+        background-size: contain;
+
+        .grp {
+
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.719);
+        }
+
+
+        .grp-1 {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+
+            align-items: center;
+            justify-items: center;
+
+            .cc-titulo {
+                font-size: 1.5rem;
+            }
+        }
+
+        .grp-2 {
+            display: grid;
+
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .grp-3 {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+
+            align-items: center;
+            justify-items: center;
+
+            .cc-timeline {
+                width: 100%;
+
+                height: 7px;
+                background-color: white;
+                border: 1px solid orangered;
+
+
+            }
+        }
 
 
     }

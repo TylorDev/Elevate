@@ -2,7 +2,7 @@
     display: flex;
     flex-direction: column;
     background-color: transparent;
-    padding-top: 4.5rem;
+
 
     overflow-x: auto;
     // scrollbar-color: #3498db #405d64; // thumb color y track color
@@ -38,7 +38,7 @@
 
         background: linear-gradient(to right, rgba(255, 99, 55, 0.227) 0%, transparent 10%);
 
-        border-left: 3px solid rgb(255, 99, 55);
+        border-left: 1px solid #ff6337;
         color: rgb(255, 99, 55);
 
     }
@@ -47,7 +47,7 @@
     .nav-sec {
         font-size: 0.8rem;
         color: #696969;
-        padding-left: 1rem;
+
     }
 }
 

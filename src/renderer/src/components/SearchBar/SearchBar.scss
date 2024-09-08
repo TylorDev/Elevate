@@ -1,0 +1,39 @@
+.search-bar {
+    display: grid;
+
+    grid-template-columns: 0.89fr 3.5fr 1fr;
+
+    align-items: center;
+    justify-items: start;
+    padding: 1rem 0;
+    background-color: transparent;
+
+
+}
+
+.search-input {
+    color: white;
+
+    background-color: #1A1A1A;
+    border: none;
+    outline: none;
+    width: 60%;
+    padding: 1rem;
+    border-radius: 1rem;
+}
+
+.s-t {
+    font-size: 2rem;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.settings {
+    color: orangered;
+    border: 1px solid #ff6337;
+    padding: 0.6rem 2rem;
+    border-radius: 2rem;
+    font-weight: bold;
+
+}
