@@ -1,5 +1,11 @@
 import { createContext, useState, useContext, useEffect } from 'react'
-import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter2 } from './utils'
+import {
+  BinToBlob,
+  ElectronDelete,
+  ElectronGetter,
+  ElectronGetter2,
+  ElectronSetter2
+} from './utils'
 import { Bounce, toast } from 'react-toastify'
 
 const ContextLikes = createContext()
@@ -11,8 +17,21 @@ export const PlaylistsProvider = ({ children }) => {
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
 
-  const getAllSongs = () =>
-    ElectronGetter('get-all-audio-files', setMetadata, null, 'Se obtuvieron todas las canciones!') //1 ref
+  const getAllSongs = async () => {
+    await ElectronGetter(
+      'get-all-audio-files',
+      setMetadata,
+      null,
+      'Se obtuvieron todas las canciones!'
+    ) //1 ref
+
+    setMetadata((prevMetadata) =>
+      (prevMetadata || []).map((obj) =>
+        obj?.picture ? { ...obj, cover: BinToBlob(obj.picture[0]) } : obj
+      )
+    )
+  }
+
   const openM3U = async () => {
     await ElectronGetter('load-list', setMetadata, null, 'se cargo correctamente la lista nueva') // 0 ref
     getSavedLists()

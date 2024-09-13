@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { BinToBlob, uint8ArrayToImageUrl } from '../../Contexts/utils'
 import './PlaylistItem.scss'
 
 import { Button } from './../../Components/Button/Button'
@@ -12,6 +11,7 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
 import { useState } from 'react'
+import { uint8ArrayToImageUrl } from '../../Contexts/utils'
 
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const { deletePlaylist, updatePlaylist } = usePlaylists()

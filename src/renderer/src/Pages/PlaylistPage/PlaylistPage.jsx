@@ -12,7 +12,7 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
-import { BinToBlob } from './../../Contexts/utils'
+
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
@@ -38,6 +38,10 @@ function PlaylistPage() {
   }
   const mimeType = 'image/png'
 
+  if (!current || !current.playlistData) {
+    return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
+  }
+
   function uint8ArrayToImageUrl(uint8Array, mimeType) {
     // Convertir el Uint8Array a Blob
     const blob = new Blob([uint8Array], { type: mimeType })
@@ -48,11 +52,6 @@ function PlaylistPage() {
     // Devolver la URL
     return imageUrl
   }
-
-  if (!current || !current.playlistData) {
-    return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
-  }
-
   const data = current.playlistData
   return (
     <div className="PlaylistPage">

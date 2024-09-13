@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 
 import './Metadata.scss'
-import { BinToBlob } from '../../Contexts/utils'
+
 import { useSuper } from '../../Contexts/SupeContext'
 
 export function Metadata() {
-  const { currentFile } = useSuper()
+  const { currentFile, currentCover } = useSuper()
   const navigate = useNavigate()
 
   return (
@@ -17,7 +17,7 @@ export function Metadata() {
       }}
     >
       <div className="cover">
-        <img src={BinToBlob(currentFile?.picture?.[0] || {})} alt="" />
+        <img src={currentCover} alt="" />
       </div>
       <div className="data">
         <div className="data-tittle">

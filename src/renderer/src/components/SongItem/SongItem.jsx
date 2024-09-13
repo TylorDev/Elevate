@@ -76,7 +76,7 @@ export function SongItem({ file, index, cola, name, filePath }) {
           <FaPlay />
         </div>
 
-        <img src={BinToBlob(file?.picture?.[0] || {})} alt="" />
+        <img src={file.cover} alt="" />
       </div>
 
       <div className="songdata">

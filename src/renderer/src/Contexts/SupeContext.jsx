@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import { electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
+import { BinToBlob, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
@@ -15,7 +15,8 @@ export const SuperProvider = ({ children }) => {
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
   const [isPlaying, setIsPlaying] = useState(false) //1 ref check
-
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
   const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
   const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
   const [queueState, setQueueState] = useState({
@@ -23,6 +24,7 @@ export const SuperProvider = ({ children }) => {
     originalQueue: [],
     queueName: ''
   })
+  const [currentCover, setCurrentCover] = useState(0)
 
   const navigate = useNavigate()
 
@@ -112,6 +114,7 @@ export const SuperProvider = ({ children }) => {
 
   useEffect(() => {
     if (currentFile && currentIndex !== null) {
+      setCurrentCover(BinToBlob(currentFile?.picture?.[0]))
       saveLastData(currentFile.filePath, currentIndex, queueState.queueName)
       // console.log('Nombre en useEffect: ' + (queueState.queueName || '[sin nombre]'))
     }
@@ -257,7 +260,49 @@ export const SuperProvider = ({ children }) => {
   useEffect(() => {
     WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
   }, [currentFile])
+  useEffect(() => {
+    const updateProgress = () => {
+      setProgress(mediaRef.current.currentTime)
+    }
 
+    const updateDuration = () => {
+      setDuration(mediaRef.current.duration)
+    }
+
+    if (mediaRef.current) {
+      mediaRef.current.addEventListener('timeupdate', updateProgress)
+      mediaRef.current.addEventListener('loadedmetadata', updateDuration)
+      mediaRef.current.addEventListener('durationchange', updateDuration)
+    }
+
+    return () => {
+      if (mediaRef.current) {
+        mediaRef.current.removeEventListener('timeupdate', updateProgress)
+        mediaRef.current.removeEventListener('loadedmetadata', updateDuration)
+        mediaRef.current.removeEventListener('durationchange', updateDuration)
+      }
+    }
+  }, [])
+
+  const handleTimelineClick = (e) => {
+    // Obtiene el contenedor de la línea de tiempo
+    const timeline = e.currentTarget
+
+    // Verifica si el contenedor es válido
+    if (!timeline || !mediaRef.current) return
+
+    // Obtiene el ancho del contenedor de la línea de tiempo
+    const timelineWidth = timeline.clientWidth
+
+    // Asegura que el clic se realizó dentro del contenedor
+    const clickPosition = Math.max(0, Math.min(e.nativeEvent.offsetX, timelineWidth))
+
+    // Calcula el nuevo tiempo en la línea de tiempo
+    const newTime = (clickPosition / timelineWidth) * duration
+
+    // Actualiza el tiempo actual del medio
+    mediaRef.current.currentTime = newTime
+  }
   return (
     <SuperContext.Provider
       value={{
@@ -283,7 +328,11 @@ export const SuperProvider = ({ children }) => {
         handleQueueAndPlay,
         PlayQueue,
         removeTrack,
-        addSong
+        addSong,
+        handleTimelineClick,
+        progress,
+        duration,
+        currentCover
       }}
     >
       {children}
