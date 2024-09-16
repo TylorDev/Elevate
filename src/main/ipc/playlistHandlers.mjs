@@ -126,7 +126,12 @@ async function getPlays(filePath) {
   }
 }
 async function getPlaylists({ take = null, skip = null } = {}) {
-  const options = {}
+  const options = {
+    orderBy: {
+      totalplays: 'desc' // Ordena de más reproducciones a menos reproducciones
+    }
+  }
+
   if (take !== null) options.take = take
   if (skip !== null) options.skip = skip
 

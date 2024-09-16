@@ -65,7 +65,7 @@ function extractBasename(filename) {
 }
 
 function debugFileDetails(fullPath, basenameWithoutExt) {
-  sendNotification('NUEVo archivo!')
+  sendNotification(`Nueva cancion:${basenameWithoutExt}`)
   console.debug(`Archivo detectado:`)
   console.debug(`Ruta completa: ${fullPath}`)
   console.debug(`Basename sin extensión: ${basenameWithoutExt}`)
@@ -124,6 +124,27 @@ export function setupFilehandlers() {
       return { success: true, message: 'Directory added sucessfully.' }
     } catch (error) {
       console.error('Error selecting files:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-new-audio-files', async () => {
+    try {
+      // Obtener las últimas 5 canciones de la base de datos, ordenadas por timestamp
+      const recentAudioFiles = await prisma.songs.findMany({
+        orderBy: {
+          timestamp: 'desc'
+        },
+        select: {
+          filepath: true
+        },
+        take: 5
+      })
+
+      const filepathsArray = recentAudioFiles.map((song) => song.filepath)
+      return getFileInfos(filepathsArray)
+    } catch (error) {
+      console.error('Error retrieving latest audio files:', error)
       throw error
     }
   })

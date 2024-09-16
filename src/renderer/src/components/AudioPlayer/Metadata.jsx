@@ -5,7 +5,7 @@ import './Metadata.scss'
 import { useSuper } from '../../Contexts/SupeContext'
 
 export function Metadata() {
-  const { currentFile, currentCover } = useSuper()
+  const { currentFile } = useSuper()
   const navigate = useNavigate()
 
   return (
@@ -17,7 +17,7 @@ export function Metadata() {
       }}
     >
       <div className="cover">
-        <img src={currentCover} alt="" />
+        <img src={'sin cover'} alt="sin cover" />
       </div>
       <div className="data">
         <div className="data-tittle">

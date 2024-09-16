@@ -5,17 +5,17 @@ import { useLikes } from '../../Contexts/LikeContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { FaPlay } from 'react-icons/fa'
 import { useSuper } from '../../Contexts/SupeContext'
-import { BinToBlob } from './../../Contexts/utils'
+
 import './SongItem.scss'
 import { Button } from './../Button/Button'
 import { LuHeart, LuHeartOff } from 'react-icons/lu'
 import { useEffect, useState } from 'react'
 import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
-import { Bounce, toast, ToastContainer } from 'react-toastify'
+
 import 'react-toastify/dist/ReactToastify.css'
 export function SongItem({ file, index, cola, name, filePath }) {
-  const { currentIndex, handleSongClick, currentFile, addSong } = useSuper()
+  const { handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { toggleLike, isLiked } = useLikes()
   const { removeTrack } = useSuper()
@@ -76,7 +76,7 @@ export function SongItem({ file, index, cola, name, filePath }) {
           <FaPlay />
         </div>
 
-        <img src={file.cover} alt="" />
+        <img src={'sin cover'} alt="sin cover" />
       </div>
 
       <div className="songdata">

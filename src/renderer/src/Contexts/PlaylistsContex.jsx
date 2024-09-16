@@ -7,6 +7,7 @@ import {
   ElectronSetter2
 } from './utils'
 import { Bounce, toast } from 'react-toastify'
+import { Await } from 'react-router-dom'
 
 const ContextLikes = createContext()
 
@@ -16,21 +17,6 @@ export const PlaylistsProvider = ({ children }) => {
   const [metadata, setMetadata] = useState(null) // 1 ref - 5 ref
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
-
-  const getAllSongs = async () => {
-    await ElectronGetter(
-      'get-all-audio-files',
-      setMetadata,
-      null,
-      'Se obtuvieron todas las canciones!'
-    ) //1 ref
-
-    setMetadata((prevMetadata) =>
-      (prevMetadata || []).map((obj) =>
-        obj?.picture ? { ...obj, cover: BinToBlob(obj.picture[0]) } : obj
-      )
-    )
-  }
 
   const openM3U = async () => {
     await ElectronGetter('load-list', setMetadata, null, 'se cargo correctamente la lista nueva') // 0 ref
@@ -79,11 +65,36 @@ export const PlaylistsProvider = ({ children }) => {
     getAllSongs()
   }, [])
 
-  useEffect(() => {
-    const handleNotification = (message) => {
-      console.log(message) // Maneja el mensaje como desees
+  const getAllSongs = async () => {
+    await ElectronGetter(
+      'get-all-audio-files',
+      setMetadata,
+      null,
+      'Se obtuvieron todas las canciones!'
+    )
+  }
 
-      getAllSongs()
+  const [news, setNews] = useState([])
+  const getNews = async () =>
+    await ElectronGetter('get-new-audio-files', setNews, null, 'Recientes obtenidos!')
+
+  useEffect(() => {
+    const handleNotification = async (message) => {
+      console.log(message) // Maneja el mensaje como desees
+      toast.success(message || 'Completado!', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+
+      await getNews()
+      await getAllSongs()
     }
 
     window.electron.ipcRenderer.on('notification', handleNotification)
@@ -107,7 +118,9 @@ export const PlaylistsProvider = ({ children }) => {
         openM3U,
 
         randomPlaylist,
-        updatePlaylist
+        updatePlaylist,
+        news,
+        getNews
       }}
     >
       {children}

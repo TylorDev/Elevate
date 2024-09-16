@@ -10,14 +10,17 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
-import { useState } from 'react'
-import { uint8ArrayToImageUrl } from '../../Contexts/utils'
+import { useEffect, useState } from 'react'
+import { dataToImageUrl, uint8ArrayToImageUrl } from '../../Contexts/utils'
 
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const { deletePlaylist, updatePlaylist } = usePlaylists()
-
+  const [back, setBack] = useState('')
   const [isVisible, setIsVisible] = useState(false)
 
+  useEffect(() => {
+    setBack(dataToImageUrl(playlist.cover || {}))
+  }, [])
   const openModal = () => {
     setIsVisible(true)
   }
@@ -49,9 +52,9 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
           navigate(`/playlists/${playlist.path}`)
         }}
       >
-        <img src={uint8ArrayToImageUrl(playlist.cover || {})} alt="" />
+        <img src={back} alt=" playlistcover" />
       </div>
-
+      {console.log('nombre:', playlist.nombre, playlist.cover)}
       <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">
         {playlist.nombre}{' '}
       </Link>
@@ -65,6 +68,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
         className="pi-item"
         onClick={async () => {
           await handleQueueAndPlay(undefined, undefined, playlist.path)
+          addPlaylisthistory(playlist.path)
         }}
       >
         <FaPlay />

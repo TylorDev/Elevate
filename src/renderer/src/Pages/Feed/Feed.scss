@@ -1,6 +1,6 @@
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); // Cuatro columnas de igual ancho
+    grid-template-columns: 1fr 1fr 1fr auto;
     grid-template-rows: repeat(3, 1fr); // Tres filas de igual alto
 
     width: 100%;
@@ -20,7 +20,8 @@
 
     .grid-item {
 
-
+        //Develop outline
+        outline: 2px solid white;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -287,8 +288,9 @@
 
     }
 
-    .item8 {
+    .aside {
         grid-area: stats;
+        display: grid;
 
 
     }

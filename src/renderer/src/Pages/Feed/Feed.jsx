@@ -12,11 +12,12 @@ import { MediaTimeDisplay } from '../../Components/MediaTimeDisplay/MediaTimeDis
 
 import { PlaylistItem } from '../Playlists/PlaylistItem'
 import { FaHeart } from 'react-icons/fa'
+import { Cola } from './../../Components/Cola/Cola'
+import { useMini } from '../../Contexts/MiniContext'
 
 function Feed() {
-  const [screenWidth, setScreenWidth] = useState(window.innerWidth)
   const { randomPlaylist } = usePlaylists()
-  const { currentFile, togglePlayPause, isPlaying, currentCover } = useSuper()
+  const { currentFile, togglePlayPause, isPlaying } = useSuper()
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
   useEffect(() => {
@@ -28,8 +29,9 @@ function Feed() {
     // Limpia el evento cuando el componente se desmonta
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-  const { getSavedLists, playlists, addPlaylisthistory } = usePlaylists()
+  const { getSavedLists, playlists, addPlaylisthistory, news } = usePlaylists()
   const [currentbg, setCurrentBg] = useState()
+  const { recents } = useMini()
   const formatDuration = (seconds) => {
     const hrs = Math.floor(seconds / 3600)
     const mins = Math.floor((seconds % 3600) / 60)
@@ -44,6 +46,7 @@ function Feed() {
   }, [])
   useEffect(() => {
     const img = uint8ArrayToImageUrl(randomPlaylist?.cover)
+
     setCurrentBg(img)
   }, [randomPlaylist])
 
@@ -65,12 +68,12 @@ function Feed() {
           <span>{randomPlaylist?.nombre} </span>
         </div>
         <div className="r-img">
-          <img src={currentbg} alt="" />
+          <img src={currentbg} alt="playlist Background" />
         </div>
 
         <div className="blur"></div>
       </div>
-      <div className="grid-item current-play" style={{ backgroundImage: `url(${currentCover})` }}>
+      <div className="grid-item current-play" style={{ backgroundImage: `url("")` }}>
         <div className="grp">
           <div className="grp-1">
             <div className="cc-artist">
@@ -149,8 +152,17 @@ function Feed() {
           </div>
         </div>
       </div>
-      <div className="grid-item item8">
-        Nuevas canciones, Recientes, <br /> Top Playlists
+      <div className="grid-item aside">
+        <div className="aside-sec">
+          <Link to={'/search'}>Explore stats</Link>
+          <div className="ac-tittle">NEW RELEASES</div>
+
+          <Cola list={news.slice(0, 5)} />
+        </div>
+        <div className="aside-sec">
+          <div className="ac-tittle">LISTEN MORE OFTEN</div>
+          <Cola list={recents.slice(0, 5)} />
+        </div>
       </div>
     </div>
   )

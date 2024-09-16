@@ -44,18 +44,6 @@ function DirPage() {
               src="https://i.pinimg.com/736x/d5/db/17/d5db1719cc626f12e9fdae3ac8a829ea.jpg"
               alt=""
             />
-            <img
-              src="https://i.pinimg.com/736x/db/d5/d2/dbd5d2dcc677ac92ddeb12fe4da2e198.jpg"
-              alt=""
-            />
-            <img
-              src="https://i.pinimg.com/736x/2d/55/10/2d5510158e18e0c483b008d8f4e71a7f.jpg"
-              alt=""
-            />
-            <img
-              src="https://i.pinimg.com/736x/3e/40/e0/3e40e0e3a22196f2839d718c26f06ebd.jpg"
-              alt=""
-            />
           </div>
           <div className="pgl-name">{getLastPart(dir.path)}</div>
 

@@ -26,6 +26,7 @@ export const MiniProvider = ({ children }) => {
   }
 
   const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
+
   const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
   const searchSongs = (value) => ElectronGetter2('search', setResults, value)
   const getDirectories = () =>

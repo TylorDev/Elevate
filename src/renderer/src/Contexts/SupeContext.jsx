@@ -24,7 +24,6 @@ export const SuperProvider = ({ children }) => {
     originalQueue: [],
     queueName: ''
   })
-  const [currentCover, setCurrentCover] = useState(0)
 
   const navigate = useNavigate()
 
@@ -114,7 +113,6 @@ export const SuperProvider = ({ children }) => {
 
   useEffect(() => {
     if (currentFile && currentIndex !== null) {
-      setCurrentCover(BinToBlob(currentFile?.picture?.[0]))
       saveLastData(currentFile.filePath, currentIndex, queueState.queueName)
       // console.log('Nombre en useEffect: ' + (queueState.queueName || '[sin nombre]'))
     }
@@ -331,8 +329,7 @@ export const SuperProvider = ({ children }) => {
         addSong,
         handleTimelineClick,
         progress,
-        duration,
-        currentCover
+        duration
       }}
     >
       {children}

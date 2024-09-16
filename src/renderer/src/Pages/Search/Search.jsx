@@ -2,17 +2,19 @@ import { useEffect, useState } from 'react'
 import { Cola } from '../../Components/Cola/Cola'
 
 import { useMini } from '../../Contexts/MiniContext'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 
 function Search() {
   const [query, setQuery] = useState('')
   const { recents, getRecents, most, getMost, results, searchSongs } = useMini()
-
+  const { news, getNews } = usePlaylists()
   useEffect(() => {
     getRecents()
   }, [])
 
   const handleSearch = () => {
     searchSongs(query)
+    console.log(news)
   }
 
   return (
@@ -31,6 +33,9 @@ function Search() {
       <Cola list={most} name="stats" />
       <h1>recientes!</h1>
       <Cola list={recents} name="stats" />
+      <button onClick={getNews}>OBTENER NUEVAS!</button>
+      <h1>NUEVAS!</h1>
+      <Cola list={news} name="stats" />
     </div>
   )
 }

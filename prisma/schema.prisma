@@ -16,6 +16,7 @@ model Songs {
   filename        String
   UserPreferences UserPreferences[]
   PlayHistory     PlayHistory[]
+  timestamp       DateTime          @default(now()) // Fecha y hora del incremento
 }
 
 model UserPreferences {
