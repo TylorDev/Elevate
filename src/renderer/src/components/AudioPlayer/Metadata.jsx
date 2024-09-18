@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import './Metadata.scss'
 
 import { useSuper } from '../../Contexts/SupeContext'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useEffect, useState } from 'react'
 
 export function Metadata() {
   const { currentFile } = useSuper()
   const navigate = useNavigate()
+  const { currentCover } = usePlaylists()
 
   return (
     <div
@@ -17,7 +20,7 @@ export function Metadata() {
       }}
     >
       <div className="cover">
-        <img src={'sin cover'} alt="sin cover" />
+        <img src={currentCover} alt="sin cover" />
       </div>
       <div className="data">
         <div className="data-tittle">

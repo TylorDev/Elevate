@@ -8,12 +8,14 @@ import { PlaylistItem } from './PlaylistItem'
 import { PlaylistActions } from './../../Components/PlaylistActions/PlaylistActions'
 
 function Playlists() {
-  const { getSavedLists, playlists, addPlaylisthistory } = usePlaylists()
+  const { getSavedLists, playlists, addPlaylisthistory, updateArrayAlbums } = usePlaylists()
 
   useEffect(() => {
     if (!playlists || playlists.length === 0) {
       getSavedLists()
     }
+
+    updateArrayAlbums(playlists)
   }, [])
 
   return (

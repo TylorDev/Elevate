@@ -14,14 +14,21 @@ import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
 
 import 'react-toastify/dist/ReactToastify.css'
+import { dataToImageUrl } from '../../Contexts/utils'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 export function SongItem({ file, index, cola, name, filePath }) {
   const { handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
+  const { getFileByFilePath } = usePlaylists()
   const { toggleLike, isLiked } = useLikes()
   const { removeTrack } = useSuper()
   const { agregarElemento, eliminarElemento } = useMini()
   const [isVisible, setIsVisible] = useState(false)
-
+  const [mycover, setMyCover] = useState('')
+  useEffect(() => {
+    const fileData = getFileByFilePath(file.filePath)
+    setMyCover(fileData?.cover)
+  }, [mycover, file])
   const openModal = () => {
     setIsVisible(true)
   }
@@ -76,7 +83,7 @@ export function SongItem({ file, index, cola, name, filePath }) {
           <FaPlay />
         </div>
 
-        <img src={'sin cover'} alt="sin cover" />
+        <img src={mycover} alt="sin cover" />
       </div>
 
       <div className="songdata">

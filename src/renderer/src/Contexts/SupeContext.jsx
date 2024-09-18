@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import { BinToBlob, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
+import { electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'

@@ -12,18 +12,32 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
+import { dataToImageUrl } from '../../Contexts/utils'
 
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
   const [isVisible, setIsVisible] = useState(false) // Moved to the top
-
-  const { getUniqueList, updatePlaylist, playlists } = usePlaylists()
+  const [back, setBack] = useState()
+  const { getUniqueList, updatePlaylist, playlists, getAlbumByFilePath } = usePlaylists()
   const { queueState, handleQueueAndPlay } = useSuper() // Combined the two useSuper calls
 
   useEffect(() => {
-    getUniqueList(setCurrent, dir)
+    async function getData() {
+      await getUniqueList(setCurrent, dir)
+    }
+
+    getData()
   }, [dir, queueState, playlists])
+
+  useEffect(() => {
+    if (current?.playlistData) {
+      const data = current?.playlistData
+      const cover = getAlbumByFilePath(data.path)
+      setBack(cover)
+      console.log('cover', cover)
+    }
+  }, [current, back])
 
   const openModal = () => {
     setIsVisible(true)
@@ -36,23 +50,13 @@ function PlaylistPage() {
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
-  const mimeType = 'image/png'
 
   if (!current || !current.playlistData) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
   }
 
-  function uint8ArrayToImageUrl(uint8Array, mimeType) {
-    // Convertir el Uint8Array a Blob
-    const blob = new Blob([uint8Array], { type: mimeType })
-
-    // Crear una URL para el Blob
-    const imageUrl = URL.createObjectURL(blob)
-
-    // Devolver la URL
-    return imageUrl
-  }
   const data = current.playlistData
+
   return (
     <div className="PlaylistPage">
       <Modal isVisible={isVisible} closeModal={closeModal}>
@@ -65,7 +69,7 @@ function PlaylistPage() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img src={uint8ArrayToImageUrl(current.cover, mimeType)} alt="" />
+            <img src={back?.cover} alt="SIN ALBUM" />
           </div>
           <div className="pgl-name">{data.nombre}</div>
 

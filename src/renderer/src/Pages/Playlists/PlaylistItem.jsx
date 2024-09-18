@@ -11,16 +11,18 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
 import { useEffect, useState } from 'react'
-import { dataToImageUrl, uint8ArrayToImageUrl } from '../../Contexts/utils'
+import { dataToImageUrl } from '../../Contexts/utils'
 
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
-  const { deletePlaylist, updatePlaylist } = usePlaylists()
+  const { deletePlaylist, updatePlaylist, getAlbumByFilePath } = usePlaylists()
   const [back, setBack] = useState('')
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    setBack(dataToImageUrl(playlist.cover || {}))
-  }, [])
+    const cover = getAlbumByFilePath(playlist.path)
+    setBack(cover)
+    console.log(cover)
+  }, [playlist, back])
   const openModal = () => {
     setIsVisible(true)
   }
@@ -52,9 +54,9 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
           navigate(`/playlists/${playlist.path}`)
         }}
       >
-        <img src={back} alt=" playlistcover" />
+        <img src={back?.cover} alt=" playlistcover" />
       </div>
-      {console.log('nombre:', playlist.nombre, playlist.cover)}
+
       <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">
         {playlist.nombre}{' '}
       </Link>

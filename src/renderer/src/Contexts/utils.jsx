@@ -144,14 +144,12 @@ export const ElectronGetter2 = async (action, setState = null, value = null) => 
 
 export const ElectronSetter = async (action, common = undefined, getter = undefined) => {
   const { filePath, fileName } = common
-  console.log('[ElectronSetterLog]', filePath, fileName)
+
   try {
     const fileInfo = await window.electron.ipcRenderer.invoke(action, filePath, fileName)
     if (getter) {
       getter()
     }
-
-    console.log('File info:', fileInfo)
   } catch (error) {
     toast.error(error, {
       position: 'bottom-right',
@@ -222,14 +220,6 @@ export const electronInvoke = async (action, ...args) => {
   }
 }
 
-export const BinToBlob = (img, mimeType = 'image/png') => {
-  if (img && img.data && img.type !== 'Other') {
-    const blob = new Blob([img.data], { type: mimeType })
-    const url = URL.createObjectURL(blob)
-    return url
-  }
-  return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
-}
 export function WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick) {
   const audio = mediaRef.current
 
@@ -240,7 +230,7 @@ export function WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handle
       album: 'Unknown',
       artwork: [
         {
-          src: BinToBlob(currentFile?.picture?.[0] || {}),
+          src: dataToImageUrl(currentFile?.picture?.[0] || {}),
           sizes: '300x300',
           type: 'image/jpeg'
         }
