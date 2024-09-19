@@ -11,6 +11,7 @@ import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
 import { sendNotification } from '../index.mjs'
+import { setBraveVolume } from './audio.mjs'
 const prisma = new PrismaClient()
 const watchedDirectories = new Set()
 
@@ -103,6 +104,34 @@ export function setupFilehandlers() {
   //   }
   // })
   startWatchingDirectories()
+  const filePath = 'C:\\Users\\yonte\\Pictures\\señal.txt'
+
+  // Vigilar el archivo
+  fs.watch(filePath, (eventType, filename) => {
+    if (filename) {
+      // Leer el contenido del archivo
+      fs.readFile(filePath, 'utf8', (err, data) => {
+        if (err) {
+          console.error(`Error al leer el archivo: ${err}`)
+          return
+        }
+
+        // Eliminar el BOM si está presente
+        if (data.startsWith('\ufeff')) {
+          data = data.slice(1)
+        }
+
+        if (data) {
+          setBraveVolume(0.2)
+        } else {
+          setBraveVolume(1)
+        }
+      })
+    }
+  })
+
+  console.log(`Vigilando el txt: ${filePath}`)
+
   ipcMain.handle('add-directory', async () => {
     try {
       const result = await dialog.showOpenDialog({
