@@ -29,6 +29,8 @@ function createWindow() {
       color: '#0a0a0a00',
       symbolColor: '#ffffff'
     },
+    backgroundMaterial: 'acrylic', // on Windows 11
+
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)), //

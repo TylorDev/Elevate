@@ -36,6 +36,7 @@ body {
     width: 100%;
     overflow: hidden;
 
+    /* Fondo semi-transparente */
 
 
 }
@@ -43,14 +44,14 @@ body {
 
 
 .App {
-    background-color: #0a0a0a;
+
     color: white;
     display: grid;
     padding-top: 2rem;
 
 
     padding-bottom: 1rem;
-
+    background-color: #0a0a0ab1;
 }
 
 
