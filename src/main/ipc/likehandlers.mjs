@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 
-import { getFileInfos, getOrCreateSong } from './utils/utils.mjs'
+import { generateCover, getFileInfos, getOrCreateSong } from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
 
 import { getSongBpm } from './utils/utils.mjs'
@@ -47,8 +47,8 @@ async function getUserPreferencesByCriteria(criteria) {
 
     const filePaths = songs.map((song) => song.filepath)
     const fileInfos = await getFileInfos(filePaths)
-
-    return fileInfos
+    const cover = await generateCover(fileInfos)
+    return { fileInfos, cover }
   } catch (error) {
     console.error('Error retrieving songs:', error)
     return { success: false, error: error.message }

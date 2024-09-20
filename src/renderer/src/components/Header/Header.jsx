@@ -8,10 +8,11 @@ import { LuListVideo } from 'react-icons/lu'
 import { TfiLayoutListThumbAlt } from 'react-icons/tfi'
 import { FaFolderTree } from 'react-icons/fa6'
 import { GoDotFill } from 'react-icons/go'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 
 function Header() {
   const getActiveClass = ({ isActive }) => (isActive ? 'activo' : '')
-
+  const { playlists } = usePlaylists()
   return (
     <div className="navbar" id="Header">
       <div className="nav-sec">
@@ -71,21 +72,27 @@ function Header() {
         <div className="sec-t">User</div>
 
         <div className="sec-i">
-          <NavLink to="/111" className={getActiveClass}>
-            <GoDotFill color="red" /> Lista 1
-          </NavLink>
-          <NavLink to="/222" className={getActiveClass}>
-            <GoDotFill color="green" /> Lista 2
-          </NavLink>
-          <NavLink to="/333" className={getActiveClass}>
-            <GoDotFill color="yellow" /> Lista 3
-          </NavLink>
-          <NavLink to="/444" className={getActiveClass}>
-            <GoDotFill color="purple" /> Lista 4
-          </NavLink>
+          {playlists.slice(0, 4).map((playlist, index) => {
+            const colors = ['red', 'green', 'blue', 'orange']
+            return (
+              <MiniList
+                getActiveClass={getActiveClass}
+                list={playlist}
+                key={index}
+                color={colors[index]}
+              />
+            )
+          })}
         </div>
       </div>
     </div>
   )
 }
 export default Header
+function MiniList({ getActiveClass, color, list }) {
+  return (
+    <NavLink to={`/playlists/${list.path}`} className={getActiveClass}>
+      <GoDotFill color={color} /> {list.nombre}
+    </NavLink>
+  )
+}

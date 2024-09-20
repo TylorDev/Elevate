@@ -1,7 +1,12 @@
 import { app, dialog, ipcMain } from 'electron'
 import path from 'path'
 import fs from 'fs'
-import { getFileInfo, processPlaylist, processPlaylistCover } from './utils/utils.mjs'
+import {
+  generateCover,
+  getFileInfo,
+  processPlaylist,
+  processPlaylistCover
+} from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
 import sharp from 'sharp'
 const prisma = new PrismaClient()
@@ -287,66 +292,6 @@ async function getM3ufilepaths(filepath, baseDir) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
   const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
   return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
-}
-async function generateCover(processedData) {
-  if (processedData.length === 0) {
-    throw new Error('At least one image is required.')
-  }
-
-  // Limit to a maximum of 4 images
-  const topImages = processedData
-    .filter((item) => item.picture[0].type !== 'Other')
-    .sort((a, b) => b.play_count - a.play_count)
-    .slice(0, 4)
-
-  if (topImages.length === 0) {
-    throw new Error('No valid images to process.')
-  }
-
-  const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data, 'base64'))
-
-  try {
-    // Resize all images to 250x250
-    const resizePromises = imageBuffers.map((buffer) =>
-      sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
-    )
-
-    const resizedImages = await Promise.all(resizePromises)
-
-    // Calculate the grid size based on the number of images
-    const numImages = resizedImages.length
-    const gridSize = Math.ceil(Math.sqrt(numImages))
-    const tileSize = 250 // Each tile is 250x250
-    const totalSize = gridSize * tileSize
-
-    // Create a blank canvas
-    const canvas = sharp({
-      create: {
-        width: totalSize,
-        height: totalSize,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      }
-    })
-
-    // Generate composite input array
-    const composites = resizedImages.map((img, index) => {
-      const row = Math.floor(index / gridSize)
-      const col = index % gridSize
-      return {
-        input: img,
-        top: row * tileSize,
-        left: col * tileSize
-      }
-    })
-
-    const tileBuffer = await canvas.composite(composites).png().toBuffer()
-
-    return tileBuffer
-  } catch (error) {
-    console.error('Error creating the cover:', error)
-    throw error
-  }
 }
 
 ///-----------------

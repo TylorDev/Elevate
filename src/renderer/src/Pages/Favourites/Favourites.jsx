@@ -44,17 +44,14 @@ function Favourites() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img
-              src="https://i.pinimg.com/736x/d5/db/17/d5db1719cc626f12e9fdae3ac8a829ea.jpg"
-              alt=""
-            />
+            <img src={likes.cover} alt="" />
           </div>
           <div className="pgl-name">{'Favourites'}</div>
 
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
             <span>{0} vistas •</span>
-            <span> {likes.length} pistas •</span>
+            <span> {likes.fileInfos.length} pistas •</span>
             <span> {'0h 0m 0s'} </span>
           </div>
           <div className="pgl-buttton">
@@ -70,7 +67,7 @@ function Favourites() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={likes} name={'favourites'} />
+        <Cola list={likes.fileInfos} name={'favourites'} />
       </div>
     </div>
   )

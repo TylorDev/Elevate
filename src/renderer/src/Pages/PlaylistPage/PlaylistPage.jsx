@@ -13,6 +13,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
 import { dataToImageUrl } from '../../Contexts/utils'
+import { useMini } from '../../Contexts/MiniContext'
 
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
@@ -21,7 +22,7 @@ function PlaylistPage() {
   const [back, setBack] = useState()
   const { getUniqueList, updatePlaylist, playlists, getAlbumByFilePath } = usePlaylists()
   const { queueState, handleQueueAndPlay } = useSuper() // Combined the two useSuper calls
-
+  const { eliminarElemento } = useMini()
   useEffect(() => {
     async function getData() {
       await getUniqueList(setCurrent, dir)
@@ -56,6 +57,12 @@ function PlaylistPage() {
   }
 
   const data = current.playlistData
+  const actions = {
+    eliminarXD: (file) => {
+      console.log('eliminando a ', file.fileName)
+      eliminarElemento(file)
+    }
+  }
 
   return (
     <div className="PlaylistPage">
@@ -97,7 +104,7 @@ function PlaylistPage() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={current.processedData} name={dir} filePath={dir} />
+        <Cola list={current.processedData} name={dir} filePath={dir} actions={actions} />
       </div>
     </div>
   )

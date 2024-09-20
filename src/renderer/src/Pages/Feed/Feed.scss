@@ -213,7 +213,7 @@
 
     }
 
-    .item7 {
+    .mini-stats {
         grid-area: btn;
 
         width: 100%;
@@ -224,66 +224,6 @@
         gap: 1rem;
         padding: 1rem;
 
-        .hx {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            span {
-                text-transform: uppercase;
-                color: #868686;
-            }
-
-            a {
-                text-decoration: none;
-                color: orangered;
-
-                &:hover {
-                    text-decoration: underline;
-                }
-
-            }
-
-        }
-
-        .bubble {
-
-            background-color: #1A1A1A;
-
-            border-radius: 1rem;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            grid-template-areas: "a c" "b c";
-            align-content: center;
-            justify-content: center;
-
-            padding: 0.5rem 1rem;
-            text-transform: uppercase;
-
-
-            .b-t {
-                grid-area: a;
-                color: #a7a7a7;
-                font-size: 0.8rem;
-            }
-
-            .b-n {
-                grid-area: b;
-                font-size: 1.3rem;
-            }
-
-            .b-i {
-                grid-area: c;
-                font-size: 1.5rem;
-
-                height: 100%;
-                display: flex;
-                align-items: center;
-
-            }
-
-
-        }
 
 
     }

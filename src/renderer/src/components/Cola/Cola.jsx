@@ -5,7 +5,7 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
 
-export function Cola({ list, name, filePath = null }) {
+export function Cola({ list, name, filePath = null, actions }) {
   const { updateArrayCovers } = usePlaylists()
   useEffect(() => {
     updateArrayCovers(list)
@@ -22,6 +22,7 @@ export function Cola({ list, name, filePath = null }) {
               cola={list}
               name={name}
               filePath={filePath}
+              padreActions={actions}
             />
           ))}
         </ul>

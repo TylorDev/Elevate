@@ -16,13 +16,13 @@ import Modal from './../Modal/Modal'
 import 'react-toastify/dist/ReactToastify.css'
 import { dataToImageUrl } from '../../Contexts/utils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-export function SongItem({ file, index, cola, name, filePath }) {
+export function SongItem({ file, index, cola, name, filePath, padreActions }) {
   const { handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { getFileByFilePath } = usePlaylists()
   const { toggleLike, isLiked } = useLikes()
   const { removeTrack } = useSuper()
-  const { agregarElemento, eliminarElemento } = useMini()
+  const { agregarElemento, eliminarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
   const [mycover, setMyCover] = useState('')
   useEffect(() => {
@@ -39,22 +39,21 @@ export function SongItem({ file, index, cola, name, filePath }) {
 
   const buttonText = isLikedo ? <LuHeart /> : <LuHeartOff />
 
+  const actionsHijo = {
+    'agregar a cola': () => agregarElemento(file),
+    addlater: () => latersong(file),
+    'abrir modal': () => openModal()
+  }
+
+  // Combina las acciones del padre y del hijo
+  const combinedActions = { ...padreActions, ...actionsHijo }
+
   const handleSelect = (option) => {
-    if (option === 'eliminar') {
-      console.log(`Selected option: ${option}`)
-      removeTrack(filePath, index)
-    }
-
-    if (option === 'abrir modal') {
-      openModal()
-    }
-
-    if (option === 'agregar a cola') {
-      agregarElemento(file)
-    }
-
-    if (option === 'quitar elemento') {
-      eliminarElemento(file)
+    const action = combinedActions[option]
+    if (action) {
+      action(file)
+    } else {
+      console.log('Opción no reconocida:', option)
     }
   }
 
@@ -97,10 +96,7 @@ export function SongItem({ file, index, cola, name, filePath }) {
         <Button className={'btnLike'} onClick={handleClick}>
           {buttonText}
         </Button>
-        <DropdownMenu
-          options={['eliminar', 'abrir modal', 'agregar a cola', 'quitar elemento']}
-          onSelect={handleSelect}
-        />
+        <DropdownMenu options={Object.keys(combinedActions)} onSelect={handleSelect} />
       </div>
 
       <Modal isVisible={isVisible} closeModal={closeModal}>

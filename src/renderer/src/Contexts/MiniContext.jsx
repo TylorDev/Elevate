@@ -1,5 +1,11 @@
 import { createContext, useContext, useState } from 'react'
-import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter } from './utils'
+import {
+  dataToImageUrl,
+  ElectronDelete,
+  ElectronGetter,
+  ElectronGetter2,
+  ElectronSetter
+} from './utils'
 
 // Crear el contexto
 const MiniContext = createContext()
@@ -17,18 +23,43 @@ export const MiniProvider = ({ children }) => {
 
   // Función para agregar un elemento al final de la lista
   function agregarElemento(elemento) {
+    if (elemento === null || elemento === undefined) {
+      console.error('Elemento no puede ser nulo o indefinido.')
+      return
+    }
+
+    const existe = lista.some((item) => item.filePath === elemento.filePath)
+    if (existe) {
+      console.warn('Elemento ya existe en la lista.')
+      return
+    }
+
     setLista([...lista, elemento])
+    console.log(lista)
   }
 
   // Función para eliminar un elemento por su índice
   function eliminarElemento(elemento) {
-    setLista(lista.filter((item) => item !== elemento))
+    if (elemento === null || elemento === undefined) {
+      console.error('Elemento no puede ser nulo o indefinido.')
+      return
+    }
+
+    const existe = lista.some((item) => item.filePath === elemento.filePath)
+    if (!existe) {
+      console.warn('Elemento no encontrado en la lista.')
+      console.log(lista)
+      return
+    }
+
+    setLista(lista.filter((item) => item.filePath !== elemento.filePath))
+    console.log(lista)
   }
 
   const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
 
   const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
-  const searchSongs = (value) => ElectronGetter2('search', setResults, value)
+  const searchSongs = async (value) => await ElectronGetter2('search', setResults, value)
   const getDirectories = () =>
     ElectronGetter('get-all-directories', setDiretories, null, 'directorios obtenidos!')
   const deleteDirectory = async (path) => {
@@ -44,8 +75,16 @@ export const MiniProvider = ({ children }) => {
   }
 
   const getHistory = () => ElectronGetter('get-history', setHistory, null, 'se obtuvo el historial')
-  const getlatersongs = () =>
-    ElectronGetter('get-listen-later', setLater, null, 'listen later cargados!')
+  const getlatersongs = async () => {
+    await ElectronGetter('get-listen-later', setLater, null, 'listen later cargados!')
+    setLater((prevLater) => {
+      if (prevLater) {
+        return { ...prevLater, cover: dataToImageUrl(prevLater.cover) }
+      }
+      return prevLater // O un valor por defecto si 'later' es null/undefined
+    })
+  }
+
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
   const latersong = (common) => ElectronSetter('listen-later-song', common)
 

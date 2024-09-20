@@ -11,24 +11,17 @@ import { formatTimestamp } from '../../../timeUtils'
 import { MediaTimeDisplay } from '../../Components/MediaTimeDisplay/MediaTimeDisplay'
 
 import { PlaylistItem } from '../Playlists/PlaylistItem'
-import { FaHeart } from 'react-icons/fa'
 import { Cola } from './../../Components/Cola/Cola'
 import { useMini } from '../../Contexts/MiniContext'
+import { MiniStats } from './MiniStats'
+import { SuperLink } from './SuperLink'
 
 function Feed() {
   const { randomPlaylist } = usePlaylists()
   const { currentFile, togglePlayPause, isPlaying } = useSuper()
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
-  useEffect(() => {
-    const handleResize = () => setScreenWidth(window.innerWidth)
 
-    // Añade el evento de redimensionamiento
-    window.addEventListener('resize', handleResize)
-
-    // Limpia el evento cuando el componente se desmonta
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
   const { getSavedLists, playlists, addPlaylisthistory, news } = usePlaylists()
   const [currentbg, setCurrentBg] = useState()
   const { recents } = useMini()
@@ -119,48 +112,20 @@ function Feed() {
       <div className="grid-item item6">
         <div>
           <img
-            src="https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif"
-            alt=""
+            // src="https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif"
+            alt="no foto"
           />
         </div>
       </div>
-      <div className=" item7">
-        <div className="hx">
-          <span>Statistics </span>
-          <Link to={'/search'}>Explore stats</Link>
-        </div>
+      <MiniStats />
 
-        <div className="bubble">
-          <div className="b-t">Likes</div>
-          <div className="b-n">000</div>
-          <div className="b-i">
-            <FaHeart />
-          </div>
-        </div>
-        <div className="bubble">
-          <div className="b-t">Tracks</div>
-          <div className="b-n">000</div>
-          <div className="b-i">
-            <FaHeart />
-          </div>
-        </div>
-        <div className="bubble">
-          <div className="b-t">Total Listened</div>
-          <div className="b-n">000</div>
-          <div className="b-i">
-            <FaHeart />
-          </div>
-        </div>
-      </div>
       <div className="grid-item aside">
         <div className="aside-sec">
-          <Link to={'/search'}>Explore stats</Link>
-          <div className="ac-tittle">NEW RELEASES</div>
-
+          <SuperLink name={'recents'} url={'/search'} desc={'Show more'} />
           <Cola list={news.slice(0, 5)} />
         </div>
         <div className="aside-sec">
-          <div className="ac-tittle">LISTEN MORE OFTEN</div>
+          <SuperLink name={'LISTEN MORE OFTEN'} url={'/search'} desc={'Show more'} />
           <Cola list={recents.slice(0, 5)} />
         </div>
       </div>
