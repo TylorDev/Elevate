@@ -47,7 +47,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const navigate = useNavigate()
 
   return (
-    <li className="PlaylistItem" key={index} onClick={() => {}}>
+    <li className="PlaylistItem" key={index}>
       <div
         className="pi-item cover-pi"
         onClick={() => {

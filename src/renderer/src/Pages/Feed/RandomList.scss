@@ -1,0 +1,81 @@
+.r-list {
+    grid-area: list;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    background-size: cover;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+
+
+
+
+
+
+
+    .blur {
+        background-color: rgba(0, 0, 0, 0.101);
+        width: 200%;
+        height: 200%;
+        backdrop-filter: blur(5px);
+        position: absolute;
+        border: 2px solid black;
+
+    }
+
+    .r-name {
+        display: grid;
+        justify-items: start;
+        z-index: 1;
+        align-items: center;
+        width: 100%;
+        padding: 1rem;
+
+        span:first-child {
+
+            font-size: 0.8rem;
+        }
+
+        span:nth-child(2) {
+
+            font-size: 1.5rem;
+            ;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+
+
+    }
+
+    .r-img {
+        width: 55%;
+        aspect-ratio: 1/1;
+        overflow: hidden;
+        z-index: 1;
+        border-radius: 1rem;
+
+        &:hover {
+            //Develop outline
+            outline: 2px solid white;
+        }
+
+        img {
+
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+
+            aspect-ratio: 1/1;
+
+        }
+    }
+
+
+
+}

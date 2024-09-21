@@ -1,0 +1,66 @@
+.current-play {
+    grid-area: song;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: auto;
+    width: 100%;
+    aspect-ratio: 17/9;
+    //Develop outline
+
+    overflow-x: auto;
+
+
+    .grp {
+
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.719);
+
+    }
+
+
+    .grp-1 {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "data likes"
+            "titulo titulo"
+        ;
+        padding: 0.5rem;
+        align-items: center;
+        justify-items: start;
+
+
+
+        .cc-titulo {
+            grid-area: titulo;
+            font-size: 1.5rem;
+            word-wrap: none;
+
+            width: 100%;
+        }
+    }
+
+    .grp-2 {
+        display: grid;
+
+        width: 100%;
+        height: 100%;
+        align-items: center;
+        justify-items: center;
+    }
+
+    .grp-3 {
+        padding: 0.5rem;
+    }
+
+
+}

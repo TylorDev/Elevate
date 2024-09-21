@@ -123,4 +123,10 @@ export const MiniProvider = ({ children }) => {
 }
 
 // Hook personalizado para acceder al contexto
-export const useMini = () => useContext(MiniContext)
+export const useMini = () => {
+  const context = useContext(MiniContext)
+  if (!context) {
+    throw new Error('useMini debe ser usado dentro de un MiniProvider')
+  }
+  return context
+}

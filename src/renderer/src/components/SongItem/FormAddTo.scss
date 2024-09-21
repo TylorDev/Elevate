@@ -1,0 +1,19 @@
+.FormAddTo {
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+
+
+
+    .fromItem {
+        height: 2rem;
+        min-width: 10rem;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+    }
+
+}

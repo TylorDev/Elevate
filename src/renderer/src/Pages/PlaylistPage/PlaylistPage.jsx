@@ -18,10 +18,11 @@ import { useMini } from '../../Contexts/MiniContext'
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
   const [current, setCurrent] = useState([])
+
   const [isVisible, setIsVisible] = useState(false) // Moved to the top
   const [back, setBack] = useState()
   const { getUniqueList, updatePlaylist, playlists, getAlbumByFilePath } = usePlaylists()
-  const { queueState, handleQueueAndPlay } = useSuper() // Combined the two useSuper calls
+  const { queueState, handleQueueAndPlay, removeTrack } = useSuper() // Combined the two useSuper calls
   const { eliminarElemento } = useMini()
   useEffect(() => {
     async function getData() {
@@ -58,9 +59,9 @@ function PlaylistPage() {
 
   const data = current.playlistData
   const actions = {
-    eliminarXD: (file) => {
+    'Quitar de la lista': (file, index) => {
       console.log('eliminando a ', file.fileName)
-      eliminarElemento(file)
+      removeTrack(data.path, index)
     }
   }
 

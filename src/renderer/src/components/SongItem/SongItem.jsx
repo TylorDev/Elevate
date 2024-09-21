@@ -16,13 +16,14 @@ import Modal from './../Modal/Modal'
 import 'react-toastify/dist/ReactToastify.css'
 import { dataToImageUrl } from '../../Contexts/utils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { FormAddTo } from './FormAddTo'
 export function SongItem({ file, index, cola, name, filePath, padreActions }) {
   const { handleSongClick, currentFile, addSong } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
   const { getFileByFilePath } = usePlaylists()
   const { toggleLike, isLiked } = useLikes()
-  const { removeTrack } = useSuper()
-  const { agregarElemento, eliminarElemento, latersong } = useMini()
+
+  const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
   const [mycover, setMyCover] = useState('')
   useEffect(() => {
@@ -42,7 +43,7 @@ export function SongItem({ file, index, cola, name, filePath, padreActions }) {
   const actionsHijo = {
     'agregar a cola': () => agregarElemento(file),
     addlater: () => latersong(file),
-    'abrir modal': () => openModal()
+    'Agregar a lista': () => openModal()
   }
 
   // Combina las acciones del padre y del hijo
@@ -51,7 +52,7 @@ export function SongItem({ file, index, cola, name, filePath, padreActions }) {
   const handleSelect = (option) => {
     const action = combinedActions[option]
     if (action) {
-      action(file)
+      action(file, index)
     } else {
       console.log('Opción no reconocida:', option)
     }
@@ -100,17 +101,7 @@ export function SongItem({ file, index, cola, name, filePath, padreActions }) {
       </div>
 
       <Modal isVisible={isVisible} closeModal={closeModal}>
-        <div>
-          {' '}
-          {file.filePath}
-          <button
-            onClick={() => {
-              addSong('C:\\Users\\yonte\\Documents\\prueba.m3u', file)
-            }}
-          >
-            agrega a XDD playlist.{' '}
-          </button>
-        </div>
+        <FormAddTo file={file} addSong={addSong} />
       </Modal>
 
       <div className="stime">

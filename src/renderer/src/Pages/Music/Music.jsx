@@ -1,23 +1,21 @@
-import { useNavigate } from 'react-router-dom'
 import './Music.scss'
 
 import { Cola } from '../../Components/Cola/Cola'
 
 import { useSuper } from '../../Contexts/SupeContext'
+import { CurrentPlaying } from './../Feed/CurrentPlaying'
 
 function Music() {
-  const navigate = useNavigate()
   const { queueState } = useSuper()
   return (
     <div className="Music">
-      <div
-        onClick={() => {
-          navigate('/')
-        }}
-      >
-        volver
+      <div className="reproductor">
+        <CurrentPlaying />
       </div>
-      <Cola list={queueState.currentQueue} />
+
+      <div className="reprod-cola">
+        <Cola list={queueState.currentQueue} name={'favourites'} />
+      </div>
     </div>
   )
 }

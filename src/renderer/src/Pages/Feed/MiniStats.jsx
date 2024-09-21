@@ -1,9 +1,13 @@
 import { FaHeart } from 'react-icons/fa'
 import { Bubble } from '../../Components/Bubble/Bubble'
-import { SuperLink } from './SuperLink'
+
 import { useLikes } from '../../Contexts/LikeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useEffect, useState } from 'react'
+import './MiniStats.scss'
+import { Section } from './Section'
+import { TfiLayoutListThumbAlt } from 'react-icons/tfi'
+import { MdQueueMusic } from 'react-icons/md'
 
 export function MiniStats() {
   const { likes, getLikes } = useLikes()
@@ -23,20 +27,18 @@ export function MiniStats() {
   }, [likes, metadata, playlists])
 
   return (
-    <div className="mini-stats">
-      <SuperLink name={'stats'} desc={'explore stats'} url={'/search'} />
-
+    <Section name={'Stats'} to={'/search'}>
       <Bubble text={'likes'} number={numLikes} url={'/favourites'}>
         <FaHeart />
       </Bubble>
 
       <Bubble text={'Tracks'} number={numTracks} url={'/tracks'}>
-        <FaHeart />
+        <TfiLayoutListThumbAlt />
       </Bubble>
 
       <Bubble text={'Playlist'} number={numLists} url={'/playlists'}>
-        <FaHeart />
+        <MdQueueMusic />
       </Bubble>
-    </div>
+    </Section>
   )
 }

@@ -45,9 +45,9 @@ function App() {
                 <Route path="/search" element={<Search />} />
                 <Route path="/directories" element={<Directories />} />
                 <Route path="/directories/:directory/:play" element={<DirPage />} />
+                <Route path="/music" element={<Music />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
-              <Route path="/music" element={<Music />} />
             </Routes>
           </div>
         </LikesProvider>
