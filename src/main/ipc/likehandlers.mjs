@@ -151,13 +151,23 @@ async function getMostPlayedSongsWithDetails() {
     return { success: false, error: error.message }
   }
 }
-async function getPlayHistoryOrdered() {
+async function getPlayHistoryOrdered(page = 1) {
+  const pageSize = 10 // Número de elementos por página
+
   try {
-    // Obtener todos los registros de PlayHistory ordenados por el campo timestamp más reciente
+    // Contar el total de registros en PlayHistory
+    const totalRecords = await prisma.playHistory.count()
+
+    // Calcular el número máximo de páginas
+    const maxPages = Math.ceil(totalRecords / pageSize)
+
+    // Obtener solo 10 registros de PlayHistory ordenados por el campo timestamp más reciente
     const playHistoryRecords = await prisma.playHistory.findMany({
       orderBy: {
         timestamp: 'desc' // Ordenar de más reciente a más antiguo
       },
+      take: pageSize, // Limitar a 10 registros
+      skip: (page - 1) * pageSize, // Omitir elementos según la página
       select: {
         song_id: true,
         timestamp: true, // Incluye el campo timestamp para información adicional
@@ -173,11 +183,11 @@ async function getPlayHistoryOrdered() {
     // Extraer canciones según el historial de reproducción
     const songs = playHistoryRecords.map((record) => record.Songs)
 
-    // Opcional: Si necesitas información adicional de las canciones, puedes obtenerla aquí
+    // Obtener información adicional de las canciones
     const filePaths = songs.map((song) => song.filepath)
     const fileInfos = await getFileInfos(filePaths)
 
-    return fileInfos
+    return { fileInfos, maxPages }
   } catch (error) {
     console.error('Error retrieving play history:', error)
     return { success: false, error: error.message }
@@ -350,8 +360,8 @@ export function setupLikeSongHandlers() {
     return getUserPreferencesByCriteria({ listen_later: true })
   })
 
-  ipcMain.handle('get-history', async (event) => {
-    return getPlayHistoryOrdered()
+  ipcMain.handle('get-history', async (event, page) => {
+    return getPlayHistoryOrdered(page)
   })
 
   ipcMain.handle('get-recents', async (event) => {

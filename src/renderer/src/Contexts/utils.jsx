@@ -47,9 +47,9 @@ export const dataToImageUrl = (input, mimeType = 'image/png') => {
   return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
 }
 
-export const ElectronGetter = async (action, setState = null, filepath = null, message = null) => {
+export const ElectronGetter = async (action, setState = null, value = null, message = null) => {
   try {
-    const fileInfos = await window.electron.ipcRenderer.invoke(action, filepath)
+    const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
     if (fileInfos) {
       setState?.(fileInfos)
       toast.success(message || 'Completado!', {

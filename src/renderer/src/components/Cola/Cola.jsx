@@ -7,9 +7,11 @@ import './Cola.scss'
 
 export function Cola({ list, name, filePath = null, actions }) {
   const { updateArrayCovers } = usePlaylists()
+
   useEffect(() => {
     updateArrayCovers(list)
   }, [])
+
   return (
     <div className="Cola">
       {list && list.length > 0 ? (

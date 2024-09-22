@@ -74,7 +74,9 @@ export const MiniProvider = ({ children }) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
   }
 
-  const getHistory = () => ElectronGetter('get-history', setHistory, null, 'se obtuvo el historial')
+  const getHistory = (page = 1) =>
+    ElectronGetter('get-history', setHistory, page, 'se obtuvo el historial')
+
   const getlatersongs = async () => {
     await ElectronGetter('get-listen-later', setLater, null, 'listen later cargados!')
     setLater((prevLater) => {

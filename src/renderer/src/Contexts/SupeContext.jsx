@@ -10,7 +10,7 @@ const SuperContext = createContext()
 // Proveedor del contexto
 export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
-
+  const scrollRef = useRef(null)
   const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
@@ -24,6 +24,31 @@ export const SuperProvider = ({ children }) => {
     originalQueue: [],
     queueName: ''
   })
+
+  const [isAtEnd, setIsAtEnd] = useState(false) // Estado que indica si estamos al final del scroll
+
+  const handleScroll = () => {
+    const element = scrollRef.current
+    if (element) {
+      const isEndOfScroll = element.scrollHeight - element.scrollTop === element.clientHeight
+      if (isEndOfScroll) console.log('estas al final')
+
+      setIsAtEnd(isEndOfScroll)
+    }
+  }
+
+  useEffect(() => {
+    const element = scrollRef.current
+    if (element) {
+      element.addEventListener('scroll', handleScroll)
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener('scroll', handleScroll)
+      }
+    }
+  }, [])
 
   const navigate = useNavigate()
 
@@ -329,7 +354,9 @@ export const SuperProvider = ({ children }) => {
         addSong,
         handleTimelineClick,
         progress,
-        duration
+        duration,
+        scrollRef,
+        isAtEnd
       }}
     >
       {children}
