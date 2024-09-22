@@ -51,7 +51,8 @@ function Favourites() {
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
             <span>{0} vistas •</span>
-            <span> {likes.fileInfos.length} pistas •</span>
+            <span> {likes?.fileInfos?.length || 0} pistas •</span>
+
             <span> {'0h 0m 0s'} </span>
           </div>
           <div className="pgl-buttton">

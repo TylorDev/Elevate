@@ -5,6 +5,8 @@ import { MediaTimeDisplay } from '../../Components/MediaTimeDisplay/MediaTimeDis
 import './CurrentPlaying.scss'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useSuper } from '../../Contexts/SupeContext'
+
+import Visualizer from '../../Components/Visualizer/Visualizer'
 import { useLikes } from '../../Contexts/LikeContext'
 
 export function CurrentPlaying() {
@@ -13,8 +15,8 @@ export function CurrentPlaying() {
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
   return (
-    <div className="current-play" style={{ backgroundImage: `url(${currentCover})` }}>
-      <div className="grp">
+    <div className="current-play">
+      <div className="grp  ">
         <div className="grp-1">
           <div className="cc-artist">
             <span>{currentFile.artist || 'Unknown'} • </span>
@@ -40,6 +42,9 @@ export function CurrentPlaying() {
         <div className="grp-3">
           <MediaTimeDisplay />
         </div>
+      </div>
+      <div className="content">
+        <img src={currentCover} alt="NO IMG" />
       </div>
     </div>
   )

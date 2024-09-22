@@ -1,7 +1,7 @@
 .Music {
     display: grid;
     grid-template-columns: 1fr auto;
-    align-items: start;
+    align-items: center;
     justify-items: center;
     overflow: hidden;
     position: relative;
@@ -12,9 +12,9 @@
     .reproductor {
 
 
-        height: 100%;
+        height: auto;
         width: 100%;
-
+        aspect-ratio: 18/9;
         display: flex;
 
 
