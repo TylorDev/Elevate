@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useEffect, useState } from 'react'
-import { electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
+import { dataToImageUrl, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
@@ -24,6 +24,29 @@ export const SuperProvider = ({ children }) => {
     originalQueue: [],
     queueName: ''
   })
+
+  const [images, setImages] = useState([])
+
+  const getImage = (name, data) => {
+    // Verificar si la imagen ya existe
+    const existingImage = images.find((image) => image.name === name)
+
+    if (existingImage) {
+      // Logear el nombre y la URL existente
+      console.log(
+        `La imagen con el nombre "${name}" ya existe. URL generada anteriormente: ${existingImage.url}`
+      )
+      return existingImage.url
+    }
+
+    // Generar la nueva URL
+    const url = dataToImageUrl(data)
+
+    // Actualizar el estado con la nueva imagen
+    setImages((prevImages) => [...prevImages, { name, url }])
+
+    return url
+  }
 
   const [isAtEnd, setIsAtEnd] = useState(false) // Estado que indica si estamos al final del scroll
 
@@ -356,7 +379,8 @@ export const SuperProvider = ({ children }) => {
         progress,
         duration,
         scrollRef,
-        isAtEnd
+        isAtEnd,
+        getImage
       }}
     >
       {children}

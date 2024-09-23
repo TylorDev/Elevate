@@ -1,0 +1,16 @@
+#tab {
+    color: white
+}
+
+
+#tabControl {
+    .Mui-selected {
+        color: $text-principal;
+        /* Cambia el color del texto del tab seleccionado */
+    }
+
+    .MuiTabs-indicator {
+        background-color: $text-principal;
+        /* Cambia el color de la línea indicadora */
+    }
+}

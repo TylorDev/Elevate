@@ -2,21 +2,13 @@ import { useEffect, useState } from 'react'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './RandomList.scss'
 import { useNavigate } from 'react-router-dom'
-import { uint8ArrayToImageUrl } from '../../Contexts/utils'
+import { useSuper } from '../../Contexts/SupeContext'
 
 export function RandomList() {
   const { getSavedLists, playlists } = usePlaylists()
   const { randomPlaylist } = usePlaylists()
-  useEffect(() => {
-    if (!playlists || playlists.length === 0) {
-      getSavedLists()
-    }
-  }, [])
-  useEffect(() => {
-    const img = uint8ArrayToImageUrl(randomPlaylist?.cover)
+  const { getImage } = useSuper()
 
-    setCurrentBg(img)
-  }, [randomPlaylist])
   const [currentbg, setCurrentBg] = useState()
   const navigate = useNavigate()
   const formatDuration = (seconds) => {
@@ -26,6 +18,16 @@ export function RandomList() {
 
     return `${hrs.toString().padStart(2, '0')}h:${mins.toString().padStart(2, '0')}m:${secs.toString().padStart(2, '0')}s`
   }
+  useEffect(() => {
+    if (!playlists || playlists.length === 0) {
+      getSavedLists()
+    }
+
+    if (randomPlaylist?.path) {
+      const img = getImage(randomPlaylist.path, randomPlaylist.cover)
+      setCurrentBg(img)
+    }
+  }, [])
 
   return (
     <div

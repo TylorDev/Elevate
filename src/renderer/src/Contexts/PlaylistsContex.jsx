@@ -10,7 +10,7 @@ const ContextLikes = createContext()
 export const usePlaylists = () => useContext(ContextLikes)
 
 export const PlaylistsProvider = ({ children }) => {
-  const { currentFile } = useSuper()
+  const { currentFile, getImage } = useSuper()
   const [metadata, setMetadata] = useState(null) // 1 ref - 5 ref
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
@@ -18,34 +18,13 @@ export const PlaylistsProvider = ({ children }) => {
   const [currentCover, setCurrentCover] = useState('')
   const [arrayAlbums, setArrayAlbums] = useState([])
   // Función para obtener un file del estado según su filePath
-  const getFileByFilePath = (filePath) => {
-    const song = arrayCovers.find((file) => file.filePath === filePath)
-    return song
-  }
-
-  const getAlbumByFilePath = (path) => {
-    if (!path) {
-      return 'El parámetro path es requerido.'
-    }
-
-    const list = arrayAlbums.find((file) => file && file.path === path)
-
-    if (!list) {
-      return 'No se encontraron coincidencias.'
-    }
-
-    return list
-  }
 
   useEffect(() => {
-    const cover = getFileByFilePath(currentFile.filePath)
-
-    // Usa encadenamiento opcional y operador de fusión nula para manejar casos nulos o indefinidos
-    setCurrentCover(cover?.cover ?? 'defaultCover')
-
-    // console.log(currentFile.filePath)
+    if (currentFile.picture) {
+      const img = getImage(currentFile.filePath, currentFile.picture[0])
+      setCurrentCover(img)
+    }
   }, [currentFile])
-
   const updateArrayCovers = (someArray) => {
     if (someArray == null) {
       return null
@@ -206,13 +185,13 @@ export const PlaylistsProvider = ({ children }) => {
         getUniqueList,
         getAllSongs,
         openM3U,
-        getAlbumByFilePath,
+
         randomPlaylist,
         updatePlaylist,
         news,
         getNews,
         updateArrayCovers,
-        getFileByFilePath,
+
         currentCover,
         updateArrayAlbums
       }}

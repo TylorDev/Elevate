@@ -12,6 +12,9 @@ function Main() {
   return (
     <div className="Main">
       <Header />
+      {/* <button className="button" onClick={() => changeColor('#ffff')}>
+        Cambiar a Rojo
+      </button> */}
       <div className="outlet" ref={scrollRef}>
         <Outlet />
       </div>

@@ -14,7 +14,7 @@
 .search-input {
     color: white;
 
-    background-color: #1A1A1A;
+    background-color: $secondary;
     border: none;
     outline: none;
     width: 60%;
@@ -30,8 +30,8 @@
 }
 
 .settings {
-    color: orangered;
-    border: 1px solid #ff6337;
+    color: $text-principal;
+    border: 1px solid $text-principal;
     padding: 0.6rem 2rem;
     border-radius: 2rem;
     font-weight: bold;

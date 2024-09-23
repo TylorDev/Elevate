@@ -6,7 +6,7 @@
     border-radius: 0.5rem;
 
     &:hover {
-        background-color: rgba(47, 47, 47, 0.201);
+        background-color: $secondary;
 
     }
 
@@ -47,10 +47,10 @@
 
 .pi-data {
     font-size: 1rem;
-    color: rgb(159, 159, 159);
+    color: $text-secondary;
 }
 
 .pi-time {
     font-size: 1rem;
-    color: rgb(159, 159, 159);
+    color: $text-secondary;
 }

@@ -14,21 +14,23 @@ import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
 
 import 'react-toastify/dist/ReactToastify.css'
-import { dataToImageUrl } from '../../Contexts/utils'
+
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { FormAddTo } from './FormAddTo'
 export function SongItem({ file, index, cola, name, filePath, padreActions }) {
-  const { handleSongClick, currentFile, addSong } = useSuper()
+  const { handleSongClick, currentFile, addSong, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
-  const { getFileByFilePath } = usePlaylists()
+
   const { toggleLike, isLiked } = useLikes()
 
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
   const [mycover, setMyCover] = useState('')
   useEffect(() => {
-    const fileData = getFileByFilePath(file.filePath)
-    setMyCover(fileData?.cover)
+    if (file.picture) {
+      const url = getImage(file.filePath, file.picture[0])
+      setMyCover(url)
+    }
   }, [mycover, file])
   const openModal = () => {
     setIsVisible(true)

@@ -339,7 +339,7 @@ export function setupLikeSongHandlers() {
   })
 
   ipcMain.handle('get-likes', async (event) => {
-    return getUserPreferencesByCriteria({ is_favorite: true })
+    return await getUserPreferencesByCriteria({ is_favorite: true })
   })
 
   ipcMain.handle('listen-later-song', async (event, filepath, filename) => {

@@ -19,7 +19,7 @@ function Header() {
         <div className="sec-t">Current</div>
 
         <div className="sec-i">
-          <NavLink to="/" className={getActiveClass}>
+          <NavLink to="/feed" className={getActiveClass}>
             <PiWaveform /> Feed
           </NavLink>
           <NavLink to="/list" className={getActiveClass}>

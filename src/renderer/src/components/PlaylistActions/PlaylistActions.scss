@@ -9,7 +9,7 @@
 
     button {
 
-        background-color: #1A1A1A;
+        background-color: $secondary;
         font-size: 1rem;
         padding: 1rem;
         border: none;
@@ -19,7 +19,7 @@
         cursor: pointer;
 
         &:active {
-            outline: 2px solid rgb(255, 255, 255);
+            outline: 2px solid white;
             z-index: 999;
         }
     }

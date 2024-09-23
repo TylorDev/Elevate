@@ -1,11 +1,6 @@
 import { createContext, useContext, useState } from 'react'
-import {
-  dataToImageUrl,
-  ElectronDelete,
-  ElectronGetter,
-  ElectronGetter2,
-  ElectronSetter
-} from './utils'
+import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter } from './utils'
+import { useSuper } from './SupeContext'
 
 // Crear el contexto
 const MiniContext = createContext()
@@ -20,6 +15,7 @@ export const MiniProvider = ({ children }) => {
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
+  const { getImage } = useSuper()
 
   // Función para agregar un elemento al final de la lista
   function agregarElemento(elemento) {
@@ -78,13 +74,17 @@ export const MiniProvider = ({ children }) => {
     ElectronGetter('get-history', setHistory, page, 'se obtuvo el historial')
 
   const getlatersongs = async () => {
-    await ElectronGetter('get-listen-later', setLater, null, 'listen later cargados!')
-    setLater((prevLater) => {
-      if (prevLater) {
-        return { ...prevLater, cover: dataToImageUrl(prevLater.cover) }
-      }
-      return prevLater // O un valor por defecto si 'later' es null/undefined
-    })
+    await ElectronGetter(
+      'get-listen-later',
+      (laterData) => {
+        setLater({
+          ...laterData,
+          cover: getImage('Later', laterData.cover)
+        })
+      },
+      null,
+      'listen later cargados!'
+    )
   }
 
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)

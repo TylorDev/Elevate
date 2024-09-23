@@ -20,6 +20,7 @@ import DirPage from './Pages/DirPage/DirPage'
 import Lista from './Pages/Lista/Lista'
 
 import SearchBar from './Components/SearchBar/SearchBar'
+import Settings from './Components/Settings/Settings'
 
 function App() {
   return (
@@ -33,8 +34,8 @@ function App() {
 
               <Routes>
                 <Route path="/" element={<Main />}>
-                  <Route index element={<Feed />} />
-                  <Route path="/playlists" element={<Playlists />} />
+                  <Route path="/feed" element={<Feed />} />
+                  <Route index path="/playlists" element={<Playlists />} />
                   <Route path="/playlists/:dir" element={<PlaylistPage />} />
                   <Route path="/favourites/:dir" element={<Favourites />} />
                   <Route path="/favourites/" element={<Favourites />} />
@@ -48,6 +49,7 @@ function App() {
                   <Route path="/directories" element={<Directories />} />
                   <Route path="/directories/:directory/:play" element={<DirPage />} />
                   <Route path="/music" element={<Music />} />
+                  <Route path="/settings" element={<Settings />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>

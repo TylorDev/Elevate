@@ -6,16 +6,17 @@ import { GoPencil } from 'react-icons/go'
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 
 function ListenLater() {
-  const { handleResume } = useSuper()
+  const { handleResume, getImage } = useSuper()
   const { dir } = useParams()
   const { getlatersongs, later } = useMini()
+  const [bg, setBg] = useState()
   useEffect(() => {
     getlatersongs()
   }, [])
@@ -30,10 +31,6 @@ function ListenLater() {
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
-
-  useEffect(() => {
-    console.log(later)
-  }, [later])
 
   if (!later) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"

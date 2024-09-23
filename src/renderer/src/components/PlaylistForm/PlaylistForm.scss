@@ -1,5 +1,5 @@
 .form {
-    background-color: black;
+    background-color: $principal;
 
     &__label {
         font-size: 16px;
@@ -18,14 +18,14 @@
 
     &__button {
         padding: 10px 20px;
-        background-color: #4CAF50;
+        background-color: $secondary;
         color: white;
         border: none;
         border-radius: 4px;
         cursor: pointer;
 
         &:hover {
-            background-color: #45a049;
+            background-color: $text-secondary;
         }
     }
 }

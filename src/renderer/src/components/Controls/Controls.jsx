@@ -61,11 +61,11 @@ export function Controls() {
       </Button>
 
       <Button className="btnShuffle" onClick={toggleShuffle}>
-        {isShuffled ? <LuShuffle color="#FF6337" /> : <LuShuffle color="#777" />}
+        {isShuffled ? <LuShuffle id="btnShuffle-true" /> : <LuShuffle id="btnShuffle-false" />}
       </Button>
 
       <Button className="btnRepeat" onClick={toggleRepeat}>
-        {loop ? <TbRepeat color="#FF6337" /> : <TbRepeatOff color="#777" />}{' '}
+        {loop ? <TbRepeat id="btnShuffle-true" /> : <TbRepeatOff id="btnShuffle-false" />}{' '}
       </Button>
       <Button
         className="btnList"

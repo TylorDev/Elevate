@@ -3,8 +3,7 @@ import './History.scss'
 import { useMini } from '../../Contexts/MiniContext'
 import { useEffect, useState } from 'react'
 import { Cola } from '../../Components/Cola/Cola'
-import { useSuper } from '../../Contexts/SupeContext'
-import { Button } from '../../Components/Button/Button'
+
 import { Pagination } from '@mui/material'
 
 function History() {
@@ -37,7 +36,7 @@ function History() {
             borderColor: 'white' // Color del borde
           }
         }}
-      ></Pagination>
+      />
     </div>
   )
 }

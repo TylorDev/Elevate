@@ -13,14 +13,14 @@
     border: none;
 
     &:hover {
-        background-color: #1c1b1b;
-        border-color: orangered;
+        background-color: $principal;
+        border-color: $text-principal;
 
 
     }
 
     &:active {
-        outline: 2px solid rgb(255, 255, 255);
+        outline: 2px solid white;
         z-index: 999;
     }
 

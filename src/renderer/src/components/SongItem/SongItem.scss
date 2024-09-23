@@ -1,6 +1,6 @@
 .songItem {
     height: 5.5rem;
-    width: 100%;
+
 
     display: flex;
     align-items: center;
@@ -9,8 +9,11 @@
     position: relative;
     cursor: pointer;
 
-    border-top: 1px solid #24242471;
-    border-bottom: 1px solid #24242471;
+
+    border-top: 1px solid $text-secondary;
+    border-bottom: 1px solid $text-secondary;
+    width: 100%;
+
 
     &:hover {
         .ico {
@@ -75,15 +78,15 @@
 
     span:nth-child(2) {
         font-weight: bold;
-        color: rgb(214, 214, 214);
+        color: $text-secondary;
     }
 }
 
 .active {
 
-    color: rgb(255, 255, 255);
+    color: white;
 
-    background-color: rgba(255, 255, 255, 0.275);
+    background-color: $secondary;
     border-radius: 1rem;
 
     .ico {
@@ -124,8 +127,8 @@
 
     svg {
 
-        fill: #ec0043;
-        color: #ec005a;
+        fill: $text-principal;
+        color: $text-principal;
         font-size: 1.5rem;
     }
 

@@ -3,7 +3,9 @@
 @import '@fontsource/inter';
 
 
-body,
+
+
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -18,14 +20,14 @@ body,
 
     // Color de la barra de desplazamiento (scrollbar)
     &::-webkit-scrollbar-thumb {
-        background-color: #ffffff; // Cambia el color aquí
+        background-color: white; // Cambia el color aquí
         border-radius: 0;
 
     }
 
     // Color de fondo del track
     &::-webkit-scrollbar-track {
-        background-color: #000000; // Cambia el color aquí
+        background-color: black; // Cambia el color aquí
     }
 }
 
@@ -52,7 +54,7 @@ body {
 
 
     padding-bottom: 1rem;
-    background-color: #0a0a0ab1;
+    background-color: $principal;
 }
 
 

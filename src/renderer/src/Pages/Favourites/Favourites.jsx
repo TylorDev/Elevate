@@ -6,34 +6,34 @@ import { GoPencil } from 'react-icons/go'
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { dataToImageUrl } from '../../Contexts/utils'
 
 function Favourites() {
   const { dir } = useParams()
   const { getLikes, likes } = useLikes()
-
-  const { handleResume } = useSuper()
+  const [back, setBack] = useState()
+  const { handleResume, getImage } = useSuper()
   useEffect(() => {
     getLikes()
   }, [])
 
   useEffect(() => {
     if (dir === 'resume' && likes.length > 0) {
-      // console.log('lista cargada!')
       handleResume(likes)
+    }
+    if (likes.cover) {
+      const img = getImage('Likes', likes.cover)
+      setBack(img)
     }
   }, [likes, dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
-
-  useEffect(() => {
-    console.log(likes)
-  }, [likes])
 
   if (!likes) {
     return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
@@ -44,7 +44,7 @@ function Favourites() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img src={likes.cover} alt="" />
+            <img src={back} alt="" />
           </div>
           <div className="pgl-name">{'Favourites'}</div>
 

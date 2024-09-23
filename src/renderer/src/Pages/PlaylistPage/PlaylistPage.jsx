@@ -12,8 +12,6 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
-import { dataToImageUrl } from '../../Contexts/utils'
-import { useMini } from '../../Contexts/MiniContext'
 
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
@@ -21,9 +19,9 @@ function PlaylistPage() {
 
   const [isVisible, setIsVisible] = useState(false) // Moved to the top
   const [back, setBack] = useState()
-  const { getUniqueList, updatePlaylist, playlists, getAlbumByFilePath } = usePlaylists()
-  const { queueState, handleQueueAndPlay, removeTrack } = useSuper() // Combined the two useSuper calls
-  const { eliminarElemento } = useMini()
+  const { getUniqueList, updatePlaylist, playlists } = usePlaylists()
+  const { queueState, handleQueueAndPlay, removeTrack, getImage } = useSuper() // Combined the two useSuper calls
+
   useEffect(() => {
     async function getData() {
       await getUniqueList(setCurrent, dir)
@@ -35,7 +33,7 @@ function PlaylistPage() {
   useEffect(() => {
     if (current?.playlistData) {
       const data = current?.playlistData
-      const cover = getAlbumByFilePath(data.path)
+      const cover = getImage(data.path, current.cover)
       setBack(cover)
       console.log('cover', cover)
     }
@@ -77,7 +75,7 @@ function PlaylistPage() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <img src={back?.cover} alt="SIN ALBUM" />
+            <img src={back} alt="SIN ALBUM" />
           </div>
           <div className="pgl-name">{data.nombre}</div>
 

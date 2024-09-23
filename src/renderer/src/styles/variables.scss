@@ -1,0 +1,12 @@
+:root {
+    --primary-color: #0a0a0a; // Default color
+    --text-principal: orangered; // Default color
+    --text-secondary: #6f6f6f; // Default color
+    --secondary: #1A1A1A;
+}
+
+$principal: var(--primary-color);
+$secondary: var(--secondary);
+$text-principal: var(--text-principal);
+;
+$text-secondary: var(--text-secondary);

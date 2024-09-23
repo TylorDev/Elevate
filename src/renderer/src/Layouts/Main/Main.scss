@@ -11,7 +11,7 @@
 }
 
 .Tittlebar {
-    color: rgb(255, 255, 255);
+    color: white;
     top: 0;
     -webkit-app-region: drag;
     z-index: 9999;
@@ -35,17 +35,13 @@
     display: flex;
     width: 100%;
     height: 100%;
-    //Develop outline
-    outline: 2px solid rgb(0, 255, 0);
+
     align-items: center;
     justify-content: center;
 }
 
 
 
-#Header {
-    // border: 2px solid rgb(255, 0, 234);
-}
 
 .outlet {
     height: 100%;
@@ -58,7 +54,7 @@
 #AudioPlayer {
 
 
-    // border: 2px solid rgb(0, 0, 255);
+
     position: absolute;
     bottom: 0;
     height: 6.5rem;

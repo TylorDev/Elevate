@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { createContext, useState, useContext, useEffect } from 'react'
 import { validateLike } from './utilMenu'
-import { dataToImageUrl, ElectronGetter, ElectronSetter } from './utils'
+import { ElectronGetter, ElectronSetter } from './utils'
 import { ToLike } from './utilControls'
 import { useSuper } from './SupeContext'
 const ContextLikes = createContext()
@@ -9,7 +9,7 @@ const ContextLikes = createContext()
 export const useLikes = () => useContext(ContextLikes)
 
 export const LikesProvider = ({ children }) => {
-  const { currentFile, currentIndex } = useSuper()
+  const { currentFile, currentIndex, getImage } = useSuper()
   const [likeState, setLikeState] = useState({
     currentLike: false,
     likes: {}
@@ -28,29 +28,19 @@ export const LikesProvider = ({ children }) => {
   }
 
   const likesong = (common) => ElectronSetter('like-song', common)
-
   const getLikes = async () => {
     await ElectronGetter(
       'get-likes',
-      (likes) => {
-        setLikeState((prevState) => ({ ...prevState, likes }))
+      (data) => {
+        setLikeState((prevState) => ({
+          ...prevState,
+          likes: data
+        }))
       },
       null,
       'Se obtuvieron los likes!'
     )
-
-    setLikeState((prevLikeState) => {
-      if (prevLikeState) {
-        return {
-          ...prevLikeState,
-          likes: {
-            ...prevLikeState.likes,
-            cover: dataToImageUrl(prevLikeState.likes.cover)
-          }
-        }
-      }
-      return prevLikeState // O un valor por defecto si `likeState` es null/undefined
-    })
+    console.log(likeState)
   }
 
   const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)

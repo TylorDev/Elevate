@@ -5,7 +5,7 @@
 
 
     overflow-x: auto;
-    // scrollbar-color: #3498db #405d64; // thumb color y track color
+
 
 
 
@@ -36,24 +36,24 @@
 
     .activo {
 
-        background: linear-gradient(to right, rgba(255, 99, 55, 0.227) 0%, transparent 10%);
+        background: linear-gradient(to right, $text-principal 0%, transparent 10%);
 
-        border-left: 1px solid #ff6337;
-        color: rgb(255, 99, 55);
+        border-left: 1px solid $text-principal;
+        color: $text-principal;
 
     }
 
 
     .nav-sec {
         font-size: 0.8rem;
-        color: #696969;
+        color: $text-secondary;
 
     }
 }
 
 
 #Header {
-    border-right: 1px solid rgb(34, 34, 34);
+    border-right: 1px solid $secondary;
 
     svg {
         font-size: 1.4rem;

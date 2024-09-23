@@ -1,6 +1,5 @@
 import './AllTracks.scss'
 
-import ListComp from '../../Components/ListComp/ListComp'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Cola } from './../../Components/Cola/Cola'
 import { useParams } from 'react-router-dom'

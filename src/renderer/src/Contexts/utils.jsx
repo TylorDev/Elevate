@@ -12,19 +12,9 @@ export const shuffleArray = (array, currentIndex) => {
   return newArray
 }
 
-export const uint8ArrayToImageUrl = (uint8Array, mimeType) => {
-  // Convertir el Uint8Array a Blob
-  const blob = new Blob([uint8Array], { type: mimeType })
-
-  // Crear una URL para el Blob
-  const imageUrl = URL.createObjectURL(blob)
-
-  // Devolver la URL
-  return imageUrl
-}
-
 export const dataToImageUrl = (input, mimeType = 'image/png') => {
   // Validar si el input es null o undefined
+
   if (input == null) {
     return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
   }

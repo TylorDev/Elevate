@@ -1,5 +1,5 @@
 .AudioPlayer {
-    color: #ffffff;
+    color: white;
     z-index: 999;
     background-color: transparent;
 
@@ -15,7 +15,31 @@
 
 }
 
+.btnShuffle {
+    .btnShuffle-true {
 
+
+
+        color: red;
+
+    }
+
+}
+
+#btnShuffle-true {
+
+
+
+    color: $text-principal;
+
+}
+
+
+#btnShuffle-false {
+
+    color: white;
+
+}
 
 
 
@@ -54,6 +78,7 @@
 
         .btnShuffle {
             display: none;
+
 
         }
     }

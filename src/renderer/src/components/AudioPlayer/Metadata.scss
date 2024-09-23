@@ -9,7 +9,7 @@
     cursor: pointer;
 
     &:hover {
-        background-color: #252525;
+        background-color: $secondary;
     }
 
 
@@ -54,7 +54,7 @@
         .data-artist {
 
             font-size: 0.9rem;
-            color: #909090;
+            color: $text-secondary;
         }
     }
 }

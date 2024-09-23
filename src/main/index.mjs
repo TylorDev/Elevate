@@ -29,7 +29,6 @@ function createWindow() {
       color: '#0a0a0a00',
       symbolColor: '#ffffff'
     },
-    backgroundMaterial: 'acrylic', // on Windows 11
 
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -38,8 +37,9 @@ function createWindow() {
       webSecurity: false
     }
   })
+
   mainWin = mainWindow
-  mainWindow.webContents.openDevTools({ mode: 'bottom' })
+  // mainWindow.webContents.openDevTools({ mode: 'bottom' })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
