@@ -16,7 +16,7 @@ import Modal from './../Modal/Modal'
 import 'react-toastify/dist/ReactToastify.css'
 
 import { FormAddTo } from './FormAddTo'
-export function SongItem({ file, index, cola, name, padreActions }) {
+export function SongItem({ file, index, cola, name, padreActions, style }) {
   const { handleSongClick, currentFile, addSong, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
 
@@ -101,6 +101,7 @@ export function SongItem({ file, index, cola, name, padreActions }) {
       ref={elementRef}
       key={index}
       className={`${isLoaded ? 'visible' : 'invisible'}`}
+      // style={style}
       onClick={() => handleSongClick(file, index, cola, name)}
     >
       <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>

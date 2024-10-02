@@ -1,5 +1,3 @@
-/* eslint-disable react/prop-types */
-
 import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
 
