@@ -25,6 +25,7 @@ export const SuperProvider = ({ children }) => {
     queueName: ''
   })
 
+  const [isAwaken, setIsAwaken] = useState(true)
   const [images, setImages] = useState([])
 
   const getImage = (name, data) => {
@@ -390,7 +391,8 @@ export const SuperProvider = ({ children }) => {
         getImage,
         fetchLastData,
         handleColorChange,
-        color
+        color,
+        isAwaken
       }}
     >
       {children}
