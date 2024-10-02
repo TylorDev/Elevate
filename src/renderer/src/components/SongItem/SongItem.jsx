@@ -104,6 +104,7 @@ export function SongItem({ file, index, cola, name, padreActions }) {
       onClick={() => handleSongClick(file, index, cola, name)}
     >
       <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>
+        <div className="songIndex">{index + 1}</div>
         <div className="cover">
           <div className="ico">
             <FaPlay />
