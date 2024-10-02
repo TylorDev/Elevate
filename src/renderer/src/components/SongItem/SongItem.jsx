@@ -17,7 +17,7 @@ import 'react-toastify/dist/ReactToastify.css'
 
 import { FormAddTo } from './FormAddTo'
 export function SongItem({ file, index, cola, name, padreActions, style }) {
-  const { handleSongClick, currentFile, addSong, getImage } = useSuper()
+  const { handleSongClick, currentFile, addSong, getImage, handleGetBPMClick } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
 
   const { toggleLike, isLiked } = useLikes()
@@ -68,6 +68,7 @@ export function SongItem({ file, index, cola, name, padreActions, style }) {
     'agregar a cola': () => agregarElemento(file),
     addlater: () => latersong(file),
     'Agregar a lista': () => openModal()
+    // 'Obtener Bpm': () => handleGetBPMClick(file)
   }
 
   // Combina las acciones del padre y del hijo

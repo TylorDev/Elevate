@@ -10,10 +10,10 @@ export function Aside(gridArea) {
   const { news, getNews } = usePlaylists()
 
   useEffect(() => {
-    if (!recents) getRecents()
+    if (recents) getRecents()
   }, [])
   useEffect(() => {
-    if (!news) getNews()
+    if (news) getNews()
   }, [])
   return (
     <aside className="aside" style={gridArea ? { gridArea } : {}}>

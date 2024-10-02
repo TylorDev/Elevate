@@ -5,7 +5,7 @@ import { FaPlay } from 'react-icons/fa'
 
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
-import { formatTimestamp } from '../../../timeUtils'
+import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useEffect } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
@@ -47,8 +47,8 @@ function ListenLater() {
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
             <span>{0} vistas •</span>
-            <span> {later.length} pistas •</span>
-            <span> {'0h 0m 0s'} </span>
+            <span> {later?.fileInfos?.length} pistas •</span>
+            <span> {formatDuration(later.totalDuration)} </span>
           </div>
           <div className="pgl-buttton">
             <Button>

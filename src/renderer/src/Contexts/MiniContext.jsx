@@ -9,8 +9,14 @@ const MiniContext = createContext()
 // eslint-disable-next-line react/prop-types
 export const MiniProvider = ({ children }) => {
   const [recents, setRecents] = useState([])
+  const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
+
   const [most, setMost] = useState([])
+  const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
+
   const [results, setResults] = useState([])
+  const searchSongs = async (value) => await ElectronGetter2('search', setResults, value)
+
   const [directories, setDiretories] = useState([])
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
@@ -52,10 +58,6 @@ export const MiniProvider = ({ children }) => {
     console.log(lista)
   }
 
-  const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
-
-  const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
-  const searchSongs = async (value) => await ElectronGetter2('search', setResults, value)
   const getDirectories = () =>
     ElectronGetter('get-all-directories', setDiretories, null, 'directorios obtenidos!')
   const deleteDirectory = async (path) => {

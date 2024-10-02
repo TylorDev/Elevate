@@ -25,18 +25,22 @@ export const SuperProvider = ({ children }) => {
     queueName: ''
   })
 
-  const [isAwaken, setIsAwaken] = useState(true)
+  const [isAwaken, setIsAwaken] = useState(false)
+
   const [images, setImages] = useState([])
 
+  const handleAwaken = (value) => {
+    setIsAwaken(value)
+  }
   const getImage = (name, data) => {
     // Verificar si la imagen ya existe
     const existingImage = images.find((image) => image.name === name)
 
     if (existingImage) {
       // Logear el nombre y la URL existente
-      console.log(
-        `La imagen con el nombre "${name}" ya existe. URL generada anteriormente: ${existingImage.url}`
-      )
+      // console.log(
+      //   `La imagen con el nombre "${name}" ya existe. URL generada anteriormente: ${existingImage.url}`
+      // )
       return existingImage.url
     }
 
@@ -54,10 +58,16 @@ export const SuperProvider = ({ children }) => {
   const handleScroll = () => {
     const element = scrollRef.current
     if (element) {
-      const isEndOfScroll = element.scrollHeight - element.scrollTop === element.clientHeight
-      if (isEndOfScroll) console.log('estas al final')
+      // Calcular el porcentaje restante
+      const remainingScroll = element.scrollHeight - element.scrollTop - element.clientHeight
+      const threshold = element.scrollHeight * 0.1 // 10% del total
 
-      setIsAtEnd(isEndOfScroll)
+      // Si el remainingScroll es menor o igual al 10% de la altura total, se marca como "al final"
+      const isNearEnd = remainingScroll <= threshold
+
+      if (isNearEnd) console.log('Estás a un 90% del final')
+
+      setIsAtEnd(isNearEnd)
     }
   }
 
@@ -229,7 +239,7 @@ export const SuperProvider = ({ children }) => {
   }
 
   const handleGetBPMClick = async (common) => {
-    const fileInfo = await electronInvoke('getbpm', common)
+    const fileInfo = await electronInvoke('get-bpm', common)
 
     if (fileInfo) {
       setCurrentFile(fileInfo)
@@ -392,7 +402,8 @@ export const SuperProvider = ({ children }) => {
         fetchLastData,
         handleColorChange,
         color,
-        isAwaken
+        isAwaken,
+        handleAwaken
       }}
     >
       {children}

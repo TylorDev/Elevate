@@ -10,18 +10,26 @@ import { FaFolderTree } from 'react-icons/fa6'
 import { GoDotFill } from 'react-icons/go'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useMini } from '../../Contexts/MiniContext'
+import { useSuper } from '../../Contexts/SupeContext'
 
 function Header() {
   const getActiveClass = ({ isActive }) => (isActive ? 'activo' : '')
   const { playlists } = usePlaylists()
   const { lista } = useMini()
+  const { handleAwaken } = useSuper()
   return (
     <div className="navbar" id="Header">
       <div className="nav-sec">
         <div className="sec-t">Current</div>
 
         <div className="sec-i">
-          <NavLink to="/" className={getActiveClass}>
+          <NavLink
+            to="/"
+            className={getActiveClass}
+            onClick={() => {
+              handleAwaken(true)
+            }}
+          >
             <PiWaveform /> Feed
           </NavLink>
 

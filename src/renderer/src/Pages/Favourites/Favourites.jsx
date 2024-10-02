@@ -5,7 +5,7 @@ import { FaPlay } from 'react-icons/fa'
 
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
-import { formatTimestamp } from '../../../timeUtils'
+import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
@@ -52,7 +52,7 @@ function Favourites() {
             <span>{0} vistas •</span>
             <span> {likes?.fileInfos?.length || 0} pistas •</span>
 
-            <span> {'0h 0m 0s'} </span>
+            <span> {formatDuration(likes.totalDuration)} </span>
           </div>
           <div className="pgl-buttton">
             <Button>

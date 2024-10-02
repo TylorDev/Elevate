@@ -4,6 +4,7 @@ import { generateCover, getFileInfos, getOrCreateSong } from './utils/utils.mjs'
 import { PrismaClient } from '@prisma/client'
 
 import { getSongBpm } from './utils/utils.mjs'
+import { duration } from '@mui/material'
 export const prisma = new PrismaClient()
 
 async function markUserPreference(songId, preferenceField, preferenceValue = true) {
@@ -48,7 +49,9 @@ async function getUserPreferencesByCriteria(criteria) {
     const filePaths = songs.map((song) => song.filepath)
     const fileInfos = await getFileInfos(filePaths)
     const cover = await generateCover(fileInfos)
-    return { fileInfos, cover }
+    const tracks = fileInfos
+    const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
+    return { fileInfos, cover, totalDuration }
   } catch (error) {
     console.error('Error retrieving songs:', error)
     return { success: false, error: error.message }
@@ -404,7 +407,7 @@ export function setupLikeSongHandlers() {
 }
 
 export function setupMusicHandlers() {
-  ipcMain.handle('getbpm', async (event, common) => {
+  ipcMain.handle('get-bpm', async (event, common) => {
     try {
       const { filePath, fileName } = common
       const fileInfo = await getSongBpm(common)
@@ -416,7 +419,7 @@ export function setupMusicHandlers() {
 
       return fileInfo
     } catch (error) {
-      console.error(`Error in getbpm handler:`, error)
+      console.error(`Error in get-bpm handler:`, error)
       throw error
     }
   })
