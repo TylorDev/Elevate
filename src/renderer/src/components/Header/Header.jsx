@@ -9,25 +9,30 @@ import { TfiLayoutListThumbAlt } from 'react-icons/tfi'
 import { FaFolderTree } from 'react-icons/fa6'
 import { GoDotFill } from 'react-icons/go'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useMini } from '../../Contexts/MiniContext'
 
 function Header() {
   const getActiveClass = ({ isActive }) => (isActive ? 'activo' : '')
   const { playlists } = usePlaylists()
+  const { lista } = useMini()
   return (
     <div className="navbar" id="Header">
       <div className="nav-sec">
         <div className="sec-t">Current</div>
 
         <div className="sec-i">
-          <NavLink to="/feed" className={getActiveClass}>
+          <NavLink to="/" className={getActiveClass}>
             <PiWaveform /> Feed
           </NavLink>
-          <NavLink to="/list" className={getActiveClass}>
-            <LuListVideo /> Lista
-          </NavLink>
+
           <NavLink to="/tracks" className={getActiveClass}>
             <TfiLayoutListThumbAlt /> Tracks
           </NavLink>
+          {lista && lista.length > 0 && (
+            <NavLink to="/list" className={getActiveClass}>
+              <LuListVideo /> Lista
+            </NavLink>
+          )}
         </div>
       </div>
 

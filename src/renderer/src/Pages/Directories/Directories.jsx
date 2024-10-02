@@ -5,7 +5,7 @@ import { useMini } from '../../Contexts/MiniContext'
 
 import { DirItem } from '../../Components/DirItem/DirItem'
 import { Button } from './../../Components/Button/Button'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+
 import { MdCreateNewFolder } from 'react-icons/md'
 function Directories() {
   const { getDirectories, directories, addDirectory } = useMini()

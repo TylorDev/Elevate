@@ -249,6 +249,7 @@ export async function getFileInfos(filePaths) {
           size: stats.size,
           duration,
           ...common,
+          // picture: [Buffer.alloc(0)], // Buffer vacío
           bpm: userPreference?.bpm || 0,
           play_count: userPreference?.play_count || 0,
           liked: userPreference?.is_favorite || false

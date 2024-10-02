@@ -3,16 +3,11 @@ import './Settings.scss'
 import { useEffect, useState } from 'react'
 import { Box, Tab } from '@mui/material'
 import { Tabs } from '@mui/material'
+import { useSuper } from '../../Contexts/SupeContext'
 
 function Settings() {
-  const [color, setColor] = useState('orangered')
-  useEffect(() => {
-    document.documentElement.style.setProperty('--text-principal', color)
-  }, [color])
+  const { color, handleColorChange } = useSuper()
 
-  const handleChange = (value) => {
-    setColor(value)
-  }
   const [value, setValue] = useState(0)
   return (
     <div className="Settings">
@@ -27,7 +22,7 @@ function Settings() {
         <Tab id="tab" label="Opciones avanzadas" />
       </Tabs>
       <CustomTabPanel value={value} index={0}>
-        <HexColorPicker color={color} onChange={handleChange} />;
+        <HexColorPicker color={color} onChange={handleColorChange} />;
       </CustomTabPanel>
     </div>
   )

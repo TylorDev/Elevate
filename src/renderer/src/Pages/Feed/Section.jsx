@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { SuperLink } from './SuperLink'
 import './Section.scss'
 

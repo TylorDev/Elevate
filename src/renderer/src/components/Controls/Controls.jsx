@@ -20,7 +20,6 @@ import { LuListVideo } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useSuper } from '../../Contexts/SupeContext'
-import { useAudioContext } from '../../Contexts/AudioContext'
 
 export function Controls() {
   const {
@@ -37,7 +36,7 @@ export function Controls() {
   } = useSuper()
 
   const { likeState, toggleLike } = useLikes()
-  const { handlePlay } = useAudioContext()
+
   const { currentLike } = likeState
   const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
   const navigate = useNavigate()

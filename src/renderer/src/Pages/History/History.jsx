@@ -22,9 +22,9 @@ function History() {
 
   return (
     <div className="default-class" style={{ color: 'white' }}>
-      <Cola list={history.fileInfos} />
+      <Cola list={history?.fileInfos} />
       <Pagination
-        count={history.maxPages}
+        count={history?.maxPages}
         variant="outlined" // Cambia a 'outlined' para tener un borde
         shape="rounded"
         color="primary"

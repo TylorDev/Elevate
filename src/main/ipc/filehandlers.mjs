@@ -178,28 +178,44 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-all-audio-files', async () => {
+  ipcMain.handle('get-all-audio-files', async (event, currentPage) => {
     try {
-      // Obtener todos los directorios de la base de datos
       const directories = await prisma.directory.findMany()
 
-      if (directories.length === 0) {
-        return [] // No hay directorios, devolver un array vacío
-      }
+      if (!directories.length) return [] // Si no hay directorios, devolver array vacío
 
-      // Obtener todos los archivos de audio de todos los directorios
-      let allAudioFiles = []
-      for (const directory of directories) {
-        const audioFiles = getAllAudioFiles(directory.path)
+      const allAudioFiles = directories.flatMap((dir) => getAllAudioFiles(dir.path))
+      const uniqueAudioFiles = [...new Set(allAudioFiles)]
 
-        allAudioFiles = allAudioFiles.concat(audioFiles)
-      }
+      // Configuración de paginación
+      const pageSize = 10 // Número de elementos por página
+      const totalPages = Math.ceil(uniqueAudioFiles.length / pageSize)
 
-      // Filtrar archivos duplicados
+      // Validar la página actual
+      if (currentPage > totalPages) return null
 
-      const uniqueAudioFiles = Array.from(new Set(allAudioFiles))
+      // Obtener los archivos de la página actual
+      const paginatedAudioFiles = uniqueAudioFiles.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize
+      )
 
-      return getFileInfos(uniqueAudioFiles)
+      return getFileInfos(paginatedAudioFiles)
+    } catch (error) {
+      console.error('Error retrieving audio files:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-all-audio-files-number', async () => {
+    try {
+      const directories = await prisma.directory.findMany()
+      if (!directories.length) return 0
+
+      const allAudioFiles = directories.flatMap((dir) => getAllAudioFiles(dir.path))
+      const uniqueAudioFiles = [...new Set(allAudioFiles)]
+
+      return uniqueAudioFiles.length
     } catch (error) {
       console.error('Error retrieving audio files:', error)
       throw error

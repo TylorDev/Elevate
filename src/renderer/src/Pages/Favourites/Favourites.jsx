@@ -2,15 +2,14 @@ import './Favourites.scss'
 import { useLikes } from '../../Contexts/LikeContext'
 import { Button } from '../../Components/Button/Button'
 import { FaPlay } from 'react-icons/fa'
-import { GoPencil } from 'react-icons/go'
+
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
+import { formatTimestamp } from '../../../timeUtils'
 import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
-import { dataToImageUrl } from '../../Contexts/utils'
 
 function Favourites() {
   const { dir } = useParams()

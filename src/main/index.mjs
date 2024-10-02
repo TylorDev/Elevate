@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { fileURLToPath } from 'url'
-import icon from '../../resources/icon.png?asset'
+import icon from '../../resources/icon.png'
 
 import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
 
@@ -29,6 +29,7 @@ function createWindow() {
       color: '#0a0a0a00',
       symbolColor: '#ffffff'
     },
+    icon: icon,
 
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -62,6 +63,7 @@ function createWindow() {
   }, 5000)
 }
 
+///////////////////
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
   app.on('browser-window-created', (_, window) => {

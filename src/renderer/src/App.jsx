@@ -14,13 +14,13 @@ import { MiniProvider } from './Contexts/MiniContext'
 import { LikesProvider } from './Contexts/LikeContext'
 import { AudioProvider } from './Contexts/AudioContext'
 import { PlaylistsProvider } from './Contexts/PlaylistsContex'
-import { useSuper } from './Contexts/SupeContext'
+
 import PlaylistPage from './Pages/PlaylistPage/PlaylistPage'
 import DirPage from './Pages/DirPage/DirPage'
-import Lista from './Pages/Lista/Lista'
 
 import SearchBar from './Components/SearchBar/SearchBar'
 import Settings from './Components/Settings/Settings'
+import Lista from './Pages/Lista/Lista'
 
 function App() {
   return (
@@ -34,8 +34,8 @@ function App() {
 
               <Routes>
                 <Route path="/" element={<Main />}>
-                  <Route path="/feed" element={<Feed />} />
-                  <Route index path="/playlists" element={<Playlists />} />
+                  <Route index element={<Feed />} />
+                  <Route path="/playlists" element={<Playlists />} />
                   <Route path="/playlists/:dir" element={<PlaylistPage />} />
                   <Route path="/favourites/:dir" element={<Favourites />} />
                   <Route path="/favourites/" element={<Favourites />} />
@@ -44,12 +44,12 @@ function App() {
                   <Route path="/history" element={<History />} />
                   <Route path="/tracks/:dir" element={<AllTracks />} />
                   <Route path="/tracks/" element={<AllTracks />} />
-                  <Route path="/list" element={<Lista />} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/directories" element={<Directories />} />
                   <Route path="/directories/:directory/:play" element={<DirPage />} />
                   <Route path="/music" element={<Music />} />
                   <Route path="/settings" element={<Settings />} />
+                  <Route path="/list" element={<Lista />} />
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
@@ -60,20 +60,6 @@ function App() {
     </MiniProvider>
   )
 }
-
-// function AudioProvider() {
-//   const { currentFile, handleNextClick, mediaRef } = useSuper()
-
-//   return (
-//     <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
-//       {currentFile && currentFile.filePath ? (
-//         <source src={currentFile.filePath} type="audio/mpeg" />
-//       ) : (
-//         <p>Tu navegador no soporta el elemento de audio.</p>
-//       )}
-//     </audio>
-//   )
-// }
 
 function NotFound() {
   return <div className="Not">ERROR 404 sorry</div>

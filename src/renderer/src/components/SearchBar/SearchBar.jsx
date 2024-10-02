@@ -9,6 +9,7 @@ function SearchBar() {
   const [isVisible, setIsVisible] = useState(false)
   const [query, setQuery] = useState('')
   const { results, searchSongs } = useMini()
+
   const openModal = async () => {
     await searchSongs(query)
     setIsVisible(true)
@@ -16,10 +17,6 @@ function SearchBar() {
 
   const closeModal = () => {
     setIsVisible(false)
-  }
-
-  const handleSearch = () => {
-    searchSongs(query)
   }
 
   const navigate = useNavigate()

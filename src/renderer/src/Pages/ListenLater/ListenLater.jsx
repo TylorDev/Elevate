@@ -1,29 +1,28 @@
 import './ListenLater.scss'
-import { useLikes } from '../../Contexts/LikeContext'
+
 import { Button } from '../../Components/Button/Button'
 import { FaPlay } from 'react-icons/fa'
-import { GoPencil } from 'react-icons/go'
+
 import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { Cola } from '../../Components/Cola/Cola'
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { useEffect, useState } from 'react'
+import { formatTimestamp } from '../../../timeUtils'
+import { useEffect } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 
 function ListenLater() {
-  const { handleResume, getImage } = useSuper()
+  const { handleResume } = useSuper()
   const { dir } = useParams()
   const { getlatersongs, later } = useMini()
-  const [bg, setBg] = useState()
+
   useEffect(() => {
     getlatersongs()
   }, [])
 
   useEffect(() => {
     if (dir === 'resume' && later.length > 0) {
-      // console.log('lista cargada!')
       handleResume(later)
     }
   }, [later, dir])

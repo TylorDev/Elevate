@@ -9,15 +9,14 @@ import { useSuper } from '../../Contexts/SupeContext'
 import './SongItem.scss'
 import { Button } from './../Button/Button'
 import { LuHeart, LuHeartOff } from 'react-icons/lu'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import DropdownMenu from '../DropMenu/DropMenu'
 import Modal from './../Modal/Modal'
 
 import 'react-toastify/dist/ReactToastify.css'
 
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { FormAddTo } from './FormAddTo'
-export function SongItem({ file, index, cola, name, filePath, padreActions }) {
+export function SongItem({ file, index, cola, name, padreActions }) {
   const { handleSongClick, currentFile, addSong, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
 
@@ -26,6 +25,29 @@ export function SongItem({ file, index, cola, name, filePath, padreActions }) {
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
   const [mycover, setMyCover] = useState('')
+
+  const [isLoaded, setLoaded] = useState(false)
+  const elementRef = useRef(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setLoaded(entry.isIntersecting)
+      },
+      { threshold: 0.1 } // Ajusta este valor según tus necesidades
+    )
+
+    if (elementRef.current) {
+      observer.observe(elementRef.current)
+    }
+
+    return () => {
+      if (elementRef.current) {
+        observer.unobserve(elementRef.current)
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (file.picture) {
       const url = getImage(file.filePath, file.picture[0])
@@ -76,41 +98,44 @@ export function SongItem({ file, index, cola, name, filePath, padreActions }) {
 
   return (
     <li
+      ref={elementRef}
       key={index}
-      className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}
+      className={`${isLoaded ? 'visible' : 'invisible'}`}
       onClick={() => handleSongClick(file, index, cola, name)}
     >
-      <div className="cover">
-        <div className="ico">
-          <FaPlay />
+      <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>
+        <div className="cover">
+          <div className="ico">
+            <FaPlay />
+          </div>
+
+          <img src={mycover} alt="sin cover" />
         </div>
 
-        <img src={mycover} alt="sin cover" />
-      </div>
+        <div className="songdata">
+          <span className="song-tittle">{file.fileName}</span>
+          <span>
+            {file.artist || 'Unknow'} • {file.play_count} vistas • {file.bpm} bpm
+          </span>
+        </div>
 
-      <div className="songdata">
-        <span>{file.fileName}</span>
-        <span>
-          {file.artist || 'Unknow'} • {file.play_count} vistas • {file.bpm} bpm
-        </span>
-      </div>
+        <div className={isLikedo ? 'optiones liked' : '  optiones'}>
+          <Button className={'btnLike'} onClick={handleClick}>
+            {buttonText}
+          </Button>
+          <DropdownMenu options={Object.keys(combinedActions)} onSelect={handleSelect} />
+        </div>
 
-      <div className={isLikedo ? 'optiones liked' : '  optiones'}>
-        <Button className={'btnLike'} onClick={handleClick}>
-          {buttonText}
-        </Button>
-        <DropdownMenu options={Object.keys(combinedActions)} onSelect={handleSelect} />
-      </div>
+        <Modal isVisible={isVisible} closeModal={closeModal}>
+          <FormAddTo file={file} addSong={addSong} />
+        </Modal>
 
-      <Modal isVisible={isVisible} closeModal={closeModal}>
-        <FormAddTo file={file} addSong={addSong} />
-      </Modal>
-
-      <div className="stime">
-        {Math.floor(file.duration / 60)}:
-        {Math.floor(file.duration % 60)
-          .toString()
-          .padStart(2, '0')}
+        <div className="stime">
+          {Math.floor(file.duration / 60)}:
+          {Math.floor(file.duration % 60)
+            .toString()
+            .padStart(2, '0')}
+        </div>
       </div>
     </li>
   )

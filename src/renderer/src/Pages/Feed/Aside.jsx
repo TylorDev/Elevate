@@ -2,17 +2,19 @@ import { Cola } from '../../Components/Cola/Cola'
 import './Aside.scss'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { useEffect } from 'react'
+
 import { Section } from './Section'
+import { useEffect } from 'react'
 export function Aside(gridArea) {
   const { recents, getRecents } = useMini()
   const { news, getNews } = usePlaylists()
 
   useEffect(() => {
-    getRecents()
-    getNews()
+    if (!recents) getRecents()
   }, [])
-
+  useEffect(() => {
+    if (!news) getNews()
+  }, [])
   return (
     <aside className="aside" style={gridArea ? { gridArea } : {}}>
       <Section name={'NUEVAS'} to={'/search'}>

@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import { BsFolderFill, BsFolderMinus } from 'react-icons/bs'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatDuration } from '../../../timeUtils'

@@ -1,5 +1,6 @@
-appId: com.electron.app
-productName: chick
+appId: com.taylor.typlayer
+productName: TyPlayer
+copyright: '© 2024 Tylordev. Todos los derechos reservados.'
 directories:
   buildResources: build
 files:
@@ -12,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: chick
+  icon: build/icon.png
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
@@ -39,7 +41,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
+  url: https://github.com/TylorDev
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
 extraResources:

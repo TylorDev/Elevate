@@ -9,7 +9,7 @@ const ContextLikes = createContext()
 export const useLikes = () => useContext(ContextLikes)
 
 export const LikesProvider = ({ children }) => {
-  const { currentFile, currentIndex, getImage } = useSuper()
+  const { currentFile, currentIndex } = useSuper()
   const [likeState, setLikeState] = useState({
     currentLike: false,
     likes: {}

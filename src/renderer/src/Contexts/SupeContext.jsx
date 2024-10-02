@@ -60,19 +60,6 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    const element = scrollRef.current
-    if (element) {
-      element.addEventListener('scroll', handleScroll)
-    }
-
-    return () => {
-      if (element) {
-        element.removeEventListener('scroll', handleScroll)
-      }
-    }
-  }, [])
-
   const navigate = useNavigate()
 
   const PlayQueue = (list, name) => {
@@ -104,7 +91,6 @@ export const SuperProvider = ({ children }) => {
     const invalidRoutes = ['favourites', 'listen-later', 'tracks', 'stats']
 
     if (invalidRoutes.includes(filePath)) {
-      // console.log('handleQueueAndPlay[Ruta Invalida]: ', filePath)
       navigateToResume(filePath)
       setCurrentFile(song)
       setCurrentIndex(index)
@@ -143,6 +129,7 @@ export const SuperProvider = ({ children }) => {
     try {
       const fileInfos = await window.electron.ipcRenderer.invoke('get-last-data')
       if (fileInfos) {
+        setCurrentFile(fileInfos.song)
         await handleQueueAndPlay(fileInfos.song, fileInfos.index, fileInfos.queueId)
       }
     } catch (error) {
@@ -160,9 +147,64 @@ export const SuperProvider = ({ children }) => {
   }
 
   useEffect(() => {
+    const element = scrollRef.current
+    if (element) {
+      element.addEventListener('scroll', handleScroll)
+    }
+
+    return () => {
+      if (element) {
+        element.removeEventListener('scroll', handleScroll)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    const updateProgress = () => {
+      setProgress(mediaRef.current.currentTime)
+    }
+
+    const updateDuration = () => {
+      setDuration(mediaRef.current.duration)
+    }
+
+    if (mediaRef.current) {
+      mediaRef.current.addEventListener('timeupdate', updateProgress)
+      mediaRef.current.addEventListener('loadedmetadata', updateDuration)
+      mediaRef.current.addEventListener('durationchange', updateDuration)
+    }
+
+    return () => {
+      if (mediaRef.current) {
+        mediaRef.current.removeEventListener('timeupdate', updateProgress)
+        mediaRef.current.removeEventListener('loadedmetadata', updateDuration)
+        mediaRef.current.removeEventListener('durationchange', updateDuration)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (mediaRef.current) {
+      mediaRef.current.src = currentFile.filePath
+
+      // Manejar eventos de reproducción
+      mediaRef.current.onplay = () => {
+        setIsPlaying(true)
+      }
+
+      mediaRef.current.onpause = () => {
+        setIsPlaying(false)
+      }
+    }
+  }, [currentFile?.filePath, currentIndex])
+
+  useEffect(() => {
+    WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
+  }, [currentFile])
+
+  useEffect(() => {
     if (currentFile && currentIndex !== null) {
       saveLastData(currentFile.filePath, currentIndex, queueState.queueName)
-      // console.log('Nombre en useEffect: ' + (queueState.queueName || '[sin nombre]'))
     }
   }, [currentIndex, currentFile, queueState.queueName])
 
@@ -173,10 +215,6 @@ export const SuperProvider = ({ children }) => {
   const handleNextClick = () => {
     goToNext(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
   }
-
-  useEffect(() => {
-    fetchLastData()
-  }, [])
 
   const togglePlayPause = () => {
     toPlay(mediaRef, isPlaying)
@@ -193,10 +231,6 @@ export const SuperProvider = ({ children }) => {
     const fileInfo = await electronInvoke('getbpm', common)
 
     if (fileInfo) {
-      // setMetadata((prevMetadata) =>
-      //   (prevMetadata || []).map((item) => (item.filePath === fileInfo.filePath ? fileInfo : item))
-      // )
-
       setCurrentFile(fileInfo)
     }
   }
@@ -288,47 +322,20 @@ export const SuperProvider = ({ children }) => {
       originalQueue: list
     }))
   }
-  useEffect(() => {
-    if (mediaRef.current) {
-      mediaRef.current.src = currentFile.filePath
-
-      // Manejar eventos de reproducción
-      mediaRef.current.onplay = () => {
-        setIsPlaying(true)
-      }
-
-      mediaRef.current.onpause = () => {
-        setIsPlaying(false)
-      }
-    }
-  }, [currentFile?.filePath, currentIndex])
+  const [color, setColor] = useState(() => {
+    return localStorage.getItem('color') || 'orangered'
+  })
 
   useEffect(() => {
-    WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
-  }, [currentFile])
-  useEffect(() => {
-    const updateProgress = () => {
-      setProgress(mediaRef.current.currentTime)
-    }
+    // Aplicar el color cuando cambie
+    document.documentElement.style.setProperty('--text-principal', color)
+    // Guardar el color en localStorage
+    localStorage.setItem('color', color)
+  }, [color])
 
-    const updateDuration = () => {
-      setDuration(mediaRef.current.duration)
-    }
-
-    if (mediaRef.current) {
-      mediaRef.current.addEventListener('timeupdate', updateProgress)
-      mediaRef.current.addEventListener('loadedmetadata', updateDuration)
-      mediaRef.current.addEventListener('durationchange', updateDuration)
-    }
-
-    return () => {
-      if (mediaRef.current) {
-        mediaRef.current.removeEventListener('timeupdate', updateProgress)
-        mediaRef.current.removeEventListener('loadedmetadata', updateDuration)
-        mediaRef.current.removeEventListener('durationchange', updateDuration)
-      }
-    }
-  }, [])
+  const handleColorChange = (value) => {
+    setColor(value)
+  }
 
   const handleTimelineClick = (e) => {
     // Obtiene el contenedor de la línea de tiempo
@@ -380,7 +387,10 @@ export const SuperProvider = ({ children }) => {
         duration,
         scrollRef,
         isAtEnd,
-        getImage
+        getImage,
+        fetchLastData,
+        handleColorChange,
+        color
       }}
     >
       {children}

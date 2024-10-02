@@ -7,7 +7,7 @@ import DropdownMenu from '../../Components/DropMenu/DropMenu'
 import { FaPlay } from 'react-icons/fa'
 import { Button } from './../../Components/Button/Button'
 import { GoPencil } from 'react-icons/go'
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
+import { formatDuration } from '../../../timeUtils'
 import { useSuper } from '../../Contexts/SupeContext'
 
 function DirPage() {

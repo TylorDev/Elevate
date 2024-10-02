@@ -342,6 +342,20 @@ export function setupLikeSongHandlers() {
     return await getUserPreferencesByCriteria({ is_favorite: true })
   })
 
+  ipcMain.handle('get-likes-number', async (event) => {
+    try {
+      // Obtener la cantidad total de preferencias de usuario que cumplen con el criterio
+      const totalLikes = await prisma.userPreferences.count({
+        where: { is_favorite: true }
+      })
+
+      return totalLikes // Devolver solo el número total de likes
+    } catch (error) {
+      console.error('Error retrieving likes:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('listen-later-song', async (event, filepath, filename) => {
     try {
       // Obtén o crea la canción

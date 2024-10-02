@@ -6,7 +6,6 @@ import './CurrentPlaying.scss'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useSuper } from '../../Contexts/SupeContext'
 
-import Visualizer from '../../Components/Visualizer/Visualizer'
 import { useLikes } from '../../Contexts/LikeContext'
 
 export function CurrentPlaying() {
@@ -34,7 +33,7 @@ export function CurrentPlaying() {
           </div>
         </div>
 
-        <div className="grp-2">
+        <div className="grp-2" onClick={togglePlayPause}>
           <Button className="btnPlay" onClick={togglePlayPause}>
             {isPlaying ? <LuPause /> : <LuPlay />}
           </Button>

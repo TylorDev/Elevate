@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 
 export function RandomList() {
-  const { getSavedLists, playlists } = usePlaylists()
-  const { randomPlaylist } = usePlaylists()
+  const { randomPlaylist, getRandomList } = usePlaylists()
   const { getImage } = useSuper()
 
   const [currentbg, setCurrentBg] = useState()
@@ -19,10 +18,9 @@ export function RandomList() {
     return `${hrs.toString().padStart(2, '0')}h:${mins.toString().padStart(2, '0')}m:${secs.toString().padStart(2, '0')}s`
   }
   useEffect(() => {
-    if (!playlists || playlists.length === 0) {
-      getSavedLists()
+    if (!randomPlaylist) {
+      getRandomList()
     }
-
     if (randomPlaylist?.path) {
       const img = getImage(randomPlaylist.path, randomPlaylist.cover)
       setCurrentBg(img)

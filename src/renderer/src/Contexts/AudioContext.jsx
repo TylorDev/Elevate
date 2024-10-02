@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 import { useSuper } from './SupeContext'
 
 const AudioContextState = createContext(null)
@@ -8,28 +8,17 @@ export const useAudioContext = () => {
 }
 
 export const AudioProvider = ({ children }) => {
-  const [audioNode, setAudioNode] = useState(null)
-  const { currentFile, handleNextClick, mediaRef } = useSuper()
-
-  const [audioContext, setAudioContext] = useState(null)
+  const { currentFile, handleNextClick, mediaRef, fetchLastData } = useSuper()
 
   useEffect(() => {
-    if (!audioContext) {
-      const newAudioContext = new (window.AudioContext || window.webkitAudioContext)()
-      setAudioContext(newAudioContext)
+    const initializeApp = async () => {
+      await fetchLastData()
     }
+
+    initializeApp()
   }, [])
-
-  useEffect(() => {
-    if (audioContext && mediaRef.current) {
-      const audioN = audioContext.createMediaElementSource(mediaRef.current)
-      setAudioNode(audioN)
-      audioN.connect(audioContext.destination)
-    }
-  }, [audioContext])
-
   return (
-    <AudioContextState.Provider value={{ audioContext, audioNode }}>
+    <AudioContextState.Provider value={{}}>
       {children}
       <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
         {currentFile && currentFile.filePath ? (

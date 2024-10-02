@@ -89,7 +89,15 @@ export const MiniProvider = ({ children }) => {
 
   const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
   const latersong = (common) => ElectronSetter('listen-later-song', common)
-
+  const getTotalTracks = (setState) => {
+    ElectronGetter2('get-all-audio-files-number', setState)
+  }
+  const getTotalLikes = (setState) => {
+    ElectronGetter2('get-likes-number', setState)
+  }
+  const getTotalLists = (setState) => {
+    ElectronGetter2('get-playlists-number', setState)
+  }
   return (
     <MiniContext.Provider
       value={{
@@ -116,7 +124,10 @@ export const MiniProvider = ({ children }) => {
         latersong, // agrega una cancion a la LISTA MAS TARDE
         lista, // lista personalizada
         agregarElemento,
-        eliminarElemento
+        eliminarElemento,
+        getTotalTracks,
+        getTotalLikes,
+        getTotalLists
       }}
     >
       {children}

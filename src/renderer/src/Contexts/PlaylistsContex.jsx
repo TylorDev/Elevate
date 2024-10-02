@@ -11,13 +11,12 @@ export const usePlaylists = () => useContext(ContextLikes)
 
 export const PlaylistsProvider = ({ children }) => {
   const { currentFile, getImage } = useSuper()
-  const [metadata, setMetadata] = useState(null) // 1 ref - 5 ref
+  const [allSongs, SetAllSongs] = useState([]) // 1 ref - 5 ref
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
   const [arrayCovers, setArrayCovers] = useState([])
   const [currentCover, setCurrentCover] = useState('')
   const [arrayAlbums, setArrayAlbums] = useState([])
-  // Función para obtener un file del estado según su filePath
 
   useEffect(() => {
     if (currentFile.picture) {
@@ -88,7 +87,7 @@ export const PlaylistsProvider = ({ children }) => {
   }
 
   const openM3U = async () => {
-    await ElectronGetter('load-list', setMetadata, null, 'se cargo correctamente la lista nueva') // 0 ref
+    await ElectronGetter('load-list', SetAllSongs, null, 'se cargo correctamente la lista nueva') // 0 ref
     getSavedLists()
   }
 
@@ -129,16 +128,26 @@ export const PlaylistsProvider = ({ children }) => {
     await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
   }
 
-  useEffect(() => {
-    getRandomList()
-    getAllSongs()
-  }, [])
-
-  const getAllSongs = async () => {
+  const getAllSongs = async (page = 0) => {
     await ElectronGetter(
       'get-all-audio-files',
-      setMetadata,
-      null,
+      (newSongs) => {
+        SetAllSongs((prevSongs) => {
+          // Asegúrate de que prevSongs sea un array
+          if (!Array.isArray(prevSongs)) {
+            return newSongs
+          }
+
+          // Crear un conjunto para almacenar los filePaths existentes
+          const existingFilePaths = new Set(prevSongs.map((song) => song.filePath))
+
+          // Filtrar newSongs para eliminar duplicados
+          const uniqueNewSongs = newSongs.filter((song) => !existingFilePaths.has(song.filePath))
+
+          return [...prevSongs, ...uniqueNewSongs]
+        })
+      },
+      page,
       'Se obtuvieron todas las canciones!'
     )
   }
@@ -161,9 +170,6 @@ export const PlaylistsProvider = ({ children }) => {
         theme: 'dark',
         transition: Bounce
       })
-
-      await getNews()
-      await getAllSongs()
     }
 
     window.electron.ipcRenderer.on('notification', handleNotification)
@@ -177,7 +183,7 @@ export const PlaylistsProvider = ({ children }) => {
   return (
     <ContextLikes.Provider
       value={{
-        metadata,
+        allSongs,
         playlists,
         getSavedLists,
         addPlaylisthistory,
@@ -193,7 +199,8 @@ export const PlaylistsProvider = ({ children }) => {
         updateArrayCovers,
 
         currentCover,
-        updateArrayAlbums
+        updateArrayAlbums,
+        getRandomList
       }}
     >
       {children}

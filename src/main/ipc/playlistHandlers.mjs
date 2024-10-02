@@ -346,6 +346,16 @@ export function setupPlaylistHandlers() {
     return await getPlaylists()
   })
 
+  ipcMain.handle('get-playlists-number', async () => {
+    try {
+      const totalPlaylists = await prisma.playlist.count()
+      return totalPlaylists // Devuelve solo el número total de playlists
+    } catch (error) {
+      console.error('Error retrieving playlists count:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('get-random-playlist', async () => {
     return await getRandomPlaylist()
   })

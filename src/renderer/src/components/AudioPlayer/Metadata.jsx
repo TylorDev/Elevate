@@ -4,7 +4,6 @@ import './Metadata.scss'
 
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { useEffect, useState } from 'react'
 
 export function Metadata() {
   const { currentFile } = useSuper()

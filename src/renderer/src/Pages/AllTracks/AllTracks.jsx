@@ -5,29 +5,34 @@ import { Cola } from './../../Components/Cola/Cola'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 import { PlaylistActions } from './../../Components/PlaylistActions/PlaylistActions'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 function AllTracks() {
-  const { getAllSongs, metadata } = usePlaylists()
+  const { getAllSongs, allSongs } = usePlaylists()
   const { dir } = useParams()
-  const { handleResume } = useSuper()
+  const { handleResume, isAtEnd } = useSuper()
+  const [page, setPage] = useState(1)
 
   useEffect(() => {
-    if (!metadata || metadata.length === 0) {
-      getAllSongs()
+    getAllSongs(1)
+  }, [])
+  useEffect(() => {
+    if (isAtEnd) {
+      setPage((prevCount) => prevCount + 1)
+      getAllSongs(page)
     }
-  }, [metadata])
+  }, [isAtEnd])
 
   useEffect(() => {
-    if (dir === 'resume' && metadata?.length > 0) {
+    if (dir === 'resume' && allSongs.length > 0) {
       // console.log('lista cargada!')
-      handleResume(metadata, 'tracks')
+      handleResume(allSongs, 'tracks')
     }
-  }, [metadata, dir])
+  }, [allSongs, dir])
   return (
     <>
-      <PlaylistActions />
-      <Cola list={metadata} name={'tracks'} />
+      {/* <PlaylistActions /> */}
+      <Cola list={allSongs} name={'tracks'} />
     </>
   )
 }
