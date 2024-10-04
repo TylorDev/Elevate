@@ -8,13 +8,6 @@
     height: 100%;
 
 
-
-    .plg {
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-    }
-
     .plg-controls {
 
 
@@ -26,59 +19,131 @@
         justify-content: center;
 
 
+        .plg {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
 
-    }
+            .plg-cover {
 
-    .pgl-data,
-    .pgl-time {
-        color: $text-secondary;
-    }
+                bottom: 30%;
 
-    .pgl-name {
-        font-size: 2rem;
-        font-weight: bold;
-    }
+                display: grid;
+                grid-template-columns: 1fr;
 
-    .pgl-buttton {
-        display: flex;
+                grid-template-rows: 1fr;
 
 
-    }
+                width: 18rem;
+                height: 18rem;
+                aspect-ratio: 1/1;
+                overflow: hidden;
+                border-radius: 0.3rem;
 
 
-    .plg-cover {
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
 
-        bottom: 30%;
+                }
+            }
 
-        display: grid;
-        grid-template-columns: 1fr;
+            .pgl-name {
+                font-size: 2rem;
+                font-weight: bold;
+            }
 
-        grid-template-rows: 1fr;
+            .pgl-data,
+            .pgl-time {
+                color: $text-secondary;
+            }
+
+            .pgl-buttton {
+                display: flex;
 
 
-        width: 18rem;
-        height: 18rem;
-        aspect-ratio: 1/1;
-        overflow: hidden;
-        border-radius: 0.3rem;
-
-
-        img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-
+            }
         }
+    }
+
+    .plg-cola {
+
+        top: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        overflow-x: auto;
+
+
     }
 }
 
-.plg-cola {
-
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    overflow-x: auto;
 
 
+@media (min-width: 500px) and (max-width: 620px) {
+
+    .PlaylistPage {
+        display: grid;
+        grid-template-columns: 0.6fr 1fr;
+        align-items: start;
+        justify-items: center;
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+
+
+        .plg-controls {
+
+
+
+
+            .plg {
+
+
+                .plg-cover {
+
+
+
+
+
+                    width: 10rem;
+                    height: 10rem;
+
+
+                }
+
+                .pgl-name {
+                    font-size: 1.5rem;
+
+                }
+
+                .pgl-data,
+                .pgl-time {
+
+                    display: none;
+                }
+
+                .pgl-buttton {
+                    display: flex;
+
+                    #Button:first-child {
+                        display: none;
+                    }
+
+                }
+            }
+        }
+
+        .plg-cola {
+
+            top: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            overflow-x: auto;
+
+
+        }
+    }
 }

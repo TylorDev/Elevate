@@ -22,7 +22,7 @@ function SearchBar() {
   const navigate = useNavigate()
 
   return (
-    <div className="search-bar">
+    <div className="search-bar" id="search-bar">
       <div className="s-t">Offline Player</div>
       <input
         className="search-input"

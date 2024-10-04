@@ -4,6 +4,8 @@
 
 
 #tabControl {
+
+
     .Mui-selected {
         color: $text-principal;
         /* Cambia el color del texto del tab seleccionado */
@@ -12,5 +14,14 @@
     .MuiTabs-indicator {
         background-color: $text-principal;
         /* Cambia el color de la línea indicadora */
+    }
+}
+
+@media (min-width: 500px) and (max-width: 620px) {
+
+
+
+    #tab {
+        font-size: 0.7rem;
     }
 }

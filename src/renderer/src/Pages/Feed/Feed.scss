@@ -17,3 +17,45 @@
     gap: 1rem;
 
 }
+
+
+@media (min-width: 500px) and (max-width: 620px) {
+
+    .Feed {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows:
+            1fr 1fr 1fr;
+
+        width: 100%;
+        height: fit-content;
+        overflow-x: auto;
+        justify-items: center;
+        align-items: center;
+
+        grid-template-areas:
+            "list song"
+            "data data"
+            "btn btn"
+        ;
+        gap: 1rem;
+
+        .aside {
+
+            display: none;
+
+        }
+
+        .banner {
+            display: none;
+        }
+
+        .section {
+            grid-area: btn;
+        }
+
+        .current-play {
+            aspect-ratio: 1/1;
+        }
+    }
+}

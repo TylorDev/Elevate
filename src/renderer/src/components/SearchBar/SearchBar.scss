@@ -9,6 +9,8 @@
     background-color: transparent;
 
 
+
+
 }
 
 .search-input {
@@ -36,4 +38,11 @@
     border-radius: 2rem;
     font-weight: bold;
 
+}
+
+@media (min-width: 500px) and (max-width: 620px) {
+
+    .search-bar {
+        display: none;
+    }
 }
