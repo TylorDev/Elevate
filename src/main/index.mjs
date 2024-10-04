@@ -25,6 +25,7 @@ function createWindow() {
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: 'hidden',
+
     titleBarOverlay: {
       color: '#0a0a0a00',
       symbolColor: '#ffffff'
@@ -40,7 +41,7 @@ function createWindow() {
   })
 
   mainWin = mainWindow
-  mainWindow.webContents.openDevTools({ mode: 'bottom' })
+  // mainWindow.webContents.openDevTools({ mode: 'bottom' })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

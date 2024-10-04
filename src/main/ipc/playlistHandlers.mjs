@@ -188,14 +188,41 @@ async function selectFile() {
 function getRandomIndex(total) {
   return Math.floor(Math.random() * total)
 }
+
 async function saveDialog() {
-  const { filePath } = await dialog.showSaveDialog({
-    title: 'Guardar lista de reproducción',
-    defaultPath: path.join(app.getPath('documents'), 'playlist.m3u'),
-    filters: [{ name: 'Listas de reproducción', extensions: ['m3u'] }]
-  })
-  return filePath
+  let isValid = false
+  let filePath
+
+  while (!isValid) {
+    const { filePath: selectedPath } = await dialog.showSaveDialog({
+      title: 'Guardar lista de reproducción',
+      defaultPath: path.join(app.getPath('documents'), 'playlist.m3u'),
+      filters: [{ name: 'Listas de reproducción', extensions: ['m3u'] }]
+    })
+
+    if (!selectedPath) {
+      // Si el usuario cancela el diálogo
+      console.log('El diálogo fue cancelado')
+      return null // O lanza una excepción si prefieres
+    }
+
+    // Extraer el nombre del archivo usando el módulo path
+    const fileName = path.basename(selectedPath, path.extname(selectedPath))
+
+    if (fileName.length > 2 && fileName.length < 15) {
+      isValid = true // El nombre es válido
+      filePath = selectedPath
+    } else {
+      console.debug(fileName)
+      console.log(
+        'El nombre del archivo debe tener más de 5 y menos de 15 caracteres. Intenta de nuevo.'
+      )
+    }
+  }
+
+  return filePath // Retorna la ruta del archivo válido
 }
+
 const createM3uContent = (filePaths, commonBasePath) => {
   return filePaths.map((filePath) => path.relative(commonBasePath, filePath)).join('\n')
 }

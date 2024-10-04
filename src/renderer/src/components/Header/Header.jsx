@@ -30,15 +30,15 @@ function Header() {
               handleAwaken(true)
             }}
           >
-            <PiWaveform /> Feed
+            <PiWaveform /> <span className="Link-name">Feed </span>
           </NavLink>
 
           <NavLink to="/tracks" className={getActiveClass}>
-            <TfiLayoutListThumbAlt /> Tracks
+            <TfiLayoutListThumbAlt /> <span className="Link-name">Tracks </span>
           </NavLink>
           {lista && lista.length > 0 && (
             <NavLink to="/list" className={getActiveClass}>
-              <LuListVideo /> Lista
+              <LuListVideo /> <span className="Link-name">List </span>
             </NavLink>
           )}
         </div>
@@ -49,10 +49,11 @@ function Header() {
 
         <div className="sec-i">
           <NavLink to="/directories" className={getActiveClass}>
-            <FaFolderTree /> Folders
+            <FaFolderTree />
+            <span className="Link-name">Folders </span>
           </NavLink>
           <NavLink to="/playlists" className={getActiveClass}>
-            <MdQueueMusic /> Playlists
+            <MdQueueMusic /> <span className="Link-name">Playlists </span>
           </NavLink>
         </div>
       </div>
@@ -61,10 +62,10 @@ function Header() {
 
         <div className="sec-i">
           <NavLink to="/favourites" className={getActiveClass}>
-            <FaRegHeart /> Favourites
+            <FaRegHeart /> <span className="Link-name">Favourites </span>
           </NavLink>
           <NavLink to="/listen-later" className={getActiveClass}>
-            <MdOutlineWatchLater /> Listen later
+            <MdOutlineWatchLater /> <span className="Link-name">Listen later </span>
           </NavLink>
         </div>
       </div>
@@ -73,10 +74,10 @@ function Header() {
 
         <div className="sec-i">
           <NavLink to="/search" className={getActiveClass}>
-            <MdBarChart /> Statistics
+            <MdBarChart /> <span className="Link-name">Stats </span>
           </NavLink>
           <NavLink to="/history" className={getActiveClass}>
-            <IoCalendarOutline /> History
+            <IoCalendarOutline /> <span className="Link-name">History </span>
           </NavLink>
         </div>
       </div>

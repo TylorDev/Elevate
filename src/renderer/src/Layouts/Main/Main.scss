@@ -61,9 +61,12 @@
 @media (min-width: 500px) and (max-width: 620px) {
 
     .Main {
-        grid-template-columns: 0fr 1fr;
+        grid-template-columns: auto 1fr;
         padding-bottom: 8.4rem;
     }
+
+
+
 
 
 }

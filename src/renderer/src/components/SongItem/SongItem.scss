@@ -37,6 +37,7 @@
     /* Redondea la esquina superior izquierda */
     border-bottom-left-radius: 1rem;
     /* Redondea la esquina inferior izquierda */
+    color: white;
 }
 
 .songItem {
@@ -50,7 +51,7 @@
 
     position: relative;
     cursor: pointer;
-
+    color: white;
 
 
     border-top: 1px solid $text-secondary;
@@ -133,6 +134,9 @@
 
     background-color: $secondary;
     border-radius: 1rem;
+
+    border-top: 1px solid $text-principal;
+    border-bottom: 1px solid $text-principal;
 
     .ico {
         opacity: 100%;

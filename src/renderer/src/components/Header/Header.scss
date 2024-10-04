@@ -6,7 +6,7 @@
 
     overflow-x: auto;
 
-
+    transition: all 1s;
 
 
 
@@ -60,5 +60,21 @@
     svg {
         font-size: 1.4rem;
 
+    }
+}
+
+@media (min-width: 500px) and (max-width: 620px) {
+
+    .Link-name {
+        display: none;
+    }
+
+    .sec-t {
+        display: none;
+    }
+
+
+    #Header {
+        width: 4rem;
     }
 }

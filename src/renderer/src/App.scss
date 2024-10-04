@@ -31,22 +31,36 @@
     }
 }
 
+@media (min-width: 500px) and (max-width: 620px) {
+    * {
+        &::-webkit-scrollbar {
+            width: 0.4rem;
+        }
+
+        &::-webkit-scrollbar-track {
+            background-color: $secondary; // Cambia el color aquí
+        }
+    }
+}
+
 body {
 
     font-family: Arial, Helvetica, sans-serif;
 
 
     width: 100%;
+
+
     overflow: hidden;
-
-    /* Fondo semi-transparente */
-
+    background-color: rgba(56, 52, 52, 0.404);
 
 }
 
 
 
 .App {
+    //Develop outline
+    outline: 2px solid rgb(0, 255, 0);
 
     color: white;
     display: grid;

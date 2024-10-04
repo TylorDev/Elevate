@@ -1,8 +1,7 @@
 .AudioPlayer {
     color: white;
     z-index: 999;
-    background-color: transparent;
-
+    background-color: $principal;
     display: grid;
     grid-template-columns: 0.8fr auto 1.5fr;
     grid-template-rows: 1fr 1fr;
@@ -12,7 +11,7 @@
     ;
     width: 100%;
     transition: all 500ms;
-
+    border-top: 1px solid $secondary;
 }
 
 .btnShuffle {
