@@ -21,8 +21,8 @@ function Favourites() {
   }, [])
 
   useEffect(() => {
-    if (dir === 'resume' && likes.length > 0) {
-      handleResume(likes)
+    if (dir === 'resume' && likes?.fileInfos) {
+      handleResume(likes.fileInfos, 'favourites')
     }
     if (likes.cover) {
       const img = getImage('Likes', likes.cover)

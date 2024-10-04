@@ -19,8 +19,8 @@ function PlaylistPage() {
 
   const [isVisible, setIsVisible] = useState(false) // Moved to the top
   const [back, setBack] = useState()
-  const { getUniqueList, updatePlaylist, playlists } = usePlaylists()
-  const { queueState, handleQueueAndPlay, removeTrack, getImage } = useSuper() // Combined the two useSuper calls
+  const { getUniqueList, updatePlaylist, playlists, removeSongFromList } = usePlaylists()
+  const { queueState, handleQueueAndPlay, getImage } = useSuper() // Combined the two useSuper calls
 
   useEffect(() => {
     async function getData() {
@@ -35,7 +35,6 @@ function PlaylistPage() {
       const data = current?.playlistData
       const cover = getImage(data.path, current.cover)
       setBack(cover)
-      console.log('cover', cover)
     }
   }, [current, back])
 
@@ -59,7 +58,7 @@ function PlaylistPage() {
   const actions = {
     'Quitar de la lista': (file, index) => {
       console.log('eliminando a ', file.fileName)
-      removeTrack(data.path, index)
+      removeSongFromList(data.path, index)
     }
   }
 

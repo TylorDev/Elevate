@@ -32,7 +32,8 @@ export function Controls() {
     toggleShuffle,
     toggleRepeat,
     isShuffled,
-    loop
+    loop,
+    currentFile
   } = useSuper()
 
   const { likeState, toggleLike } = useLikes()
@@ -51,7 +52,12 @@ export function Controls() {
       <Button className="btnNext" onClick={handleNextClick}>
         <LuSkipForward />
       </Button>
-      <Button className={currentLike ? 'btnLike liked' : 'btnLike'} onClick={toggleLike}>
+      <Button
+        className={currentLike ? 'btnLike liked' : 'btnLike'}
+        onClick={() => {
+          toggleLike(currentFile)
+        }}
+      >
         {' '}
         {buttonText}
       </Button>

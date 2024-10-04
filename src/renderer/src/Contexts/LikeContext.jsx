@@ -4,6 +4,7 @@ import { validateLike } from './utilMenu'
 import { ElectronGetter, ElectronSetter } from './utils'
 import { ToLike } from './utilControls'
 import { useSuper } from './SupeContext'
+import { toast } from 'react-toastify'
 const ContextLikes = createContext()
 
 export const useLikes = () => useContext(ContextLikes)
@@ -27,7 +28,36 @@ export const LikesProvider = ({ children }) => {
     })
   }
 
-  const likesong = (common) => ElectronSetter('like-song', common)
+  const likesong = async (common) => {
+    const res = await window.electron.ipcRenderer.invoke('like-song', common)
+    toast.success('liked', {
+      position: 'bottom-right',
+      autoClose: 1000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark'
+    })
+    return res
+  }
+
+  const unlikesong = async (common) => {
+    const res = await window.electron.ipcRenderer.invoke('unlike-song', common)
+    toast.warning('disliked', {
+      position: 'bottom-right',
+      autoClose: 1000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark'
+    })
+    return res
+  }
+
   const getLikes = async () => {
     await ElectronGetter(
       'get-likes',
@@ -40,15 +70,22 @@ export const LikesProvider = ({ children }) => {
       null,
       'Se obtuvieron los likes!'
     )
-    console.log(likeState)
   }
 
-  const unlikesong = (common) => ElectronSetter('unlike-song', common, getLikes)
+  const toggleLike = async (file, isLiked) => {
+    const fileToUse = file ?? currentFile // Usa currentFile si file es null o undefined
 
-  const toggleLike = () => {
-    ToLike(currentFile, likeState.currentLike, likesong, unlikesong, (newLike) => {
-      setLikeState((prevState) => ({ ...prevState, currentLike: newLike }))
-    })
+    if (fileToUse && fileToUse.filePath && fileToUse.fileName) {
+      // Usa likeState.currentLike si isLiked es undefined
+      const currentLike = isLiked !== undefined ? isLiked : likeState.currentLike
+
+      const response = currentLike ? await unlikesong(fileToUse) : await likesong(fileToUse)
+      console.log(currentLike ? 'dislike:' : 'like:', response)
+      setLikeState((prevState) => ({ ...prevState, currentLike: !currentLike }))
+    } else {
+      console.error('currentFile is undefined or missing required properties.')
+    }
+
     getLikes()
   }
 

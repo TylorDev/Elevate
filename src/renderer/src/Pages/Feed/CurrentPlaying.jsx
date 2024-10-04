@@ -22,7 +22,12 @@ export function CurrentPlaying() {
             <span>{formatTimestamp(Date.now())}</span>
           </div>
           <div className="cc-like">
-            <Button className={currentLike ? 'btnLike liked' : 'btnLike'} onClick={toggleLike}>
+            <Button
+              className={currentLike ? 'btnLike liked' : 'btnLike'}
+              onClick={() => {
+                toggleLike()
+              }}
+            >
               {' '}
               {currentLike ? <LuHeart /> : <LuHeartOff />}
             </Button>

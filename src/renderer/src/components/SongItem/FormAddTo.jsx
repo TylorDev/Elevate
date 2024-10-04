@@ -1,15 +1,15 @@
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './FormAddTo.scss'
 
-export function FormAddTo({ file, addSong }) {
-  const { playlists } = usePlaylists()
+export function FormAddTo({ file }) {
+  const { playlists, addSongToList } = usePlaylists()
 
   return (
     <div className="FormAddTo">
       {playlists.map((item, index) => (
         <button
           onClick={() => {
-            addSong(item.path, file)
+            addSongToList(item.path, file)
           }}
           key={index}
           className="fromItem"

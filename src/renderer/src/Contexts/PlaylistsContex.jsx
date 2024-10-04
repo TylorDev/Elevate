@@ -4,6 +4,7 @@ import { dataToImageUrl, ElectronDelete, ElectronGetter, ElectronSetter2 } from 
 import { Bounce, toast } from 'react-toastify'
 
 import { useSuper } from './SupeContext'
+import { useMini } from './MiniContext'
 
 const ContextLikes = createContext()
 
@@ -17,6 +18,20 @@ export const PlaylistsProvider = ({ children }) => {
   const [arrayCovers, setArrayCovers] = useState([])
   const [currentCover, setCurrentCover] = useState('')
   const [arrayAlbums, setArrayAlbums] = useState([])
+
+  const { removeTrack, addSong } = useSuper()
+
+  const { getDirectories, deleteDirectory } = useMini()
+  const removeSongFromList = async (playlistPath, index) => {
+    await removeTrack(playlistPath, index)
+
+    getSavedLists()
+  }
+
+  const addSongToList = async (playlistPath, newTrack) => {
+    await addSong(playlistPath, newTrack)
+    getSavedLists()
+  }
 
   useEffect(() => {
     if (currentFile.picture) {
@@ -128,6 +143,12 @@ export const PlaylistsProvider = ({ children }) => {
     await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
   }
 
+  const deleteDirectoryList = async (path) => {
+    await deleteDirectory(path)
+
+    SetAllSongs([])
+    getAllSongs()
+  }
   const getAllSongs = async (page = 0) => {
     await ElectronGetter(
       'get-all-audio-files',
@@ -158,7 +179,10 @@ export const PlaylistsProvider = ({ children }) => {
 
   useEffect(() => {
     const handleNotification = async (message) => {
-      console.log(message) // Maneja el mensaje como desees
+      if (message == '[new]') {
+        getAllSongs()
+        getDirectories()
+      }
       toast.success(message || 'Completado!', {
         position: 'bottom-right',
         autoClose: 3000,
@@ -200,7 +224,10 @@ export const PlaylistsProvider = ({ children }) => {
 
         currentCover,
         updateArrayAlbums,
-        getRandomList
+        getRandomList,
+        removeSongFromList,
+        addSongToList,
+        deleteDirectoryList
       }}
     >
       {children}

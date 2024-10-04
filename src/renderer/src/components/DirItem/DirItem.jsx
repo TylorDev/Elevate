@@ -6,6 +6,7 @@ import { Button } from '../Button/Button'
 import { useMini } from '../../Contexts/MiniContext'
 import './DirItem.scss'
 import { FaPlay } from 'react-icons/fa'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 
 export function DirItem({ directory }) {
   const navigate = useNavigate()
@@ -14,8 +15,7 @@ export function DirItem({ directory }) {
     const parts = path.split('\\')
     return parts[parts.length - 1]
   }
-
-  const { deleteDirectory } = useMini()
+  const { deleteDirectoryList } = usePlaylists()
 
   return (
     <li key={directory.id} className="dirItem">
@@ -38,7 +38,7 @@ export function DirItem({ directory }) {
       </Button>
       <Button
         onClick={() => {
-          deleteDirectory(directory.path)
+          deleteDirectoryList(directory.path)
         }}
       >
         <BsFolderMinus color="red" />

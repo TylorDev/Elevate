@@ -42,17 +42,17 @@ export const ElectronGetter = async (action, setState = null, value = null, mess
     const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
     if (fileInfos) {
       setState?.(fileInfos)
-      toast.success(message || 'Completado!', {
-        position: 'bottom-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'dark',
-        transition: Bounce
-      })
+      // toast.success(message || 'Completado!', {
+      //   position: 'bottom-right',
+      //   autoClose: 3000,
+      //   hideProgressBar: false,
+      //   closeOnClick: true,
+      //   pauseOnHover: true,
+      //   draggable: true,
+      //   progress: undefined,
+      //   theme: 'dark',
+      //   transition: Bounce
+      // })
     } else {
       console.log('No files were selected')
     }

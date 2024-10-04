@@ -80,24 +80,6 @@ function Header() {
           </NavLink>
         </div>
       </div>
-
-      <div className="nav-sec">
-        <div className="sec-t">User</div>
-
-        <div className="sec-i">
-          {playlists.slice(0, 4).map((playlist, index) => {
-            const colors = ['red', 'green', 'blue', 'orange']
-            return (
-              <MiniList
-                getActiveClass={getActiveClass}
-                list={playlist}
-                key={index}
-                color={colors[index]}
-              />
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }

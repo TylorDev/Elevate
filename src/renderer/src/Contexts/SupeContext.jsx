@@ -102,6 +102,7 @@ export const SuperProvider = ({ children }) => {
     const invalidRoutes = ['favourites', 'listen-later', 'tracks', 'stats']
 
     if (invalidRoutes.includes(filePath)) {
+      console.log(`La ruta ${filePath} es inválida`)
       navigateToResume(filePath)
       setCurrentFile(song)
       setCurrentIndex(index)
@@ -109,7 +110,7 @@ export const SuperProvider = ({ children }) => {
     }
 
     try {
-      console.log('handleQueueAndPlay[Valida]: ', filePath)
+      // console.log('handleQueueAndPlay[Valida]: ', filePath)
       const newQueue = await window.electron.ipcRenderer.invoke('get-list', filePath)
 
       if (newQueue) {

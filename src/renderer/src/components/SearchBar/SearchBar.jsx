@@ -23,7 +23,7 @@ function SearchBar() {
 
   return (
     <div className="search-bar">
-      <div className="s-t">Developer</div>
+      <div className="s-t">Offline Player</div>
       <input
         className="search-input"
         type="text"

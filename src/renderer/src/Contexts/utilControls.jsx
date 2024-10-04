@@ -65,6 +65,7 @@ export const ToLike = (currentFile, currentLike, likesong, unlikesong, setCurren
       unlikesong(currentFile)
       setCurrentLike(false)
     } else {
+      console.log('intern dislike', currentFile)
       likesong(currentFile)
       setCurrentLike(true)
     }

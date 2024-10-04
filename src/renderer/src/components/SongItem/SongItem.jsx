@@ -16,8 +16,8 @@ import Modal from './../Modal/Modal'
 import 'react-toastify/dist/ReactToastify.css'
 
 import { FormAddTo } from './FormAddTo'
-export function SongItem({ file, index, cola, name, padreActions, style }) {
-  const { handleSongClick, currentFile, addSong, getImage, handleGetBPMClick } = useSuper()
+export function SongItem({ file, index, cola, name, padreActions }) {
+  const { handleSongClick, currentFile, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
 
   const { toggleLike, isLiked } = useLikes()
@@ -26,8 +26,13 @@ export function SongItem({ file, index, cola, name, padreActions, style }) {
   const [isVisible, setIsVisible] = useState(false)
   const [mycover, setMyCover] = useState('')
 
+  const [test, setTest] = useState(false)
   const [isLoaded, setLoaded] = useState(false)
   const elementRef = useRef(null)
+
+  useEffect(() => {
+    isLiked(file.filePath, file.fileName, setTest)
+  }, [])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -86,14 +91,14 @@ export function SongItem({ file, index, cola, name, padreActions, style }) {
   useEffect(() => {
     setIsLikedo(file.liked)
     isLiked(file.filePath, file.fileName, setIsLikedo)
-  }, [file.liked])
+  }, [])
 
-  const handleClick = () => {
-    // Llama a `toggleLike` para realizar su acción
-    toggleLike()
+  const handleClick = (e) => {
+    e.stopPropagation() // Detiene la propagación del evento
+    toggleLike(file, isLikedo)
     // Cambia el estado local después de la acción
-    setIsLikedo((prevState) => !prevState)
-    // Aquí puedes agregar lógica adicional si es necesario
+    isLiked(file.filePath, file.fileName, setIsLikedo)
+
     console.log('Estado actualizado:', !isLikedo)
   }
 
@@ -118,7 +123,7 @@ export function SongItem({ file, index, cola, name, padreActions, style }) {
         <div className="songdata">
           <span className="song-tittle">{file.fileName}</span>
           <span>
-            {file.artist || 'Unknow'} • {file.play_count} vistas • {file.bpm} bpm
+            {file.artist || 'Unknow'} • {file.play_count} vistas • {test ? 'Liked' : 'disliked'}
           </span>
         </div>
 
@@ -130,7 +135,7 @@ export function SongItem({ file, index, cola, name, padreActions, style }) {
         </div>
 
         <Modal isVisible={isVisible} closeModal={closeModal}>
-          <FormAddTo file={file} addSong={addSong} />
+          <FormAddTo file={file} />
         </Modal>
 
         <div className="stime">

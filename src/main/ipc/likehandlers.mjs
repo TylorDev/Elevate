@@ -83,7 +83,7 @@ async function updateSongPreference(filepath, updateAction, updateData) {
       console.debug('Song updated successfully:', { songId })
       return { success: true, songId }
     } else {
-      console.debug('Song not found in user preferences:', { songId })
+      console.debug('Song not found in user preferences:', { filepath })
       return { success: false, error: 'Song not found in user preferences' }
     }
   } catch (error) {
@@ -296,9 +296,10 @@ async function searchSongPathsByName(searchText) {
 }
 
 export function setupLikeSongHandlers() {
-  ipcMain.handle('like-song', async (event, filepath, filename) => {
+  ipcMain.handle('like-song', async (event, common) => {
     try {
-      const song = await getOrCreateSong(filepath, filename)
+      console.debug(common.fileName)
+      const song = await getOrCreateSong(common.filePath, common.fileName)
       await markUserPreference(song.song_id, 'is_favorite')
 
       return { success: true, songId: song.song_id }
@@ -332,8 +333,8 @@ export function setupLikeSongHandlers() {
     }
   })
 
-  ipcMain.handle('unlike-song', (event, filepath, filename) => {
-    return updateSongPreference(filepath, async (songId) => {
+  ipcMain.handle('unlike-song', (event, common) => {
+    return updateSongPreference(common.filePath, async (songId) => {
       await prisma.userPreferences.update({
         where: { song_id: songId },
         data: { is_favorite: false }

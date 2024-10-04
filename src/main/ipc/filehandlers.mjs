@@ -66,7 +66,7 @@ function extractBasename(filename) {
 }
 
 function debugFileDetails(fullPath, basenameWithoutExt) {
-  sendNotification(`Nueva cancion:${basenameWithoutExt}`)
+  sendNotification(`[new]`)
   console.debug(`Archivo detectado:`)
   console.debug(`Ruta completa: ${fullPath}`)
   console.debug(`Basename sin extensión: ${basenameWithoutExt}`)
@@ -187,20 +187,20 @@ export function setupFilehandlers() {
       const allAudioFiles = directories.flatMap((dir) => getAllAudioFiles(dir.path))
       const uniqueAudioFiles = [...new Set(allAudioFiles)]
 
-      // Configuración de paginación
-      const pageSize = 10 // Número de elementos por página
-      const totalPages = Math.ceil(uniqueAudioFiles.length / pageSize)
+      // // Configuración de paginación
+      // const pageSize = 10 // Número de elementos por página
+      // const totalPages = Math.ceil(uniqueAudioFiles.length / pageSize)
 
-      // Validar la página actual
-      if (currentPage > totalPages) return null
+      // // Validar la página actual
+      // if (currentPage > totalPages) return null
 
-      // Obtener los archivos de la página actual
-      const paginatedAudioFiles = uniqueAudioFiles.slice(
-        (currentPage - 1) * pageSize,
-        currentPage * pageSize
-      )
+      // // Obtener los archivos de la página actual
+      // const paginatedAudioFiles = uniqueAudioFiles.slice(
+      //   (currentPage - 1) * pageSize,
+      //   currentPage * pageSize
+      // )
 
-      return getFileInfos(paginatedAudioFiles)
+      return getFileInfos(uniqueAudioFiles)
     } catch (error) {
       console.error('Error retrieving audio files:', error)
       throw error

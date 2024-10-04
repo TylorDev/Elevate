@@ -9,13 +9,19 @@ import { useMini } from '../../Contexts/MiniContext'
 usePlaylists
 function Lista() {
   const {
-    lista // lista personalizada
+    lista, // lista personalizada
+    eliminarElemento
   } = useMini()
-
+  const actions = {
+    'Quitar de la cola': (file) => {
+      console.log('eliminando a ', file.fileName)
+      eliminarElemento(file)
+    }
+  }
   return (
     <>
       <PlaylistActions />
-      <Cola list={lista} name={'tracks'} />
+      <Cola list={lista} name={'tracks'} actions={actions} />
     </>
   )
 }

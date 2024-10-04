@@ -15,20 +15,27 @@ import { useSuper } from '../../Contexts/SupeContext'
 function ListenLater() {
   const { handleResume } = useSuper()
   const { dir } = useParams()
-  const { getlatersongs, later } = useMini()
+  const { getlatersongs, later, removelatersong } = useMini()
 
   useEffect(() => {
     getlatersongs()
   }, [])
 
   useEffect(() => {
-    if (dir === 'resume' && later.length > 0) {
-      handleResume(later)
+    if (dir === 'resume' && later?.fileInfos) {
+      handleResume(later.fileInfos, 'listen-later')
     }
   }, [later, dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
+  }
+
+  const actions = {
+    'Quitar de Listen later': (file) => {
+      console.log('eliminando a ', file.fileName)
+      removelatersong(file)
+    }
   }
 
   if (!later) {
@@ -63,7 +70,7 @@ function ListenLater() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={later.fileInfos} name={'listen-later'} />
+        <Cola list={later.fileInfos} name={'listen-later'} actions={actions} />
       </div>
     </div>
   )

@@ -9,7 +9,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 
 function Feed() {
   const { isAwaken } = useSuper()
-  console.log(isAwaken)
+
   return (
     <div className="Feed">
       {isAwaken ? (
