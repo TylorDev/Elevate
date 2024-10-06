@@ -6,61 +6,61 @@ Reproductor de musica basico.
 
 # Reanudar canción:
 
-### 1.[✅] Reanudar una canción desde Listen later.
+1.[✅] Reanudar una canción desde Listen later.
 
-### 2.[✅] Reanudar una canción desde Likes.
+2.[✅] Reanudar una canción desde Likes.
 
-### 3.[✅] Reanudar una canción desde un directorio.
+3.[✅] Reanudar una canción desde un directorio.
 
-### 4.[✅] Reanudar una canción desde AllTracks.
+4.[✅] Reanudar una canción desde AllTracks.
 
-### 5.[✅] Reanudar una canción desde una playlist.
+5.[✅] Reanudar una canción desde una playlist.
 
-### 6.[✅] Reanudar una canción desde la cola personalizada.
+6.[✅] Reanudar una canción desde la cola personalizada.
 
-### 7.[✅] Reanudar una canción que no está en All Tracks.
+7.[✅] Reanudar una canción que no está en All Tracks.
 
 # Manejo de listas y colas:
 
-### 1.[✅] Manejar el caso en que la lista o cola no existe.
+1.[✅] Manejar el caso en que la lista o cola no existe.
 
-### 2.[✅] Crear una cola personalizada.
+2.[✅] Crear una cola personalizada.
 
-### 3.[✅] Guardar una lista.
+3.[✅] Guardar una lista.
 
-### 4.[✅] Cambiar el nombre de una lista.
+4.[✅] Cambiar el nombre de una lista.
 
-### 5.[✅] Eliminar lista.
+5.[✅] Eliminar lista.
 
-### 6.[✅] Importar lista.
+6.[✅] Importar lista.
 
-### 7.[✅] Quitar canciones de una lista.
+7.[✅] Quitar canciones de una lista.
 
-### 8.[✅] Agregar canciones a una lista.
+8.[✅] Agregar canciones a una lista.
 
 # Manejo de canciones:
 
-### 1.[✅] Dar like a una canción.
+1.[✅] Dar like a una canción.
 
-### 2.[✅] Quitar like.
+2.[✅] Quitar like.
 
-### 3.[✅] Crear una nueva canción desde una carpeta.
+3.[✅] Crear una nueva canción desde una carpeta.
 
-### 4.[✅] Quitar elemento de la cola personalizada.
+4.[✅] Quitar elemento de la cola personalizada.
 
-### 5. [✅] Agregar a ver más tarde.
+5. [✅] Agregar a ver más tarde.
 
-### 6.[✅] Quitar de ver más tarde.
+6.[✅] Quitar de ver más tarde.
 
-### 8.[✅] Agregar un directorio grande.
+8.[✅] Agregar un directorio grande.
 
-### 7.[✅]Eliminar directorio.
+7.[✅]Eliminar directorio.
 
-### 8.[✅] Shuffle.
+8.[✅] Shuffle.
 
-### 9.[✅] Controles.
+9.[✅] Controles.
 
-### 10.[✅] Buscar una canción.
+10.[✅] Buscar una canción.
 
 # bugs
 
