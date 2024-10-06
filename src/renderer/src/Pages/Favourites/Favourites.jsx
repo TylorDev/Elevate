@@ -16,7 +16,7 @@ function Favourites() {
   const { dir } = useParams()
   const { getLikes, likes } = useLikes()
   const [back, setBack] = useState()
-  const { handleResume, getImage } = useSuper()
+  const { handleResume, getImage, handleQueueAndPlay, toggleShuffle } = useSuper()
   useEffect(() => {
     getLikes()
   }, [])
@@ -56,13 +56,23 @@ function Favourites() {
             <span> {formatDuration(likes.totalDuration)} </span>
           </div>
           <div className="pgl-buttton">
-            <Button>
+            <Button
+              onClick={async () => {
+                await handleQueueAndPlay(likes.fileInfos[0], 0, 'favourites')
+
+                toggleShuffle()
+              }}
+            >
               <BiShuffle />
             </Button>
-            <Button>
+            <Button
+              onClick={async () => {
+                await handleQueueAndPlay(likes.fileInfos[0], 0, 'favourites')
+              }}
+            >
               <FaPlay />
             </Button>
-            <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+            <DropdownMenu options={[]} onSelect={handleSelect} />
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@ export async function generateCover(files) {
     .slice(0, 4)
 
   if (topImages.length === 0) {
-    throw new Error('No valid images to process.')
+    // throw new Error('No valid images to process.')
   }
 
   const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data, 'base64'))

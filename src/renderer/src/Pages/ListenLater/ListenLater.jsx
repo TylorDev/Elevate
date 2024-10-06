@@ -14,7 +14,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { Skeleton } from '@mui/material'
 
 function ListenLater() {
-  const { handleResume } = useSuper()
+  const { handleResume, handleQueueAndPlay, toggleShuffle } = useSuper()
   const { dir } = useParams()
   const { getlatersongs, later, removelatersong } = useMini()
 
@@ -59,13 +59,23 @@ function ListenLater() {
             <span> {formatDuration(later.totalDuration)} </span>
           </div>
           <div className="pgl-buttton">
-            <Button>
+            <Button
+              onClick={async () => {
+                await handleQueueAndPlay(later.fileInfos[0], 0, 'favourites')
+
+                toggleShuffle()
+              }}
+            >
               <BiShuffle />
             </Button>
-            <Button>
+            <Button
+              onClick={async () => {
+                await handleQueueAndPlay(later.fileInfos[0], 0, 'listen-later')
+              }}
+            >
               <FaPlay />
             </Button>
-            <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+            <DropdownMenu options={[]} onSelect={handleSelect} />
           </div>
         </div>
       </div>

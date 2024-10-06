@@ -56,7 +56,20 @@ body {
 
 }
 
+@font-face {
+    font-family: 'aligator';
+    src: url('./fonts/aligator_2/Aligator.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
 
+@font-face {
+    font-family: 'unifrak';
+    src: url('./fonts/UnifrakturCook/UnifrakturCook-Bold.ttf') format('truetype');
+
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Didact+Gothic&family=UnifrakturCook&display=swap');
 
 .App {
     //Develop outline
@@ -66,7 +79,7 @@ body {
     display: grid;
     padding-top: 2rem;
 
-
+    font-family: "Didact Gothic", sans-serif;
     padding-bottom: 1rem;
     background-color: $principal;
 }

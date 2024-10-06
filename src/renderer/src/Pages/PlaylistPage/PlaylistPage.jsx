@@ -12,6 +12,7 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
+import { PlaylistActions } from './../../Components/PlaylistActions/PlaylistActions'
 
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
@@ -96,7 +97,7 @@ function PlaylistPage() {
             >
               <FaPlay />
             </Button>
-            <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} onSelect={handleSelect} />
+            <DropdownMenu options={[]} onSelect={handleSelect} />
           </div>
         </div>
       </div>

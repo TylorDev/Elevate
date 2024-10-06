@@ -4,23 +4,25 @@ import './Cola.scss'
 import { useMemo } from 'react'
 
 export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
+  const validList = Array.isArray(list) ? list : [] // Verificar si list es un array
+
   const memoizedSongs = useMemo(() => {
-    return list.map((file, index) => (
+    return validList.map((file, index) => (
       <SongItem
         key={index}
         file={file}
         index={index}
-        cola={list}
+        cola={validList}
         name={name}
         filePath={filePath}
         padreActions={actions}
       />
     ))
-  }, [list, name, filePath, actions]) // Dependencias de useMemo
+  }, [validList, name, filePath, actions])
 
   return (
     <div className="Cola">
-      {list && list.length > 0 ? <ul>{memoizedSongs}</ul> : <LoadingCola></LoadingCola>}
+      {validList && validList.length > 0 ? <ul>{memoizedSongs}</ul> : <LoadingCola></LoadingCola>}
     </div>
   )
 }

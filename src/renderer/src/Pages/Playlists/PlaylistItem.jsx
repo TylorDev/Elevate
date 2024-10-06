@@ -24,9 +24,9 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
 
   const { deletePlaylist, updatePlaylist } = usePlaylists()
   const { getImage } = useSuper()
-  const [back, setBack] = useState('')
-  const [isVisible, setIsVisible] = useState(false)
 
+  const [isVisible, setIsVisible] = useState(false)
+  const [back, setBack] = useState('')
   useEffect(() => {
     const cover = getImage(playlist.path, playlist.cover)
 

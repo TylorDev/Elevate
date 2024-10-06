@@ -24,15 +24,19 @@ export function RandomList() {
     }
   }, [])
 
+  const [back, setBack] = useState('')
+  useEffect(() => {
+    let cover = ''
+    if (randomPlaylist) {
+      cover = getImage(randomPlaylist.path, randomPlaylist.cover)
+    }
+
+    setBack(cover)
+  }, [randomPlaylist, back])
+
   if (!randomPlaylist) {
     return (
-      <div
-        className="r-list"
-        onClick={() => {
-          navigate(`/playlists/${randomPlaylist.path}`)
-        }}
-        style={{ backgroundImage: `url(${currentbg})` }}
-      >
+      <div className="r-list" style={{ backgroundImage: `url(${''})` }}>
         <div className="r-name">
           <span>
             {0} tracks • {'00:00:00'}
@@ -55,7 +59,7 @@ export function RandomList() {
       onClick={() => {
         navigate(`/playlists/${randomPlaylist.path}`)
       }}
-      style={{ backgroundImage: `url(${currentbg})` }}
+      style={{ backgroundImage: `url(${back})` }}
     >
       <div className="r-name">
         <span>
@@ -65,7 +69,7 @@ export function RandomList() {
         <span>{randomPlaylist?.nombre} </span>
       </div>
       <div className="r-img">
-        <img src={currentbg} alt="playlist Background" />
+        <img src={back} alt="playlist Background" />
       </div>
 
       <div className="blur"></div>

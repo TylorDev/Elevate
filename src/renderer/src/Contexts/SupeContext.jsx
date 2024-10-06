@@ -193,7 +193,7 @@ export const SuperProvider = ({ children }) => {
         mediaRef.current.removeEventListener('durationchange', updateDuration)
       }
     }
-  }, [])
+  }, [mediaRef])
 
   useEffect(() => {
     if (mediaRef.current) {
@@ -258,6 +258,7 @@ export const SuperProvider = ({ children }) => {
       },
       setIsShuffled
     )
+    navigate('/music')
   }
 
   const handleSaveClick = async () => {
@@ -322,7 +323,7 @@ export const SuperProvider = ({ children }) => {
     setCurrentFile(file)
     setCurrentIndex(index)
     setQueueState({ currentQueue: list, originalQueue: list, queueName: name })
-    addhistory(file)
+
     saveLastData(file.filePath, index, name)
     // console.log('Nombre en ClickSong: ' + (name || '[sin nombre]'))
   }

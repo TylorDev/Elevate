@@ -4,7 +4,7 @@ import { Cola } from '../Cola/Cola'
 import Modal from '../Modal/Modal'
 import './SearchBar.scss'
 import { useState } from 'react'
-
+import icon from '../../../../../resources/icon.png'
 function SearchBar() {
   const [isVisible, setIsVisible] = useState(false)
   const [query, setQuery] = useState('')
@@ -23,7 +23,9 @@ function SearchBar() {
 
   return (
     <div className="search-bar" id="search-bar">
-      <div className="s-t">Offline Player</div>
+      <div className="s-t">
+        <span>Elevate</span>
+      </div>
       <input
         className="search-input"
         type="text"
