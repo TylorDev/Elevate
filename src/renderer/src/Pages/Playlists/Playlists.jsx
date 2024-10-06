@@ -17,6 +17,20 @@ function Playlists() {
     updateArrayAlbums(playlists)
   }, [])
 
+  if (playlists.length === 0) {
+    return (
+      <div className="Playlists">
+        <ul>
+          <PlaylistItem></PlaylistItem>
+          <PlaylistItem></PlaylistItem>
+          <PlaylistItem></PlaylistItem>
+          <PlaylistItem></PlaylistItem>
+          <PlaylistItem></PlaylistItem>
+        </ul>
+      </div>
+    )
+  }
+
   return (
     <div className="Playlists">
       <ul>

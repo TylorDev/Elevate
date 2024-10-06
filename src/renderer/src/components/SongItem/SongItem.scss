@@ -12,6 +12,24 @@
     }
 }
 
+#LoadSongItem {
+    min-width: 25rem;
+
+    background-color: $secondary;
+    border-radius: 1rem;
+
+    .songItem {
+        padding: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .MuiCircularProgress-svg {
+            color: $text-principal;
+        }
+    }
+
+}
 
 .visible {
 

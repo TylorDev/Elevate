@@ -3,6 +3,7 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './RandomList.scss'
 import { useNavigate } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { Skeleton } from '@mui/material'
 
 export function RandomList() {
   const { randomPlaylist, getRandomList } = usePlaylists()
@@ -21,11 +22,32 @@ export function RandomList() {
     if (!randomPlaylist) {
       getRandomList()
     }
-    if (randomPlaylist?.path) {
-      const img = getImage(randomPlaylist.path, randomPlaylist.cover)
-      setCurrentBg(img)
-    }
   }, [])
+
+  if (!randomPlaylist) {
+    return (
+      <div
+        className="r-list"
+        onClick={() => {
+          navigate(`/playlists/${randomPlaylist.path}`)
+        }}
+        style={{ backgroundImage: `url(${currentbg})` }}
+      >
+        <div className="r-name">
+          <span>
+            {0} tracks • {'00:00:00'}
+          </span>
+
+          <span>{'Loading name...'} </span>
+        </div>
+        <div className="r-img">
+          <Skeleton sx={{ bgcolor: 'grey.900' }} height={'100%'} />
+        </div>
+
+        <div className="blur"></div>
+      </div>
+    )
+  }
 
   return (
     <div

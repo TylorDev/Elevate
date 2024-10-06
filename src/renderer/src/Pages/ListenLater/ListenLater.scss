@@ -1,0 +1,23 @@
+#LoadPage {
+    .plg {
+
+
+        .plg-cover {
+            height: fit-content;
+
+
+
+            .MuiSkeleton-root {
+                margin: 0;
+                gap: 0;
+                padding: 0;
+                height: 30rem;
+            }
+
+            .css-1lpshee-MuiSkeleton-root {
+                transform-origin: 0% 0%;
+            }
+        }
+    }
+
+}

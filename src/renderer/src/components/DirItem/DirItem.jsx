@@ -7,8 +7,17 @@ import { useMini } from '../../Contexts/MiniContext'
 import './DirItem.scss'
 import { FaPlay } from 'react-icons/fa'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { Skeleton } from '@mui/material'
 
 export function DirItem({ directory }) {
+  if (!directory) {
+    return (
+      <div className="dirItem" id="loaddirItem">
+        <BsFolderFill className="d-icon" />
+        <Skeleton sx={{ bgcolor: 'grey.600' }} width="100%" height={'2rem'} />
+      </div>
+    )
+  }
   const navigate = useNavigate()
 
   const getLastPart = (path) => {

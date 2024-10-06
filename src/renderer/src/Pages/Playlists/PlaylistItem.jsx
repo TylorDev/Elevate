@@ -11,8 +11,17 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
 import { useEffect, useState } from 'react'
+import { CircularProgress } from '@mui/material'
 
 export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
+  if (!playlist) {
+    return (
+      <li className="PlaylistItem" id="LoadPlaylistItem">
+        <CircularProgress size="3.5rem" />
+      </li>
+    )
+  }
+
   const { deletePlaylist, updatePlaylist } = usePlaylists()
   const { getImage } = useSuper()
   const [back, setBack] = useState('')

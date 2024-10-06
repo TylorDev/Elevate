@@ -20,7 +20,21 @@ export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
 
   return (
     <div className="Cola">
-      {list && list.length > 0 ? <ul>{memoizedSongs}</ul> : <p>No files selected</p>}
+      {list && list.length > 0 ? <ul>{memoizedSongs}</ul> : <LoadingCola></LoadingCola>}
     </div>
   )
 }
+
+function LoadingCola() {
+  return (
+    <div className="Cola">
+      <ul>
+        <SongItem />
+        <SongItem />
+        <SongItem />
+        <SongItem />
+      </ul>
+    </div>
+  )
+}
+export default Cola

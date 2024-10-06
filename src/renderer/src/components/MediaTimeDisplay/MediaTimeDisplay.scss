@@ -65,6 +65,27 @@
     }
 }
 
+#Otimeline.LoadTimeLine {
+
+
+
+    .MuiLinearProgress-root {
+        height: 100%;
+
+        .MuiLinearProgress-dashed {
+            background-image: radial-gradient($text-principal 0%, $text-principal 16%, transparent 42%);
+        }
+
+        .MuiLinearProgress-bar1Buffer {
+            background-color: $text-principal;
+        }
+
+        .MuiLinearProgress-bar2Buffer {
+            background-color: $text-secondary;
+        }
+    }
+}
+
 .time {
     width: 100%;
 

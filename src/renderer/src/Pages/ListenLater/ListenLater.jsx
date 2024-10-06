@@ -11,6 +11,7 @@ import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { Skeleton } from '@mui/material'
 
 function ListenLater() {
   const { handleResume } = useSuper()
@@ -38,8 +39,8 @@ function ListenLater() {
     }
   }
 
-  if (!later) {
-    return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
+  if (!later.fileInfos) {
+    return <LoadListenLater /> // O un mensaje adecuado de "cargando"
   }
 
   return (
@@ -76,3 +77,38 @@ function ListenLater() {
   )
 }
 export default ListenLater
+
+function LoadListenLater() {
+  return (
+    <div className="PlaylistPage" id="LoadPage">
+      <div className="plg-controls">
+        <div className="plg">
+          <div className="plg-cover">
+            <Skeleton sx={{ bgcolor: 'grey.900' }} />
+          </div>
+          <div className="pgl-name">{'Listen later'}</div>
+
+          <div className="pgl-time">{formatTimestamp(Date.now())}</div>
+          <div className="pgl-data">
+            <span>{0} vistas •</span>
+            <span> {0} pistas •</span>
+            <span> {'00:00:00'} </span>
+          </div>
+          <div className="pgl-buttton">
+            <Button>
+              <BiShuffle />
+            </Button>
+            <Button>
+              <FaPlay />
+            </Button>
+            <DropdownMenu options={['Option 1', 'Option 2', 'Option 3']} />
+          </div>
+        </div>
+      </div>
+
+      <div className="plg-cola">
+        <Cola name={'listen-later'} />
+      </div>
+    </div>
+  )
+}

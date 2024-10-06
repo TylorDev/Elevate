@@ -16,6 +16,20 @@
 
 }
 
+#LoadPlaylistItem {
+    background-color: $secondary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid $text-secondary;
+
+    .MuiCircularProgress-svg {
+        color: $text-principal;
+    }
+
+
+}
+
 
 
 .cover-pi {

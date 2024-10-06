@@ -16,6 +16,20 @@ function Directories() {
     }
   }, [])
 
+  if (directories.length === 0) {
+    return (
+      <div className="div">
+        <Button onClick={addDirectory}>
+          <MdCreateNewFolder color="green" size={35} />
+        </Button>
+        <ul>
+          <DirItem />
+          <DirItem />
+          <DirItem />
+        </ul>
+      </div>
+    )
+  }
   return (
     <div className="">
       <ul>

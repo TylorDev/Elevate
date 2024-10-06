@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { Skeleton } from '@mui/material'
 
 function Favourites() {
   const { dir } = useParams()
@@ -34,8 +35,8 @@ function Favourites() {
     console.log(`Selected option: ${option}`)
   }
 
-  if (!likes) {
-    return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
+  if (!likes.fileInfos) {
+    return <LoadLikes /> // O un mensaje adecuado de "cargando"
   }
 
   return (
@@ -73,3 +74,37 @@ function Favourites() {
   )
 }
 export default Favourites
+function LoadLikes() {
+  return (
+    <div className="PlaylistPage" id="LoadPage">
+      <div className="plg-controls">
+        <div className="plg">
+          <div className="plg-cover">
+            <Skeleton sx={{ bgcolor: 'grey.900' }} />
+          </div>
+          <div className="pgl-name">{'Favourites'}</div>
+
+          <div className="pgl-time">{formatTimestamp(Date.now())}</div>
+          <div className="pgl-data">
+            <span>{0} vistas •</span>
+            <span> {0} pistas •</span>
+            <span> {'00:00:00'} </span>
+          </div>
+          <div className="pgl-buttton">
+            <Button>
+              <BiShuffle />
+            </Button>
+            <Button>
+              <FaPlay />
+            </Button>
+            <DropdownMenu options={[]} />
+          </div>
+        </div>
+      </div>
+
+      <div className="plg-cola">
+        <Cola name={'listen-later'} />
+      </div>
+    </div>
+  )
+}

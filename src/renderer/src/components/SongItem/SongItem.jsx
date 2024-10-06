@@ -16,7 +16,12 @@ import Modal from './../Modal/Modal'
 import 'react-toastify/dist/ReactToastify.css'
 
 import { FormAddTo } from './FormAddTo'
+import { CircularProgress } from '@mui/material'
 export function SongItem({ file, index, cola, name, padreActions }) {
+  if (!file) {
+    return <LoadSongItem />
+  }
+
   const { handleSongClick, currentFile, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
 
@@ -148,3 +153,14 @@ export function SongItem({ file, index, cola, name, padreActions }) {
     </li>
   )
 }
+
+function LoadSongItem() {
+  return (
+    <li className={`${true ? 'visible' : 'invisible'}`} id="LoadSongItem">
+      <div className={false ? 'songItem active' : 'songItem'} style={{}}>
+        <CircularProgress />
+      </div>
+    </li>
+  )
+}
+export default SongItem
