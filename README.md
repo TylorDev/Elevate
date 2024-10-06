@@ -4,23 +4,78 @@ Reproductor de musica basico.
 
 # TO DO
 
-1. Arreglar el layout FEED. [check]
-2. Agregar canción a playlist existente. [check]
-3. Arreglar las opciones dinámicas de un song item. [check]
-4. Obtener el número de likes, tracks y el total de horas reproducidas. [check]
-5. Arreglar barra de búsqueda. [check]
-6. Agregar settings.
-7. Arreglar logs, son demasiados logs.
-8. Agregar covers en general, algunos no aparecen y al cargar listas o directorios no se cargan los covers.
-9. Arreglar los collages de los favoritos y "oir más tarde". [check]
-10. Crear layout personalizado para stats. [LOGROS]
-11. Agregar paginación al historial.
-12. Cargar las 4 listas más escuchadas o fijadas en el header. [check]
-13. Agregar página de reproducción actual. [check]
-14. Agregar previsualización de canciones con animaciones.
-15. Optimizar el backend.
-16. Optimizar el frontend.
-17. Y todo lo demás sería en una actualización o versión 2.
+# Reanudar canción:
+
+### 1.[✅] Reanudar una canción desde Listen later.
+
+### 2.[✅] Reanudar una canción desde Likes.
+
+### 3.[✅] Reanudar una canción desde un directorio.
+
+### 4.[✅] Reanudar una canción desde AllTracks.
+
+### 5.[✅] Reanudar una canción desde una playlist.
+
+### 6.[✅] Reanudar una canción desde la cola personalizada.
+
+### 7.[✅] Reanudar una canción que no está en All Tracks.
+
+# Manejo de listas y colas:
+
+### 1.[✅] Manejar el caso en que la lista o cola no existe.
+
+### 2.[✅] Crear una cola personalizada.
+
+### 3.[✅] Guardar una lista.
+
+### 4.[✅] Cambiar el nombre de una lista.
+
+### 5.[✅] Eliminar lista.
+
+### 6.[✅] Importar lista.
+
+### 7.[✅] Quitar canciones de una lista.
+
+### 8.[✅] Agregar canciones a una lista.
+
+# Manejo de canciones:
+
+### 1.[✅] Dar like a una canción.
+
+### 2.[✅] Quitar like.
+
+### 3.[✅] Crear una nueva canción desde una carpeta.
+
+### 4.[✅] Quitar elemento de la cola personalizada.
+
+### 5. [✅] Agregar a ver más tarde.
+
+### 6.[✅] Quitar de ver más tarde.
+
+### 8.[✅] Agregar un directorio grande.
+
+### 7.[✅]Eliminar directorio.
+
+### 8.[✅] Shuffle.
+
+### 9.[✅] Controles.
+
+### 10.[✅] Buscar una canción.
+
+# bugs
+
+1. No se ve el tiempo de la cancion en cola.
+2. No se actualiza el like, en las busquedas y all tracks.
+3. No se actualiza de Alltracks cuando agregas una nueva cancion
+4. Se reproduce la cancion que se esta agregando a la playlist.
+5. No se reproducen canciones que empiezen con #{name}.mp3
+6. No redirenciona al directorio al reanudar.
+7. La cancion tiene un texto que dice Liked.
+8. Banner o gif, no personalizable.
+9. Solo se agregan vistas a likes o listas, dando click al boton de play.
+10. En settings hay 2 tabs vacias. y el boton no da feedback
+11. El searchbar no tiene un icono de busqueda y no dice si no se encontraron coindicencias.
+12. Hay partes en ingles y español en la aplicación.
 
 ## Recommended IDE Setup
 
