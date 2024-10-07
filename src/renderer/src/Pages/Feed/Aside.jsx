@@ -17,10 +17,10 @@ export function Aside(gridArea) {
   }, [])
   return (
     <aside className="aside" style={gridArea ? { gridArea } : {}}>
-      <Section name={'NUEVAS'} to={'/search'}>
+      <Section name={'New releases'} to={'/search'}>
         <Cola list={news.slice(0, 5)} />
       </Section>
-      <Section name={'Recientes'} to={'/search'}>
+      <Section name={'Listen more often'} to={'/search'}>
         <Cola list={recents.slice(0, 5)} />
       </Section>
     </aside>

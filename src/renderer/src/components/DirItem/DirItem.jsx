@@ -27,11 +27,15 @@ export function DirItem({ directory }) {
   const { deleteDirectoryList } = usePlaylists()
 
   return (
-    <li key={directory.id} className="dirItem">
+    <li
+      key={directory.id}
+      className="dirItem"
+      onClick={() => {
+        navigate(`/directories/${directory.path}/false`)
+      }}
+    >
       <BsFolderFill className="d-icon" />
-      <Link to={`/directories/${encodeURIComponent(JSON.stringify(directory))}/false`}>
-        {getLastPart(directory.path)}
-      </Link>
+      <Link to={`/directories/${directory.path}/false`}>{getLastPart(directory.path)}</Link>
       <div className="d-datas">
         <span>{directory.totalTracks} tracks</span>
         <span>{formatDuration(directory.totalDuration)}</span>
@@ -40,7 +44,7 @@ export function DirItem({ directory }) {
       <Button
         key={directory.id}
         onClick={() => {
-          navigate(`/directories/${encodeURIComponent(JSON.stringify(directory))}/true`)
+          navigate(`/directories/${directory.path}/true`)
         }}
       >
         <FaPlay />

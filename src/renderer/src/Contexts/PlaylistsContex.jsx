@@ -198,7 +198,6 @@ export const PlaylistsProvider = ({ children }) => {
 
     window.electron.ipcRenderer.on('notification', handleNotification)
 
-    // Cleanup listener on component unmount
     return () => {
       window.electron.ipcRenderer.off('notification', handleNotification)
     }

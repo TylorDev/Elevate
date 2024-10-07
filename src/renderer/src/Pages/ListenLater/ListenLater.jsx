@@ -54,8 +54,8 @@ function ListenLater() {
 
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
-            <span>{0} vistas •</span>
-            <span> {later?.fileInfos?.length} pistas •</span>
+            <span>System •</span>
+            <span> {later?.fileInfos?.length} tracks •</span>
             <span> {formatDuration(later.totalDuration)} </span>
           </div>
           <div className="pgl-buttton">
@@ -100,8 +100,8 @@ function LoadListenLater() {
 
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
-            <span>{0} vistas •</span>
-            <span> {0} pistas •</span>
+            <span>{0} views •</span>
+            <span> {0} tracks •</span>
             <span> {'00:00:00'} </span>
           </div>
           <div className="pgl-buttton">

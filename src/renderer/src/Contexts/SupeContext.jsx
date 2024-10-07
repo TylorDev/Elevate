@@ -73,17 +73,25 @@ export const SuperProvider = ({ children }) => {
 
   const navigate = useNavigate()
 
-  const PlayQueue = (list, name) => {
-    if (list.length > 0) {
+  const PlayQueue = (list, name, index = null) => {
+    if (index) {
+      setCurrentFile(list[index])
+      setQueueState({
+        currentQueue: list,
+        originalQueue: list,
+        queueName: name
+      })
+      setCurrentIndex(index) // Establece el índice al de la canción proporcionada
+    } else if (list.length > 0) {
       setCurrentFile(list[0])
       setQueueState({
         currentQueue: list,
         originalQueue: list,
         queueName: name
       })
-      setCurrentIndex(0) // Optionally reset the index to 0
+      setCurrentIndex(0) // Restablecer el índice a 0
     } else {
-      // Handle the case where the list is empty if needed
+      // Manejar el caso en que la lista está vacía
       setCurrentFile('')
       setQueueState({
         currentQueue: [],
@@ -93,6 +101,7 @@ export const SuperProvider = ({ children }) => {
       setCurrentIndex(0)
     }
   }
+
   const navigateToResume = (route) => {
     // console.error(`La ruta "${route}" no es válida.`)
     navigate(`/${route}/resume`)
@@ -106,6 +115,25 @@ export const SuperProvider = ({ children }) => {
       navigateToResume(filePath)
       setCurrentFile(song)
       setCurrentIndex(index)
+      return
+    }
+    if (filePath.startsWith('folder:')) {
+      const newFilePath = filePath.replace(/^folder:/, '') // Quita 'folder:' solo al inicio
+      navigate(`/directories/${newFilePath}/false?song=${song.filePath}`)
+      setCurrentFile(song)
+      setCurrentIndex(index)
+      const newQueue = await window.electron.ipcRenderer.invoke(
+        'get-audio-in-directory',
+        newFilePath
+      )
+      if (newQueue) {
+        console.log(newQueue.toString(), 'folder', newFilePath)
+        setQueueState((prevState) => ({
+          queueName: filePath,
+          currentQueue: newQueue,
+          originalQueue: newQueue
+        }))
+      }
       return
     }
 
@@ -143,6 +171,17 @@ export const SuperProvider = ({ children }) => {
       if (fileInfos) {
         setCurrentFile(fileInfos.song)
         await handleQueueAndPlay(fileInfos.song, fileInfos.index, fileInfos.queueId)
+      }
+    } catch (error) {
+      console.error('Error fetching last data:', error)
+    }
+  }
+
+  const getLastData = async () => {
+    try {
+      const fileInfos = await window.electron.ipcRenderer.invoke('get-last-data')
+      if (fileInfos) {
+        return fileInfos
       }
     } catch (error) {
       console.error('Error fetching last data:', error)
@@ -347,7 +386,13 @@ export const SuperProvider = ({ children }) => {
   }, [color])
 
   const handleColorChange = (value) => {
-    setColor(value)
+    // Validar si el valor es un color hexadecimal válido
+    const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/
+
+    // Solo actualizar el estado si el valor es un color hex válido o vacío
+    if (hexColorRegex.test(value) || value === '') {
+      setColor(value)
+    }
   }
 
   const handleTimelineClick = (e) => {
@@ -405,7 +450,8 @@ export const SuperProvider = ({ children }) => {
         handleColorChange,
         color,
         isAwaken,
-        handleAwaken
+        handleAwaken,
+        getLastData
       }}
     >
       {children}

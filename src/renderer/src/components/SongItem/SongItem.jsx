@@ -17,6 +17,7 @@ import 'react-toastify/dist/ReactToastify.css'
 
 import { FormAddTo } from './FormAddTo'
 import { CircularProgress } from '@mui/material'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 export function SongItem({ file, index, cola, name, padreActions }) {
   if (!file) {
     return <LoadSongItem />
@@ -24,7 +25,7 @@ export function SongItem({ file, index, cola, name, padreActions }) {
 
   const { handleSongClick, currentFile, getImage } = useSuper()
   const [isLikedo, setIsLikedo] = useState(false)
-
+  const { addPlaylisthistory } = usePlaylists()
   const { toggleLike, isLiked } = useLikes()
 
   const { agregarElemento, latersong } = useMini()
@@ -75,9 +76,9 @@ export function SongItem({ file, index, cola, name, padreActions }) {
   const buttonText = isLikedo ? <LuHeart /> : <LuHeartOff />
 
   const actionsHijo = {
-    'agregar a cola': () => agregarElemento(file),
-    addlater: () => latersong(file),
-    'Agregar a lista': () => openModal()
+    'add to queue': () => agregarElemento(file),
+    'add later': () => latersong(file),
+    'add to playlist': () => openModal()
     // 'Obtener Bpm': () => handleGetBPMClick(file)
   }
 
@@ -113,7 +114,10 @@ export function SongItem({ file, index, cola, name, padreActions }) {
       key={index}
       className={`${isLoaded ? 'visible' : 'invisible'}`}
       // style={style}
-      onClick={() => handleSongClick(file, index, cola, name)}
+      onClick={() => {
+        handleSongClick(file, index, cola, name)
+        addPlaylisthistory(name)
+      }}
     >
       <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>
         <div className="songIndex">{index + 1}</div>
@@ -127,8 +131,8 @@ export function SongItem({ file, index, cola, name, padreActions }) {
 
         <div className="songdata">
           <span className="song-tittle">{file.fileName}</span>
-          <span>
-            {file.artist || 'Unknow'} • {file.play_count} vistas • {test ? 'Liked' : 'disliked'}
+          <span className="song-data-meta">
+            {file.artist || 'Unknow'} • {file.play_count} views
           </span>
         </div>
 

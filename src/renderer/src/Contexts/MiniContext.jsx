@@ -60,6 +60,10 @@ export const MiniProvider = ({ children }) => {
 
   const getDirectories = () =>
     ElectronGetter('get-all-directories', setDiretories, null, 'directorios obtenidos!')
+
+  const getDirectoryData = (setState, path) => {
+    ElectronGetter('get-directory-by-path', setState, path, 'directorios obtenidos!')
+  }
   const deleteDirectory = async (path) => {
     await ElectronDelete('delete-directory', path, 'directorio eliminado!')
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
@@ -119,6 +123,7 @@ export const MiniProvider = ({ children }) => {
         getDirFiles,
         history, // LISTA DE HISTORIAL
         getHistory, //  OBTIENE LA  LISTA DE HISTORIAL
+        getDirectoryData,
 
         later, //  LISTA MAS TARDE
         getlatersongs, //  OBTIENE LA LISTA MAS TARDE

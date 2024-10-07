@@ -33,9 +33,9 @@ function Search() {
   return (
     <>
       <Tabs id="tabControl" value={value} onChange={handleChange} aria-label="basic tabs">
-        <Tab id="tab" label="Recien escuchadas" />
-        <Tab id="tab" label="Mas escuchadas" />
-        <Tab id="tab" label="Nuevas canciones" />
+        <Tab id="tab" label="Recently Played" />
+        <Tab id="tab" label="Most Played" />
+        <Tab id="tab" label="New Releases" />
       </Tabs>
       <CustomTabPanel value={value} index={0}>
         <Cola list={recents} />

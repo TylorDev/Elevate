@@ -230,6 +230,12 @@ export async function getFileInfos(filePaths) {
         const stats = fs.statSync(filePath)
         const { common, format } = await parseFile(filePath)
         const fileName = path.basename(filePath, path.extname(filePath))
+
+        // Verificación para omitir archivos cuyo nombre contiene un '#'
+        if (fileName.includes('#')) {
+          return null
+        }
+
         const duration = format.duration || 0
 
         const song = await getOrCreateSong(filePath, fileName)

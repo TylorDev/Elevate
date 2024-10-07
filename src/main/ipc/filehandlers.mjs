@@ -17,6 +17,7 @@ const watchedDirectories = new Set()
 
 async function startWatchingDirectories() {
   try {
+    console.log('Starting')
     const directories = await prisma.directory.findMany()
 
     directories.forEach(({ path }) => {
@@ -224,7 +225,7 @@ export function setupFilehandlers() {
 
   ipcMain.handle('get-audio-in-directory', async (_, directoryPath) => {
     try {
-      // Verificar si el directorio existe en la base de datos
+      console.log('directory', directoryPath)
       const directory = await prisma.directory.findUnique({
         where: { path: directoryPath }
       })
@@ -256,6 +257,31 @@ export function setupFilehandlers() {
     } catch (error) {
       console.error('Error deleting directory:', error)
       return { success: false, message: 'Error deleting directory.' }
+    }
+  })
+
+  ipcMain.handle('get-directory-by-path', async (event, path) => {
+    try {
+      // Obtener el directorio con un path específico
+      const directory = await prisma.directory.findUnique({
+        where: { path }
+      })
+
+      if (!directory) {
+        throw new Error('Directory not found')
+      }
+
+      // Obtener las propiedades totalTracks y totalDuration
+      const { totalTracks, totalDuration } = await getTotalDuration(directory.path)
+
+      return {
+        ...directory,
+        totalTracks,
+        totalDuration
+      }
+    } catch (error) {
+      console.error('Error retrieving directory:', error)
+      throw error
     }
   })
 

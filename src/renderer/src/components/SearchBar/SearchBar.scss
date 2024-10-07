@@ -5,7 +5,7 @@
 
     align-items: center;
     justify-items: start;
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     background-color: transparent;
 
 
@@ -15,18 +15,54 @@
 
 .search-input {
     color: white;
-
     background-color: $secondary;
+
     border: none;
     outline: none;
     width: 60%;
-    padding: 1rem;
+    flex-direction: row-reverse;
     border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+
+    gap: 1rem;
+
+    svg {
+        font-size: 1.5rem;
+    }
+
+    .search-input-text {
+        all: unset;
+
+        width: 100%;
+
+
+
+
+    }
+
+    .search-input-text:focus+svg {
+        fill: $text-principal;
+        /* Cambiar el color del SVG cuando el input está en focus */
+    }
+}
+
+
+.settings {
+    &:hover {
+        background-color: $secondary;
+        cursor: pointer;
+    }
+
+    &:active {
+        background-color: white;
+    }
 }
 
 
 
-@import url('https://fonts.googleapis.com/css2?family=UnifrakturCook&display=swap');
 
 
 .s-t {

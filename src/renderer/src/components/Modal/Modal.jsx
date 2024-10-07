@@ -14,7 +14,13 @@ const Modal = ({ isVisible, closeModal, children }) => {
       <div style={overlayStyle} className="overlayStyle" onClick={closeModal} />
 
       <div style={modalStyle} className="modalStyle">
-        <button onClick={closeModal} className="btn-close">
+        <button
+          onClick={(event) => {
+            event.stopPropagation()
+            closeModal()
+          }}
+          className="btn-close"
+        >
           X
         </button>
         {children}

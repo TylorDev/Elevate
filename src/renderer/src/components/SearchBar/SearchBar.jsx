@@ -5,6 +5,7 @@ import Modal from '../Modal/Modal'
 import './SearchBar.scss'
 import { useState } from 'react'
 import icon from '../../../../../resources/icon.png'
+import { FaSearch } from 'react-icons/fa'
 function SearchBar() {
   const [isVisible, setIsVisible] = useState(false)
   const [query, setQuery] = useState('')
@@ -20,24 +21,28 @@ function SearchBar() {
   }
 
   const navigate = useNavigate()
+  if (results.length > 0) console.log(results)
 
   return (
     <div className="search-bar" id="search-bar">
       <div className="s-t">
         <span>Elevate</span>
       </div>
-      <input
-        className="search-input"
-        type="text"
-        placeholder="Search music"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') {
-            openModal()
-          }
-        }}
-      />
+      <div className="search-input">
+        <input
+          className="search-input-text"
+          type="text"
+          placeholder="Search music"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              openModal()
+            }
+          }}
+        />
+        <FaSearch />
+      </div>
 
       <div
         className="settings"
@@ -45,10 +50,11 @@ function SearchBar() {
           navigate('/settings')
         }}
       >
-        settings
+        Settings
       </div>
+
       <Modal isVisible={isVisible} closeModal={closeModal}>
-        <Cola list={results} />
+        {results.length > 0 ? <Cola list={results} /> : <h1 className="h1">NO RESULTS</h1>}
       </Modal>
     </div>
   )

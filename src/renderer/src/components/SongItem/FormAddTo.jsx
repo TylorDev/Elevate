@@ -5,10 +5,16 @@ export function FormAddTo({ file }) {
   const { playlists, addSongToList } = usePlaylists()
 
   return (
-    <div className="FormAddTo">
+    <div
+      className="FormAddTo"
+      onClick={(event) => {
+        event.stopPropagation() // Detiene la propagación del click
+      }}
+    >
       {playlists.map((item, index) => (
         <button
-          onClick={() => {
+          onClick={(event) => {
+            event.stopPropagation() // Detiene la propagación del click
             addSongToList(item.path, file)
           }}
           key={index}

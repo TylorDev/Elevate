@@ -64,17 +64,17 @@ Reproductor de musica basico.
 
 # bugs
 
-1. No se ve el tiempo de la cancion en cola.
-2. No se actualiza el like, en las busquedas y all tracks.
-3. No se actualiza de Alltracks cuando agregas una nueva cancion
-4. Se reproduce la cancion que se esta agregando a la playlist.
-5. No se reproducen canciones que empiezen con #{name}.mp3
-6. No redirenciona al directorio al reanudar.
-7. La cancion tiene un texto que dice Liked.
-8. Banner o gif, no personalizable.
-9. Solo se agregan vistas a likes o listas, dando click al boton de play.
-10. En settings hay 2 tabs vacias. y el boton no da feedback
-11. El searchbar no tiene un icono de busqueda y no dice si no se encontraron coindicencias.
+1.  [solved✅] No se ve el tiempo de la cancion en cola.
+2.  [solved✅] No se actualiza el like, en las busquedas y all tracks.
+3.  [solved✅] No se actualiza de Alltracks cuando agregas una nueva cancion
+4.  [solved✅] Se reproduce la cancion que se esta agregando a la playlist.
+5.  [solved✅] No se reproducen canciones que empiezen con #{name}.mp3
+6.  [solved✅]No redirenciona al directorio al reanudar.
+7.  [solved✅]La cancion tiene un texto que dice Liked.
+8.  [solved✅]Banner o gif, no personalizable.
+9.  [solved✅]Solo se agregan vistas a likes o listas, dando click al boton de play.
+10. [solved✅] En settings hay 2 tabs vacias. y el boton no da feedback
+11. [solved✅]El searchbar no tiene un icono de busqueda y no dice si no se encontraron coinsicencias.
 12. Hay partes en ingles y español en la aplicación.
 
 ## Recommended IDE Setup

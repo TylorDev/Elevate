@@ -40,11 +40,11 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
     setIsVisible(false)
   }
   const handleSelect = (option) => {
-    if (option === 'eliminar') {
+    if (option === 'Delete') {
       deletePlaylist(playlist.path)
     }
 
-    if (option === 'editar') {
+    if (option === 'Edit') {
       openModal()
     }
 
@@ -84,7 +84,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
       >
         <FaPlay />
       </Button>
-      <DropdownMenu options={['eliminar', 'editar', 'Option 3']} onSelect={handleSelect} />
+      <DropdownMenu options={['Delete', 'Edit']} onSelect={handleSelect} />
       <Modal isVisible={isVisible} closeModal={closeModal}>
         <PlaylistForm playlist={playlist} onUpdate={updatePlaylist} close={closeModal} />
       </Modal>

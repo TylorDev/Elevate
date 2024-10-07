@@ -81,8 +81,8 @@ function PlaylistPage() {
 
           <div className="pgl-time">{formatTimestamp(data.createdAt)}</div>
           <div className="pgl-data">
-            <span>{data.totalplays} vistas •</span>
-            <span> {data.numElementos} pistas •</span>
+            <span>{data.totalplays} views •</span>
+            <span> {data.numElementos} tracks •</span>
             <span> {formatDuration(data.duracion)} </span>
           </div>
           <div className="pgl-buttton">

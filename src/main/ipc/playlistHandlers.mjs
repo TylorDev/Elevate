@@ -195,7 +195,7 @@ async function saveDialog() {
 
   while (!isValid) {
     const { filePath: selectedPath } = await dialog.showSaveDialog({
-      title: 'Guardar lista de reproducción',
+      title: 'Save list',
       defaultPath: path.join(app.getPath('documents'), 'playlist.m3u'),
       filters: [{ name: 'Listas de reproducción', extensions: ['m3u'] }]
     })

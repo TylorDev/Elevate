@@ -50,8 +50,8 @@ function Favourites() {
 
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
-            <span>{0} vistas •</span>
-            <span> {likes?.fileInfos?.length || 0} pistas •</span>
+            <span>System •</span>
+            <span> {likes?.fileInfos?.length || 0} tracks •</span>
 
             <span> {formatDuration(likes.totalDuration)} </span>
           </div>
@@ -96,8 +96,8 @@ function LoadLikes() {
 
           <div className="pgl-time">{formatTimestamp(Date.now())}</div>
           <div className="pgl-data">
-            <span>{0} vistas •</span>
-            <span> {0} pistas •</span>
+            <span>{0} views •</span>
+            <span> {0} tracks •</span>
             <span> {'00:00:00'} </span>
           </div>
           <div className="pgl-buttton">

@@ -8,6 +8,7 @@
     padding: 1rem;
 
     gap: 1rem;
+    border: 1px solid $secondary;
 
     a {
         color: white;
@@ -17,6 +18,10 @@
         &:hover {
             text-decoration: underline;
         }
+    }
+
+    &:hover {
+        background-color: $secondary;
     }
 }
 

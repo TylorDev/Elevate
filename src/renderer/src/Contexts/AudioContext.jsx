@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useSuper } from './SupeContext'
 import { toast } from 'react-toastify'
 
@@ -10,7 +10,7 @@ export const useAudioContext = () => {
 
 export const AudioProvider = ({ children }) => {
   const { currentFile, handleNextClick, mediaRef, fetchLastData, addhistory } = useSuper()
-
+  const [path, setPath] = useState('')
   useEffect(() => {
     const initializeApp = async () => {
       await fetchLastData()
@@ -22,7 +22,8 @@ export const AudioProvider = ({ children }) => {
   useEffect(() => {
     if (currentFile) {
       const file = currentFile
-
+      const sanitizedPath = sanitizePath(currentFile.filePath)
+      setPath(sanitizedPath)
       const timer = setTimeout(() => {
         // Verifica si el valor sigue siendo el mismo después de 5 segundos
         if (currentFile === file) {
@@ -45,12 +46,18 @@ export const AudioProvider = ({ children }) => {
     }
   }, [currentFile])
 
+  function sanitizePath(path) {
+    const Newpath = path.replace(/#/g, '%23')
+
+    return Newpath
+  }
+
   return (
     <AudioContextState.Provider value={{}}>
       {children}
       <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
         {currentFile && currentFile.filePath ? (
-          <source src={currentFile.filePath} type="audio/mpeg" />
+          <source src={path} type="audio/mpeg" />
         ) : (
           <p>Tu navegador no soporta el elemento de audio.</p>
         )}
