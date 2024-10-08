@@ -74,64 +74,40 @@ function debugFileDetails(fullPath, basenameWithoutExt) {
 }
 
 export function setupFilehandlers() {
-  // // Añadir la función de selección de archivos
-  // ipcMain.handle('select-file', async () => {
-  //   const result = await dialog.showOpenDialog({
-  //     properties: ['openFile'],
-  //     filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'flac'] }] // Opcional: filtrar por tipos de archivos
-  //   })
-
-  //   if (result.canceled) {
-  //     return null // O manejar la cancelación según sea necesario
-  //   }
-
-  //   const filePath = result.filePaths[0]
-
-  //   return filePath // Devuelve la URL de datos
-  // })
-
-  // ipcMain.handle('get-file-info', async (event, filePath) => {
-  //   try {
-  //     const stats = fs.statSync(filePath)
-  //     const { common } = await parseFile(filePath)
-
-  //     return {
-  //       size: stats.size,
-  //       ...common
-  //     }
-  //   } catch (error) {
-  //     console.error('Error getting file info:', error)
-  //     throw error
-  //   }
-  // })
   startWatchingDirectories()
   const filePath = 'C:\\Users\\yonte\\Pictures\\señal.txt'
 
-  // Vigilar el archivo
-  fs.watch(filePath, (eventType, filename) => {
-    if (filename) {
-      // Leer el contenido del archivo
-      fs.readFile(filePath, 'utf8', (err, data) => {
-        if (err) {
-          console.error(`Error al leer el archivo: ${err}`)
-          return
-        }
+  if (fs.existsSync(filePath)) {
+    console.log(`El archivo existe, comenzando a vigilar: ${filePath}`)
 
-        // Eliminar el BOM si está presente
-        if (data.startsWith('\ufeff')) {
-          data = data.slice(1)
-        }
+    // Vigilar el archivo
+    fs.watch(filePath, (eventType, filename) => {
+      if (filename) {
+        // Leer el contenido del archivo
+        fs.readFile(filePath, 'utf8', (err, data) => {
+          if (err) {
+            console.error(`Error al leer el archivo: ${err}`)
+            return
+          }
 
-        if (data) {
-          setBraveVolume(0.2)
-        } else {
-          setBraveVolume(1)
-        }
-      })
-    }
-  })
+          // Eliminar el BOM si está presente
+          if (data.startsWith('\ufeff')) {
+            data = data.slice(1)
+          }
 
-  console.log(`Vigilando el txt: ${filePath}`)
+          if (data) {
+            setBraveVolume(0.2)
+          } else {
+            setBraveVolume(1)
+          }
+        })
+      }
+    })
+
+    console.log(`Vigilando el txt: ${filePath}`)
+  } else {
+    console.log(`El archivo no existe: ${filePath}`)
+  }
 
   ipcMain.handle('add-directory', async () => {
     try {
