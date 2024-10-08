@@ -1,9 +1,9 @@
 {
-  "name": "chick",
+  "name": "elevate",
   "version": "1.0.0",
-  "description": "An Electron application with React",
+  "description": "An Modern music player offline. ",
   "main": "./out/main/index.js",
-  "author": "example.com",
+  "author": "https://github.com/TylorDev",
   "homepage": "https://electron-vite.org",
   "type": "module",
   "scripts": {

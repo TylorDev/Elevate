@@ -1,5 +1,5 @@
-appId: com.taylor.typlayer
-productName: TyPlayer
+appId: com.tylordev.elevate
+productName: Elevate
 copyright: '© 2024 Tylordev. Todos los derechos reservados.'
 directories:
   buildResources: build
@@ -12,8 +12,8 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: chick
-  icon: build/icon.png
+  executableName: elevate
+  icon: build/elevate.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
