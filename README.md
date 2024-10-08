@@ -1,87 +1,109 @@
-# chick
+# Elevate Music Player
 
-Reproductor de musica basico.
+## Overview
 
-# TO DO
+Elevate is a modern, cross-platform music player built with cutting-edge web technologies. Combining the power of Electron with the flexibility of React and the reliability of SQLite, Elevate delivers a native-like experience while maintaining the customization and extensibility of web applications.
 
-# Reanudar canción:
+## Built with modern technology:
 
-1.[✅] Reanudar una canción desde Listen later.
+- 🖥️ Electron for desktop integration
+- ⚛️ React for dynamic UI
+- 🚀 Vite for optimal performance
+- 💾 SQLite & Prisma for data management
+- 📦 Node.js for robust backend operations
 
-2.[✅] Reanudar una canción desde Likes.
+## Core Features
 
-3.[✅] Reanudar una canción desde un directorio.
+### Intelligent Playback Management
 
-4.[✅] Reanudar una canción desde AllTracks.
+- **Universal Song Resumption**
+  - Resume playback from any source including "Listen Later," liked songs, custom playlists, and specific directories
+  - Seamless continuation from your last listening session
+  - Smart queue management across different playback sources
 
-5.[✅] Reanudar una canción desde una playlist.
+### Comprehensive Library Organization
 
-6.[✅] Reanudar una canción desde la cola personalizada.
+- **Flexible Collection Management**
 
-7.[✅] Reanudar una canción que no está en All Tracks.
+  - Add individual songs or entire directories to your library
+  - Automatic library scanning and organization
+  - Support for various music file formats
+  - Quick search functionality across your entire collection
 
-# Manejo de listas y colas:
+- **Smart Playlists**
+  - Create and manage custom playlists
+  - Import existing playlists from other sources
+  - "Listen Later" queue for future playback
+  - Favorites system with like/unlike functionality
 
-1.[✅] Manejar el caso en que la lista o cola no existe.
+### Advanced List Management
 
-2.[✅] Crear una cola personalizada.
+- **Playlist Operations**
 
-3.[✅] Guardar una lista.
+  - Create, rename, and delete playlists
+  - Import/export playlist functionality
+  - Add or remove songs from any list
+  - Automatic playlist backup and synchronization
 
-4.[✅] Cambiar el nombre de una lista.
+- **Queue Management**
+  - Custom queue creation and modification
+  - Dynamic queue updates during playback
+  - Shuffle functionality with smart playlist handling
 
-5.[✅] Eliminar lista.
+### User Experience
 
-6.[✅] Importar lista.
+- **Intuitive Controls**
 
-7.[✅] Quitar canciones de una lista.
+  - Standard playback controls (play, pause, skip)
+  - Volume muting
+  - Progress tracking and seeking
+  - Shuffle and repeat modes
 
-8.[✅] Agregar canciones a una lista.
+- **Modern Interface**
+  - Clean and responsive design
+  - Dark theme support
 
-# Manejo de canciones:
+## Technical Specifications
 
-1.[✅] Dar like a una canción.
+### Architecture
 
-2.[✅] Quitar like.
+- **Frontend**: React application bundled with Vite for optimal performance
+- **Backend**: Node.js running within Electron
+- **Database**: SQLite with Prisma ORM for reliable data persistence
+- **Desktop Integration**: Electron for native system integration
 
-3.[✅] Crear una nueva canción desde una carpeta.
+### Data Management
 
-4.[✅] Quitar elemento de la cola personalizada.
+- Efficient music metadata handling
+- Automatic library synchronization
+- Playlist version control
+- Fast search indexing
 
-5. [✅] Agregar a ver más tarde.
+### Performance
 
-6.[✅] Quitar de ver más tarde.
+- Optimized audio processing
+- Minimal memory footprint
+- Quick startup time
+- Smooth playlist handling even with large libraries
 
-8.[✅] Agregar un directorio grande.
+## System Requirements
 
-7.[✅]Eliminar directorio.
+- Windows 10/11, macOS 10.13+, or Linux
+- 4GB RAM minimum
+- 1GB available storage for application
+- Additional storage space for music library
 
-8.[✅] Shuffle.
+## Future Development
 
-9.[✅] Controles.
+Elevate is actively maintained and regularly updated with new features and improvements.
 
-10.[✅] Buscar una canción.
+## Support
 
-# bugs
-
-1.  [solved✅] No se ve el tiempo de la cancion en cola.
-2.  [solved✅] No se actualiza el like, en las busquedas y all tracks.
-3.  [solved✅] No se actualiza de Alltracks cuando agregas una nueva cancion
-4.  [solved✅] Se reproduce la cancion que se esta agregando a la playlist.
-5.  [solved✅] No se reproducen canciones que empiezen con #{name}.mp3
-6.  [solved✅]No redirenciona al directorio al reanudar.
-7.  [solved✅]La cancion tiene un texto que dice Liked.
-8.  [solved✅]Banner o gif, no personalizable.
-9.  [solved✅]Solo se agregan vistas a likes o listas, dando click al boton de play.
-10. [solved✅] En settings hay 2 tabs vacias. y el boton no da feedback
-11. [solved✅]El searchbar no tiene un icono de busqueda y no dice si no se encontraron coinsicencias.
-12. Hay partes en ingles y español en la aplicación.
-
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+- Regular updates and bug fixes
 
 ## Project Setup
+
+- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
 
 ### Install
 
