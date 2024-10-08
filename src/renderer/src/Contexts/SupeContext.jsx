@@ -260,11 +260,15 @@ export const SuperProvider = ({ children }) => {
   }, [currentIndex, currentFile, queueState.queueName])
 
   const handlePreviousClick = () => {
-    goToPrevious(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
+    if (currentIndex > 0) {
+      goToPrevious(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
+    }
   }
 
   const handleNextClick = () => {
-    goToNext(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
+    if (currentIndex < queueState.currentQueue.length - 1) {
+      goToNext(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
+    }
   }
 
   const togglePlayPause = () => {
@@ -374,8 +378,9 @@ export const SuperProvider = ({ children }) => {
       originalQueue: list
     }))
   }
+
   const [color, setColor] = useState(() => {
-    return localStorage.getItem('color') || 'orangered'
+    return localStorage.getItem('color') || '#baff00'
   })
 
   useEffect(() => {

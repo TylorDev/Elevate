@@ -13,7 +13,7 @@ function Lista() {
     eliminarElemento
   } = useMini()
   const actions = {
-    'Quitar de la cola': (file) => {
+    'Remove from  the queue': (file) => {
       console.log('eliminando a ', file.fileName)
       eliminarElemento(file)
     }

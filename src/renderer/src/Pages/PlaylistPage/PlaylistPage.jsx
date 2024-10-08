@@ -57,7 +57,7 @@ function PlaylistPage() {
 
   const data = current.playlistData
   const actions = {
-    'Quitar de la lista': (file, index) => {
+    'Remove from the playlist': (file, index) => {
       console.log('eliminando a ', file.fileName)
       removeSongFromList(data.path, index)
     }

@@ -27,13 +27,7 @@ export function DirItem({ directory }) {
   const { deleteDirectoryList } = usePlaylists()
 
   return (
-    <li
-      key={directory.id}
-      className="dirItem"
-      onClick={() => {
-        navigate(`/directories/${directory.path}/false`)
-      }}
-    >
+    <li key={directory.id} className="dirItem">
       <BsFolderFill className="d-icon" />
       <Link to={`/directories/${directory.path}/false`}>{getLastPart(directory.path)}</Link>
       <div className="d-datas">

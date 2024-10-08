@@ -33,7 +33,7 @@ function ListenLater() {
   }
 
   const actions = {
-    'Quitar de Listen later': (file) => {
+    'remove from Listen later': (file) => {
       console.log('eliminando a ', file.fileName)
       removelatersong(file)
     }

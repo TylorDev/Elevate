@@ -1,3 +1,3 @@
 provider: generic
-url: https://example.com/auto-updates
-updaterCacheDirName: chick-updater
+url: https://github.com/TylorDev/Elevate/releases/
+updaterCacheDirName: elevate-updater

@@ -9,7 +9,7 @@ import { Button } from './../../Components/Button/Button'
 import { GoPencil } from 'react-icons/go'
 import { formatDuration } from '../../../timeUtils'
 import { useSuper } from '../../Contexts/SupeContext'
-
+import folder from '../../assets/folder.icon.png'
 function DirPage() {
   const { directory, play } = useParams()
   const { PlayQueue } = useSuper()
@@ -61,10 +61,7 @@ function DirPage() {
         <div className="plg-controls">
           <div className="plg">
             <div className="plg-cover">
-              <img
-                src="https://i.pinimg.com/736x/d5/db/17/d5db1719cc626f12e9fdae3ac8a829ea.jpg"
-                alt=""
-              />
+              <img src={folder} alt="" />
             </div>
             <div className="pgl-name">{getLastPart(folderPath)}</div>
 

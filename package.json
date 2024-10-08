@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "An Modern music player offline. ",
   "main": "./out/main/index.js",
-  "author": "https://github.com/TylorDev",
-  "homepage": "https://electron-vite.org",
+  "author": "@TylorDev",
+  "homepage": "https://github.com/TylorDev/Elevate",
   "type": "module",
   "scripts": {
     "format": "prettier --write .",

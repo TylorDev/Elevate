@@ -57,11 +57,6 @@ function createWindow() {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-
-  // Simular un evento que envía un aviso
-  setTimeout(() => {
-    sendNotification('¡Algo ha pasado! Justo ahora.')
-  }, 5000)
 }
 
 ///////////////////
