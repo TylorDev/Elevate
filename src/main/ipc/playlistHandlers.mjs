@@ -223,9 +223,10 @@ async function saveDialog() {
   return filePath // Retorna la ruta del archivo válido
 }
 
-const createM3uContent = (filePaths, commonBasePath) => {
-  return filePaths.map((filePath) => path.relative(commonBasePath, filePath)).join('\n')
+const createM3uContent = (filePaths) => {
+  return filePaths.join('\n')
 }
+
 const saveM3uFile = async (m3uFilePath, m3uContent) => {
   try {
     await fs.promises.writeFile(m3uFilePath, m3uContent)
@@ -315,10 +316,10 @@ async function updatePlaylistByPath(path, newData) {
     throw error
   }
 }
-async function getM3ufilepaths(filepath, baseDir) {
+async function getM3ufilepaths(filepath) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
-  return relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  const absolutePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  return absolutePaths.map((absPath) => absPath.trim())
 }
 
 ///-----------------
