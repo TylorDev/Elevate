@@ -20,6 +20,7 @@ import { LuListVideo } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useSuper } from '../../Contexts/SupeContext'
+import { MdDoNotStep, MdOutlineDoNotStep } from 'react-icons/md'
 
 export function Controls() {
   const {
@@ -33,7 +34,9 @@ export function Controls() {
     toggleRepeat,
     isShuffled,
     loop,
-    currentFile
+    currentFile,
+    toggleStep,
+    isStep
   } = useSuper()
 
   const { likeState, toggleLike } = useLikes()
@@ -64,7 +67,9 @@ export function Controls() {
       <Button className="btnMute" onClick={toggleMute}>
         {muted ? <LuVolumeX /> : <LuVolume2 />}
       </Button>
-
+      <Button className="btnStep" onClick={toggleStep}>
+        {isStep ? <MdDoNotStep className="Step" /> : <MdOutlineDoNotStep />}
+      </Button>
       <Button className="btnShuffle" onClick={toggleShuffle}>
         {isShuffled ? <LuShuffle id="btnShuffle-true" /> : <LuShuffle id="btnShuffle-false" />}
       </Button>

@@ -278,6 +278,70 @@ export const SuperProvider = ({ children }) => {
     toMute(mediaRef, muted, setMuted)
   }
 
+  const [isStep, setIsStep] = useState(false)
+  const minVolume = 0.02 // Define el volumen mínimo permitido
+
+  // Función para hacer fade out
+  const fadeOut = (duration) => {
+    const interval = 50 // Intervalo en milisegundos
+    const steps = duration / interval // Número de pasos
+    const stepVolume = (mediaRef.current.volume - minVolume) / steps // Reducción del volumen por paso
+
+    let currentStep = 0
+
+    const fadeOutInterval = setInterval(() => {
+      if (currentStep < steps) {
+        mediaRef.current.volume -= stepVolume // Reducir el volumen
+        // Asegurarse de no bajar del volumen mínimo
+        if (mediaRef.current.volume < minVolume) {
+          mediaRef.current.volume = minVolume
+        }
+        currentStep++
+      } else {
+        clearInterval(fadeOutInterval) // Detener el intervalo
+      }
+    }, interval)
+  }
+
+  // Función para hacer fade in
+  const fadeIn = (duration) => {
+    const interval = 50 // Intervalo en milisegundos
+    const steps = duration / interval // Número de pasos
+    const stepVolume = (1 - mediaRef.current.volume) / steps // Incremento del volumen por paso
+
+    let currentStep = 0
+
+    const fadeInInterval = setInterval(() => {
+      if (currentStep < steps) {
+        mediaRef.current.volume += stepVolume // Aumentar el volumen
+        // Asegurarse de no sobrepasar el volumen máximo (1.0)
+        if (mediaRef.current.volume > 1.0) {
+          mediaRef.current.volume = 1.0
+        }
+        currentStep++
+      } else {
+        clearInterval(fadeInInterval) // Detener el intervalo
+      }
+    }, interval)
+  }
+
+  const toggleStep = () => {
+    if (!isStep) {
+      // Si no está activo, activar el step
+      setIsStep(true)
+      fadeOut(1000) // Hacer fade out en 2 segundos al 10% de volumen
+
+      // Restablecer el estado después de 60 segundos
+      setTimeout(() => {
+        fadeIn(1000) // Hacer fade in en 2 segundos al 100% de volumen
+        setIsStep(false)
+      }, 45000) // 60000 ms = 60 s
+    } else {
+      // Si está activo, restaurar el volumen inmediatamente
+      fadeIn(1000) // Hacer fade in en 2 segundos al 100% de volumen
+      setIsStep(false)
+    }
+  }
   const toggleRepeat = () => {
     toRepeat(mediaRef, loop, setLoop)
   }
@@ -456,7 +520,9 @@ export const SuperProvider = ({ children }) => {
         color,
         isAwaken,
         handleAwaken,
-        getLastData
+        getLastData,
+        toggleStep,
+        isStep
       }}
     >
       {children}
