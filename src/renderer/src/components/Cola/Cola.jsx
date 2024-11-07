@@ -1,31 +1,30 @@
+import { useState } from 'react'
+import { useSuper } from '../../Contexts/SupeContext'
 import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
-
-import { useMemo } from 'react'
+import { Button } from '../Button/Button'
 
 export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
-  // const validList = Array.isArray(list) ? list : [] // Verificar si list es un array
+  const { isShuffled } = useSuper()
+  const [isDescending, setIsDescending] = useState(true) // Estado para controlar el orden
 
-  // const memoizedSongs = useMemo(() => {
-  // return validList.map((file, index) => (
-  //   <SongItem
-  //     key={index}
-  //     file={file}
-  //     index={index}
-  //     cola={validList}
-  //     name={name}
-  //     filePath={filePath}
-  //     padreActions={actions}
-  //   />
-  // ))
-  // }, [validList, name, filePath, actions])
-
+  // Función para cambiar el orden
+  const toggleOrder = () => {
+    setIsDescending(!isDescending)
+  }
   return (
     <div className="Cola">
-      {/* {validList && validList.length > 0 ? <ul>{memoizedSongs}</ul> : <LoadingCola></LoadingCola>} */}
+      <Button className="Decendente" onClick={toggleOrder}>
+        {isDescending ? 'Orden Ascendente' : 'Orden Descendente'}
+      </Button>
       {list.length > 0 ? (
         <ul>
-          {list.map((file, index) => (
+          {(isShuffled
+            ? list
+            : list.slice().sort(
+                (a, b) => (isDescending ? b.play_count - a.play_count : a.play_count - b.play_count) // Condición para cambiar entre ascendente y descendente
+              )
+          ).map((file, index) => (
             <SongItem
               key={index}
               file={file}

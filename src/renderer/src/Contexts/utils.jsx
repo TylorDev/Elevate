@@ -1,14 +1,18 @@
 import { Bounce, toast } from 'react-toastify'
 
 export const shuffleArray = (array, currentIndex) => {
+  // Copia el array original para no modificarlo
   let newArray = [...array]
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    // Intercambia elementos, evitando que el currentIndex cambie de posición
-    if (i !== currentIndex && j !== currentIndex) {
-      ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
-    }
+
+  // Mueve el elemento actual a la primera posición
+  ;[newArray[0], newArray[currentIndex]] = [newArray[currentIndex], newArray[0]]
+
+  // Aplica el algoritmo de Fisher-Yates solo desde el índice 1
+  for (let i = newArray.length - 1; i > 1; i--) {
+    const j = 1 + Math.floor(Math.random() * i) // solo intercambia desde el índice 1 en adelante
+    ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
   }
+
   return newArray
 }
 

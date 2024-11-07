@@ -3,6 +3,18 @@
     width: 100%;
 }
 
+#Button.Decendente {
+
+
+    padding: 0;
+    border-radius: 0.5rem;
+
+    outline: 1px solid $text-secondary;
+    width: 100%;
+    margin: 0;
+    height: 1rem;
+}
+
 .Cola ul {
     list-style-type: none;
 
