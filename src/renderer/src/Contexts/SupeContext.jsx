@@ -28,28 +28,27 @@ export const SuperProvider = ({ children }) => {
 
   const [isAwaken, setIsAwaken] = useState(false)
 
-  const [images, setImages] = useState([])
+  const imagesRef = useRef(new Map())
 
   const handleAwaken = (value) => {
     setIsAwaken(value)
   }
   const getImage = (name, data) => {
     // Verificar si la imagen ya existe
-    const existingImage = images.find((image) => image.name === name)
+    const existingImage = imagesRef.current.get(name)
 
     if (existingImage) {
       // Logear el nombre y la URL existente
       // console.log(
       //   `La imagen con el nombre "${name}" ya existe. URL generada anteriormente: ${existingImage.url}`
       // )
-      return existingImage.url
+      return existingImage
     }
 
     // Generar la nueva URL
     const url = dataToImageUrl(data)
 
-    // Actualizar el estado con la nueva imagen
-    setImages((prevImages) => [...prevImages, { name, url }])
+    imagesRef.current.set(name, url)
 
     return url
   }

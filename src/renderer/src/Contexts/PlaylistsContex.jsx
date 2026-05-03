@@ -9,6 +9,7 @@ import {
   ElectronSetter2
 } from './utils'
 import { Bounce, toast } from 'react-toastify'
+import { useCoverUrl } from '../hooks/useCoverUrl'
 
 import { useSuper } from './SupeContext'
 import { useMini } from './MiniContext'
@@ -19,6 +20,7 @@ export const usePlaylists = () => useContext(ContextLikes)
 
 export const PlaylistsProvider = ({ children }) => {
   const { currentFile, getImage } = useSuper()
+  const currentCover = useCoverUrl(currentFile?.filePath, 'full')
   const [allSongs, SetAllSongs] = useState([]) // 1 ref - 5 ref
   const [allSongsLoading, setAllSongsLoading] = useState(false)
   const [allSongsHasMore, setAllSongsHasMore] = useState(true)
@@ -34,7 +36,6 @@ export const PlaylistsProvider = ({ children }) => {
   const allSongsRequestRef = useRef(null)
   const allSongsLoadedPagesRef = useRef(new Set())
   const [arrayCovers, setArrayCovers] = useState([])
-  const [currentCover, setCurrentCover] = useState(null)
   const [arrayAlbums, setArrayAlbums] = useState([])
 
   const { removeTrack, addSong } = useSuper()
@@ -51,12 +52,6 @@ export const PlaylistsProvider = ({ children }) => {
     getSavedLists({ force: true })
   }
 
-  useEffect(() => {
-    if (currentFile.picture) {
-      const img = getImage(currentFile.filePath, currentFile.picture[0])
-      setCurrentCover(img)
-    }
-  }, [currentFile])
   const updateArrayCovers = (someArray) => {
     if (someArray == null) {
       return null

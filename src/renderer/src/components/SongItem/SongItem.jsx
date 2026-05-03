@@ -18,29 +18,20 @@ import 'react-toastify/dist/ReactToastify.css'
 import { FormAddTo } from './FormAddTo'
 import { CircularProgress } from '@mui/material'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useCoverUrl } from '../../hooks/useCoverUrl'
 export const SongItem = memo(function SongItem({ file, index, cola, name, padreActions, style }) {
   if (!file) {
     return <LoadSongItem />
   }
 
-  const { handleSongClick, currentFile, getImage } = useSuper()
+  const { handleSongClick, currentFile } = useSuper()
   const [isLikedo, setIsLikedo] = useState(Boolean(file.liked))
   const { addPlaylisthistory } = usePlaylists()
   const { toggleLike } = useLikes()
 
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
-  const [mycover, setMyCover] = useState(null)
-
-  useEffect(() => {
-    if (file.picture) {
-      const url = getImage(file.filePath, file.picture[0])
-      setMyCover(url)
-      return
-    }
-
-    setMyCover(null)
-  }, [file.filePath, file.picture])
+  const mycover = useCoverUrl(file.filePath, 'thumb')
 
   useEffect(() => {
     setIsLikedo(Boolean(file.liked))
@@ -102,7 +93,7 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
             <FaPlay />
           </div>
 
-          <img src={mycover || undefined} alt="sin cover" />
+          <img src={mycover || undefined} alt="sin cover" loading="lazy" />
         </div>
 
         <div className="songdata">

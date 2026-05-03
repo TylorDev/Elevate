@@ -426,9 +426,10 @@ export function setupPlaylistHandlers() {
     try {
       log.info('get-list: loading playlist:', filepath)
       const baseDir = path.dirname(filepath)
-      const processedData = await processPlaylist(filepath, baseDir)
+      const coverData = await processPlaylist(filepath, baseDir)
+      const processedData = coverData.map((song) => ({ ...song, picture: undefined }))
       const playlistData = await getPlaylist(filepath)
-      const cover = await generateCover(processedData)
+      const cover = await generateCover(coverData)
       log.info('get-list: loaded successfully')
       return {
         processedData,

@@ -1,9 +1,11 @@
 import { createRequire } from 'node:module'
 import log from 'electron-log/main.js'
 import {
+  extractAudioCover,
   getFileInfos,
   getAllAudioFiles,
   getOrCreateSong,
+  resizeCover,
   getTotalDuration
 } from './utils/utils.mjs'
 
@@ -18,8 +20,11 @@ const { app, dialog, ipcMain } = electron
 const watchedDirectories = new Set()
 const directoryDetailsCache = new Map()
 const audioPathsCache = new Map()
+const audioCoverCache = new Map()
 const DIRECTORY_DETAILS_TTL = 60 * 1000
 const AUDIO_PATHS_TTL = 60 * 1000
+const COVER_CACHE_TTL = 10 * 60 * 1000
+const COVER_CACHE_LIMIT = 400
 let pendingDirectoriesRequest = null
 
 function invalidateDirectoryCache(dirPath = null) {
@@ -28,11 +33,17 @@ function invalidateDirectoryCache(dirPath = null) {
   if (!dirPath) {
     directoryDetailsCache.clear()
     audioPathsCache.clear()
+    audioCoverCache.clear()
     return
   }
 
   directoryDetailsCache.delete(dirPath)
   audioPathsCache.delete(dirPath)
+  for (const key of audioCoverCache.keys()) {
+    if (key.startsWith(`${dirPath}:`) || key.includes(`:${dirPath}:`)) {
+      audioCoverCache.delete(key)
+    }
+  }
 }
 
 function getCachedAudioFiles(dirPath) {
@@ -79,7 +90,7 @@ async function getAudioFilesPage(request) {
   const uniqueAudioFiles = await getUniqueAudioPaths()
   const start = (page - 1) * pageSize
   const paginatedAudioFiles = uniqueAudioFiles.slice(start, start + pageSize)
-  const items = await getFileInfos(paginatedAudioFiles)
+  const items = await getFileInfos(paginatedAudioFiles, { includePicture: false })
 
   return {
     items,
@@ -88,6 +99,56 @@ async function getAudioFilesPage(request) {
     total: uniqueAudioFiles.length,
     hasMore: start + pageSize < uniqueAudioFiles.length
   }
+}
+
+async function getAudioCover(filePath, variant = 'thumb') {
+  if (!filePath) return null
+
+  const cacheKey = `${variant}:${filePath}`
+  const cachedCover = audioCoverCache.get(cacheKey)
+
+  if (cachedCover && cachedCover.expiresAt > Date.now()) {
+    audioCoverCache.delete(cacheKey)
+    audioCoverCache.set(cacheKey, cachedCover)
+    return cachedCover.cover
+  }
+
+  const cover = await extractAudioCover(filePath)
+
+  if (!cover) {
+    audioCoverCache.set(cacheKey, {
+      cover: null,
+      expiresAt: Date.now() + COVER_CACHE_TTL
+    })
+    while (audioCoverCache.size > COVER_CACHE_LIMIT) {
+      const oldestKey = audioCoverCache.keys().next().value
+      audioCoverCache.delete(oldestKey)
+    }
+    return null
+  }
+
+  const result =
+    variant === 'thumb'
+      ? {
+          data: await resizeCover(cover.buffer, 128),
+          mimeType: 'image/jpeg'
+        }
+      : {
+          data: cover.buffer,
+          mimeType: cover.format
+        }
+
+  audioCoverCache.set(cacheKey, {
+    cover: result,
+    expiresAt: Date.now() + COVER_CACHE_TTL
+  })
+
+  while (audioCoverCache.size > COVER_CACHE_LIMIT) {
+    const oldestKey = audioCoverCache.keys().next().value
+    audioCoverCache.delete(oldestKey)
+  }
+
+  return result
 }
 
 async function getDirectoryDetails(directory) {
@@ -262,7 +323,7 @@ export function setupFilehandlers() {
       })
 
       const filepathsArray = recentAudioFiles.map((song) => song.filepath)
-      return getFileInfos(filepathsArray)
+      return getFileInfos(filepathsArray, { includePicture: false })
     } catch (error) {
       console.error('Error retrieving latest audio files:', error)
       throw error
@@ -278,7 +339,7 @@ export function setupFilehandlers() {
 
       const uniqueAudioFiles = await getUniqueAudioPaths()
 
-      return getFileInfos(uniqueAudioFiles)
+      return getFileInfos(uniqueAudioFiles, { includePicture: false })
     } catch (error) {
       console.error('Error retrieving audio files:', error)
       throw error
@@ -290,6 +351,24 @@ export function setupFilehandlers() {
       return await getAudioFilesPage(request)
     } catch (error) {
       console.error('Error retrieving paginated audio files:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-audio-cover-thumbnail', async (event, filePath) => {
+    try {
+      return await getAudioCover(filePath, 'thumb')
+    } catch (error) {
+      console.error('Error retrieving audio cover thumbnail:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-audio-cover-full', async (event, filePath) => {
+    try {
+      return await getAudioCover(filePath, 'full')
+    } catch (error) {
+      console.error('Error retrieving full audio cover:', error)
       throw error
     }
   })
@@ -322,7 +401,7 @@ export function setupFilehandlers() {
       // Filtrar archivos duplicados
       const uniqueAudioFiles = Array.from(new Set(audioFiles))
 
-      return getFileInfos(uniqueAudioFiles)
+      return getFileInfos(uniqueAudioFiles, { includePicture: false })
     } catch (error) {
       console.error('Error retrieving audio files by directory:', error)
       throw error

@@ -8,6 +8,10 @@ const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { ipcMain } = electron
 
+function withoutPictures(fileInfos) {
+  return fileInfos.map((fileInfo) => ({ ...fileInfo, picture: undefined }))
+}
+
 async function markUserPreference(songId, preferenceField, preferenceValue = true) {
   await prisma.userPreferences.upsert({
     where: { song_id: songId },
@@ -48,11 +52,11 @@ async function getUserPreferencesByCriteria(criteria) {
     console.debug(`Songs count:`, songs.length)
 
     const filePaths = songs.map((song) => song.filepath)
-    const fileInfos = await getFileInfos(filePaths)
-    const cover = await generateCover(fileInfos)
-    const tracks = fileInfos
+    const coverData = await getFileInfos(filePaths)
+    const cover = await generateCover(coverData)
+    const tracks = withoutPictures(coverData)
     const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
-    return { fileInfos, cover, totalDuration }
+    return { fileInfos: tracks, cover, totalDuration }
   } catch (error) {
     console.error('Error retrieving songs:', error)
     return { success: false, error: error.message }
@@ -189,7 +193,7 @@ async function getPlayHistoryOrdered(page = 1) {
 
     // Obtener información adicional de las canciones
     const filePaths = songs.map((song) => song.filepath)
-    const fileInfos = await getFileInfos(filePaths)
+    const fileInfos = await getFileInfos(filePaths, { includePicture: false })
 
     return { fileInfos, maxPages }
   } catch (error) {
@@ -230,7 +234,7 @@ async function getRecentHistoryOrdered() {
 
     // Opcional: Si necesitas información adicional de las canciones, puedes obtenerla aquí
     const filePaths = songs.map((song) => song.filepath)
-    const fileInfos = await getFileInfos(filePaths)
+    const fileInfos = await getFileInfos(filePaths, { includePicture: false })
 
     return fileInfos
   } catch (error) {
@@ -265,7 +269,9 @@ async function getLatestPlayHistoryRecord() {
     // console.debug('Latest play history record:', latestPlayHistoryRecord)
 
     // Opcional: Si necesitas información adicional de la canción, puedes obtenerla aquí
-    const fileInfos = await getFileInfos([latestPlayHistoryRecord.Songs.filepath])
+    const fileInfos = await getFileInfos([latestPlayHistoryRecord.Songs.filepath], {
+      includePicture: false
+    })
 
     return fileInfos.length > 0 ? fileInfos[0] : null
   } catch (error) {
@@ -402,7 +408,7 @@ export function setupLikeSongHandlers() {
 
   ipcMain.handle('get-most-played', async (event) => {
     const paths = await getMostPlayedSongsWithDetails()
-    return getFileInfos(paths)
+    return getFileInfos(paths, { includePicture: false })
   })
 
   ipcMain.handle('remove-listen-later', (event, filepath, filename) => {
@@ -437,7 +443,7 @@ export function setupMusicHandlers() {
   ipcMain.handle('search', async (event, query) => {
     const results = await searchSongPathsByName(query)
     console.debug(results)
-    const fileInfos = await getFileInfos(results)
+    const fileInfos = await getFileInfos(results, { includePicture: false })
     return fileInfos
   })
 }

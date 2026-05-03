@@ -223,6 +223,32 @@ export async function getSongBpm(common) {
   }
 }
 
+export async function extractAudioCover(filePath) {
+  try {
+    const { common } = await parseFile(filePath)
+    const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
+
+    if (!picture) {
+      return null
+    }
+
+    return {
+      buffer: Buffer.from(picture.data),
+      format: picture.format || 'image/jpeg'
+    }
+  } catch (error) {
+    // console.error(`Error extracting cover for ${filePath}:`, error)
+    return null
+  }
+}
+
+export async function resizeCover(buffer, size = 128) {
+  return sharp(buffer)
+    .resize(size, size, { fit: 'cover' })
+    .jpeg({ quality: 78, mozjpeg: true })
+    .toBuffer()
+}
+
 async function mapWithConcurrency(items, limit, mapper) {
   const results = new Array(items.length)
   let nextIndex = 0
@@ -240,7 +266,7 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results
 }
 
-export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
+export async function getFileInfos(filePaths, { concurrency = 6, includePicture = true } = {}) {
   const fileInfos = await mapWithConcurrency(filePaths, concurrency, async (filePath) => {
     try {
       const stats = fs.statSync(filePath)
@@ -265,12 +291,14 @@ export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
         }
       })
 
+      const commonData = includePicture ? common : { ...common, picture: undefined }
+
       return {
         filePath,
         fileName,
         size: stats.size,
         duration,
-        ...common,
+        ...commonData,
         // picture: [Buffer.alloc(0)], // Buffer vacío
         bpm: userPreference?.bpm || 0,
         play_count: userPreference?.play_count || 0,
@@ -324,7 +352,7 @@ export async function getTotalDuration(directory) {
   return { totalDuration, totalTracks: tracks.length }
 }
 
-export async function processPlaylist(filepath, baseDir) {
+export async function processPlaylist(filepath, baseDir, options = {}) {
   // Lee el contenido del archivo M3U
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
   const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
@@ -333,7 +361,7 @@ export async function processPlaylist(filepath, baseDir) {
   const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
 
   // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
-  return getFileInfos(absolutePaths)
+  return getFileInfos(absolutePaths, options)
 }
 
 export async function processPlaylistCover(filepath, baseDir) {
