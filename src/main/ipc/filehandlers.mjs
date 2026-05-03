@@ -17,7 +17,9 @@ const electron = require('electron')
 const { app, dialog, ipcMain } = electron
 const watchedDirectories = new Set()
 const directoryDetailsCache = new Map()
+const audioPathsCache = new Map()
 const DIRECTORY_DETAILS_TTL = 60 * 1000
+const AUDIO_PATHS_TTL = 60 * 1000
 let pendingDirectoriesRequest = null
 
 function invalidateDirectoryCache(dirPath = null) {
@@ -25,10 +27,67 @@ function invalidateDirectoryCache(dirPath = null) {
 
   if (!dirPath) {
     directoryDetailsCache.clear()
+    audioPathsCache.clear()
     return
   }
 
   directoryDetailsCache.delete(dirPath)
+  audioPathsCache.delete(dirPath)
+}
+
+function getCachedAudioFiles(dirPath) {
+  const cachedFiles = audioPathsCache.get(dirPath)
+
+  if (cachedFiles && cachedFiles.expiresAt > Date.now()) {
+    return cachedFiles.files
+  }
+
+  const files = getAllAudioFiles(dirPath)
+  audioPathsCache.set(dirPath, {
+    files,
+    expiresAt: Date.now() + AUDIO_PATHS_TTL
+  })
+
+  return files
+}
+
+async function getUniqueAudioPaths() {
+  const directories = await prisma.directory.findMany()
+
+  if (!directories.length) return []
+
+  const allAudioFiles = directories.flatMap((dir) => getCachedAudioFiles(dir.path))
+  return [...new Set(allAudioFiles)]
+}
+
+function normalizeAudioPageRequest(request = {}) {
+  if (typeof request === 'number') {
+    return {
+      page: Math.max(request, 1),
+      pageSize: 100
+    }
+  }
+
+  return {
+    page: Math.max(Number(request?.page) || 1, 1),
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 100, 1), 250)
+  }
+}
+
+async function getAudioFilesPage(request) {
+  const { page, pageSize } = normalizeAudioPageRequest(request)
+  const uniqueAudioFiles = await getUniqueAudioPaths()
+  const start = (page - 1) * pageSize
+  const paginatedAudioFiles = uniqueAudioFiles.slice(start, start + pageSize)
+  const items = await getFileInfos(paginatedAudioFiles)
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: uniqueAudioFiles.length,
+    hasMore: start + pageSize < uniqueAudioFiles.length
+  }
 }
 
 async function getDirectoryDetails(directory) {
@@ -212,25 +271,12 @@ export function setupFilehandlers() {
 
   ipcMain.handle('get-all-audio-files', async (event, currentPage) => {
     try {
-      const directories = await prisma.directory.findMany()
+      if (currentPage) {
+        const pageResult = await getAudioFilesPage(currentPage)
+        return pageResult.items
+      }
 
-      if (!directories.length) return [] // Si no hay directorios, devolver array vacío
-
-      const allAudioFiles = directories.flatMap((dir) => getAllAudioFiles(dir.path))
-      const uniqueAudioFiles = [...new Set(allAudioFiles)]
-
-      // // Configuración de paginación
-      // const pageSize = 10 // Número de elementos por página
-      // const totalPages = Math.ceil(uniqueAudioFiles.length / pageSize)
-
-      // // Validar la página actual
-      // if (currentPage > totalPages) return null
-
-      // // Obtener los archivos de la página actual
-      // const paginatedAudioFiles = uniqueAudioFiles.slice(
-      //   (currentPage - 1) * pageSize,
-      //   currentPage * pageSize
-      // )
+      const uniqueAudioFiles = await getUniqueAudioPaths()
 
       return getFileInfos(uniqueAudioFiles)
     } catch (error) {
@@ -239,13 +285,18 @@ export function setupFilehandlers() {
     }
   })
 
+  ipcMain.handle('get-all-audio-files-page', async (event, request) => {
+    try {
+      return await getAudioFilesPage(request)
+    } catch (error) {
+      console.error('Error retrieving paginated audio files:', error)
+      throw error
+    }
+  })
+
   ipcMain.handle('get-all-audio-files-number', async () => {
     try {
-      const directories = await prisma.directory.findMany()
-      if (!directories.length) return 0
-
-      const allAudioFiles = directories.flatMap((dir) => getAllAudioFiles(dir.path))
-      const uniqueAudioFiles = [...new Set(allAudioFiles)]
+      const uniqueAudioFiles = await getUniqueAudioPaths()
 
       return uniqueAudioFiles.length
     } catch (error) {
@@ -266,7 +317,7 @@ export function setupFilehandlers() {
       }
 
       // Obtener todos los archivos de audio del directorio específico
-      const audioFiles = getAllAudioFiles(directoryPath)
+      const audioFiles = getCachedAudioFiles(directoryPath)
 
       // Filtrar archivos duplicados
       const uniqueAudioFiles = Array.from(new Set(audioFiles))

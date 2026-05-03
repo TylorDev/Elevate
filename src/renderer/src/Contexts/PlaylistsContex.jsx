@@ -3,6 +3,7 @@ import { createContext, useState, useContext, useEffect, useRef } from 'react'
 import {
   createLatestOnlyInvoker,
   dataToImageUrl,
+  dedupedInvoke,
   ElectronDelete,
   ElectronGetter,
   ElectronSetter2
@@ -19,6 +20,10 @@ export const usePlaylists = () => useContext(ContextLikes)
 export const PlaylistsProvider = ({ children }) => {
   const { currentFile, getImage } = useSuper()
   const [allSongs, SetAllSongs] = useState([]) // 1 ref - 5 ref
+  const [allSongsLoading, setAllSongsLoading] = useState(false)
+  const [allSongsHasMore, setAllSongsHasMore] = useState(true)
+  const [allSongsPage, setAllSongsPage] = useState(0)
+  const [allSongsTotal, setAllSongsTotal] = useState(0)
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
   const [playlistsLoading, setPlaylistsLoading] = useState(false)
@@ -26,6 +31,8 @@ export const PlaylistsProvider = ({ children }) => {
   const [playlistsLastLoadedAt, setPlaylistsLastLoadedAt] = useState(null)
   const playlistsRequestRef = useRef(null)
   const playlistsInvokerRef = useRef(createLatestOnlyInvoker())
+  const allSongsRequestRef = useRef(null)
+  const allSongsLoadedPagesRef = useRef(new Set())
   const [arrayCovers, setArrayCovers] = useState([])
   const [currentCover, setCurrentCover] = useState(null)
   const [arrayAlbums, setArrayAlbums] = useState([])
@@ -196,30 +203,72 @@ export const PlaylistsProvider = ({ children }) => {
     await deleteDirectory(path)
 
     SetAllSongs([])
-    getAllSongs()
+    allSongsLoadedPagesRef.current.clear()
+    getAllSongs(1, { reset: true })
   }
-  const getAllSongs = async (page = 0) => {
-    await ElectronGetter(
-      'get-all-audio-files',
-      (newSongs) => {
+  const getAllSongs = async (page = 1, { pageSize = 100, reset = false } = {}) => {
+    const nextPage = Math.max(Number(page) || 1, 1)
+
+    if (allSongsRequestRef.current) {
+      return allSongsRequestRef.current
+    }
+
+    if (!reset && allSongsLoadedPagesRef.current.has(nextPage)) {
+      return null
+    }
+
+    setAllSongsLoading(true)
+
+    if (reset) {
+      SetAllSongs([])
+      setAllSongsHasMore(true)
+      setAllSongsPage(0)
+      setAllSongsTotal(0)
+      allSongsLoadedPagesRef.current.clear()
+    }
+
+    const request = dedupedInvoke('get-all-audio-files-page', {
+      page: nextPage,
+      pageSize
+    })
+      .then((result) => {
+        const newSongs = result?.items || []
+
         SetAllSongs((prevSongs) => {
-          // Asegúrate de que prevSongs sea un array
+          if (reset) {
+            return newSongs
+          }
+
           if (!Array.isArray(prevSongs)) {
             return newSongs
           }
 
-          // Crear un conjunto para almacenar los filePaths existentes
           const existingFilePaths = new Set(prevSongs.map((song) => song.filePath))
-
-          // Filtrar newSongs para eliminar duplicados
           const uniqueNewSongs = newSongs.filter((song) => !existingFilePaths.has(song.filePath))
 
           return [...prevSongs, ...uniqueNewSongs]
         })
-      },
-      page,
-      'Se obtuvieron todas las canciones!'
-    )
+
+        allSongsLoadedPagesRef.current.add(nextPage)
+        setAllSongsHasMore(Boolean(result?.hasMore))
+        setAllSongsPage(result?.page || nextPage)
+        setAllSongsTotal(result?.total || newSongs.length)
+
+        return result
+      })
+      .catch((error) => {
+        console.error('Error loading all songs:', error)
+        throw error
+      })
+      .finally(() => {
+        if (allSongsRequestRef.current === request) {
+          allSongsRequestRef.current = null
+          setAllSongsLoading(false)
+        }
+      })
+
+    allSongsRequestRef.current = request
+    return request
   }
 
   const [news, setNews] = useState([])
@@ -229,7 +278,7 @@ export const PlaylistsProvider = ({ children }) => {
   useEffect(() => {
     const handleNotification = async (message) => {
       if (message == '[new]') {
-        getAllSongs()
+        getAllSongs(1, { reset: true })
         getDirectories({ force: true })
       }
       toast.success(message || 'Completado!', {
@@ -256,6 +305,10 @@ export const PlaylistsProvider = ({ children }) => {
     <ContextLikes.Provider
       value={{
         allSongs,
+        allSongsLoading,
+        allSongsHasMore,
+        allSongsPage,
+        allSongsTotal,
         playlists,
         playlistsLoading,
         playlistsLoaded,

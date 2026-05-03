@@ -1,20 +1,30 @@
 import './AllTracks.scss'
 
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { Cola } from './../../Components/Cola/Cola'
+import { VirtualizedCola } from '../../components/Cola/VirtualizedCola'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 
-import { useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
+
+const TRACKS_PAGE_SIZE = 100
 
 function AllTracks() {
-  const { getAllSongs, allSongs } = usePlaylists()
+  const { getAllSongs, allSongs, allSongsHasMore, allSongsLoading, allSongsPage } = usePlaylists()
   const { dir } = useParams()
   const { handleResume } = useSuper()
 
   useEffect(() => {
-    getAllSongs(1)
-  }, [])
+    if (allSongs.length === 0 && !allSongsLoading && allSongsHasMore) {
+      getAllSongs(1, { pageSize: TRACKS_PAGE_SIZE })
+    }
+  }, [allSongs.length, allSongsHasMore, allSongsLoading, getAllSongs])
+
+  const loadMoreTracks = useCallback(() => {
+    if (!allSongsLoading && allSongsHasMore) {
+      getAllSongs(allSongsPage + 1, { pageSize: TRACKS_PAGE_SIZE })
+    }
+  }, [allSongsHasMore, allSongsLoading, allSongsPage, getAllSongs])
 
   useEffect(() => {
     if (dir === 'resume' && allSongs.length > 0) {
@@ -23,10 +33,16 @@ function AllTracks() {
     }
   }, [allSongs, dir])
   return (
-    <>
+    <div className="AllTracks">
       {/* <PlaylistActions /> */}
-      <Cola list={allSongs} name={'tracks'} />
-    </>
+      <VirtualizedCola
+        list={allSongs}
+        name={'tracks'}
+        hasMore={allSongsHasMore}
+        isLoading={allSongsLoading}
+        onLoadMore={loadMoreTracks}
+      />
+    </div>
   )
 }
 export default AllTracks

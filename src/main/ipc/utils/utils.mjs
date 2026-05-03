@@ -223,49 +223,66 @@ export async function getSongBpm(common) {
   }
 }
 
-export async function getFileInfos(filePaths) {
-  return Promise.all(
-    filePaths.map(async (filePath) => {
-      try {
-        const stats = fs.statSync(filePath)
-        const { common, format } = await parseFile(filePath)
-        const fileName = path.basename(filePath, path.extname(filePath))
+async function mapWithConcurrency(items, limit, mapper) {
+  const results = new Array(items.length)
+  let nextIndex = 0
 
-        // Verificación para omitir archivos cuyo nombre contiene un '#'
-        if (fileName.includes('#')) {
-          return null
-        }
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex
+      nextIndex += 1
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex)
+    }
+  }
 
-        const duration = format.duration || 0
+  const workerCount = Math.min(limit, items.length)
+  await Promise.all(Array.from({ length: workerCount }, worker))
+  return results
+}
 
-        const song = await getOrCreateSong(filePath, fileName)
+export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
+  const fileInfos = await mapWithConcurrency(filePaths, concurrency, async (filePath) => {
+    try {
+      const stats = fs.statSync(filePath)
+      const { common, format } = await parseFile(filePath)
+      const fileName = path.basename(filePath, path.extname(filePath))
 
-        const userPreference = await prisma.userPreferences.findUnique({
-          where: { song_id: song.song_id },
-          select: {
-            bpm: true,
-            play_count: true, // Incluye play_count en la selección
-            is_favorite: true
-          }
-        })
-
-        return {
-          filePath,
-          fileName,
-          size: stats.size,
-          duration,
-          ...common,
-          // picture: [Buffer.alloc(0)], // Buffer vacío
-          bpm: userPreference?.bpm || 0,
-          play_count: userPreference?.play_count || 0,
-          liked: userPreference?.is_favorite || false
-        }
-      } catch (error) {
-        // console.error(`Error processing file ${filePath}:`, error)
+      // Verificación para omitir archivos cuyo nombre contiene un '#'
+      if (fileName.includes('#')) {
         return null
       }
-    })
-  ).then((fileInfos) => fileInfos.filter((info) => info !== null))
+
+      const duration = format.duration || 0
+
+      const song = await getOrCreateSong(filePath, fileName)
+
+      const userPreference = await prisma.userPreferences.findUnique({
+        where: { song_id: song.song_id },
+        select: {
+          bpm: true,
+          play_count: true, // Incluye play_count en la selección
+          is_favorite: true
+        }
+      })
+
+      return {
+        filePath,
+        fileName,
+        size: stats.size,
+        duration,
+        ...common,
+        // picture: [Buffer.alloc(0)], // Buffer vacío
+        bpm: userPreference?.bpm || 0,
+        play_count: userPreference?.play_count || 0,
+        liked: userPreference?.is_favorite || false
+      }
+    } catch (error) {
+      // console.error(`Error processing file ${filePath}:`, error)
+      return null
+    }
+  })
+
+  return fileInfos.filter((info) => info !== null)
 }
 
 export async function getFileCovers(filePaths) {

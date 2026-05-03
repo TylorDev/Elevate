@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSuper } from '../../Contexts/SupeContext'
 import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
@@ -12,6 +12,15 @@ export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
   const toggleOrder = () => {
     setIsDescending(!isDescending)
   }
+
+  const sortedList = useMemo(() => {
+    if (isShuffled) return list
+
+    return list
+      .slice()
+      .sort((a, b) => (isDescending ? b.play_count - a.play_count : a.play_count - b.play_count))
+  }, [isDescending, isShuffled, list])
+
   return (
     <div className="Cola">
       <Button className="Decendente" onClick={toggleOrder}>
@@ -19,14 +28,9 @@ export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
       </Button>
       {list.length > 0 ? (
         <ul>
-          {(isShuffled
-            ? list
-            : list.slice().sort(
-                (a, b) => (isDescending ? b.play_count - a.play_count : a.play_count - b.play_count) // Condición para cambiar entre ascendente y descendente
-              )
-          ).map((file, index) => (
+          {sortedList.map((file, index) => (
             <SongItem
-              key={index}
+              key={file.filePath || index}
               file={file}
               index={index}
               cola={list}
