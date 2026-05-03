@@ -8,7 +8,7 @@ let prisma
 let isQuitting = false
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, shell, BrowserWindow, ipcMain } = electron
+const { app, shell, BrowserWindow, ipcMain, globalShortcut } = electron
 
 export function sendNotification(message) {
   mainWin.webContents.send('notification', message)
@@ -40,10 +40,24 @@ function createWindow() {
   })
 
   mainWin = mainWindow
-  // mainWindow.webContents.openDevTools({ mode: 'bottom' })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    globalShortcut.register('F12', () => {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools()
+      } else {
+        mainWindow.webContents.openDevTools()
+      }
+    })
+
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools()
+      } else {
+        mainWindow.webContents.openDevTools()
+      }
+    })
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -102,4 +116,8 @@ app.on('window-all-closed', () => {
 
     app.quit()
   }
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })

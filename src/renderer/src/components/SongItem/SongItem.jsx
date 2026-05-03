@@ -30,7 +30,7 @@ export function SongItem({ file, index, cola, name, padreActions }) {
 
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
-  const [mycover, setMyCover] = useState('')
+  const [mycover, setMyCover] = useState(null)
 
   const [test, setTest] = useState(false)
   const [isLoaded, setLoaded] = useState(false)
@@ -116,7 +116,9 @@ export function SongItem({ file, index, cola, name, padreActions }) {
       // style={style}
       onClick={() => {
         handleSongClick(file, index, cola, name)
-        addPlaylisthistory(name)
+        if (name && !name.startsWith('folder:') && !name.startsWith('/')) {
+          addPlaylisthistory(name)
+        }
       }}
     >
       <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>
@@ -126,7 +128,7 @@ export function SongItem({ file, index, cola, name, padreActions }) {
             <FaPlay />
           </div>
 
-          <img src={mycover} alt="sin cover" />
+          <img src={mycover || undefined} alt="sin cover" />
         </div>
 
         <div className="songdata">

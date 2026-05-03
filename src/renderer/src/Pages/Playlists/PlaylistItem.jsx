@@ -26,7 +26,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const { getImage } = useSuper()
 
   const [isVisible, setIsVisible] = useState(false)
-  const [back, setBack] = useState('')
+  const [back, setBack] = useState(null)
   useEffect(() => {
     const cover = getImage(playlist.path, playlist.cover)
 
@@ -63,7 +63,7 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
           navigate(`/playlists/${playlist.path}`)
         }}
       >
-        <img src={back} alt=" playlistcover" />
+        <img src={back || undefined} alt=" playlistcover" />
       </div>
 
       <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">

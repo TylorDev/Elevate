@@ -20,7 +20,7 @@ export function Metadata() {
         // }}
       >
         <div className="cover">
-          <img src={''} alt="sin cover" />
+          <img src={undefined} alt="sin cover" />
         </div>
         <div className="data">
           <div className="data-tittle">{'Unknown'}</div>

@@ -10,7 +10,7 @@ export const useAudioContext = () => {
 
 export const AudioProvider = ({ children }) => {
   const { currentFile, handleNextClick, mediaRef, fetchLastData, addhistory } = useSuper()
-  const [path, setPath] = useState('')
+  const [path, setPath] = useState(null)
   useEffect(() => {
     const initializeApp = async () => {
       await fetchLastData()
@@ -47,21 +47,22 @@ export const AudioProvider = ({ children }) => {
   }, [currentFile])
 
   function sanitizePath(path) {
-    const Newpath = path.replace(/#/g, '%23')
-
-    return Newpath
+    if (!path) return null
+    let newPath = path.replace(/\\/g, '/').replace(/#/g, '%23')
+    if (/^([a-zA-Z]):/.test(newPath)) {
+      newPath = `file:///${newPath}`
+    }
+    return newPath
   }
 
   return (
     <AudioContextState.Provider value={{}}>
       {children}
-      <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
-        {currentFile && currentFile.filePath ? (
+      {path && (
+        <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
           <source src={path} type="audio/mpeg" />
-        ) : (
-          <p>Tu navegador no soporta el elemento de audio.</p>
-        )}
-      </audio>
+        </audio>
+      )}
     </AudioContextState.Provider>
   )
 }

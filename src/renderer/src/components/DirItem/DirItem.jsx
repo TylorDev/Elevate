@@ -29,7 +29,7 @@ export function DirItem({ directory }) {
   return (
     <li key={directory.id} className="dirItem">
       <BsFolderFill className="d-icon" />
-      <Link to={`/directories/${directory.path}/false`}>{getLastPart(directory.path)}</Link>
+      <Link to={`/directories/${encodeURIComponent(directory.path)}/false`}>{getLastPart(directory.path)}</Link>
       <div className="d-datas">
         <span>{directory.totalTracks} tracks</span>
         <span>{formatDuration(directory.totalDuration)}</span>
@@ -38,7 +38,7 @@ export function DirItem({ directory }) {
       <Button
         key={directory.id}
         onClick={() => {
-          navigate(`/directories/${directory.path}/true`)
+          navigate(`/directories/${encodeURIComponent(directory.path)}/true`)
         }}
       >
         <FaPlay />

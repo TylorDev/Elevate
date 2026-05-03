@@ -5,7 +5,8 @@ import {
   generateCover,
   getFileInfo,
   processPlaylist,
-  processPlaylistCover
+  processPlaylistCover,
+  getOrCreateSong
 } from './utils/utils.mjs'
 import { prisma } from '../prisma.mjs'
 import sharp from 'sharp'
@@ -296,16 +297,15 @@ const getLastSong = async () => {
 
 async function updatePlaylistByPath(path, newData) {
   try {
-    // Buscar la playlist por path para obtener su id
     const playlist = await prisma.playlist.findUnique({
       where: { path }
     })
 
     if (!playlist) {
-      throw new Error('Playlist not found')
+      console.log(`Playlist not found for path: ${path}`)
+      return null
     }
 
-    // Actualizar la playlist con los nuevos datos
     const updatedPlaylist = await prisma.playlist.update({
       where: { id: playlist.id },
       data: newData
@@ -313,9 +313,8 @@ async function updatePlaylistByPath(path, newData) {
 
     return updatedPlaylist
   } catch (error) {
-    console.log(path)
     console.error('Error updating playlist:', error)
-    throw error
+    return null
   }
 }
 async function getM3ufilepaths(filepath) {
@@ -402,7 +401,10 @@ export function setupPlaylistHandlers() {
   ipcMain.handle('load-list-to-history', async (event, filePath) => {
     try {
       const playlist = await getPlaylist(filePath)
-      if (!playlist) throw new Error('Playlist not found')
+      if (!playlist) {
+        console.log(`Playlist not found for path: ${filePath}`)
+        return
+      }
 
       await incrementCounter(playlist.id)
 
@@ -438,6 +440,10 @@ export function setupPlaylistHandlers() {
 
   ipcMain.handle('add-new-song', async (event, { filePath, song }) => {
     console.log(filePath)
+
+    const filename = path.basename(song)
+    const newSong = await getOrCreateSong(song, filename)
+
     const baseDir = path.dirname(filePath)
     const filePaths = await getM3ufilepaths(filePath, baseDir) //
     filePaths.push(song)
@@ -446,9 +452,9 @@ export function setupPlaylistHandlers() {
       return { success: false, error: saveResult.error }
     }
 
-    console.log('cancion eliminada en:', saveResult.playlistName)
+    console.log('cancion agregada en:', saveResult.playlistName)
     const playlistDetails = await getPlaylistDetails(filePath)
-    console.log('cancion eliminada en:', playlistDetails.totalTracks)
+    console.log('cancion agregada en:', playlistDetails.totalTracks)
     const playlistData = {
       path: filePath,
       duracion: playlistDetails.totalDuration,
@@ -456,7 +462,7 @@ export function setupPlaylistHandlers() {
       totalplays: 0
     }
 
-    return removeTrack(playlistData.path, playlistData)
+    return { ...removeTrack(playlistData.path, playlistData), songName: filename }
   })
 
   ipcMain.handle('save-m3u', async (event, { filePaths }) => {

@@ -16,7 +16,7 @@ export const PlaylistsProvider = ({ children }) => {
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
   const [arrayCovers, setArrayCovers] = useState([])
-  const [currentCover, setCurrentCover] = useState('')
+  const [currentCover, setCurrentCover] = useState(null)
   const [arrayAlbums, setArrayAlbums] = useState([])
 
   const { removeTrack, addSong } = useSuper()

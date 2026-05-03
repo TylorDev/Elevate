@@ -10,7 +10,7 @@ function Settings() {
   const { color, handleColorChange } = useSuper()
 
   const [value, setValue] = useState(0)
-  const [imageUrl, setImageUrl] = useState('')
+  const [imageUrl, setImageUrl] = useState(null)
   const handleUrlChange = (event) => {
     const newUrl = event.target.value
     setImageUrl(newUrl) // Actualizar el estado con la nueva URL
@@ -50,7 +50,7 @@ function Settings() {
         />
         <Button onClick={() => handleUrlChange({ target: { value: '' } })}>Clear</Button>
 
-        <img src={imageUrl} alt="banner" width={200} />
+        <img src={imageUrl || undefined} alt="banner" width={200} />
       </CustomTabPanel>
     </div>
   )

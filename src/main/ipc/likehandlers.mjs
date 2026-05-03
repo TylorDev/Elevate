@@ -277,16 +277,24 @@ async function searchSongPathsByName(searchText) {
   try {
     const songs = await prisma.songs.findMany({
       where: {
-        filename: {
-          contains: searchText
-        }
+        OR: [
+          {
+            filename: {
+              contains: searchText
+            }
+          },
+          {
+            filepath: {
+              contains: searchText
+            }
+          }
+        ]
       },
       select: {
-        filepath: true // Selecciona solo el campo filepath
+        filepath: true
       }
     })
 
-    // Extrae solo los paths de los resultados
     const paths = Array.isArray(songs) ? songs.map((song) => song.filepath) : []
 
     return paths

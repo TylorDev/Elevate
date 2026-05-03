@@ -16,12 +16,12 @@ function DirPage() {
   const { getDirFiles, getDirectoryData } = useMini()
 
   const [currentDir, setCurrentDir] = useState([])
-  const folderPath = directory
+  const folderPath = decodeURIComponent(directory)
 
   const [folderData, setFolderData] = useState()
   const [searchParams] = useSearchParams() // Hook para obtener los query params
 
-  const songName = searchParams.get('song') // Obtener el valor del parámetro 'name'
+  const songName = decodeURIComponent(searchParams.get('song') || '') // Obtener el valor del parámetro 'name'
 
   useEffect(() => {
     if (!folderData) {

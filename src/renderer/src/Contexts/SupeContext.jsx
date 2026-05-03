@@ -11,6 +11,7 @@ const SuperContext = createContext()
 export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
   const scrollRef = useRef(null)
+  const listenersAttached = useRef(false)
   const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
@@ -119,7 +120,7 @@ export const SuperProvider = ({ children }) => {
     }
     if (filePath.startsWith('folder:')) {
       const newFilePath = filePath.replace(/^folder:/, '') // Quita 'folder:' solo al inicio
-      navigate(`/directories/${newFilePath}/false?song=${song.filePath}`)
+      navigate(`/directories/${encodeURIComponent(newFilePath)}/false?song=${encodeURIComponent(song.filePath)}`)
       setCurrentFile(song)
       setCurrentIndex(index)
       const newQueue = await window.electron.ipcRenderer.invoke(
@@ -211,32 +212,47 @@ export const SuperProvider = ({ children }) => {
   }, [])
 
   useEffect(() => {
-    const updateProgress = () => {
-      setProgress(mediaRef.current.currentTime)
-    }
+    const tryAttachListeners = () => {
+      if (listenersAttached.current || !mediaRef.current) {
+        setTimeout(tryAttachListeners, 100)
+        return
+      }
 
-    const updateDuration = () => {
-      setDuration(mediaRef.current.duration)
-    }
+      const updateProgress = () => {
+        setProgress(mediaRef.current.currentTime)
+      }
 
-    if (mediaRef.current) {
+      const updateDuration = () => {
+        setDuration(mediaRef.current.duration || 0)
+      }
+
       mediaRef.current.addEventListener('timeupdate', updateProgress)
       mediaRef.current.addEventListener('loadedmetadata', updateDuration)
       mediaRef.current.addEventListener('durationchange', updateDuration)
+      listenersAttached.current = true
     }
+
+    tryAttachListeners()
 
     return () => {
       if (mediaRef.current) {
-        mediaRef.current.removeEventListener('timeupdate', updateProgress)
-        mediaRef.current.removeEventListener('loadedmetadata', updateDuration)
-        mediaRef.current.removeEventListener('durationchange', updateDuration)
+        mediaRef.current.removeEventListener('timeupdate', () => {})
+        mediaRef.current.removeEventListener('loadedmetadata', () => {})
+        mediaRef.current.removeEventListener('durationchange', () => {})
+        listenersAttached.current = false
       }
     }
-  }, [mediaRef])
+  }, [])
 
   useEffect(() => {
     if (mediaRef.current) {
-      mediaRef.current.src = currentFile.filePath
+      let filePath = currentFile.filePath
+        ? currentFile.filePath.replace(/\\/g, '/').replace(/#/g, '%23')
+        : null
+      if (filePath && /^([a-zA-Z]):/.test(filePath)) {
+        filePath = `file:///${filePath}`
+      }
+      mediaRef.current.src = filePath
 
       // Manejar eventos de reproducción
       mediaRef.current.onplay = () => {
@@ -406,21 +422,29 @@ export const SuperProvider = ({ children }) => {
   }
 
   const addSong = async (playlistPath, newTrack) => {
-    // Enviar los paths actualizados al proceso principal
     const result = await electronInvoke('add-new-song', {
       filePath: playlistPath,
       song: newTrack.filePath
     })
 
-    // Manejar el resultado de la operación
     if (result && result.success) {
       console.log('M3U file updated successfully at', result.path)
-      console.log('New name in db:', result.nombre)
-      // Actualizar el estado con la nueva lista de paths
+      console.log('New name in db:', result.songName)
       setQueueState((prevState) => ({
         ...prevState,
         currentQueue: [...prevState.currentQueue, newTrack]
       }))
+      toast.success(`Agregada: ${result.songName}`, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
     }
   }
 
