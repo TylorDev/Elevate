@@ -41,9 +41,47 @@ export const dataToImageUrl = (input, mimeType = 'image/png') => {
   return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
 }
 
+const pendingInvokes = new Map()
+
+function getInvokeKey(action, args) {
+  return `${action}:${JSON.stringify(args)}`
+}
+
+export const dedupedInvoke = async (action, ...args) => {
+  const key = getInvokeKey(action, args)
+  const pendingInvoke = pendingInvokes.get(key)
+
+  if (pendingInvoke) {
+    return pendingInvoke
+  }
+
+  const invokePromise = window.electron.ipcRenderer.invoke(action, ...args).finally(() => {
+    pendingInvokes.delete(key)
+  })
+
+  pendingInvokes.set(key, invokePromise)
+  return invokePromise
+}
+
+export const createLatestOnlyInvoker = () => {
+  let latestRequestId = 0
+
+  return async (action, ...args) => {
+    const requestId = latestRequestId + 1
+    latestRequestId = requestId
+
+    const result = await dedupedInvoke(action, ...args)
+
+    return {
+      isLatest: requestId === latestRequestId,
+      result
+    }
+  }
+}
+
 export const ElectronGetter = async (action, setState = null, value = null, message = null) => {
   try {
-    const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
+    const fileInfos = await dedupedInvoke(action, value)
     if (fileInfos) {
       setState?.(fileInfos)
       // toast.success(message || 'Completado!', {
@@ -114,7 +152,7 @@ export const ElectronDelete = async (action, value, message = null) => {
 
 export const ElectronGetter2 = async (action, setState = null, value = null) => {
   try {
-    const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
+    const fileInfos = await dedupedInvoke(action, value)
     if (fileInfos) {
       setState?.(fileInfos)
     } else {

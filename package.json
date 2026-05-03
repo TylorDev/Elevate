@@ -39,6 +39,7 @@
     "butterchurn-presets": "^2.4.7",
     "cheerio": "^1.0.0-rc.12",
     "custom-electron-titlebar": "^4.2.8",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.1.7",
     "jimp": "^1.1.4",
     "lodash": "^4.17.21",

@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-
+import log from 'electron-log/main.js'
 import {
   getFileInfos,
   getAllAudioFiles,
@@ -14,8 +14,59 @@ import { prisma } from '../prisma.mjs'
 import { setBraveVolume } from './audio.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { dialog, ipcMain } = electron
+const { app, dialog, ipcMain } = electron
 const watchedDirectories = new Set()
+const directoryDetailsCache = new Map()
+const DIRECTORY_DETAILS_TTL = 60 * 1000
+let pendingDirectoriesRequest = null
+
+function invalidateDirectoryCache(dirPath = null) {
+  pendingDirectoriesRequest = null
+
+  if (!dirPath) {
+    directoryDetailsCache.clear()
+    return
+  }
+
+  directoryDetailsCache.delete(dirPath)
+}
+
+async function getDirectoryDetails(directory) {
+  const cachedDetails = directoryDetailsCache.get(directory.path)
+
+  if (cachedDetails && cachedDetails.expiresAt > Date.now()) {
+    return {
+      ...directory,
+      ...cachedDetails.details
+    }
+  }
+
+  const details = await getTotalDuration(directory.path)
+  directoryDetailsCache.set(directory.path, {
+    details,
+    expiresAt: Date.now() + DIRECTORY_DETAILS_TTL
+  })
+
+  return {
+    ...directory,
+    ...details
+  }
+}
+
+async function getDirectoriesWithDetails() {
+  if (pendingDirectoriesRequest) {
+    return pendingDirectoriesRequest
+  }
+
+  pendingDirectoriesRequest = prisma.directory
+    .findMany()
+    .then((directories) => Promise.all(directories.map((directory) => getDirectoryDetails(directory))))
+    .finally(() => {
+      pendingDirectoriesRequest = null
+    })
+
+  return pendingDirectoriesRequest
+}
 
 async function startWatchingDirectories() {
   try {
@@ -50,6 +101,7 @@ function handleFileChange(eventType, filename, dirPath) {
 
   const fullPath = buildFullPath(filename, dirPath)
   if (isFile(fullPath)) {
+    invalidateDirectoryCache(dirPath)
     const basenameWithoutExt = extractBasename(filename)
     getOrCreateSong(fullPath, basenameWithoutExt)
     debugFileDetails(fullPath, basenameWithoutExt)
@@ -77,16 +129,16 @@ function debugFileDetails(fullPath, basenameWithoutExt) {
 
 export function setupFilehandlers() {
   startWatchingDirectories()
-  const filePath = 'C:\\Users\\yonte\\Pictures\\señal.txt'
-
-  if (fs.existsSync(filePath)) {
-    console.log(`El archivo existe, comenzando a vigilar: ${filePath}`)
+  const signalFilePath =
+    process.env.ELEVATE_SIGNAL_FILE || path.join(app.getPath('userData'), 'signal.txt')
+  if (fs.existsSync(signalFilePath)) {
+    log.info('File exists, starting watch:', signalFilePath)
 
     // Vigilar el archivo
-    fs.watch(filePath, (eventType, filename) => {
+    fs.watch(signalFilePath, (eventType, filename) => {
       if (filename) {
         // Leer el contenido del archivo
-        fs.readFile(filePath, 'utf8', (err, data) => {
+        fs.readFile(signalFilePath, 'utf8', (err, data) => {
           if (err) {
             console.error(`Error al leer el archivo: ${err}`)
             return
@@ -106,9 +158,9 @@ export function setupFilehandlers() {
       }
     })
 
-    console.log(`Vigilando el txt: ${filePath}`)
+    log.info('Vigilando el txt:', signalFilePath)
   } else {
-    console.log(`El archivo no existe: ${filePath}`)
+    log.info('Signal file not found, skipping optional watcher:', signalFilePath)
   }
 
   ipcMain.handle('add-directory', async () => {
@@ -128,6 +180,7 @@ export function setupFilehandlers() {
         update: {},
         create: { path: directoryPath }
       })
+      invalidateDirectoryCache()
 
       return { success: true, message: 'Directory added sucessfully.' }
     } catch (error) {
@@ -231,6 +284,7 @@ export function setupFilehandlers() {
       await prisma.directory.delete({
         where: { path: path }
       })
+      invalidateDirectoryCache(path)
       return { success: true, message: 'Directory deleted successfully.' }
     } catch (error) {
       console.error('Error deleting directory:', error)
@@ -250,13 +304,7 @@ export function setupFilehandlers() {
       }
 
       // Obtener las propiedades totalTracks y totalDuration
-      const { totalTracks, totalDuration } = await getTotalDuration(directory.path)
-
-      return {
-        ...directory,
-        totalTracks,
-        totalDuration
-      }
+      return await getDirectoryDetails(directory)
     } catch (error) {
       console.error('Error retrieving directory:', error)
       throw error
@@ -265,23 +313,7 @@ export function setupFilehandlers() {
 
   ipcMain.handle('get-all-directories', async () => {
     try {
-      // Obtener todos los directorios de la base de datos
-      const directories = await prisma.directory.findMany()
-
-      // Iterar sobre cada directorio y agregar las propiedades totalTracks y totalDuration
-      const directoriesWithDetails = await Promise.all(
-        directories.map(async (directory) => {
-          const { totalTracks, totalDuration } = await getTotalDuration(directory.path)
-
-          return {
-            ...directory,
-            totalTracks,
-            totalDuration
-          }
-        })
-      )
-
-      return directoriesWithDetails
+      return await getDirectoriesWithDetails()
     } catch (error) {
       console.error('Error retrieving directories:', error)
       throw error

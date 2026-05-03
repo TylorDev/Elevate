@@ -1,5 +1,6 @@
+import { useRef } from 'react'
 import './Header.scss'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { PiWaveform } from 'react-icons/pi'
 import { MdBarChart, MdOutlineWatchLater, MdQueueMusic } from 'react-icons/md'
 import { FaRegHeart } from 'react-icons/fa'
@@ -17,6 +18,25 @@ function Header() {
   const { playlists } = usePlaylists()
   const { lista } = useMini()
   const { handleAwaken } = useSuper()
+  const location = useLocation()
+  const lastHeavyNavigationRef = useRef({ path: '', time: 0 })
+
+  const handleHeavyNavigation = (event, targetPath) => {
+    const now = Date.now()
+    const lastNavigation = lastHeavyNavigationRef.current
+
+    if (location.pathname === targetPath) {
+      event.preventDefault()
+      return
+    }
+
+    if (lastNavigation.path === targetPath && now - lastNavigation.time < 250) {
+      event.preventDefault()
+      return
+    }
+
+    lastHeavyNavigationRef.current = { path: targetPath, time: now }
+  }
   return (
     <div className="navbar" id="Header">
       <div className="nav-sec">
@@ -48,11 +68,19 @@ function Header() {
         <div className="sec-t">Personal Lists</div>
 
         <div className="sec-i">
-          <NavLink to="/directories" className={getActiveClass}>
+          <NavLink
+            to="/directories"
+            className={getActiveClass}
+            onClick={(event) => handleHeavyNavigation(event, '/directories')}
+          >
             <FaFolderTree />
             <span className="Link-name">Folders </span>
           </NavLink>
-          <NavLink to="/playlists" className={getActiveClass}>
+          <NavLink
+            to="/playlists"
+            className={getActiveClass}
+            onClick={(event) => handleHeavyNavigation(event, '/playlists')}
+          >
             <MdQueueMusic /> <span className="Link-name">Playlists </span>
           </NavLink>
         </div>

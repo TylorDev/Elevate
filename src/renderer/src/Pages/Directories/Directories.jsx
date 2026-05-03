@@ -8,13 +8,14 @@ import { Button } from './../../Components/Button/Button'
 
 import { MdCreateNewFolder } from 'react-icons/md'
 function Directories() {
-  const { getDirectories, directories, addDirectory } = useMini()
+  const { getDirectories, directories, directoriesLoading, directoriesLoaded, addDirectory } =
+    useMini()
 
   useEffect(() => {
-    if (!directories || directories.length === 0) {
+    if (!directoriesLoaded && !directoriesLoading) {
       getDirectories()
     }
-  }, [])
+  }, [directoriesLoaded, directoriesLoading, getDirectories])
 
   if (directories.length === 0) {
     return (

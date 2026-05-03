@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module'
 import path from 'path'
 import fs from 'fs'
+import log from 'electron-log/main.js'
 import {
   generateCover,
   getFileInfo,
@@ -13,6 +14,55 @@ import sharp from 'sharp'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron
+const playlistCoverCache = new Map()
+const pendingPlaylistRequests = new Map()
+
+function getPlaylistCacheKey(playlistPath) {
+  try {
+    const stats = fs.statSync(playlistPath)
+    return `${playlistPath}:${stats.mtimeMs}:${stats.size}`
+  } catch {
+    return `${playlistPath}:missing`
+  }
+}
+
+function invalidatePlaylistCache(playlistPath = null) {
+  pendingPlaylistRequests.clear()
+
+  if (!playlistPath) {
+    playlistCoverCache.clear()
+    return
+  }
+
+  for (const key of playlistCoverCache.keys()) {
+    if (key.startsWith(`${playlistPath}:`)) {
+      playlistCoverCache.delete(key)
+    }
+  }
+}
+
+async function getCachedPlaylistCover(playlist) {
+  const cacheKey = getPlaylistCacheKey(playlist.path)
+  const cachedCover = playlistCoverCache.get(cacheKey)
+
+  if (cachedCover !== undefined) {
+    return cachedCover
+  }
+
+  const baseDir = path.dirname(playlist.path)
+  const songs = await processPlaylistCover(playlist.path, baseDir)
+  console.log(`Canciones procesadas: ${songs.length}`)
+
+  let cover = null
+  try {
+    cover = await generateCover(songs)
+  } catch (error) {
+    console.error(`Error al generar el cover para la playlist ${playlist.id}:`, error)
+  }
+
+  playlistCoverCache.set(cacheKey, cover)
+  return cover
+}
 
 async function removeTrack(filepath, data) {
   try {
@@ -34,6 +84,7 @@ async function removeTrack(filepath, data) {
           nombre: existingPlaylist.nombre // Mantén el nombre actual.
         }
       })
+      invalidatePlaylistCache(filepath)
 
       return { success: true, playlist: updatedPlaylist }
     } else {
@@ -44,6 +95,7 @@ async function removeTrack(filepath, data) {
           path: filepath // Usa el filepath como identificador único.
         }
       })
+      invalidatePlaylistCache(filepath)
 
       return { success: true, playlist: newPlaylist }
     }
@@ -70,6 +122,7 @@ async function updatePlaylist(path, nombre, duracion = 0, numElementos = 0, tota
       totalplays
     }
   })
+  invalidatePlaylistCache(path)
 
   return playlist
 }
@@ -107,6 +160,7 @@ async function deletePlaylist(filePath) {
     const deletedPlaylist = await prisma.playlist.delete({
       where: { path: filePath }
     })
+    invalidatePlaylistCache(filePath)
 
     return { success: true, deletedPlaylist }
   } catch (error) {
@@ -134,6 +188,13 @@ async function getPlays(filePath) {
   }
 }
 async function getPlaylists({ take = null, skip = null } = {}) {
+  const requestKey = JSON.stringify({ take, skip })
+  const pendingRequest = pendingPlaylistRequests.get(requestKey)
+
+  if (pendingRequest) {
+    return pendingRequest
+  }
+
   const options = {
     orderBy: {
       totalplays: 'desc' // Ordena de más reproducciones a menos reproducciones
@@ -143,23 +204,21 @@ async function getPlaylists({ take = null, skip = null } = {}) {
   if (take !== null) options.take = take
   if (skip !== null) options.skip = skip
 
-  const playlists = await prisma.playlist.findMany(options)
+  const request = prisma.playlist
+    .findMany(options)
+    .then(async (playlists) => {
+      for (const playlist of playlists) {
+        playlist.cover = await getCachedPlaylistCover(playlist)
+      }
 
-  for (const playlist of playlists) {
-    const baseDir = path.dirname(playlist.path)
-    const songs = await processPlaylistCover(playlist.path, baseDir)
-    console.log(`Canciones procesadas: ${songs.length}`)
-    playlist.cover = null
-    try {
-      // Intentar generar el cover
-      const cover = await generateCover(songs)
-      playlist.cover = cover
-    } catch (error) {
-      console.error(`Error al generar el cover para la playlist ${playlist.id}:`, error)
-    }
-  }
+      return playlists
+    })
+    .finally(() => {
+      pendingPlaylistRequests.delete(requestKey)
+    })
 
-  return playlists
+  pendingPlaylistRequests.set(requestKey, request)
+  return request
 }
 
 async function getRandomPlaylist() {
@@ -310,6 +369,7 @@ async function updatePlaylistByPath(path, newData) {
       where: { id: playlist.id },
       data: newData
     })
+    invalidatePlaylistCache(path)
 
     return updatedPlaylist
   } catch (error) {
@@ -359,14 +419,26 @@ export function setupPlaylistHandlers() {
   })
 
   ipcMain.handle('get-list', async (event, filepath) => {
-    const baseDir = path.dirname(filepath)
-    const processedData = await processPlaylist(filepath, baseDir) //
-    const playlistData = await getPlaylist(filepath)
-    const cover = await generateCover(processedData)
-    return {
-      processedData,
-      playlistData,
-      cover
+    if (!filepath || filepath === '') {
+      log.error('get-list: filepath is empty or undefined')
+      return { success: false, error: 'filepath is required' }
+    }
+    try {
+      log.info('get-list: loading playlist:', filepath)
+      const baseDir = path.dirname(filepath)
+      const processedData = await processPlaylist(filepath, baseDir)
+      const playlistData = await getPlaylist(filepath)
+      const cover = await generateCover(processedData)
+      log.info('get-list: loaded successfully')
+      return {
+        processedData,
+        playlistData,
+        cover
+      }
+    } catch (err) {
+      log.error('get-list error:', err.message)
+      log.error('Stack:', err.stack)
+      return { success: false, error: err.message }
     }
   })
 
@@ -421,6 +493,7 @@ export function setupPlaylistHandlers() {
     const filePaths = await getM3ufilepaths(filePath, baseDir) //
     filePaths.splice(index, 1)
     const saveResult = await savePlaylist(filePath, filePaths)
+    invalidatePlaylistCache(filePath)
     if (!saveResult.success) {
       return { success: false, error: saveResult.error }
     }
@@ -448,6 +521,7 @@ export function setupPlaylistHandlers() {
     const filePaths = await getM3ufilepaths(filePath, baseDir) //
     filePaths.push(song)
     const saveResult = await savePlaylist(filePath, filePaths)
+    invalidatePlaylistCache(filePath)
     if (!saveResult.success) {
       return { success: false, error: saveResult.error }
     }
@@ -469,6 +543,7 @@ export function setupPlaylistHandlers() {
     try {
       const filePath = await saveDialog()
       const { success, playlistName, error } = await savePlaylist(filePath, filePaths)
+      invalidatePlaylistCache(filePath)
 
       if (!success) {
         return { success: false, error }

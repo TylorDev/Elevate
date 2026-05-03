@@ -1,25 +1,75 @@
 import { createRequire } from 'node:module'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
+import fs from 'fs'
 import icon from '../../resources/icon.png'
+import log from 'electron-log/main.js'
 
 let mainWin
 let prisma
 let isQuitting = false
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, shell, BrowserWindow, ipcMain, globalShortcut } = electron
+const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } = electron
+
+log.transports.file.level = 'info'
+log.transports.console.level = 'debug'
+log.transports.file.maxSize = 5 * 1024 * 1024
+log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s}.{ms} [{level}] {text}'
+log.initialize()
+
+process.on('uncaughtException', (error) => {
+  log.error('Uncaught Exception:', error.message)
+  log.error('Stack:', error.stack)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled Rejection at:', promise)
+  log.error('Reason:', reason)
+})
+
+const getConfigPath = () => join(app.getPath('userData'), 'window-state.json')
+
+const loadWindowState = () => {
+  try {
+    const data = fs.readFileSync(getConfigPath(), 'utf-8')
+    const state = JSON.parse(data)
+    const displays = screen.getAllDisplays()
+    const isValid = displays.some(d =>
+      state.x >= d.bounds.x && state.x < d.bounds.x + d.bounds.width &&
+      state.y >= d.bounds.y && state.y < d.bounds.y + d.bounds.height
+    )
+    return isValid ? state : null
+  } catch {
+    return null
+  }
+}
+
+const saveWindowState = () => {
+  if (!mainWin) return
+  const bounds = mainWin.getBounds()
+  const state = {
+    isMaximized: mainWin.isMaximized(),
+    isMinimized: mainWin.isMinimized(),
+    ...bounds
+  }
+  fs.writeFileSync(getConfigPath(), JSON.stringify(state))
+}
 
 export function sendNotification(message) {
   mainWin.webContents.send('notification', message)
 }
 
 function createWindow() {
+  const savedState = loadWindowState()
+
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 870,
-    minWidth: 500, // Ancho mínimo
-    minHeight: 400, // Alto mínimo
+    x: savedState?.x ?? 100,
+    y: savedState?.y ?? 100,
+    width: savedState?.width ?? 900,
+    height: savedState?.height ?? 870,
+    minWidth: 500,
+    minHeight: 400,
     show: false,
     autoHideMenuBar: true,
     frame: false,
@@ -33,7 +83,7 @@ function createWindow() {
 
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)), //
+      preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)),
       sandbox: false,
       webSecurity: false
     }
@@ -42,7 +92,13 @@ function createWindow() {
   mainWin = mainWindow
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    if (savedState?.isMaximized) {
+      mainWindow.maximize()
+    } else if (savedState?.isMinimized) {
+      mainWindow.minimize()
+    } else {
+      mainWindow.show()
+    }
     globalShortcut.register('F12', () => {
       if (mainWindow.webContents.isDevToolsOpened()) {
         mainWindow.webContents.closeDevTools()
@@ -59,6 +115,10 @@ function createWindow() {
       }
     })
   })
+
+  mainWindow.on('close', saveWindowState)
+  mainWindow.on('resize', saveWindowState)
+  mainWindow.on('move', saveWindowState)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -88,7 +148,9 @@ app.whenReady().then(async () => {
   prisma = prismaModule.prisma
   await prismaModule.initializePrisma()
 
-  ipcMain.on('ping', () => console.log('pong'))
+  log.info('App started, version:', process.versions.node)
+
+  ipcMain.on('ping', () => log.info('pong'))
 
   setupMusicHandlers()
   setupFilehandlers()
@@ -99,6 +161,16 @@ app.whenReady().then(async () => {
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+
+  app.on('render-process-gone', (event, details) => {
+    log.error('Render process gone:', details.reason)
+    log.error('Exit code:', details.exitCode)
+  })
+
+  app.on('child-process-gone', (event, details) => {
+    log.error('Child process gone:', details.reason)
+    log.error('Exit code:', details.exitCode)
   })
 })
 

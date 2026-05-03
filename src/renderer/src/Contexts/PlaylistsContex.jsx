@@ -1,6 +1,12 @@
 /* eslint-disable react/prop-types */
-import { createContext, useState, useContext, useEffect } from 'react'
-import { dataToImageUrl, ElectronDelete, ElectronGetter, ElectronSetter2 } from './utils'
+import { createContext, useState, useContext, useEffect, useRef } from 'react'
+import {
+  createLatestOnlyInvoker,
+  dataToImageUrl,
+  ElectronDelete,
+  ElectronGetter,
+  ElectronSetter2
+} from './utils'
 import { Bounce, toast } from 'react-toastify'
 
 import { useSuper } from './SupeContext'
@@ -15,6 +21,11 @@ export const PlaylistsProvider = ({ children }) => {
   const [allSongs, SetAllSongs] = useState([]) // 1 ref - 5 ref
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
+  const [playlistsLoading, setPlaylistsLoading] = useState(false)
+  const [playlistsLoaded, setPlaylistsLoaded] = useState(false)
+  const [playlistsLastLoadedAt, setPlaylistsLastLoadedAt] = useState(null)
+  const playlistsRequestRef = useRef(null)
+  const playlistsInvokerRef = useRef(createLatestOnlyInvoker())
   const [arrayCovers, setArrayCovers] = useState([])
   const [currentCover, setCurrentCover] = useState(null)
   const [arrayAlbums, setArrayAlbums] = useState([])
@@ -25,12 +36,12 @@ export const PlaylistsProvider = ({ children }) => {
   const removeSongFromList = async (playlistPath, index) => {
     await removeTrack(playlistPath, index)
 
-    getSavedLists()
+    getSavedLists({ force: true })
   }
 
   const addSongToList = async (playlistPath, newTrack) => {
     await addSong(playlistPath, newTrack)
-    getSavedLists()
+    getSavedLists({ force: true })
   }
 
   useEffect(() => {
@@ -101,13 +112,50 @@ export const PlaylistsProvider = ({ children }) => {
     console.log('arrayAlbums actualizado:', newArrayCover)
   }
 
+  useEffect(() => {
+    updateArrayAlbums(playlists)
+  }, [playlists])
+
   const openM3U = async () => {
     await ElectronGetter('load-list', SetAllSongs, null, 'se cargo correctamente la lista nueva') // 0 ref
-    getSavedLists()
+    getSavedLists({ force: true })
   }
 
-  const getSavedLists = () =>
-    ElectronGetter('get-playlists', setPlaylists, null, 'todas las listas cargadas!')
+  const getSavedLists = async ({ force = false } = {}) => {
+    if (!force && playlistsLoaded) {
+      return playlists
+    }
+
+    if (playlistsRequestRef.current && !force) {
+      return playlistsRequestRef.current
+    }
+
+    setPlaylistsLoading(true)
+
+    const request = playlistsInvokerRef.current('get-playlists', force ? Date.now() : null)
+      .then(({ isLatest, result }) => {
+        if (isLatest && result) {
+          setPlaylists(result)
+          setPlaylistsLoaded(true)
+          setPlaylistsLastLoadedAt(Date.now())
+        }
+
+        return result
+      })
+      .catch((error) => {
+        console.error('Error loading playlists:', error)
+        throw error
+      })
+      .finally(() => {
+        if (playlistsRequestRef.current === request) {
+          playlistsRequestRef.current = null
+          setPlaylistsLoading(false)
+        }
+      })
+
+    playlistsRequestRef.current = request
+    return request
+  }
   const getRandomList = () =>
     ElectronGetter('get-random-playlist', setRandomPlaylist, null, 'random list cargada')
   const addPlaylisthistory = (path) => ElectronSetter2('load-list-to-history', path)
@@ -116,7 +164,7 @@ export const PlaylistsProvider = ({ children }) => {
 
     if (response.success) {
       console.log(response.message)
-      getSavedLists()
+      getSavedLists({ force: true })
     } else {
       console.error(response.message)
       toast.error(response.message, {
@@ -138,6 +186,7 @@ export const PlaylistsProvider = ({ children }) => {
   const deletePlaylist = async (filePath) => {
     await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
     setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
+    setPlaylistsLoaded(false)
   }
   const getUniqueList = async (setState, filePath) => {
     await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
@@ -181,7 +230,7 @@ export const PlaylistsProvider = ({ children }) => {
     const handleNotification = async (message) => {
       if (message == '[new]') {
         getAllSongs()
-        getDirectories()
+        getDirectories({ force: true })
       }
       toast.success(message || 'Completado!', {
         position: 'bottom-right',
@@ -208,6 +257,9 @@ export const PlaylistsProvider = ({ children }) => {
       value={{
         allSongs,
         playlists,
+        playlistsLoading,
+        playlistsLoaded,
+        playlistsLastLoadedAt,
         getSavedLists,
         addPlaylisthistory,
         deletePlaylist,

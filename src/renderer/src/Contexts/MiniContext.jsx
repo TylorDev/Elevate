@@ -1,5 +1,11 @@
-import { createContext, useContext, useState } from 'react'
-import { ElectronDelete, ElectronGetter, ElectronGetter2, ElectronSetter } from './utils'
+import { createContext, useContext, useRef, useState } from 'react'
+import {
+  createLatestOnlyInvoker,
+  ElectronDelete,
+  ElectronGetter,
+  ElectronGetter2,
+  ElectronSetter
+} from './utils'
 import { useSuper } from './SupeContext'
 
 // Crear el contexto
@@ -18,6 +24,11 @@ export const MiniProvider = ({ children }) => {
   const searchSongs = async (value) => await ElectronGetter2('search', setResults, value)
 
   const [directories, setDiretories] = useState([])
+  const [directoriesLoading, setDirectoriesLoading] = useState(false)
+  const [directoriesLoaded, setDirectoriesLoaded] = useState(false)
+  const [directoriesLastLoadedAt, setDirectoriesLastLoadedAt] = useState(null)
+  const directoriesRequestRef = useRef(null)
+  const directoriesInvokerRef = useRef(createLatestOnlyInvoker())
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
@@ -58,8 +69,41 @@ export const MiniProvider = ({ children }) => {
     console.log(lista)
   }
 
-  const getDirectories = () =>
-    ElectronGetter('get-all-directories', setDiretories, null, 'directorios obtenidos!')
+  const getDirectories = async ({ force = false } = {}) => {
+    if (!force && directoriesLoaded) {
+      return directories
+    }
+
+    if (directoriesRequestRef.current && !force) {
+      return directoriesRequestRef.current
+    }
+
+    setDirectoriesLoading(true)
+
+    const request = directoriesInvokerRef.current('get-all-directories', force ? Date.now() : null)
+      .then(({ isLatest, result }) => {
+        if (isLatest && result) {
+          setDiretories(result)
+          setDirectoriesLoaded(true)
+          setDirectoriesLastLoadedAt(Date.now())
+        }
+
+        return result
+      })
+      .catch((error) => {
+        console.error('Error loading directories:', error)
+        throw error
+      })
+      .finally(() => {
+        if (directoriesRequestRef.current === request) {
+          directoriesRequestRef.current = null
+          setDirectoriesLoading(false)
+        }
+      })
+
+    directoriesRequestRef.current = request
+    return request
+  }
 
   const getDirectoryData = (setState, path) => {
     ElectronGetter('get-directory-by-path', setState, path, 'directorios obtenidos!')
@@ -67,10 +111,11 @@ export const MiniProvider = ({ children }) => {
   const deleteDirectory = async (path) => {
     await ElectronDelete('delete-directory', path, 'directorio eliminado!')
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
+    setDirectoriesLoaded(false)
   }
   const addDirectory = async () => {
     await ElectronGetter('add-directory', null, null, 'Directorio agregado!') // 0 ref
-    getDirectories()
+    getDirectories({ force: true })
   }
   const getDirFiles = (setState, value) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
@@ -117,6 +162,9 @@ export const MiniProvider = ({ children }) => {
         searchSongs, // BUSCA CANCIONES EN LA BD
 
         directories, // LISTA DIRECTORIOS
+        directoriesLoading,
+        directoriesLoaded,
+        directoriesLastLoadedAt,
         addDirectory,
         getDirectories, //  OBTIENE LA  LISTA DIRECTORIOS
         deleteDirectory, // borra un directorio especifico
