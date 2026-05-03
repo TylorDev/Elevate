@@ -3,12 +3,9 @@ import { join } from 'path'
 import { fileURLToPath } from 'url'
 import icon from '../../resources/icon.png'
 
-import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
-
-import { setupPlaylistHandlers } from './ipc/playlistHandlers.mjs'
-import { setupFilehandlers } from './ipc/filehandlers.mjs'
-
 let mainWin
+let prisma
+let isQuitting = false
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, shell, BrowserWindow, ipcMain } = electron
@@ -62,9 +59,20 @@ function createWindow() {
 }
 
 ///////////////////
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   app.setAppUserModelId('com.electron')
   console.log(process.versions.node)
+
+  const prismaModule = await import('./prisma.mjs')
+  const [{ setupLikeSongHandlers, setupMusicHandlers }, { setupPlaylistHandlers }, { setupFilehandlers }] =
+    await Promise.all([
+      import('./ipc/likehandlers.mjs'),
+      import('./ipc/playlistHandlers.mjs'),
+      import('./ipc/filehandlers.mjs')
+    ])
+
+  prisma = prismaModule.prisma
+  await prismaModule.initializePrisma()
 
   ipcMain.on('ping', () => console.log('pong'))
 
@@ -82,6 +90,16 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    if (isQuitting) {
+      return
+    }
+
+    isQuitting = true
+    if (prisma) {
+      void prisma.$disconnect().finally(() => app.quit())
+      return
+    }
+
     app.quit()
   }
 })
