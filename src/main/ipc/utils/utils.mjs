@@ -3,7 +3,7 @@ import { load } from 'cheerio'
 import { parseFile } from 'music-metadata'
 import path from 'path'
 import fs from 'fs'
-import { prisma } from '../likehandlers.mjs'
+import { prisma } from '../../prisma.mjs'
 import sharp from 'sharp'
 
 export async function generateCover(files) {

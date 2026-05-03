@@ -1,6 +1,5 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { createRequire } from 'node:module'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { fileURLToPath } from 'url'
 import icon from '../../resources/icon.png'
 
@@ -10,6 +9,9 @@ import { setupPlaylistHandlers } from './ipc/playlistHandlers.mjs'
 import { setupFilehandlers } from './ipc/filehandlers.mjs'
 
 let mainWin
+const require = createRequire(import.meta.url)
+const electron = require('electron')
+const { app, shell, BrowserWindow, ipcMain } = electron
 
 export function sendNotification(message) {
   mainWin.webContents.send('notification', message)
@@ -52,7 +54,7 @@ function createWindow() {
     return { action: 'deny' }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
@@ -61,10 +63,7 @@ function createWindow() {
 
 ///////////////////
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.electron')
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
+  app.setAppUserModelId('com.electron')
   console.log(process.versions.node)
 
   ipcMain.on('ping', () => console.log('pong'))

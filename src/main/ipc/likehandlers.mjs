@@ -1,11 +1,12 @@
-import { ipcMain } from 'electron'
+import { createRequire } from 'node:module'
 
 import { generateCover, getFileInfos, getOrCreateSong } from './utils/utils.mjs'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../prisma.mjs'
 
 import { getSongBpm } from './utils/utils.mjs'
-import { duration } from '@mui/material'
-export const prisma = new PrismaClient()
+const require = createRequire(import.meta.url)
+const electron = require('electron')
+const { ipcMain } = electron
 
 async function markUserPreference(songId, preferenceField, preferenceValue = true) {
   await prisma.userPreferences.upsert({

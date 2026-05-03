@@ -1,4 +1,4 @@
-import { dialog, ipcMain } from 'electron'
+import { createRequire } from 'node:module'
 
 import {
   getFileInfos,
@@ -7,12 +7,14 @@ import {
   getTotalDuration
 } from './utils/utils.mjs'
 
-import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
 import { sendNotification } from '../index.mjs'
+import { prisma } from '../prisma.mjs'
 import { setBraveVolume } from './audio.mjs'
-const prisma = new PrismaClient()
+const require = createRequire(import.meta.url)
+const electron = require('electron')
+const { dialog, ipcMain } = electron
 const watchedDirectories = new Set()
 
 async function startWatchingDirectories() {

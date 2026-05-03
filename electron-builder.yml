@@ -46,5 +46,4 @@ electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
 extraResources:
   - prisma/**/*
-  - node_modules/.prisma/**/*
-  - node_modules/@prisma/client/**/*
+  - src/main/generated/prisma/**/*

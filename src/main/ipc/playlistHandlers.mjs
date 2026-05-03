@@ -1,4 +1,4 @@
-import { app, dialog, ipcMain } from 'electron'
+import { createRequire } from 'node:module'
 import path from 'path'
 import fs from 'fs'
 import {
@@ -7,9 +7,11 @@ import {
   processPlaylist,
   processPlaylistCover
 } from './utils/utils.mjs'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../prisma.mjs'
 import sharp from 'sharp'
-const prisma = new PrismaClient()
+const require = createRequire(import.meta.url)
+const electron = require('electron')
+const { app, dialog, ipcMain } = electron
 
 async function removeTrack(filepath, data) {
   try {
