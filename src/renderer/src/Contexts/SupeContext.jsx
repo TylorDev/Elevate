@@ -1,8 +1,10 @@
-import { createContext, useContext, useRef, useEffect, useState } from 'react'
+import { createContext, useContext, useRef, useEffect, useState, useMemo } from 'react'
 import { dataToImageUrl, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
+import { useCoverUrl } from '../hooks/useCoverUrl'
+import { extractDominantColor } from '../utils/useDominantColor'
 
 // Crear el contexto
 const SuperContext = createContext()
@@ -467,15 +469,26 @@ export const SuperProvider = ({ children }) => {
   }
 
   const [color, setColor] = useState(() => {
-    return localStorage.getItem('color') || '#baff00'
+    return localStorage.getItem('colorManual') || ''
   })
 
+  const currentCoverUrl = useCoverUrl(currentFile?.filePath, 'full')
+  const previousCoverUrl = useRef('')
+
   useEffect(() => {
-    // Aplicar el color cuando cambie
-    document.documentElement.style.setProperty('--text-principal', color)
-    // Guardar el color en localStorage
-    localStorage.setItem('color', color)
-  }, [color])
+    if (color) {
+      document.documentElement.style.setProperty('--text-principal', color)
+      localStorage.setItem('colorManual', color)
+      return
+    }
+
+    if (currentCoverUrl && currentCoverUrl !== previousCoverUrl.current && !currentCoverUrl.includes('svg')) {
+      previousCoverUrl.current = currentCoverUrl
+      extractDominantColor(currentCoverUrl).then((dominantColor) => {
+        document.documentElement.style.setProperty('--text-principal', dominantColor.hex)
+      })
+    }
+  }, [color, currentCoverUrl])
 
   const handleColorChange = (value) => {
     // Validar si el valor es un color hexadecimal válido

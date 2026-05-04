@@ -19,12 +19,16 @@ import { FormAddTo } from './FormAddTo'
 import { CircularProgress } from '@mui/material'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useCoverUrl } from '../../hooks/useCoverUrl'
+
 export const SongItem = memo(function SongItem({ file, index, cola, name, padreActions, style }) {
   if (!file) {
     return <LoadSongItem />
   }
 
-  const { handleSongClick, currentFile } = useSuper()
+  const { handleSongClick, currentFile, progress, duration } = useSuper()
+  const isActive = file.filePath === currentFile.filePath
+  const progressPercent = isActive && duration ? (progress / duration) * 100 : 0
+
   const [isLikedo, setIsLikedo] = useState(Boolean(file.liked))
   const { addPlaylisthistory } = usePlaylists()
   const { toggleLike } = useLikes()
@@ -36,6 +40,7 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
   useEffect(() => {
     setIsLikedo(Boolean(file.liked))
   }, [file.filePath, file.liked])
+
   const openModal = () => {
     setIsVisible(true)
   }
@@ -70,8 +75,6 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
     e.stopPropagation() // Detiene la propagación del evento
     toggleLike(file, isLikedo)
     setIsLikedo((value) => !value)
-
-    console.log('Estado actualizado:', !isLikedo)
   }
 
   return (
@@ -86,8 +89,13 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
         }
       }}
     >
-      <div className={file.filePath == currentFile.filePath ? 'songItem active' : 'songItem'}>
-        <div className="songIndex">{index + 1}</div>
+      <div className={isActive ? 'songItem active' : 'songItem'}>
+        {isActive && (
+          <div className="song-progress">
+            <div className="song-progress-fill" style={{ width: `${progressPercent}%` }} />
+          </div>
+        )}
+        <div className={`songIndex ${index + 1 >= 100 ? 'infinite' : ''}`}>{index + 1 >= 100 ? '∞' : index + 1}</div>
         <div className="cover">
           <div className="ico">
             <FaPlay />
