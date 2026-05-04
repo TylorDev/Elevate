@@ -1,6 +1,6 @@
 .Main {
     display: grid;
-    grid-template-columns: 0.2fr 1fr 0.3fr;
+    grid-template-columns: 0.2fr 1fr 0.5fr;
     grid-template-rows: auto 1fr auto;
 
     height: 100vh;
@@ -46,13 +46,6 @@
     overflow-x: auto;
 
 
-}
-
-.queue-panel {
-    height: 100%;
-    overflow-y: auto;
-    background: #1a1a1a;
-    border-left: 1px solid #333;
 }
 
 #AudioPlayer {

@@ -6,7 +6,7 @@ import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
 import './VirtualizedCola.scss'
 
-const ROW_HEIGHT = 88
+const ROW_HEIGHT = 65
 const LOAD_MORE_THRESHOLD = 12
 
 const VirtualSongRow = memo(function VirtualSongRow({ index, style, data }) {

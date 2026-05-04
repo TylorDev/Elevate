@@ -29,7 +29,7 @@ function App() {
         <LikesProvider>
           <AudioProvider>
             <div className="App">
-              <div className="Tittlebar">@TylorDev on Github</div>
+
               <SearchBar />
 
               <Routes>

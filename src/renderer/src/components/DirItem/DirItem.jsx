@@ -9,7 +9,7 @@ import { FaPlay } from 'react-icons/fa'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Skeleton } from '@mui/material'
 
-export function DirItem({ directory }) {
+export function DirItem({ directory, onSelect, disableNavigation = false }) {
   if (!directory) {
     return (
       <div className="dirItem" id="loaddirItem">
@@ -26,10 +26,25 @@ export function DirItem({ directory }) {
   }
   const { deleteDirectoryList } = usePlaylists()
 
+  const selectDirectory = () => {
+    if (disableNavigation) {
+      onSelect?.(directory)
+      return
+    }
+
+    navigate(`/directories/${encodeURIComponent(directory.path)}/false`)
+  }
+
   return (
     <li key={directory.id} className="dirItem">
       <BsFolderFill className="d-icon" />
-      <Link to={`/directories/${encodeURIComponent(directory.path)}/false`}>{getLastPart(directory.path)}</Link>
+      {disableNavigation ? (
+        <button type="button" onClick={selectDirectory}>
+          {getLastPart(directory.path)}
+        </button>
+      ) : (
+        <Link to={`/directories/${encodeURIComponent(directory.path)}/false`}>{getLastPart(directory.path)}</Link>
+      )}
       <div className="d-datas">
         <span>{directory.totalTracks} tracks</span>
         <span>{formatDuration(directory.totalDuration)}</span>
@@ -38,6 +53,11 @@ export function DirItem({ directory }) {
       <Button
         key={directory.id}
         onClick={() => {
+          if (disableNavigation) {
+            onSelect?.(directory)
+            return
+          }
+
           navigate(`/directories/${encodeURIComponent(directory.path)}/true`)
         }}
       >

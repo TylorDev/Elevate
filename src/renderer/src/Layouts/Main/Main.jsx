@@ -5,10 +5,10 @@ import './Main.scss'
 import { Outlet } from 'react-router-dom'
 
 import { useSuper } from '../../Contexts/SupeContext'
-import Cola from '../../components/Cola/Cola'
+import QueueTabsPanel from '../../components/QueueTabsPanel/QueueTabsPanel'
 
 function Main() {
-  const { scrollRef, queueState } = useSuper()
+  const { scrollRef } = useSuper()
 
   return (
     <div className="Main">
@@ -19,9 +19,7 @@ function Main() {
       <div className="outlet" ref={scrollRef}>
         <Outlet />
       </div>
-      <div className="queue-panel">
-        <Cola list={queueState.currentQueue} name={'currentQueue'} />
-      </div>
+      <QueueTabsPanel />
       <AudioPlayer />
       <ToastContainer />
     </div>

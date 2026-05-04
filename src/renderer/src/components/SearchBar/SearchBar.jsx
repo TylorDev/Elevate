@@ -26,7 +26,7 @@ function SearchBar() {
   return (
     <div className="search-bar" id="search-bar">
       <div className="s-t">
-        <span>Elevate</span>
+
       </div>
       <div className="search-input">
         <input

@@ -1,0 +1,53 @@
+.QueueTabsPanel {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #171717;
+  border-left: 1px solid #333;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.QueueTabsPanel__tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.15rem;
+  padding: 0.45rem;
+  background: #101010;
+  border-bottom: 1px solid #303030;
+}
+
+.QueueTabsPanel__tab {
+  min-width: 0;
+  height: 2rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: $text-secondary;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.QueueTabsPanel__tab:hover,
+.QueueTabsPanel__tab.is-active {
+  background: #2a2a2a;
+  color: $text-principal;
+}
+
+.QueueTabsPanel__body,
+.QueueTabsPanel__pane {
+  min-height: 0;
+  height: 100%;
+}
+
+.QueueTabsPanel__body {
+  overflow: hidden;
+}
+
+.QueueTabsPanel__pane {
+  overflow-y: auto;
+}

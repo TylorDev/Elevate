@@ -1,0 +1,47 @@
+.PlaylistsQueueTab {
+  height: 100%;
+  min-height: 0;
+}
+
+.PlaylistsQueueTab__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.PlaylistsQueueTab__bar {
+  align-items: center;
+  background: #111;
+  border-bottom: 1px solid #303030;
+  color: $text-principal;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: auto 1fr;
+  min-height: 2.35rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.PlaylistsQueueTab__bar button {
+  background: #2b2b2b;
+  border: 0;
+  border-radius: 0.35rem;
+  color: $text-principal;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.3rem 0.55rem;
+}
+
+.PlaylistsQueueTab__bar span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.PlaylistsQueueTab .PlaylistItem .pi-name {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}

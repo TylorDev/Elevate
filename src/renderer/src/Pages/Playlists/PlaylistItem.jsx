@@ -13,7 +13,13 @@ import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
 import { useEffect, useState } from 'react'
 import { CircularProgress } from '@mui/material'
 
-export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
+export function PlaylistItem({
+  playlist,
+  addPlaylisthistory,
+  index,
+  onSelect,
+  disableNavigation = false
+}) {
   if (!playlist) {
     return (
       <li className="PlaylistItem" id="LoadPlaylistItem">
@@ -39,6 +45,16 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
   const closeModal = () => {
     setIsVisible(false)
   }
+
+  const selectPlaylist = () => {
+    if (disableNavigation) {
+      onSelect?.(playlist)
+      return
+    }
+
+    navigate(`/playlists/${playlist.path}`)
+  }
+
   const handleSelect = (option) => {
     if (option === 'Delete') {
       deletePlaylist(playlist.path)
@@ -59,16 +75,20 @@ export function PlaylistItem({ playlist, addPlaylisthistory, index }) {
     <li className="PlaylistItem" key={index}>
       <div
         className="pi-item cover-pi"
-        onClick={() => {
-          navigate(`/playlists/${playlist.path}`)
-        }}
+        onClick={selectPlaylist}
       >
         <img src={back || undefined} alt=" playlistcover" />
       </div>
 
-      <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">
-        {playlist.nombre}{' '}
-      </Link>
+      {disableNavigation ? (
+        <button type="button" className="pi-item pi-name" onClick={selectPlaylist}>
+          {playlist.nombre}{' '}
+        </button>
+      ) : (
+        <Link to={`/playlists/${playlist.path}`} className="pi-item pi-name">
+          {playlist.nombre}{' '}
+        </Link>
+      )}
       <div className="pi-item pi-data">
         <span> {playlist.numElementos} tracks</span>
         <span> {formatDuration(playlist.duracion)} </span>
