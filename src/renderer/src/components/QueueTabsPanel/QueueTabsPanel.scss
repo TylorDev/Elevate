@@ -2,7 +2,7 @@
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #171717;
+  background: black;
   border-left: 1px solid #333;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -13,7 +13,7 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.15rem;
   padding: 0.45rem;
-  background: #101010;
+  background: transparent;
   border-bottom: 1px solid #303030;
 }
 
@@ -26,7 +26,7 @@
   color: $text-secondary;
   cursor: pointer;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -34,8 +34,8 @@
 
 .QueueTabsPanel__tab:hover,
 .QueueTabsPanel__tab.is-active {
-  background: #2a2a2a;
-  color: $text-principal;
+  background: $text-principal;
+  color: black
 }
 
 .QueueTabsPanel__body,

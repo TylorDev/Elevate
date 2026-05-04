@@ -472,6 +472,10 @@ export const SuperProvider = ({ children }) => {
     return localStorage.getItem('colorManual') || ''
   })
 
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState(() => {
+    return localStorage.getItem('backgroundImageUrl') || ''
+  })
+
   const currentCoverUrl = useCoverUrl(currentFile?.filePath, 'full')
   const previousCoverUrl = useRef('')
 
@@ -498,6 +502,11 @@ export const SuperProvider = ({ children }) => {
     if (hexColorRegex.test(value) || value === '') {
       setColor(value)
     }
+  }
+
+  const handleBackgroundImageUrlChange = (value) => {
+    setBackgroundImageUrl(value)
+    localStorage.setItem('backgroundImageUrl', value)
   }
 
   const handleTimelineClick = (e) => {
@@ -558,7 +567,9 @@ export const SuperProvider = ({ children }) => {
         handleAwaken,
         getLastData,
         toggleStep,
-        isStep
+        isStep,
+        handleBackgroundImageUrlChange,
+        backgroundImageUrl
       }}
     >
       {children}

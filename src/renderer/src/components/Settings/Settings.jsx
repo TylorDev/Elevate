@@ -7,20 +7,25 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { Button } from '../Button/Button'
 
 function Settings() {
-  const { color, handleColorChange } = useSuper()
+  const { color, handleColorChange, backgroundImageUrl, handleBackgroundImageUrlChange } = useSuper()
 
   const [value, setValue] = useState(0)
   const [imageUrl, setImageUrl] = useState(null)
   const handleUrlChange = (event) => {
     const newUrl = event.target.value
-    setImageUrl(newUrl) // Actualizar el estado con la nueva URL
-    localStorage.setItem('bannerImageUrl', newUrl) // Guardar la nueva URL en localStorage
+    setImageUrl(newUrl)
+    localStorage.setItem('bannerImageUrl', newUrl)
+  }
+
+  const handleBackgroundChange = (event) => {
+    const newUrl = event.target.value
+    handleBackgroundImageUrlChange(newUrl)
   }
 
   useEffect(() => {
     const savedImageUrl = localStorage.getItem('bannerImageUrl')
     if (savedImageUrl) {
-      setImageUrl(savedImageUrl) // Si existe, lo cargamos en el estado
+      setImageUrl(savedImageUrl)
     } else {
       setImageUrl('https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif')
     }
@@ -36,6 +41,7 @@ function Settings() {
         aria-label="basic tabs"
       >
         <Tab id="tab" label="Colors" />
+        <Tab id="tab" label="Background" />
       </Tabs>
       <CustomTabPanel value={value} index={0}>
         <h3>Current color: {color}</h3>
@@ -51,6 +57,20 @@ function Settings() {
         <Button onClick={() => handleUrlChange({ target: { value: '' } })}>Clear</Button>
 
         <img src={imageUrl || undefined} alt="banner" width={200} />
+      </CustomTabPanel>
+      <CustomTabPanel value={value} index={1}>
+        <h3>Page Background</h3>
+        <input
+          id="Input"
+          type="text"
+          value={backgroundImageUrl}
+          onChange={handleBackgroundChange}
+          placeholder="Enter background image url"
+        />
+        <Button onClick={() => handleBackgroundImageUrlChange('')}>Clear</Button>
+        {backgroundImageUrl && (
+          <img src={backgroundImageUrl} alt="background preview" width={200} />
+        )}
       </CustomTabPanel>
     </div>
   )

@@ -1,13 +1,14 @@
 .Main {
     display: grid;
     grid-template-columns: 0.2fr 1fr 0.5fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto auto auto;
 
     height: 100vh;
     min-height: 100vh;
     max-height: 100vh;
     padding-bottom: 13rem;
     transition: grid-template-columns 250ms;
+
 
 }
 

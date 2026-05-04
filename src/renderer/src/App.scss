@@ -63,13 +63,13 @@ body {
 
 
     overflow: hidden;
-    background-color: rgba(56, 52, 52, 0.404);
+    background-color: red;
+
 
 }
 
 .App {
-    //Develop outline
-    outline: 2px solid rgb(0, 255, 0);
+
 
     color: white;
     display: grid;
@@ -77,7 +77,7 @@ body {
 
 
     padding-bottom: 1rem;
-    background-color: $principal;
+    background-color: transparent;
 }
 
 

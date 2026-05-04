@@ -1,7 +1,7 @@
 .AudioPlayer {
     color: white;
     z-index: 999;
-    background-color: $principal;
+    background-color: transparent;
     display: grid;
     grid-template-columns: 0.8fr auto 1.5fr;
     grid-template-rows: 1fr 1fr;

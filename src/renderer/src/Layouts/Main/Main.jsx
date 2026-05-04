@@ -1,6 +1,7 @@
 import { ToastContainer } from 'react-toastify'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
+import Background from '../../Components/Background/Background'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
 
@@ -12,6 +13,7 @@ function Main() {
 
   return (
     <div className="Main">
+      <Background />
       <Header />
       {/* <button className="button" onClick={() => changeColor('#ffff')}>
         Cambiar a Rojo
