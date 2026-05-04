@@ -23,9 +23,6 @@ export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
 
   return (
     <div className="Cola">
-      <Button className="Decendente" onClick={toggleOrder}>
-        {isDescending ? 'Orden Ascendente' : 'Orden Descendente'}
-      </Button>
       {list.length > 0 ? (
         <ul>
           {sortedList.map((file, index) => (

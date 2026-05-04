@@ -44,14 +44,7 @@ function SearchBar() {
         <FaSearch />
       </div>
 
-      <div
-        className="settings"
-        onClick={() => {
-          navigate('/settings')
-        }}
-      >
-        Settings
-      </div>
+
 
       <Modal isVisible={isVisible} closeModal={closeModal}>
         {results.length > 0 ? <Cola list={results} /> : <h1 className="h1">NO RESULTS</h1>}

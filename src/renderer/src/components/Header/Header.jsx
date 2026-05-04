@@ -9,6 +9,7 @@ import { LuListVideo } from 'react-icons/lu'
 import { TfiLayoutListThumbAlt } from 'react-icons/tfi'
 import { FaFolderTree } from 'react-icons/fa6'
 import { GoDotFill } from 'react-icons/go'
+import { BsGear } from 'react-icons/bs'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useMini } from '../../Contexts/MiniContext'
 import { useSuper } from '../../Contexts/SupeContext'
@@ -106,6 +107,9 @@ function Header() {
           </NavLink>
           <NavLink to="/history" className={getActiveClass}>
             <IoCalendarOutline /> <span className="Link-name">History </span>
+          </NavLink>
+          <NavLink to="/settings" className={getActiveClass}>
+            <BsGear /> <span className="Link-name">Settings </span>
           </NavLink>
         </div>
       </div>

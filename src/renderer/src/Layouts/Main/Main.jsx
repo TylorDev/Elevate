@@ -2,6 +2,7 @@ import { ToastContainer } from 'react-toastify'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import Background from '../../Components/Background/Background'
+import SearchBar from '../../Components/SearchBar/SearchBar'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
 
@@ -14,15 +15,21 @@ function Main() {
   return (
     <div className="Main">
       <Background />
-      <Header />
-      {/* <button className="button" onClick={() => changeColor('#ffff')}>
-        Cambiar a Rojo
-      </button> */}
-      <div className="outlet" ref={scrollRef}>
-        <Outlet />
+      <aside className="Main__header">
+        <Header />
+      </aside>
+      <div className="Main__search">
+        <SearchBar />
       </div>
-      <QueueTabsPanel />
-      <AudioPlayer />
+      <main className="outlet" ref={scrollRef}>
+        <Outlet />
+      </main>
+      <div className="Main__player">
+        <AudioPlayer />
+      </div>
+      <aside className="Main__queue">
+        <QueueTabsPanel />
+      </aside>
       <ToastContainer />
     </div>
   )
