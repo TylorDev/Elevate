@@ -1,96 +1,14 @@
 .Music {
-    display: grid;
-    grid-template-columns: 1fr 0.5fr;
+    display: flex;
     align-items: center;
-    justify-items: center;
-    overflow: hidden;
-    position: relative;
+    justify-content: center;
     height: 100%;
-    padding-left: 1rem;
-    gap: 1rem;
-
+    padding: 1rem;
 
     .reproductor {
-
-
         height: auto;
         width: 100%;
         aspect-ratio: 18/9;
         display: flex;
-
-
-
     }
-
-    #Button.btn-cola {
-        display: none;
-    }
-
-
-}
-
-.drawer {
-    display: none;
-}
-
-.cola-open {
-    grid-template-columns: 1fr 30vw;
-}
-
-
-
-
-.reprod-cola {
-
-    top: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    overflow-x: auto;
-    background-color: $principal;
-
-}
-
-
-@media (min-width: 500px) and (max-width: 620px) {
-
-    .Music {
-        grid-template-columns: 1fr 1fr;
-        padding: 0;
-        padding-left: 1rem;
-        gap: 0;
-
-        align-content: center;
-
-        .reprod-cola {
-            display: none;
-        }
-
-        #Button.btn-cola {
-            display: block;
-        }
-    }
-
-    .drawer {
-        display: inline;
-
-    }
-
-
-
-
-    .cola-close {
-        grid-template-columns: 1fr auto;
-        ;
-    }
-
-    .cola-open {
-        grid-template-columns: 1fr auto;
-    }
-
-    .reprod-cola {
-
-        width: 60vw;
-    }
-
 }

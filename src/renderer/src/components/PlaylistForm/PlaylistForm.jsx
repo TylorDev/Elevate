@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 
 import './PlaylistForm.scss'
 import { useState } from 'react'

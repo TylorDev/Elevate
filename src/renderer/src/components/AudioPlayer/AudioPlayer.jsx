@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import './AudioPlayer.scss'
 
 import { MediaTimeDisplay } from '../MediaTimeDisplay/MediaTimeDisplay'

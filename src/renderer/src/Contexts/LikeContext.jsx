@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 import { createContext, useState, useContext, useEffect } from 'react'
 import { validateLike } from './utilMenu'
 import { ElectronGetter, ElectronSetter } from './utils'

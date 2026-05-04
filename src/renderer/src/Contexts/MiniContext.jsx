@@ -12,7 +12,7 @@ import { useSuper } from './SupeContext'
 const MiniContext = createContext()
 
 // Proveedor del contexto
-// eslint-disable-next-line react/prop-types
+ 
 export const MiniProvider = ({ children }) => {
   const [recents, setRecents] = useState([])
   const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')

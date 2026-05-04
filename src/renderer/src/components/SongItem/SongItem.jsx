@@ -1,4 +1,4 @@
-/* eslint-disable react/prop-types */
+ 
 
 import { useLikes } from '../../Contexts/LikeContext'
 
