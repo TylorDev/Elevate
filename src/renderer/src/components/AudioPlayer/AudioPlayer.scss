@@ -1,95 +1,59 @@
 .AudioPlayer {
+    position: relative;
     color: white;
-    z-index: 999;
-
-
+    z-index: 1500;
     display: grid;
-    grid-template-columns: 0.8fr auto 1.5fr;
-    grid-template-rows: 1fr 1fr;
-    grid-template-areas:
-        "time time time"
-        "data data control"
-    ;
+    grid-template-columns: minmax(12rem, 0.95fr) auto minmax(12rem, 1.45fr) auto;
+    grid-template-rows: minmax(5rem, auto);
+    grid-template-areas: "data control waveform timer";
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
+    min-width: 0;
+    padding: 0.35rem 0.7rem;
     transition: all 500ms;
-
-
     backdrop-filter: blur(15px);
-}
-
-.btnShuffle {
-    .btnShuffle-true {
-
-
-
-        color: red;
-
-    }
-
+    overflow: visible;
 }
 
 #btnShuffle-true {
-
-
-
     color: $text-principal;
-
 }
-
 
 #btnShuffle-false {
-
     color: white;
-
 }
-
-
-
 
 @media (min-width: 500px) and (max-width: 620px) {
     .AudioPlayer {
-        grid-template-columns: 2fr auto 2fr;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "data control"
+            "waveform timer";
+        gap: 0.4rem 0.6rem;
     }
 
     #metadata {
-
-
-
         .data-tittle {
             font-size: 1rem;
         }
-
-
-
     }
-
 
     #controls {
-
         justify-content: end;
-
-        .btnRepeat {
-            display: none;
-
-        }
-
-        .btnList {
-            display: none;
-
-        }
-
-        .btnShuffle {
-            display: none;
-
-
-        }
     }
-
-
-
-
-
-
 }
 
-@media (min-width: 720px) and (max-width: 1200px) {}
+@media (max-width: 499px) {
+    .AudioPlayer {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: auto auto auto;
+        grid-template-areas:
+            "data data"
+            "control timer"
+            "waveform waveform";
+        gap: 0.45rem;
+        padding: 0.45rem;
+    }
+}

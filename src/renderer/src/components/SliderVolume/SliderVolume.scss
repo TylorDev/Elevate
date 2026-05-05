@@ -1,0 +1,73 @@
+.SliderVolume {
+    position: relative;
+    z-index: 1700;
+    display: flex;
+    align-items: center;
+
+    .volume-button {
+        background-color: transparent;
+        height: 2.5rem;
+        aspect-ratio: 1/1;
+        border-radius: 100%;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+
+        &:hover {
+            background-color: $principal;
+            color: $text-principal;
+        }
+
+        svg {
+            font-size: 1.16rem;
+        }
+    }
+
+    .volume-panel {
+        position: absolute;
+        bottom: calc(100% + 0.5rem);
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: $secondary;
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.45rem 0.8rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.45rem;
+        z-index: 1800;
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.35);
+    }
+
+    .close-button {
+        background-color: transparent;
+        color: $text-secondary;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.1rem;
+
+        &:hover {
+            color: $text-principal;
+        }
+
+        svg {
+            font-size: 1rem;
+        }
+    }
+
+    .volume-slider {
+        --volume-track: linear-gradient($text-principal, $text-principal);
+        appearance: slider-vertical;
+        -webkit-appearance: slider-vertical;
+        accent-color: $text-principal;
+        width: 1.2rem;
+        height: 6rem;
+        cursor: pointer;
+    }
+}

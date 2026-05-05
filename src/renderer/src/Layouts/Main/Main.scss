@@ -33,8 +33,10 @@
 
     &__player {
         grid-area: player;
+        position: relative;
+        z-index: 1500;
         min-height: 0;
-        overflow: hidden;
+        overflow: visible;
     }
 }
 

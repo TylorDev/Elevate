@@ -1,64 +1,102 @@
 .metadata {
     grid-area: data;
-    display: flex;
-
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr) 2.5rem;
+    grid-template-rows: repeat(3, 1fr);
+    grid-template-areas:
+        "cover title like"
+        "cover artist like"
+        "cover views like";
+    align-items: center;
+    column-gap: 0.75rem;
     height: 5rem;
+    min-width: 0;
     transition: 0.5s;
-    padding: 0.3rem;
-    padding-left: 0rem;
+    padding: 0.3rem 0;
     cursor: pointer;
 
     &:hover {
         background-color: $secondary;
     }
 
-
     .cover {
-
+        grid-area: cover;
+        height: 100%;
         aspect-ratio: 1/1;
-        border-radius: 1rem;
+        border-radius: 0.5rem;
         overflow: hidden;
         flex-shrink: 0;
 
         img {
-
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-
-
     }
 
     .data {
-
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-
-        overflow: hidden; // Oculta contenido desbordado
-        white-space: nowrap; // Evita el ajuste de línea
-
+        display: contents;
 
         .data-tittle {
-
+            grid-area: title;
             font-size: 1.3rem;
             font-weight: bold;
-
-
-
-
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
         }
 
         .data-artist {
-
+            grid-area: artist;
             font-size: 0.9rem;
             color: $text-secondary;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+    }
+
+    .metadata-like {
+        grid-area: like;
+        width: 2.5rem;
+        aspect-ratio: 1/1;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background-color: $principal;
+            color: $text-principal;
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.45;
+        }
+
+        &.liked {
+            color: $text-principal;
+        }
+
+        svg {
+            font-size: 1.18rem;
         }
     }
 }
 
 .data-bpm {
+    grid-area: views;
     color: $text-principal;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }

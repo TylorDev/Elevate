@@ -46,6 +46,7 @@ function Settings() {
       <CustomTabPanel value={value} index={0}>
         <h3>Current color: {color}</h3>
         <HexColorPicker color={color} onChange={handleColorChange} />
+        <Button onClick={() => handleColorChange('')}>Auto cover color</Button>
 
         <input
           id="Input"

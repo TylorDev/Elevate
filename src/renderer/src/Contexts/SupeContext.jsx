@@ -18,6 +18,7 @@ export const SuperProvider = ({ children }) => {
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
   const [isPlaying, setIsPlaying] = useState(false) //1 ref check
+  const [volume, setVolume] = useState(1)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
@@ -295,6 +296,18 @@ export const SuperProvider = ({ children }) => {
     toMute(mediaRef, muted, setMuted)
   }
 
+  const setMediaVolume = (value) => {
+    const nextVolume = Math.max(0, Math.min(1, Number(value) || 0))
+    setVolume(nextVolume)
+
+    if (mediaRef.current) {
+      mediaRef.current.volume = nextVolume
+      mediaRef.current.muted = nextVolume === 0
+    }
+
+    setMuted(nextVolume === 0)
+  }
+
   const [isStep, setIsStep] = useState(false)
   const minVolume = 0.02 // Define el volumen mínimo permitido
 
@@ -486,11 +499,24 @@ export const SuperProvider = ({ children }) => {
       return
     }
 
+    localStorage.removeItem('colorManual')
+
     if (currentCoverUrl && currentCoverUrl !== previousCoverUrl.current && !currentCoverUrl.includes('svg')) {
+      let alive = true
       previousCoverUrl.current = currentCoverUrl
-      extractDominantColor(currentCoverUrl).then((dominantColor) => {
-        document.documentElement.style.setProperty('--text-principal', dominantColor.hex)
-      })
+      extractDominantColor(currentCoverUrl)
+        .then((dominantColor) => {
+          if (alive) {
+            document.documentElement.style.setProperty('--text-principal', dominantColor.hex)
+          }
+        })
+        .catch((error) => {
+          console.error('Error extracting dominant cover color:', error)
+        })
+
+      return () => {
+        alive = false
+      }
     }
   }, [color, currentCoverUrl])
 
@@ -536,6 +562,9 @@ export const SuperProvider = ({ children }) => {
         currentIndex, //player
         isShuffled, //player
         muted, //player
+        volume,
+        setVolume,
+        setMediaVolume,
         isPlaying, //player
         loop, //player
         togglePlayPause, //player

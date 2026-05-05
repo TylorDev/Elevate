@@ -1,26 +1,22 @@
- 
-
+import { useEffect, useRef, useState } from 'react'
 import {
-  LuHeart,
-  LuHeartOff,
+  LuEllipsis,
+  LuListVideo,
   LuPause,
   LuPlay,
   LuSkipBack,
   LuSkipForward,
+  LuShuffle,
   LuVolume2,
   LuVolumeX
 } from 'react-icons/lu'
+import { MdDoNotStep, MdOutlineDoNotStep } from 'react-icons/md'
+import { TbRepeat, TbRepeatOff } from 'react-icons/tb'
+import { useNavigate } from 'react-router-dom'
 
 import './Controls.scss'
 import { Button } from '../Button/Button'
-import { LuShuffle } from 'react-icons/lu'
-import { TbRepeat } from 'react-icons/tb'
-import { TbRepeatOff } from 'react-icons/tb'
-import { LuListVideo } from 'react-icons/lu'
-import { useNavigate } from 'react-router-dom'
-import { useLikes } from '../../Contexts/LikeContext'
 import { useSuper } from '../../Contexts/SupeContext'
-import { MdDoNotStep, MdOutlineDoNotStep } from 'react-icons/md'
 
 export function Controls() {
   const {
@@ -34,56 +30,81 @@ export function Controls() {
     toggleRepeat,
     isShuffled,
     loop,
-    currentFile,
     toggleStep,
     isStep
   } = useSuper()
 
-  const { likeState, toggleLike } = useLikes()
-
-  const { currentLike } = likeState
-  const buttonText = currentLike ? <LuHeart /> : <LuHeartOff />
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen])
+
+  const runMenuAction = (action) => {
+    action()
+    setIsMenuOpen(false)
+  }
+
   return (
     <div className="controls" id="controls">
-      <Button onClick={handlePreviousClick} className="btnBack">
+      <div className="controls-menu" ref={menuRef}>
+        <Button
+          className="btnMenu"
+          aria-label="Open player actions"
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((current) => !current)}
+        >
+          <LuEllipsis />
+        </Button>
+
+        {isMenuOpen && (
+          <div className="controls-overflow" role="menu">
+            <button type="button" role="menuitem" onClick={() => runMenuAction(toggleMute)}>
+              {muted ? <LuVolumeX /> : <LuVolume2 />}
+              <span>{muted ? 'Unmute' : 'Mute'}</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => runMenuAction(toggleStep)}>
+              {isStep ? <MdDoNotStep className="Step" /> : <MdOutlineDoNotStep />}
+              <span>Step</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => runMenuAction(toggleShuffle)}>
+              <LuShuffle id={isShuffled ? 'btnShuffle-true' : 'btnShuffle-false'} />
+              <span>Shuffle</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => runMenuAction(toggleRepeat)}>
+              {loop ? <TbRepeat id="btnShuffle-true" /> : <TbRepeatOff id="btnShuffle-false" />}
+              <span>Repeat</span>
+            </button>
+            <button type="button" role="menuitem" onClick={() => runMenuAction(() => navigate('/music'))}>
+              <LuListVideo />
+              <span>Queue</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      <Button onClick={handlePreviousClick} className="btnBack" aria-label="Previous song">
         <LuSkipBack />
       </Button>
-      <Button className="btnPlay" onClick={togglePlayPause}>
+      <Button className="btnPlay" onClick={togglePlayPause} aria-label={isPlaying ? 'Pause' : 'Play'}>
         {isPlaying ? <LuPause /> : <LuPlay />}
       </Button>
-      <Button className="btnNext" onClick={handleNextClick}>
+      <Button className="btnNext" onClick={handleNextClick} aria-label="Next song">
         <LuSkipForward />
-      </Button>
-      <Button
-        className={currentLike ? 'btnLike liked' : 'btnLike'}
-        onClick={() => {
-          toggleLike(currentFile)
-        }}
-      >
-        {' '}
-        {buttonText}
-      </Button>
-      <Button className="btnMute" onClick={toggleMute}>
-        {muted ? <LuVolumeX /> : <LuVolume2 />}
-      </Button>
-      <Button className="btnStep" onClick={toggleStep}>
-        {isStep ? <MdDoNotStep className="Step" /> : <MdOutlineDoNotStep />}
-      </Button>
-      <Button className="btnShuffle" onClick={toggleShuffle}>
-        {isShuffled ? <LuShuffle id="btnShuffle-true" /> : <LuShuffle id="btnShuffle-false" />}
-      </Button>
-
-      <Button className="btnRepeat" onClick={toggleRepeat}>
-        {loop ? <TbRepeat id="btnShuffle-true" /> : <TbRepeatOff id="btnShuffle-false" />}{' '}
-      </Button>
-      <Button
-        className="btnList"
-        onClick={() => {
-          navigate('/music')
-        }}
-      >
-        <LuListVideo />
       </Button>
     </div>
   )

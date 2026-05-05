@@ -1,0 +1,27 @@
+.Timer {
+    grid-area: timer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+    min-width: max-content;
+    color: $text-secondary;
+    font-size: 0.85rem;
+    white-space: nowrap;
+
+    .Timer__time {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .current-time {
+        color: $text-principal;
+    }
+
+    .separator,
+    .duration {
+        color: $text-secondary;
+    }
+}
