@@ -34,7 +34,7 @@
     border-color: var(--accent-color) !important;
     box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.6),
       0 0 20px -5px var(--accent-color);
-    z-index: 2000; // High enough to be over search and player if needed
+    z-index: 2000;
 
     .tc-play-btn {
       transform: scale(1.1);
@@ -115,31 +115,6 @@
         overflow: hidden;
         text-overflow: ellipsis;
         flex: 1;
-        transition: color 0.3s;
-      }
-
-      .tc-menu-container {
-        position: relative;
-
-        .tc-menu-btn {
-          background: none;
-          border: none;
-          color: $text-secondary;
-          cursor: pointer;
-          padding: 2px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-
-          &:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.1);
-          }
-        }
-
-      }
-    }
-  }
       }
     }
 
@@ -221,26 +196,21 @@
         padding: 0.1rem;
         border-radius: 4px;
         font-weight: 100;
-
       }
     }
 
     .tc-info {
-
-
       .tc-header {
         margin-bottom: 0px;
 
         .tc-title {
           font-size: 0.85rem;
-
         }
       }
 
       .tc-artist {
         font-size: 0.75rem;
         margin-bottom: 0.3rem;
-
       }
 
       .tc-footer {
@@ -253,49 +223,5 @@
         }
       }
     }
-  }
-}
-
-// Global Styles for Portal-rendered Dropdown
-.tc-dropdown {
-  width: 180px;
-  background: #1a1a1a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 4px;
-  z-index: 9999;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-  animation: tc-menu-fade 0.2s ease;
-
-  .tc-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    font-size: 0.8rem;
-    color: #e0e0e0;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-principal);
-    }
-
-    svg {
-      font-size: 1rem;
-    }
-  }
-}
-
-@keyframes tc-menu-fade {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

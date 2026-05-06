@@ -223,21 +223,15 @@
 }
 
 .liked {
-
-
     .btnLike {
         opacity: 100%;
+
+        svg {
+            fill: $text-principal;
+            color: $text-principal;
+            font-size: 1.5rem;
+        }
     }
-
-    svg {
-
-        fill: $text-principal;
-        color: $text-principal;
-        font-size: 1.5rem;
-    }
-
-
-
 }
 
 .stime {

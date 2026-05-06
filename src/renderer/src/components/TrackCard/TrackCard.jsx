@@ -1,7 +1,5 @@
-import { useEffect, useState, useRef } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect, useState } from 'react'
 import { LuPlay, LuPause, LuHeart } from 'react-icons/lu'
-import { HiOutlineDotsVertical } from 'react-icons/hi'
 import { FaPlusCircle, FaClock, FaListUl, FaEye } from 'react-icons/fa'
 import { extractDominantColor } from '../../utils/useDominantColor'
 import { formatDuration } from '../../../timeUtils'
@@ -9,6 +7,7 @@ import { useCoverUrl } from '../../hooks/useCoverUrl'
 
 import { useSuper } from '../../Contexts/SupeContext'
 import { useLikes } from '../../Contexts/LikeContext'
+import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './TrackCard.scss'
 
 export function TrackCard({ song, index, list, isFocused }) {
@@ -16,11 +15,7 @@ export function TrackCard({ song, index, list, isFocused }) {
   const { toggleLike, isLiked: checkLikeStatus } = useLikes()
   const coverUrl = useCoverUrl(song.filePath, 'thumb')
   const [dominantColor, setDominantColor] = useState({ hex: '#baff00', rgb: '186, 255, 0' })
-  const [showMenu, setShowMenu] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
-  const menuRef = useRef(null)
-  const btnRef = useRef(null)
 
   const isActive = currentFile?.filePath === song.filePath
 
@@ -47,24 +42,6 @@ export function TrackCard({ song, index, list, isFocused }) {
   }
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false)
-      }
-    }
-
-    if (showMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-      window.addEventListener('scroll', () => setShowMenu(false), true)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      window.removeEventListener('scroll', () => setShowMenu(false), true)
-    }
-  }, [showMenu])
-
-  useEffect(() => {
     if (coverUrl && !coverUrl.includes('svg')) {
       extractDominantColor(coverUrl).then(color => {
         setDominantColor(color)
@@ -72,58 +49,20 @@ export function TrackCard({ song, index, list, isFocused }) {
     }
   }, [coverUrl])
 
-  const toggleMenu = (e) => {
-    e.stopPropagation()
-    if (!showMenu && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect()
-      const spaceBelow = window.innerHeight - rect.bottom
-      const spaceRight = window.innerWidth - rect.left
-      
-      let top = rect.bottom + 5
-      let left = rect.left - 150 // Align to right of button roughly
+  const menuOptions = [
+    { id: 'add-queue', label: 'Agregar a cola actual', icon: <FaPlusCircle /> },
+    { id: 'add-later', label: 'Agregar a ver más tarde', icon: <FaClock /> },
+    { id: 'add-playlist', label: 'Agregar a playlist', icon: <FaListUl /> },
+  ]
 
-      // Ajustar si se sale por abajo
-      if (spaceBelow < 200) {
-        top = rect.top - 160
-      }
-      
-      // Ajustar si se sale por la derecha/izquierda
-      if (left < 10) left = 10
-      if (left + 180 > window.innerWidth) left = window.innerWidth - 190
-
-      setMenuPos({ top, left })
-    }
-    setShowMenu(!showMenu)
+  const handleMenuSelect = (optionId) => {
+    console.log(`Selected: ${optionId} for song: ${song.title}`)
+    // Aquí iría la lógica para cada acción
   }
-
-  const dropdownMenu = showMenu ? createPortal(
-    <div 
-      className="tc-dropdown" 
-      ref={menuRef}
-      style={{ 
-        position: 'fixed',
-        top: `${menuPos.top}px`,
-        left: `${menuPos.left}px`,
-        zIndex: 9999
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="tc-dropdown-item">
-        <FaPlusCircle /> Agregar a cola actual
-      </div>
-      <div className="tc-dropdown-item">
-        <FaClock /> Agregar a ver más tarde
-      </div>
-      <div className="tc-dropdown-item">
-        <FaListUl /> Agregar a playlist
-      </div>
-    </div>,
-    document.body
-  ) : null
 
   return (
     <div
-      className={`track-card ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''} ${showMenu ? 'menu-open' : ''}`}
+      className={`track-card ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
       style={{
         '--accent-color': dominantColor.hex,
         '--accent-rgb': dominantColor.rgb
@@ -151,11 +90,11 @@ export function TrackCard({ song, index, list, isFocused }) {
           <h3 className="tc-title" title={song.title}>
             {song.title || song.fileName}
           </h3>
-          <div className="tc-menu-container">
-            <button className="tc-menu-btn" onClick={toggleMenu} ref={btnRef}>
-              <HiOutlineDotsVertical />
-            </button>
-          </div>
+          <OverflowMenu 
+            options={menuOptions} 
+            onSelect={handleMenuSelect} 
+            className="tc-menu"
+          />
         </div>
 
         <p className="tc-artist">{song.artist || 'Unknown Artist'}</p>
@@ -173,7 +112,6 @@ export function TrackCard({ song, index, list, isFocused }) {
           </button>
         </div>
       </div>
-      {dropdownMenu}
     </div>
   )
 }

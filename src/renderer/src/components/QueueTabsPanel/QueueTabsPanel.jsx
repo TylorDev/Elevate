@@ -1,4 +1,11 @@
 import { useState } from 'react'
+import { 
+  RiPlayList2Fill, 
+  RiFoldersFill, 
+  RiFolderMusicFill, 
+  RiHeartFill, 
+  RiMusic2Fill 
+} from 'react-icons/ri'
 import './QueueTabsPanel.scss'
 
 import AllSongsQueueTab from './AllSongs/AllSongsQueueTab'
@@ -8,11 +15,11 @@ import LikesQueueTab from './Likes/LikesQueueTab'
 import PlaylistsQueueTab from './Playlists/PlaylistsQueueTab'
 
 const TABS = [
-  { id: 'current', label: 'Current', Component: CurrentQueueTab },
-  { id: 'playlists', label: 'Playlists', Component: PlaylistsQueueTab },
-  { id: 'directories', label: 'Directories', Component: DirectoriesQueueTab },
-  { id: 'likes', label: 'Likes', Component: LikesQueueTab },
-  { id: 'all', label: 'All', Component: AllSongsQueueTab }
+  { id: 'current', label: 'Current', icon: <RiPlayList2Fill />, Component: CurrentQueueTab },
+  { id: 'playlists', label: 'Playlists', icon: <RiFoldersFill />, Component: PlaylistsQueueTab },
+  { id: 'directories', label: 'Directories', icon: <RiFolderMusicFill />, Component: DirectoriesQueueTab },
+  { id: 'likes', label: 'Likes', icon: <RiHeartFill />, Component: LikesQueueTab },
+  { id: 'all', label: 'All', icon: <RiMusic2Fill />, Component: AllSongsQueueTab }
 ]
 
 function QueueTabsPanel() {
@@ -20,21 +27,26 @@ function QueueTabsPanel() {
 
   return (
     <aside className="QueueTabsPanel">
-      <div className="QueueTabsPanel__tabs" role="tablist" aria-label="Queue sources">
-        {TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            className={activeTab === id ? 'QueueTabsPanel__tab is-active' : 'QueueTabsPanel__tab'}
-            role="tab"
-            aria-selected={activeTab === id}
-            aria-controls={`queue-tab-${id}`}
-            id={`queue-tab-button-${id}`}
-            onClick={() => setActiveTab(id)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="QueueTabsPanel__header">
+        <h2 className="QueueTabsPanel__title">Queue & Sources</h2>
+        <div className="QueueTabsPanel__tabs" role="tablist" aria-label="Queue sources">
+          {TABS.map(({ id, label, icon }) => (
+            <button
+              key={id}
+              type="button"
+              className={activeTab === id ? 'QueueTabsPanel__tab is-active' : 'QueueTabsPanel__tab'}
+              role="tab"
+              aria-selected={activeTab === id}
+              aria-controls={`queue-tab-${id}`}
+              id={`queue-tab-button-${id}`}
+              onClick={() => setActiveTab(id)}
+              title={label}
+            >
+              <span className="tab-icon">{icon}</span>
+              <span className="tab-label">{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="QueueTabsPanel__body">
