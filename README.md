@@ -117,6 +117,39 @@ $ npm install
 $ npm run dev
 ```
 
+### Chrome DevTools MCP with Codex
+
+To inspect the real Electron renderer with `chrome-devtools-mcp`, this project enables
+Chromium remote debugging in development only.
+
+1. Start the app:
+
+```bash
+$ npm run dev
+```
+
+2. Verify the DevTools endpoint is available:
+
+```text
+http://127.0.0.1:9222/json/version
+http://127.0.0.1:9222/json/list
+```
+
+3. Add the MCP server to Codex using the project config in `.codex/config.toml`, or
+register it manually:
+
+```toml
+[mcp_servers.chrome-devtools]
+command = "cmd"
+args = ["/c", "npx", "-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"]
+env = { SystemRoot = "C:\\Windows", PROGRAMFILES = "C:\\Program Files" }
+startup_timeout_ms = 20000
+```
+
+The MCP target is the Electron renderer window, not the Electron main process. To avoid
+port conflicts, change `ELECTRON_REMOTE_DEBUGGING_PORT` in `.env` and update the MCP
+server URL to match.
+
 ### Build
 
 ```bash

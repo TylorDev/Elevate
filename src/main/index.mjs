@@ -8,9 +8,24 @@ import log from 'electron-log/main.js'
 let mainWin
 let prisma
 let isQuitting = false
+const defaultRemoteDebuggingPort = '9222'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } = electron
+
+try {
+  process.loadEnvFile()
+} catch (error) {
+  if (error?.code !== 'ENOENT') {
+    console.warn('Failed to load .env file for Electron main process:', error)
+  }
+}
+
+if (!app.isPackaged) {
+  const remoteDebuggingPort =
+    process.env.ELECTRON_REMOTE_DEBUGGING_PORT?.trim() || defaultRemoteDebuggingPort
+  app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
+}
 
 log.transports.file.level = 'info'
 log.transports.console.level = 'debug'
