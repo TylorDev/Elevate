@@ -6,9 +6,9 @@ import './Feed.scss'
 function Feed() {
   const horizonRef = useRef(null)
 
-  const handleScroll = (delta) => {
+  const handleScroll = (delta, isCircular) => {
     if (horizonRef.current) {
-      horizonRef.current.scroll(delta)
+      horizonRef.current.scroll(delta, isCircular)
     }
   }
 

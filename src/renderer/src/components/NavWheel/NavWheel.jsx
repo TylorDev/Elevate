@@ -11,7 +11,7 @@ export function NavWheel({ onScroll }) {
   const handleWheel = (e) => {
     // Up = Left, Down = Right
     const delta = e.deltaY > 0 ? 1 : -1
-    onScroll(delta)
+    onScroll(delta, false)
     setRotation(prev => prev + (delta * 20))
   }
 
@@ -25,7 +25,7 @@ export function NavWheel({ onScroll }) {
     const deltaY = e.clientY - startY
     if (Math.abs(deltaY) > 10) {
       const delta = deltaY > 0 ? 1 : -1
-      onScroll(delta)
+      onScroll(delta, false)
       setRotation(prev => prev + (delta * 10))
       setStartY(e.clientY)
     }
@@ -46,7 +46,7 @@ export function NavWheel({ onScroll }) {
 
   return (
     <div className="nav-wheel-container">
-      <button className="nav-btn" onClick={() => onScroll(-1)}>
+      <button className="nav-btn" onClick={() => onScroll(-1, true)}>
         <LuChevronLeft />
       </button>
 
@@ -71,7 +71,7 @@ export function NavWheel({ onScroll }) {
         <div className="wheel-center" />
       </div>
 
-      <button className="nav-btn" onClick={() => onScroll(1)}>
+      <button className="nav-btn" onClick={() => onScroll(1, true)}>
         <LuChevronRight />
       </button>
     </div>

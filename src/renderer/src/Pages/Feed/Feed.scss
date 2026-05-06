@@ -1,18 +1,19 @@
 .Feed {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 40px); // Adjusting for layout padding
+  height: 100%;
   width: 100%;
-  overflow: hidden;
+  overflow-y: auto;
   position: relative;
 
   .feed-spacer {
     flex: 1;
+    min-height: 200px;
   }
 
   .feed-bottom-content {
     width: 100%;
-    padding: 20px 40px;
+    padding: 20px 0;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -22,6 +23,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 0 40px;
       
       .feed-title {
         font-size: 2.5rem;

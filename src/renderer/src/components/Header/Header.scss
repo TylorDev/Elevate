@@ -1,55 +1,43 @@
 .navbar {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    height: 100%;
     background-color: transparent;
-
-
     overflow-x: auto;
-
     transition: all 1s;
-
-
-
-}
-
-
-
-.navbar {
 
     a {
         text-decoration: none;
         padding: 0.8rem;
-        //Develop outline
-
         transition: background 0.3s;
         outline: none;
         color: white;
         transition: all 100ms;
-
         display: flex;
         align-items: center;
-
-        justify-content: start;
+        justify-content: center;
         font-size: 0.8rem;
         gap: 0.5rem;
-
-
     }
 
     .activo {
-
         background: linear-gradient(to right, $text-principal 0%, transparent 10%);
-
         border-left: 1px solid $text-principal;
         color: $text-principal;
-
     }
-
 
     .nav-sec {
         font-size: 0.8rem;
         color: $text-secondary;
-
+        width: 100%;
+        
+        .sec-i {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
     }
 }
 
