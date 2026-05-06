@@ -21,7 +21,7 @@ export async function extractDominantColor(src) {
     await imageLoaded
 
     const canvas = document.createElement('canvas')
-    const size = 10
+    const size = 32
     canvas.width = size
     canvas.height = size
     const ctx = canvas.getContext('2d')
@@ -30,34 +30,54 @@ export async function extractDominantColor(src) {
     ctx.drawImage(img, 0, 0, size, size)
     const { data } = ctx.getImageData(0, 0, size, size)
 
-    let r = 0, g = 0, b = 0, count = 0
-    for (let i = 0; i < data.length; i += 4) {
-      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114
-      if (lum > 30 && lum < 220) {
-        r += data[i]
-        g += data[i + 1]
-        b += data[i + 2]
-        count++
-      }
-    }
-    if (count === 0) return DEFAULT
+    let r = 0
+    let g = 0
+    let b = 0
+    let totalWeight = 0
 
-    r = Math.round(r / count)
-    g = Math.round(g / count)
-    b = Math.round(b / count)
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 180) continue
+
+      const pr = data[i]
+      const pg = data[i + 1]
+      const pb = data[i + 2]
+      const lum = pr * 0.299 + pg * 0.587 + pb * 0.114
+
+      if (lum < 24 || lum > 238) continue
+
+      const { s, l } = rgbToHsl(pr, pg, pb)
+      const lightnessScore = 1 - Math.abs(l - 0.55)
+      const saturationScore = Math.max(0.12, s)
+      const weight = saturationScore * saturationScore * lightnessScore
+
+      r += pr * weight
+      g += pg * weight
+      b += pb * weight
+      totalWeight += weight
+    }
+
+    if (totalWeight === 0) return DEFAULT
+
+    r = Math.round(r / totalWeight)
+    g = Math.round(g / totalWeight)
+    b = Math.round(b / totalWeight)
 
     const { h, s, l } = rgbToHsl(r, g, b)
-    const boostedS = Math.min(1, s * 1.4)
-    const { r: rr, g: rg, b: rb } = hslToRgb(h, boostedS, l)
+    if (s < 0.04) return DEFAULT
+
+    const boostedS = clamp(s * 1.9 + 0.18, 0.58, 0.92)
+    const boostedL = clamp(l < 0.42 ? l + 0.16 : l, 0.46, 0.64)
+    const { r: rr, g: rg, b: rb } = hslToRgb(h, boostedS, boostedL)
     r = rr
     g = rg
     b = rb
 
     const brightness = (r * 299 + g * 587 + b * 114) / 1000
-    if (brightness < 60) {
-      r = Math.min(255, r + 60)
-      g = Math.min(255, g + 60)
-      b = Math.min(255, b + 60)
+    if (brightness < 90) {
+      const lift = 90 - brightness
+      r = Math.min(255, Math.round(r + lift))
+      g = Math.min(255, Math.round(g + lift))
+      b = Math.min(255, Math.round(b + lift))
     }
 
     const result = { hex: `rgb(${r}, ${g}, ${b})`, rgb: `${r}, ${g}, ${b}` }
@@ -66,6 +86,10 @@ export async function extractDominantColor(src) {
   } catch {
     return DEFAULT
   }
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
 }
 
 function rgbToHsl(r, g, b) {

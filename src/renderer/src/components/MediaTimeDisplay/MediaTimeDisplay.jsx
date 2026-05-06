@@ -5,19 +5,32 @@ import './MediaTimeDisplay.scss'
 import { useSuper } from '../../Contexts/SupeContext'
 
 const audioSources = new WeakMap()
+const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
 
 export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
-  const { currentFile, progress, duration, handleTimelineClick, mediaRef } = useSuper()
+  const { currentFile, progress, duration, handleTimelineClick, isPlaying, mediaRef } = useSuper()
   const canvasRef = useRef(null)
   const analyserRef = useRef(null)
   const dataRef = useRef(null)
+  const frozenDataRef = useRef(null)
   const animationRef = useRef(null)
   const progressRatioRef = useRef(0)
+  const isPlayingRef = useRef(isPlaying)
+  const seekPreviewRatioRef = useRef(null)
+  const variantRef = useRef(normalizeVariant(variant))
   const progressRatio = duration ? Math.min(progress / duration, 1) : 0
 
   useEffect(() => {
     progressRatioRef.current = progressRatio
   }, [progressRatio])
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying
+  }, [isPlaying])
+
+  useEffect(() => {
+    variantRef.current = normalizeVariant(variant)
+  }, [variant])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -59,11 +72,13 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
 
         analyserRef.current = analyser
         dataRef.current = new Uint8Array(analyser.frequencyBinCount)
+        frozenDataRef.current = new Uint8Array(analyser.frequencyBinCount)
         media.addEventListener('play', resumeAudioContext)
         if (!media.paused) resumeAudioContext()
       } catch (error) {
         analyserRef.current = null
         dataRef.current = null
+        frozenDataRef.current = null
       }
     }
 
@@ -94,9 +109,12 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
         analyser: analyserRef.current,
         context,
         data: dataRef.current,
+        frozenData: frozenDataRef.current,
         height,
+        isPlaying: isPlayingRef.current,
         progressRatio: progressRatioRef.current,
-        variant,
+        seekPreviewRatio: seekPreviewRatioRef.current,
+        variant: variantRef.current,
         width
       })
 
@@ -112,13 +130,25 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       if (animationRef.current) window.cancelAnimationFrame(animationRef.current)
       media?.removeEventListener('play', resumeAudioContext)
     }
-  }, [currentFile?.filePath, duration, mediaRef, variant])
+  }, [currentFile?.filePath, duration, mediaRef])
+
+  const normalizedVariant = normalizeVariant(variant)
+  const updateSeekPreview = (event) => {
+    seekPreviewRatioRef.current = getPointerRatio(event)
+  }
+
+  const clearSeekPreview = () => {
+    seekPreviewRatioRef.current = null
+  }
 
   return (
     <div
       id="Otimeline"
-      className={`waveform waveform-${variant}`}
+      className={`waveform waveform-${normalizedVariant}`}
       onClick={handleTimelineClick}
+      onPointerDown={updateSeekPreview}
+      onPointerLeave={clearSeekPreview}
+      onPointerMove={updateSeekPreview}
       role="slider"
       aria-label="Song progress"
       aria-valuemin={0}
@@ -130,42 +160,96 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   )
 }
 
-function drawWaveform({ analyser, context, data, height, progressRatio, variant, width }) {
+function getPointerRatio(event) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  if (!rect.width) return 0
+
+  return Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width))
+}
+
+function normalizeVariant(variant) {
+  if (variant === 'scilloscope') return 'oscilloscope'
+  return WAVEFORM_VARIANTS.has(variant) ? variant : 'mirrored'
+}
+
+function drawWaveform({
+  analyser,
+  context,
+  data,
+  frozenData,
+  height,
+  isPlaying,
+  progressRatio,
+  seekPreviewRatio,
+  variant,
+  width
+}) {
   const styles = getComputedStyle(document.documentElement)
-  const baseColor = styles.getPropertyValue('--secondary').trim() || '#1a1a1a'
+  const baseColor = styles.getPropertyValue('--text-secondary').trim() || '#1a1a1a'
   const progressColor = styles.getPropertyValue('--text-principal').trim() || '#baff00'
   const mutedColor = styles.getPropertyValue('--text-secondary').trim() || '#6f6f6f'
+  const seekColor = '#ffffff'
   const bars = 72
   const gap = 3
   const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars)
+  const barStep = barWidth + gap
   const progressX = width * progressRatio
+  const seekPreviewX = seekPreviewRatio === null ? null : width * seekPreviewRatio
+  const hasSeekPreview = seekPreviewX !== null
+  const isFutureSeekPreview = hasSeekPreview && seekPreviewX > progressX
+  const currentProgressSeekIndex =
+    hasSeekPreview && !isFutureSeekPreview
+      ? Math.min(bars - 1, Math.max(0, Math.round((seekPreviewX - barWidth / 2) / barStep)))
+      : null
 
   if (analyser && data) {
-    analyser.getByteFrequencyData(data)
+    const shouldCaptureFrame = isPlaying || !frozenData?.some((value) => value !== 0)
+
+    if (shouldCaptureFrame) {
+      if (variant === 'oscilloscope') {
+        analyser.getByteTimeDomainData(data)
+      } else {
+        analyser.getByteFrequencyData(data)
+
+      }
+
+      if (frozenData) frozenData.set(data)
+    } else if (frozenData) {
+      data.set(frozenData)
+    }
   }
 
   for (let index = 0; index < bars; index++) {
     const x = index * (barWidth + gap)
     const centerX = x + barWidth / 2
     const sample = data?.[Math.floor((index / bars) * (data.length - 1))]
-    const fallback = 0.22 + Math.abs(Math.sin(index * 0.43)) * 0.56
+    const fallback = variant === 'oscilloscope' ? 128 : 0
     const level = sample ? sample / 255 : fallback
-    const color = centerX <= progressX ? progressColor : baseColor
+    const isProgress = centerX <= progressX
+    const isCurrentProgressSeek = currentProgressSeekIndex === index
+    const isFutureSeekBar = isFutureSeekPreview && centerX > progressX && centerX <= seekPreviewX
+    const color = isCurrentProgressSeek
+      ? seekColor
+      : isProgress
+        ? progressColor
+        : isFutureSeekBar
+          ? seekColor
+          : baseColor
 
     context.fillStyle = color
 
     if (variant === 'oscilloscope') {
       const center = height / 2
-      const waveY = center + Math.sin(index * 0.55) * level * height * 0.33
+      const waveLevel = sample ? (sample - 128) / 128 : 0
+      const waveY = center + waveLevel * height * 0.18
       const nextLevel = data?.[Math.floor(((index + 1) / bars) * (data.length - 1))]
-      const nextFallback = 0.22 + Math.abs(Math.sin((index + 1) * 0.43)) * 0.56
+      const nextWaveLevel = nextLevel ? (nextLevel - 128) / 128 : 0
       const nextWaveY =
         center +
-        Math.sin((index + 1) * 0.55) *
-        ((nextLevel ? nextLevel / 255 : nextFallback) * height * 0.33)
+        nextWaveLevel * height * 0.18
 
       context.strokeStyle = color
-      context.lineWidth = Math.max(2, barWidth * 0.6)
+      context.lineWidth = Math.max(2.2, barWidth * 1)
       context.lineCap = 'round'
       context.beginPath()
       context.moveTo(centerX, waveY)

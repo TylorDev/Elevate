@@ -1,4 +1,4 @@
- 
+
 import './AudioPlayer.scss'
 
 import { MediaTimeDisplay } from '../MediaTimeDisplay/MediaTimeDisplay'
@@ -14,7 +14,7 @@ export function AudioPlayer() {
 
       <Controls />
 
-      <MediaTimeDisplay />
+      <MediaTimeDisplay variant='scilloscope' />
 
       <Timer />
     </div>

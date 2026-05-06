@@ -12,8 +12,9 @@
     min-width: 0;
     padding: 0.35rem 0.7rem;
     transition: all 500ms;
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(5px);
     overflow: visible;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 #btnShuffle-true {

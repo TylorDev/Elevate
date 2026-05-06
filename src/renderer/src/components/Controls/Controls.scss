@@ -15,13 +15,16 @@
     }
 
     .btnPlay {
-        background-color: $text-principal;
-        width: 3rem;
-        height: 3rem;
-        color: $principal;
+        background-color: $text-principal !important;
+        width: 3rem !important;
+        ;
+        height: 3rem !important;
+        ;
+        color: $principal !important;
+        border: 1px solid $text-principal !important;
 
         &:hover {
-            background-color: $text-principal;
+            background-color: red;
             filter: brightness(1.08);
         }
 

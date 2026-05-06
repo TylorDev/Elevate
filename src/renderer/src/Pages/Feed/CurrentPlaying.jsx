@@ -50,7 +50,7 @@ export function CurrentPlaying() {
           </Button>
         </div>
         <div className="grp-3">
-          <MediaTimeDisplay />
+          <MediaTimeDisplay variant='oscilloscope' />
         </div>
       </div>
       <div className="content">

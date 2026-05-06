@@ -17,11 +17,20 @@
     }
 
     .current-time {
-        color: $text-principal;
+        color: $text-secondary;
+        width: 3.2rem;
+        display: flex;
+        justify-content: flex-end;
     }
 
-    .separator,
+    .separator {
+        color: $text-secondary;
+    }
+
     .duration {
         color: $text-secondary;
+        width: 3.2rem;
+        display: flex;
+        justify-content: flex-start;
     }
 }
