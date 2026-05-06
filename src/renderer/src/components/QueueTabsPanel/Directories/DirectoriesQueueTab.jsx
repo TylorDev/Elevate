@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { RiArrowLeftLine } from 'react-icons/ri'
 import { DirItem } from '../../DirItem/DirItem'
 import { useMini } from '../../../Contexts/MiniContext'
 import Cola from '../../Cola/Cola'
@@ -38,10 +39,15 @@ function DirectoriesQueueTab({ isActive }) {
     return (
       <div className="DirectoriesQueueTab">
         <div className="DirectoriesQueueTab__bar">
-          <button type="button" onClick={() => setSelectedDirectory(null)}>
-            List
+          <button 
+            type="button" 
+            className="back-btn"
+            onClick={() => setSelectedDirectory(null)}
+            title="Back to list"
+          >
+            <RiArrowLeftLine />
           </button>
-          <span>{getLastPart(selectedDirectory.path)}</span>
+          <span className="current-path">{getLastPart(selectedDirectory.path)}</span>
         </div>
         <Cola list={currentDir} name={`folder:${selectedDirectory.path}`} />
       </div>

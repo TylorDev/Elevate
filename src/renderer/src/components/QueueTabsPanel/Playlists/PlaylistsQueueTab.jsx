@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { RiArrowLeftLine } from 'react-icons/ri'
 import { PlaylistItem } from '../../../Pages/Playlists/PlaylistItem'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import Cola from '../../Cola/Cola'
@@ -39,10 +40,15 @@ function PlaylistsQueueTab({ isActive }) {
     return (
       <div className="PlaylistsQueueTab">
         <div className="PlaylistsQueueTab__bar">
-          <button type="button" onClick={() => setSelectedPlaylist(null)}>
-            List
+          <button 
+            type="button" 
+            className="back-btn"
+            onClick={() => setSelectedPlaylist(null)}
+            title="Back to list"
+          >
+            <RiArrowLeftLine />
           </button>
-          <span>{selectedPlaylist.nombre}</span>
+          <span className="current-path">{selectedPlaylist.nombre}</span>
         </div>
         <Cola
           list={currentPlaylist?.processedData || []}

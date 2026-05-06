@@ -1,75 +1,74 @@
- 
 import { BsFolderFill, BsFolderMinus } from 'react-icons/bs'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { formatDuration } from '../../../timeUtils'
-import { Button } from '../Button/Button'
-import { useMini } from '../../Contexts/MiniContext'
-import './DirItem.scss'
-import { FaPlay } from 'react-icons/fa'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Skeleton } from '@mui/material'
+import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
+import { useSuper } from '../../Contexts/SupeContext'
+import { useEffect, useState } from 'react'
 
 export function DirItem({ directory, onSelect, disableNavigation = false }) {
   if (!directory) {
     return (
-      <div className="dirItem" id="loaddirItem">
+      <div className="dirItem loading">
         <BsFolderFill className="d-icon" />
         <Skeleton sx={{ bgcolor: 'grey.600' }} width="100%" height={'2rem'} />
       </div>
     )
   }
+
   const navigate = useNavigate()
+  const { deleteDirectoryList } = usePlaylists()
+  const { getImage } = useSuper()
+  const [cover, setCover] = useState(null)
+
+  useEffect(() => {
+    const fetchedCover = getImage(directory.path, directory.cover)
+    setCover(fetchedCover)
+  }, [directory, getImage])
 
   const getLastPart = (path) => {
     const parts = path.split('\\')
     return parts[parts.length - 1]
   }
-  const { deleteDirectoryList } = usePlaylists()
 
   const selectDirectory = () => {
     if (disableNavigation) {
       onSelect?.(directory)
       return
     }
-
     navigate(`/directories/${encodeURIComponent(directory.path)}/false`)
   }
 
+  const handlePlayClick = () => {
+    if (disableNavigation) {
+      onSelect?.(directory)
+      return
+    }
+    navigate(`/directories/${encodeURIComponent(directory.path)}/true`)
+  }
+
+  const menuOptions = [
+    { id: 'remove', label: 'Remove Directory', icon: <BsFolderMinus color="red" /> }
+  ]
+
+  const handleMenuSelect = (optionId) => {
+    if (optionId === 'remove') {
+      deleteDirectoryList(directory.path)
+    }
+  }
+
   return (
-    <li key={directory.id} className="dirItem">
-      <BsFolderFill className="d-icon" />
-      {disableNavigation ? (
-        <button type="button" onClick={selectDirectory}>
-          {getLastPart(directory.path)}
-        </button>
-      ) : (
-        <Link to={`/directories/${encodeURIComponent(directory.path)}/false`}>{getLastPart(directory.path)}</Link>
-      )}
-      <div className="d-datas">
-        <span>{directory.totalTracks} tracks</span>
-        <span>{formatDuration(directory.totalDuration)}</span>
-      </div>
-
-      <Button
-        key={directory.id}
-        onClick={() => {
-          if (disableNavigation) {
-            onSelect?.(directory)
-            return
-          }
-
-          navigate(`/directories/${encodeURIComponent(directory.path)}/true`)
-        }}
-      >
-        <FaPlay />
-      </Button>
-      <Button
-        onClick={() => {
-          deleteDirectoryList(directory.path)
-        }}
-      >
-        <BsFolderMinus color="red" />
-      </Button>
-    </li>
+    <UndefinedItem
+      cover={cover || <BsFolderFill />}
+      title={getLastPart(directory.path)}
+      subtitle={`${directory.totalTracks} tracks`}
+      extraInfo={formatDuration(directory.totalDuration)}
+      onTitleClick={selectDirectory}
+      onPlayClick={handlePlayClick}
+      menuOptions={menuOptions}
+      onMenuSelect={handleMenuSelect}
+      className="dirItem-ui"
+    />
   )
 }
