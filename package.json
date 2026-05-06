@@ -28,6 +28,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/geist-sans": "^5.2.5",
     "@fontsource/inter": "^5.2.8",
     "@mui/joy": "^5.0.0-beta.52",
     "@mui/material": "^9.0.0",

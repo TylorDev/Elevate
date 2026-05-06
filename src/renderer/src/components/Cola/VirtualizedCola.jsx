@@ -80,9 +80,7 @@ export function VirtualizedCola({
 
   return (
     <div className="Cola VirtualizedCola">
-      <Button className="Decendente" onClick={() => setIsDescending((value) => !value)}>
-        {isDescending ? 'Orden Ascendente' : 'Orden Descendente'}
-      </Button>
+
 
       {itemCount > 0 ? (
         <FixedSizeList

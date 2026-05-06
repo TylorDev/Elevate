@@ -1,8 +1,27 @@
 :root {
-    --primary-color: #0a0a0a; // Default color
-    --text-principal: #baff00; // Default color
-    --text-secondary: #7a7a7a; // Default color
+    --primary-color: #0a0a0a;
+    --text-principal: #baff00;
+    --text-secondary: #7a7a7a;
     --secondary: #1A1A1A;
+
+    /* ── Typography ── */
+    --font-main: 'Geist Sans', 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Size scale */
+    --fs-xs:   0.7rem;   /* Metadatos secundarios */
+    --fs-sm:   0.8rem;   /* Labels, tags */
+    --fs-base: 0.95rem;  /* Texto general */
+    --fs-md:   1.1rem;   /* Títulos de items */
+    --fs-lg:   1.5rem;   /* Sección headers */
+    --fs-xl:   2rem;     /* Títulos de página */
+    --fs-2xl:  2.5rem;   /* Hero titles */
+
+    /* Weight scale */
+    --fw-normal:    400;
+    --fw-medium:    500;
+    --fw-semibold:  600;
+    --fw-bold:      700;
+    --fw-extrabold: 800;
 }
 
 $principal: var(--primary-color);

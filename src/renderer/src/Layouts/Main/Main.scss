@@ -64,7 +64,7 @@
     align-items: center;
     justify-content: start;
     padding-left: 1rem;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-main);
 }
 
 @media (min-width: 500px) and (max-width: 620px) {

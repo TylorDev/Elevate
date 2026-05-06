@@ -1,4 +1,8 @@
-@use '@fontsource/inter';
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/700.css';
+@import '@fontsource/geist-sans/800.css';
 
 
 
@@ -13,59 +17,68 @@
 
 
     &::-webkit-scrollbar {
-        width: 1rem;
+        width: 6px;
+        height: 6px;
     }
 
-    // Color de la barra de desplazamiento (scrollbar)
-    &::-webkit-scrollbar-thumb {
-        background-color: $text-principal; // Cambia el color aquí
-        border-radius: 0;
-
-    }
-
-    // Color de fondo del track
     &::-webkit-scrollbar-track {
-        background-color: $principal; // Cambia el color aquí
+        background: transparent;
     }
-}
 
-@media (min-width: 500px) and (max-width: 620px) {
-    * {
-        &::-webkit-scrollbar {
-            width: 0.4rem;
-        }
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        transition: all 0.3s ease;
 
-        &::-webkit-scrollbar-track {
-            background-color: $secondary; // Cambia el color aquí
+        &:hover {
+            background: rgba(var(--accent-rgb, 186, 255, 0), 0.5);
         }
     }
 }
 
+// Estilos globales de scrollbar para todos los contenedores
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 
+    &::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
 
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
 
+    &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,0); // Truco para padding visual
+        background-clip: padding-box;
 
-@font-face {
-    font-family: 'Didact_Gothic';
-    src: url('./fonts/Didact_Gothic/DidactGothic-Regular.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+        &:hover {
+            background-color: var(--text-principal);
+        }
+    }
 }
+
+
+
+
+
+
 
 
 
 body {
-
-    font-family: 'Didact_Gothic', Arial, Helvetica, sans-serif;
-
-
+    font-family: var(--font-main);
+    font-weight: var(--fw-normal);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     width: 100%;
-
-
     overflow: hidden;
     background-color: black;
-
-
 }
 
 .App {
