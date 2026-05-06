@@ -1,0 +1,33 @@
+.header-item {
+  text-decoration: none;
+  padding: 0.8rem;
+  transition: all 0.3s;
+  outline: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  font-size: 0.8rem;
+  gap: 0.5rem;
+  width: 100%;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  &.active {
+    background: linear-gradient(to right, var(--text-principal) 0%, transparent 10%);
+    border-left: 1px solid var(--text-principal);
+    color: var(--text-principal);
+  }
+
+  .header-item-icon {
+    font-size: 1.4rem;
+  }
+}
+
+@media (min-width: 500px) and (max-width: 620px) {
+  .header-item-label {
+    display: none;
+  }
+}

@@ -1,0 +1,21 @@
+.tabs {
+    grid-area: data;
+
+    overflow-x: auto;
+
+    width: 100%;
+    height: fit-content;
+
+
+    display: grid;
+
+
+    background-color: transparent;
+    border-radius: 1rem;
+    align-items: start;
+    align-content: start;
+    border: 1px solid $secondary;
+
+}
+
+#loadTabs {}

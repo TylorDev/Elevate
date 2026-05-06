@@ -1,0 +1,21 @@
+.section {
+
+    display: grid;
+
+    width: 100%;
+    height: 100%;
+
+    gap: 0.5rem;
+
+
+    a {
+        text-decoration: none;
+        color: $text-principal;
+
+        &:hover {
+            text-decoration: underline;
+        }
+
+    }
+
+}
