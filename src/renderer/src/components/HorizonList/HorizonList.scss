@@ -1,0 +1,43 @@
+.horizon-viewport {
+  position: relative;
+  width: 100%;
+  
+  // Gradient mask for edges
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 150px;
+    background: linear-gradient(to left, black, transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+}
+
+.horizon-container {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 10px 0 30px 0;
+  padding-right: 150px; // Space for gradient mask
+  
+  // Hide scrollbar but keep functionality
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  scrollbar-width: none;
+
+  & > * {
+    scroll-snap-align: start;
+  }
+}
+
+.no-data {
+  color: #444;
+  font-size: 1.2rem;
+  font-style: italic;
+  padding: 40px 0;
+}

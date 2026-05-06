@@ -1,30 +1,31 @@
-import { MiniStats } from './MiniStats'
-import { CurrentPlaying } from './CurrentPlaying'
-import { Aside } from './Aside'
-import { RandomList } from './RandomList'
-import { TopLists } from './TopLists'
-import { Banner } from './Banner'
+import React, { useRef } from 'react'
+import { HorizonList } from '../../components/HorizonList/HorizonList'
+import { NavWheel } from '../../components/NavWheel/NavWheel'
 import './Feed.scss'
-import { useSuper } from '../../Contexts/SupeContext'
 
 function Feed() {
-  const { isAwaken } = useSuper()
+  const horizonRef = useRef(null)
+
+  const handleScroll = (delta) => {
+    if (horizonRef.current) {
+      horizonRef.current.scroll(delta)
+    }
+  }
 
   return (
     <div className="Feed">
-      {isAwaken ? (
-        <>
-          <RandomList />
-          <CurrentPlaying />
-          <TopLists />
-          <Banner />
-          <MiniStats />
-          <Aside />
-        </>
-      ) : (
-        <p>Cargando...</p>
-      )}
+      <div className="feed-spacer" />
+      
+      <div className="feed-bottom-content">
+        <div className="feed-header">
+          <h2 className="feed-title">Más escuchadas</h2>
+          <NavWheel onScroll={handleScroll} />
+        </div>
+        
+        <HorizonList ref={horizonRef} />
+      </div>
     </div>
   )
 }
+
 export default Feed

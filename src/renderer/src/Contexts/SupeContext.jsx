@@ -110,7 +110,7 @@ export const SuperProvider = ({ children }) => {
     navigate(`/${route}/resume`)
   }
 
-  const handleQueueAndPlay = async (song = undefined, index = undefined, filePath) => {
+  const handleQueueAndPlay = async (song = undefined, index = undefined, filePath, shouldNavigate = true) => {
     const invalidRoutes = ['favourites', 'listen-later', 'tracks', 'stats']
 
     if (invalidRoutes.includes(filePath)) {
@@ -122,7 +122,9 @@ export const SuperProvider = ({ children }) => {
     }
     if (filePath.startsWith('folder:')) {
       const newFilePath = filePath.replace(/^folder:/, '') // Quita 'folder:' solo al inicio
-      navigate(`/directories/${encodeURIComponent(newFilePath)}/false?song=${encodeURIComponent(song.filePath)}`)
+      if (shouldNavigate) {
+        navigate(`/directories/${encodeURIComponent(newFilePath)}/false?song=${encodeURIComponent(song.filePath)}`)
+      }
       setCurrentFile(song)
       setCurrentIndex(index)
       const newQueue = await window.electron.ipcRenderer.invoke(
@@ -152,7 +154,9 @@ export const SuperProvider = ({ children }) => {
           originalQueue: processedQueue
         }))
 
-        navigate(`/playlists/${filePath}`)
+        if (shouldNavigate) {
+          navigate(`/playlists/${filePath}`)
+        }
 
         if (processedQueue && processedQueue.length > 0) {
           setCurrentFile(song || processedQueue[0])
@@ -173,7 +177,7 @@ export const SuperProvider = ({ children }) => {
       const fileInfos = await window.electron.ipcRenderer.invoke('get-last-data')
       if (fileInfos) {
         setCurrentFile(fileInfos.song)
-        await handleQueueAndPlay(fileInfos.song, fileInfos.index, fileInfos.queueId)
+        await handleQueueAndPlay(fileInfos.song, fileInfos.index, fileInfos.queueId, false)
       }
     } catch (error) {
       console.error('Error fetching last data:', error)
