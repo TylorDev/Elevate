@@ -1,265 +1,229 @@
-.invisible {
+@use '../../styles/variables' as *;
 
-
-
-    height: 4rem;
-
-    opacity: 0.5;
-
-
-    .songItem {
-        display: none;
-    }
-}
-
-#LoadSongItem {
-    min-width: 25rem;
-
-    background-color: $secondary;
-    border-radius: 1rem;
-
-    .songItem {
-        padding: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        .MuiCircularProgress-svg {
-            color: $text-principal;
-        }
-    }
-
-}
-
-.visible {
-
-    opacity: 1;
-}
-
-.songIndex {
-
-    height: 100%;
-    display: flex;
-
-    background-color: transparent;
-
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-
-    width: 2rem;
-
-    font-size: 0.6rem;
-
-    &.infinite {
-        font-size: 1.3rem;
-    }
-
-    border-top-left-radius: 1rem;
-    /* Redondea la esquina superior izquierda */
-    border-bottom-left-radius: 1rem;
-    /* Redondea la esquina inferior izquierda */
-    color: white;
-    z-index: 2;
+.songItem-container {
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
 .songItem {
-    height: 4rem;
+    height: 4.5rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-
-    padding-left: 0;
-    padding-right: 0;
+    gap: 1.2rem;
+    padding: 0 1.2rem;
     position: relative;
     cursor: pointer;
-    color: white;
-
-    background-color: #000;
-    border-radius: 0.5rem;
-    margin-bottom: 1px;
-
-    // overflow: hidden; // Removed to allow dropdown menu to show outside
-
-
-
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 14px;
+    margin-bottom: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    overflow: hidden;
 
     &:hover {
-        z-index: 20; // Ensure it stays on top of other items when interacting
+        background: rgba(255, 255, 255, 0.06);
+        transform: scale(1.005);
+        border-color: rgba(255, 255, 255, 0.08);
 
         .ico {
-            opacity: 100%;
-
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
         }
 
         .optiones {
-            .btnLike {
-                opacity: 100%;
-            }
-
-            .dropdown {
-                opacity: 100%;
-            }
-
+            opacity: 1;
+            transform: translateX(0);
         }
     }
 
-    .song-data-meta {
-        color: red
-    }
-}
+    &.active {
+        background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
+        border-color: rgba(var(--accent-rgb), 0.2);
+        
+        .songIndex {
+            color: var(--text-principal);
+            font-weight: 800;
+        }
 
-
-
-.cover {
-    position: relative;
-
-
-    height: 85%;
-    aspect-ratio: 1/1;
-    z-index: 2;
-
-
-    img {
-        object-fit: cover;
-        height: 100%;
-        border-radius: 0.5rem;
-        aspect-ratio: 1/1;
-    }
-
-
-    .ico {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.505);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        border-radius: 0.5rem;
-    }
-
-
-
-}
-
-.songdata {
-
-    display: flex;
-    width: 100%;
-    flex-direction: column;
-    font-size: 0.8rem;
-    padding-left: 0.5rem;
-    z-index: 2;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
-    overflow: hidden;
-
-
-    .song-tittle {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-
-    .song-data-meta {
-        font-weight: bold;
-
-        color: $text-secondary;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-    }
-
-
-}
-
-.active {
-
-    color: white;
-
-    background-color: $secondary;
-
-
-
-    .ico {
-        opacity: 100%;
+        .song-tittle {
+            color: var(--text-principal);
+            font-weight: 700;
+        }
     }
 
     .songIndex {
-        color: $text-principal;
+        width: 24px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        text-align: center;
+        flex-shrink: 0;
     }
 
-}
+    .cover {
+        position: relative;
+        width: 3.2rem;
+        height: 3.2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
+        .ico {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 1rem;
+        }
+    }
 
-.optiones {
-    position: absolute;
-    right: 10%;
-    display: flex;
-    z-index: 2;
+    .songdata {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
 
+        .song-tittle {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color 0.3s ease;
+        }
 
-    .btnLike {
+        .song-data-meta {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
 
+    .optiones {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         opacity: 0;
+        transform: translateX(10px);
+        transition: all 0.3s ease;
+
+        &.liked {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .btnLike {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            color: rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+
+            &:hover {
+                color: var(--text-principal);
+                transform: scale(1.1);
+            }
+
+            svg {
+                font-size: 1.2rem;
+            }
+        }
+
+        &.liked .btnLike {
+            color: var(--text-principal);
+            
+            svg {
+                fill: var(--text-principal);
+            }
+        }
     }
 
-
-    .dropdown {
-        opacity: 0;
-
-
-
-
+    .stime {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.3);
+        width: 45px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
     }
-}
 
-.liked {
-    .btnLike {
-        opacity: 100%;
+    // BARRA DE PROGRESO MODERNA
+    .song-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: transparent;
+        pointer-events: none;
+        z-index: 0;
+    }
 
-        svg {
-            fill: $text-principal;
-            color: $text-principal;
-            font-size: 1.5rem;
+    .song-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, 
+            rgba(var(--accent-rgb, 186, 255, 0), 0.15) 0%, 
+            rgba(var(--accent-rgb, 186, 255, 0), 0.02) 100%
+        );
+        border-right: 2px solid var(--text-principal);
+        transition: width 0.3s linear;
+        position: relative;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -2px;
+            height: 100%;
+            width: 8px;
+            background: linear-gradient(90deg, 
+                var(--text-principal), 
+                transparent
+            );
+            filter: blur(4px);
+            opacity: 0.5;
         }
     }
 }
 
-.stime {
-    margin-right: 1rem;
-    font-size: 0.8rem;
-    color: $text-secondary;
-    z-index: 2;
-}
+// Media Queries para pantallas más pequeñas
+@media (max-width: 1440px) {
+    .songItem {
+        height: 3.8rem;
+        gap: 0.8rem;
+        padding: 0 0.8rem;
 
-.song-progress {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: transparent;
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 0.5rem;
-    overflow: hidden;
-}
+        .cover {
+            width: 2.8rem;
+            height: 2.8rem;
+        }
 
-.song-progress-fill {
-    height: 100%;
-    background-image: linear-gradient(to left, rgba(255, 255, 255, 0.185), rgba(255, 255, 255, 0) 100%);
-    border-right: 5px solid $text-principal;
-    transition: width 0.1s linear;
-    border-radius: 1px;
-
-
+        .songdata .song-tittle {
+            font-size: 0.85rem;
+        }
+    }
 }
