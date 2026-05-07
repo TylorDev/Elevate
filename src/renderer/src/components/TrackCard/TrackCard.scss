@@ -32,9 +32,7 @@
   &:hover {
     transform: translateY(-8px) scale(1.02);
     border-color: var(--accent-color) !important;
-    box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.6),
-      0 0 20px -5px var(--accent-color);
-    z-index: 2000;
+
 
     .tc-play-btn {
       transform: scale(1.1);
