@@ -9,7 +9,7 @@ export const useAudioContext = () => {
 }
 
 export const AudioProvider = ({ children }) => {
-  const { currentFile, handleNextClick, mediaRef, addhistory } = useSuper()
+  const { currentFile, mediaRef, addhistory } = useSuper()
   const [path, setPath] = useState(null)
 
   useEffect(() => {
@@ -49,11 +49,13 @@ export const AudioProvider = ({ children }) => {
   return (
     <AudioContextState.Provider value={{}}>
       {children}
-      {path && (
-        <audio ref={mediaRef} controls autoPlay onEnded={handleNextClick} style={{ display: 'none' }}>
-          <source src={path} type="audio/mpeg" />
-        </audio>
-      )}
+      <audio
+        ref={mediaRef}
+        controls
+        autoPlay
+        style={{ display: 'none' }}
+        src={path}
+      />
     </AudioContextState.Provider>
   )
 }

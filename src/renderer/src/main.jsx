@@ -8,23 +8,26 @@ import { MiniProvider } from './Contexts/MiniContext'
 import { LikesProvider } from './Contexts/LikeContext'
 import { AudioProvider } from './Contexts/AudioContext'
 import { PlaylistsProvider } from './Contexts/PlaylistsContex'
+import { SessionProvider } from './Contexts/SessionContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HashRouter>
-      <SuperProvider>
-        <AppProvider>
-          <MiniProvider>
-            <PlaylistsProvider>
-              <LikesProvider>
-                <AudioProvider>
-                  <App />
-                </AudioProvider>
-              </LikesProvider>
-            </PlaylistsProvider>
-          </MiniProvider>
-        </AppProvider>
-      </SuperProvider>
+      <SessionProvider>
+        <SuperProvider>
+          <AppProvider>
+            <MiniProvider>
+              <PlaylistsProvider>
+                <LikesProvider>
+                  <AudioProvider>
+                    <App />
+                  </AudioProvider>
+                </LikesProvider>
+              </PlaylistsProvider>
+            </MiniProvider>
+          </AppProvider>
+        </SuperProvider>
+      </SessionProvider>
     </HashRouter>
   </React.StrictMode>
 )

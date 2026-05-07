@@ -13,6 +13,7 @@ import CurrentQueueTab from './Current/CurrentQueueTab'
 import DirectoriesQueueTab from './Directories/DirectoriesQueueTab'
 import LikesQueueTab from './Likes/LikesQueueTab'
 import PlaylistsQueueTab from './Playlists/PlaylistsQueueTab'
+import { useSession } from '../../Contexts/SessionContext'
 
 const TABS = [
   { id: 'current', label: 'Current', icon: <RiPlayList2Fill />, Component: CurrentQueueTab },
@@ -23,6 +24,7 @@ const TABS = [
 ]
 
 function QueueTabsPanel() {
+  const { queueState } = useSession()
   const [activeTab, setActiveTab] = useState('current')
 
   return (

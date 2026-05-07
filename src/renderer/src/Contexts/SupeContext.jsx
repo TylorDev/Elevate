@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
 import { useCoverUrl } from '../hooks/useCoverUrl'
 import { extractDominantColor } from '../utils/useDominantColor'
+import { useSession } from './SessionContext'
 
 // Crear el contexto
 const SuperContext = createContext()
@@ -23,11 +24,7 @@ export const SuperProvider = ({ children }) => {
   const [duration, setDuration] = useState(0)
   const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
   const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
-  const [queueState, setQueueState] = useState({
-    currentQueue: [],
-    originalQueue: [],
-    queueName: ''
-  })
+  const { queueState, setQueueState } = useSession()
 
   const [isAwaken, setIsAwaken] = useState(false)
   const [waveformVariant, setWaveformVariant] = useState(
@@ -180,72 +177,59 @@ export const SuperProvider = ({ children }) => {
   const progressRafRef = useRef(null)
 
   useEffect(() => {
-    const tryAttachListeners = () => {
-      if (listenersAttached.current || !mediaRef.current) {
-        setTimeout(tryAttachListeners, 100)
-        return
-      }
+    if (!mediaRef.current) return
 
-      updateProgressRef.current = () => {
-        if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
-        progressRafRef.current = requestAnimationFrame(() => {
-          if (mediaRef.current) {
-            setProgress(mediaRef.current.currentTime)
-          }
-        })
-      }
+    const audio = mediaRef.current
 
-      updateDurationRef.current = () => {
-        setDuration(mediaRef.current?.duration || 0)
-      }
-
-      mediaRef.current.addEventListener('timeupdate', updateProgressRef.current)
-      mediaRef.current.addEventListener('loadedmetadata', updateDurationRef.current)
-      mediaRef.current.addEventListener('durationchange', updateDurationRef.current)
-      listenersAttached.current = true
+    const updateProgress = () => {
+      if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
+      progressRafRef.current = requestAnimationFrame(() => {
+        setProgress(audio.currentTime)
+      })
     }
 
-    tryAttachListeners()
+    const updateDuration = () => {
+      setDuration(audio.duration || 0)
+    }
+
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+    const handleEnded = () => handleNextClick()
+
+    audio.addEventListener('timeupdate', updateProgress)
+    audio.addEventListener('loadedmetadata', updateDuration)
+    audio.addEventListener('durationchange', updateDuration)
+    audio.addEventListener('play', handlePlay)
+    audio.addEventListener('pause', handlePause)
+    audio.addEventListener('ended', handleEnded)
 
     return () => {
       if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
-      if (mediaRef.current) {
-        if (updateProgressRef.current) {
-          mediaRef.current.removeEventListener('timeupdate', updateProgressRef.current)
-        }
-        if (updateDurationRef.current) {
-          mediaRef.current.removeEventListener('loadedmetadata', updateDurationRef.current)
-          mediaRef.current.removeEventListener('durationchange', updateDurationRef.current)
-        }
-        listenersAttached.current = false
-      }
+      audio.removeEventListener('timeupdate', updateProgress)
+      audio.removeEventListener('loadedmetadata', updateDuration)
+      audio.removeEventListener('durationchange', updateDuration)
+      audio.removeEventListener('play', handlePlay)
+      audio.removeEventListener('pause', handlePause)
+      audio.removeEventListener('ended', handleEnded)
     }
-  }, [])
+  }, [queueState.currentQueue, currentIndex]) // Depend on these to keep handleNextClick fresh if needed, or use a ref for handleNextClick
 
   useEffect(() => {
     if (mediaRef.current) {
-      let filePath = currentFile.filePath
+      let filePath = currentFile?.filePath
         ? currentFile.filePath.replace(/\\/g, '/').replace(/#/g, '%23')
         : null
       if (filePath && /^([a-zA-Z]):/.test(filePath)) {
         filePath = `file:///${filePath}`
       }
-      mediaRef.current.src = filePath
-
-      // Manejar eventos de reproducción
-      mediaRef.current.onplay = () => {
-        setIsPlaying(true)
-      }
-
-      mediaRef.current.onpause = () => {
-        setIsPlaying(false)
-      }
+      mediaRef.current.src = filePath || ''
     }
-  }, [currentFile?.filePath, currentIndex])
+  }, [currentFile?.filePath])
 
   useEffect(() => {
     WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
   }, [currentFile])
+
 
 
 
@@ -262,7 +246,12 @@ export const SuperProvider = ({ children }) => {
   }
 
   const togglePlayPause = () => {
-    toPlay(mediaRef, isPlaying)
+    if (!currentFile?.filePath && queueState.currentQueue.length > 0) {
+      setCurrentFile(queueState.currentQueue[0])
+      setCurrentIndex(0)
+    } else {
+      toPlay(mediaRef, isPlaying)
+    }
   }
   const toggleMute = () => {
     toMute(mediaRef, muted, setMuted)
