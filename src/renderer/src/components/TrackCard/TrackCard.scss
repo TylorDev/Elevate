@@ -16,11 +16,12 @@
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  transition: transform 100ms linear;
 
   &.active {
     border-color: var(--accent-color);
     background: rgba(var(--accent-rgb), 0.15);
-
+    transform: scale(1);
 
     .tc-title {
       color: var(--accent-color);
@@ -30,9 +31,9 @@
   &.focused,
   &.menu-open,
   &:hover {
-    transform: translateY(-8px) scale(1.02);
-    border-color: var(--accent-color) !important;
 
+    border-color: var(--accent-color) !important;
+    transform: scale(1.1);
 
     .tc-play-btn {
       transform: scale(1.1);
@@ -154,7 +155,7 @@
 
         &:hover {
           color: var(--text-principal);
-          transform: scale(1.1);
+          transform: scale(1);
         }
 
         &.liked {
