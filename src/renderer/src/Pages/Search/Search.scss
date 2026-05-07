@@ -29,7 +29,7 @@
       font-weight: 600;
       cursor: pointer;
       border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
 
       svg {
         font-size: 1.2rem;
@@ -50,7 +50,7 @@
 
   .search-results {
     flex: 1;
-    animation: search-results-fade-in 0.4s ease;
+
 
     .tab-pane {
       display: flex;
@@ -61,21 +61,33 @@
 }
 
 @keyframes search-results-fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 600px) {
   .SearchPage {
     padding: 1rem;
-    
+
     .search-tabs {
       width: 100%;
       overflow-x: auto;
-      
+
       .search-tab {
         padding: 8px 12px;
-        span { display: none; } // Icon only on mobile
+
+        span {
+          display: none;
+        }
+
+        // Icon only on mobile
       }
     }
   }

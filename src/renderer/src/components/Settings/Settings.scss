@@ -39,7 +39,7 @@
       font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
 
       svg {
         font-size: 1.1rem;
@@ -58,9 +58,7 @@
     }
   }
 
-  .settings-content {
-    animation: settings-fade-in 0.3s ease;
-  }
+  .settings-content {}
 
   .settings-section {
     display: flex;
@@ -135,7 +133,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.25s ease;
+
     align-self: flex-start;
 
     svg {
@@ -184,7 +182,7 @@
     border-radius: 10px;
     color: white;
     font-size: 0.85rem;
-    transition: all 0.25s ease;
+
 
     &::placeholder {
       color: rgba(255, 255, 255, 0.2);
@@ -208,7 +206,7 @@
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
-    transition: all 0.25s ease;
+
     flex-shrink: 0;
 
     &.danger:hover {
@@ -248,7 +246,7 @@
       border-radius: 14px;
       background: rgba(255, 255, 255, 0.03);
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
       text-align: left;
 
       &:hover {
@@ -301,14 +299,14 @@
         gap: 2px;
         color: var(--text-principal);
         opacity: 0.6;
-        transition: opacity 0.3s ease;
+
 
         &--mirrored {
           .bar {
             width: 4px;
             background: var(--text-principal);
             border-radius: 2px;
-            animation: waveform-pulse 1.2s ease-in-out infinite alternate;
+
           }
         }
 
@@ -358,7 +356,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
-    transition: all 0.25s ease;
+
 
     &:hover {
       background: rgba(255, 255, 255, 0.06);
@@ -403,11 +401,23 @@
 }
 
 @keyframes settings-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes waveform-pulse {
-  from { transform: scaleY(0.4); }
-  to   { transform: scaleY(1); }
+  from {
+    transform: scaleY(0.4);
+  }
+
+  to {
+    transform: scaleY(1);
+  }
 }

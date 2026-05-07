@@ -45,7 +45,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     border-radius: 6px;
-    transition: all 0.2s ease;
+
     position: relative;
     padding: 0;
 
@@ -98,7 +98,7 @@
     &::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
-      
+
       &:hover {
         background: rgba(255, 255, 255, 0.2);
       }
@@ -120,7 +120,7 @@
 
     &__tab {
       height: 2.8rem;
-      
+
       .tab-icon {
         font-size: 1rem;
       }

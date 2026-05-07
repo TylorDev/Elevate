@@ -59,7 +59,7 @@
       padding: 0.5rem;
       border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(10px);
+
     }
 
     .pagination-btn {
@@ -74,7 +74,7 @@
       font-size: 0.9rem;
       border-radius: 12px;
       cursor: pointer;
-      transition: all 0.3s ease;
+
 
       &:hover:not(:disabled) {
         background: rgba(255, 255, 255, 0.08);

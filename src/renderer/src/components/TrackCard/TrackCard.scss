@@ -10,7 +10,7 @@
   border: 1.5px solid var(--accent-color);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   padding: 0.8rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
   position: relative;
   overflow: visible;
   flex-shrink: 0;
@@ -80,7 +80,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.3s ease;
+
       color: black;
       font-size: 1.1rem;
 
@@ -95,7 +95,7 @@
       background: rgba(0, 0, 0, 0.7);
       padding: 4px 8px;
       border-radius: 20px;
-      backdrop-filter: blur(4px);
+
     }
   }
 
@@ -152,7 +152,7 @@
         font-size: 1.1rem;
         display: flex;
         align-items: center;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
 
         &:hover {
           color: var(--text-principal);
@@ -161,7 +161,7 @@
 
         &.liked {
           color: var(--text-principal);
-          
+
           svg {
             fill: var(--text-principal);
           }

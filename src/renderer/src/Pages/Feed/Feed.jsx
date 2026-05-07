@@ -15,13 +15,13 @@ function Feed() {
   return (
     <div className="Feed">
       <div className="feed-spacer" />
-      
+
       <div className="feed-bottom-content">
         <div className="feed-header">
           <h2 className="feed-title">Más escuchadas</h2>
           <NavWheel onScroll={handleScroll} />
         </div>
-        
+
         <HorizonList ref={horizonRef} />
       </div>
     </div>

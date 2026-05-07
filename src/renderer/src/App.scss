@@ -28,7 +28,7 @@
     &::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
-        transition: all 0.3s ease;
+
 
         &:hover {
             background: rgba(var(--accent-rgb, 186, 255, 0), 0.5);
@@ -53,7 +53,7 @@
     &::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.1);
         border-radius: 10px;
-        border: 1px solid rgba(0,0,0,0); // Truco para padding visual
+        border: 1px solid rgba(0, 0, 0, 0); // Truco para padding visual
         background-clip: padding-box;
 
         &:hover {

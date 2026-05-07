@@ -17,7 +17,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+
     font-size: 1.2rem;
     padding: 0;
 
@@ -41,7 +41,7 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   z-index: 10000;
   overflow: hidden;
-  animation: overflow-modern-in 0.15s ease-out;
+
 
   .overflow-item {
     display: flex;
@@ -53,7 +53,7 @@
     color: var(--text-secondary);
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.15s ease;
+
     margin-bottom: 2px;
 
     &:last-child {
@@ -74,7 +74,7 @@
       color: var(--text-secondary);
       display: flex;
       align-items: center;
-      transition: color 0.15s ease;
+
     }
 
     .overflow-label {
