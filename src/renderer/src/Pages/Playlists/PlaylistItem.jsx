@@ -6,7 +6,7 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
 import { useEffect, useState } from 'react'
-import { CircularProgress } from '@mui/material'
+import { Skeleton } from '../../components/Skeleton/Skeleton'
 import { UndefinedItem } from '../../Components/UndefinedItem/UndefinedItem'
 
 export function PlaylistItem({
@@ -19,7 +19,7 @@ export function PlaylistItem({
   if (!playlist) {
     return (
       <li className="PlaylistItem loading" id="LoadPlaylistItem">
-        <CircularProgress size="3.5rem" />
+        <Skeleton height="60px" borderRadius="12px" />
       </li>
     )
   }

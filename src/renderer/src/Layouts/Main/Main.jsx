@@ -1,13 +1,16 @@
+import { lazy, Suspense } from 'react'
 import { ToastContainer } from 'react-toastify'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import Background from '../../Components/Background/Background'
-import SearchBar from '../../Components/SearchBar/SearchBar'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
 
 import { useSuper } from '../../Contexts/SupeContext'
-import QueueTabsPanel from '../../components/QueueTabsPanel/QueueTabsPanel'
+
+// Lazy-loaded: not needed for first paint
+const QueueTabsPanel = lazy(() => import('../../components/QueueTabsPanel/QueueTabsPanel'))
+const SearchBar = lazy(() => import('../../Components/SearchBar/SearchBar'))
 
 function Main() {
   const { scrollRef } = useSuper()
@@ -19,7 +22,9 @@ function Main() {
         <Header />
       </aside>
       <div className="Main__search">
-        <SearchBar />
+        <Suspense fallback={null}>
+          <SearchBar />
+        </Suspense>
       </div>
       <main className="outlet" ref={scrollRef}>
         <Outlet />
@@ -28,7 +33,9 @@ function Main() {
         <AudioPlayer />
       </div>
       <aside className="Main__queue">
-        <QueueTabsPanel />
+        <Suspense fallback={null}>
+          <QueueTabsPanel />
+        </Suspense>
       </aside>
       <ToastContainer />
     </div>

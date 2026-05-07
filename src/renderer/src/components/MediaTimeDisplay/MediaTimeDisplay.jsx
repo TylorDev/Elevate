@@ -18,6 +18,8 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   const isPlayingRef = useRef(isPlaying)
   const seekPreviewRatioRef = useRef(null)
   const variantRef = useRef(normalizeVariant(variant))
+  const dimensionsRef = useRef({ width: 0, height: 0 })
+  const cachedStylesRef = useRef({ baseColor: '#1a1a1a', progressColor: '#baff00', mutedColor: '#6f6f6f' })
   const progressRatio = duration ? Math.min(progress / duration, 1) : 0
 
   useEffect(() => {
@@ -31,6 +33,51 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   useEffect(() => {
     variantRef.current = normalizeVariant(variant)
   }, [variant])
+
+  // Cache computed styles — only recalculate when CSS variables could change
+  useEffect(() => {
+    const updateStyles = () => {
+      const styles = getComputedStyle(document.documentElement)
+      cachedStylesRef.current = {
+        baseColor: styles.getPropertyValue('--text-secondary').trim() || '#1a1a1a',
+        progressColor: styles.getPropertyValue('--text-principal').trim() || '#baff00',
+        mutedColor: styles.getPropertyValue('--text-secondary').trim() || '#6f6f6f'
+      }
+    }
+
+    updateStyles()
+
+    // Re-read when color theme might change
+    const observer = new MutationObserver(updateStyles)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
+  // Cache canvas dimensions — only recalculate on resize
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const updateDimensions = () => {
+      const rect = canvas.getBoundingClientRect()
+      const pixelRatio = window.devicePixelRatio || 1
+      dimensionsRef.current = {
+        width: Math.max(1, Math.floor(rect.width * pixelRatio)),
+        height: Math.max(1, Math.floor(rect.height * pixelRatio))
+      }
+    }
+
+    updateDimensions()
+
+    const resizeObserver = new ResizeObserver(updateDimensions)
+    resizeObserver.observe(canvas)
+
+    return () => resizeObserver.disconnect()
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -91,13 +138,16 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     const draw = () => {
       if (cancelled) return
 
-      const context = canvas.getContext('2d')
+      const context = canvas.getContext('2d', { alpha: true })
       if (!context) return
 
-      const rect = canvas.getBoundingClientRect()
-      const pixelRatio = window.devicePixelRatio || 1
-      const width = Math.max(1, Math.floor(rect.width * pixelRatio))
-      const height = Math.max(1, Math.floor(rect.height * pixelRatio))
+      // Use cached dimensions instead of getBoundingClientRect() every frame
+      const { width, height } = dimensionsRef.current
+
+      if (width === 0 || height === 0) {
+        animationRef.current = window.requestAnimationFrame(draw)
+        return
+      }
 
       if (canvas.width !== width || canvas.height !== height) {
         canvas.width = width
@@ -114,6 +164,7 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
         isPlaying: isPlayingRef.current,
         progressRatio: progressRatioRef.current,
         seekPreviewRatio: seekPreviewRatioRef.current,
+        styles: cachedStylesRef.current,
         variant: variantRef.current,
         width
       })
@@ -181,13 +232,11 @@ function drawWaveform({
   isPlaying,
   progressRatio,
   seekPreviewRatio,
+  styles,
   variant,
   width
 }) {
-  const styles = getComputedStyle(document.documentElement)
-  const baseColor = styles.getPropertyValue('--text-secondary').trim() || '#1a1a1a'
-  const progressColor = styles.getPropertyValue('--text-principal').trim() || '#baff00'
-  const mutedColor = styles.getPropertyValue('--text-secondary').trim() || '#6f6f6f'
+  const { baseColor, progressColor, mutedColor } = styles
   const seekColor = '#ffffff'
   const bars = 72
   const gap = 3
@@ -210,7 +259,6 @@ function drawWaveform({
         analyser.getByteTimeDomainData(data)
       } else {
         analyser.getByteFrequencyData(data)
-
       }
 
       if (frozenData) frozenData.set(data)

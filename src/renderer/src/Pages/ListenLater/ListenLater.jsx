@@ -11,22 +11,15 @@ import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
-import { Skeleton } from '@mui/material'
+import { Skeleton } from '../../components/Skeleton/Skeleton'
 
 function ListenLater() {
-  const { handleResume, handleQueueAndPlay, toggleShuffle } = useSuper()
-  const { dir } = useParams()
+  const { handleQueueAndPlay, toggleShuffle } = useSuper()
   const { getlatersongs, later, removelatersong } = useMini()
 
   useEffect(() => {
     getlatersongs()
   }, [])
-
-  useEffect(() => {
-    if (dir === 'resume' && later?.fileInfos) {
-      handleResume(later.fileInfos, 'listen-later')
-    }
-  }, [later, dir])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
@@ -94,7 +87,7 @@ function LoadListenLater() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <Skeleton sx={{ bgcolor: 'grey.900' }} />
+            <Skeleton />
           </div>
           <div className="pgl-name">{'Listen later'}</div>
 

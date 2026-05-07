@@ -8,10 +8,11 @@ import {
   LuSkipForward,
   LuShuffle,
   LuVolume2,
-  LuVolumeX
+  LuVolumeX,
+  LuFootprints,
+  LuRepeat,
+  LuRepeat1
 } from 'react-icons/lu'
-import { MdDoNotStep, MdOutlineDoNotStep } from 'react-icons/md'
-import { TbRepeat, TbRepeatOff } from 'react-icons/tb'
 import { useNavigate } from 'react-router-dom'
 
 import './Controls.scss'
@@ -78,7 +79,7 @@ export function Controls() {
               <span>{muted ? 'Unmute' : 'Mute'}</span>
             </button>
             <button type="button" role="menuitem" onClick={() => runMenuAction(toggleStep)}>
-              {isStep ? <MdDoNotStep className="Step" /> : <MdOutlineDoNotStep />}
+              {isStep ? <LuFootprints className="Step" /> : <LuFootprints />}
               <span>Step</span>
             </button>
             <button type="button" role="menuitem" onClick={() => runMenuAction(toggleShuffle)}>
@@ -86,7 +87,7 @@ export function Controls() {
               <span>Shuffle</span>
             </button>
             <button type="button" role="menuitem" onClick={() => runMenuAction(toggleRepeat)}>
-              {loop ? <TbRepeat id="btnShuffle-true" /> : <TbRepeatOff id="btnShuffle-false" />}
+              {loop ? <LuRepeat id="btnShuffle-true" /> : <LuRepeat1 id="btnShuffle-false" />}
               <span>Repeat</span>
             </button>
             <button type="button" role="menuitem" onClick={() => runMenuAction(() => navigate('/music'))}>

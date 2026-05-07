@@ -2,7 +2,7 @@ import { BsFolderFill, BsFolderMinus } from 'react-icons/bs'
 import { useNavigate } from 'react-router-dom'
 import { formatDuration } from '../../../timeUtils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { Skeleton } from '@mui/material'
+import { Skeleton } from '../Skeleton/Skeleton'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
 import { useSuper } from '../../Contexts/SupeContext'
 import { useEffect, useState } from 'react'
@@ -11,8 +11,7 @@ export function DirItem({ directory, onSelect, disableNavigation = false }) {
   if (!directory) {
     return (
       <div className="dirItem loading">
-        <BsFolderFill className="d-icon" />
-        <Skeleton sx={{ bgcolor: 'grey.600' }} width="100%" height={'2rem'} />
+        <Skeleton height="60px" borderRadius="12px" />
       </div>
     )
   }

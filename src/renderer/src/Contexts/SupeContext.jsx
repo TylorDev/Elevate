@@ -30,6 +30,14 @@ export const SuperProvider = ({ children }) => {
   })
 
   const [isAwaken, setIsAwaken] = useState(false)
+  const [waveformVariant, setWaveformVariant] = useState(
+    () => localStorage.getItem('waveformVariant') || 'mirrored'
+  )
+
+  const handleWaveformVariantChange = (variant) => {
+    setWaveformVariant(variant)
+    localStorage.setItem('waveformVariant', variant)
+  }
 
   const imagesRef = useRef(new Map())
 
@@ -105,23 +113,9 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
-  const navigateToResume = (route) => {
-    // console.error(`La ruta "${route}" no es válida.`)
-    navigate(`/${route}/resume`)
-  }
-
   const handleQueueAndPlay = async (song = undefined, index = undefined, filePath, shouldNavigate = true) => {
-    const invalidRoutes = ['favourites', 'listen-later', 'tracks', 'stats']
-
-    if (invalidRoutes.includes(filePath)) {
-      console.log(`La ruta ${filePath} es inválida`)
-      navigateToResume(filePath)
-      setCurrentFile(song)
-      setCurrentIndex(index)
-      return
-    }
     if (filePath.startsWith('folder:')) {
-      const newFilePath = filePath.replace(/^folder:/, '') // Quita 'folder:' solo al inicio
+      const newFilePath = filePath.replace(/^folder:/, '')
       if (shouldNavigate) {
         navigate(`/directories/${encodeURIComponent(newFilePath)}/false?song=${encodeURIComponent(song.filePath)}`)
       }
@@ -132,7 +126,6 @@ export const SuperProvider = ({ children }) => {
         newFilePath
       )
       if (newQueue) {
-        console.log(newQueue.toString(), 'folder', newFilePath)
         setQueueState((prevState) => ({
           queueName: filePath,
           currentQueue: newQueue,
@@ -143,7 +136,6 @@ export const SuperProvider = ({ children }) => {
     }
 
     try {
-      // console.log('handleQueueAndPlay[Valida]: ', filePath)
       const newQueue = await window.electron.ipcRenderer.invoke('get-list', filePath)
 
       if (newQueue) {
@@ -164,43 +156,9 @@ export const SuperProvider = ({ children }) => {
         } else {
           console.error('Processed queue is empty')
         }
-      } else {
-        console.log('No files were selected')
       }
     } catch (error) {
       console.error('Error handling queue or file infos:', error)
-    }
-  }
-
-  const fetchLastData = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('get-last-data')
-      if (fileInfos) {
-        setCurrentFile(fileInfos.song)
-        await handleQueueAndPlay(fileInfos.song, fileInfos.index, fileInfos.queueId, false)
-      }
-    } catch (error) {
-      console.error('Error fetching last data:', error)
-    }
-  }
-
-  const getLastData = async () => {
-    try {
-      const fileInfos = await window.electron.ipcRenderer.invoke('get-last-data')
-      if (fileInfos) {
-        return fileInfos
-      }
-    } catch (error) {
-      console.error('Error fetching last data:', error)
-    }
-  }
-
-  const saveLastData = async (file, index, queueId) => {
-    // console.log('Nombre en SaveLastData: ' + (queueId || '[sin nombre]'))
-    try {
-      await window.electron.ipcRenderer.invoke('save-last-data', file, index, queueId)
-    } catch (error) {
-      console.error('Error saving last data:', error)
     }
   }
 
@@ -275,11 +233,7 @@ export const SuperProvider = ({ children }) => {
     WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
   }, [currentFile])
 
-  useEffect(() => {
-    if (currentFile && currentIndex !== null) {
-      saveLastData(currentFile.filePath, currentIndex, queueState.queueName)
-    }
-  }, [currentIndex, currentFile, queueState.queueName])
+
 
   const handlePreviousClick = () => {
     if (currentIndex > 0) {
@@ -472,18 +426,9 @@ export const SuperProvider = ({ children }) => {
     setCurrentFile(file)
     setCurrentIndex(index)
     setQueueState({ currentQueue: list, originalQueue: list, queueName: name })
-
-    saveLastData(file.filePath, index, name)
-    // console.log('Nombre en ClickSong: ' + (name || '[sin nombre]'))
   }
 
-  const handleResume = (list, name = '') => {
-    setQueueState((prevState) => ({
-      queueName: name,
-      currentQueue: list,
-      originalQueue: list
-    }))
-  }
+
 
   const [color, setColor] = useState(() => {
     return localStorage.getItem('colorManual') || ''
@@ -582,7 +527,6 @@ export const SuperProvider = ({ children }) => {
         handleGetBPMClick, // utils
         queueState, //lista en reproduccion
         handleSaveClick, // guarda la cola actual en la bd.
-        handleResume,
         handleQueueAndPlay,
         PlayQueue,
         removeTrack,
@@ -593,16 +537,16 @@ export const SuperProvider = ({ children }) => {
         scrollRef,
         isAtEnd,
         getImage,
-        fetchLastData,
         handleColorChange,
         color,
         isAwaken,
         handleAwaken,
-        getLastData,
         toggleStep,
         isStep,
         handleBackgroundImageUrlChange,
-        backgroundImageUrl
+        backgroundImageUrl,
+        waveformVariant,
+        handleWaveformVariantChange
       }}
     >
       {children}

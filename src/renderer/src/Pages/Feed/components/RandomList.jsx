@@ -3,7 +3,7 @@ import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import './RandomList.scss'
 import { useNavigate } from 'react-router-dom'
 import { useSuper } from '../../../Contexts/SupeContext'
-import { Skeleton } from '@mui/material'
+import { Skeleton } from '../../../components/Skeleton/Skeleton'
 
 export function RandomList() {
   const { randomPlaylist, getRandomList } = usePlaylists()
@@ -45,7 +45,7 @@ export function RandomList() {
           <span>{'Loading name...'} </span>
         </div>
         <div className="r-img">
-          <Skeleton sx={{ bgcolor: 'grey.900' }} height={'100%'} />
+          <Skeleton />
         </div>
 
         <div className="blur"></div>

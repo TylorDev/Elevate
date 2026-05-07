@@ -10,26 +10,22 @@ import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
-import { Skeleton } from '@mui/material'
+import { Skeleton } from '../../components/Skeleton/Skeleton'
 
 function Favourites() {
-  const { dir } = useParams()
   const { getLikes, likes } = useLikes()
   const [back, setBack] = useState()
-  const { handleResume, getImage, handleQueueAndPlay, toggleShuffle } = useSuper()
+  const { getImage, handleQueueAndPlay, toggleShuffle } = useSuper()
   useEffect(() => {
     getLikes()
   }, [])
 
   useEffect(() => {
-    if (dir === 'resume' && likes?.fileInfos) {
-      handleResume(likes.fileInfos, 'favourites')
-    }
     if (likes.cover) {
       const img = getImage('Likes', likes.cover)
       setBack(img)
     }
-  }, [likes, dir])
+  }, [likes])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
@@ -90,7 +86,7 @@ function LoadLikes() {
       <div className="plg-controls">
         <div className="plg">
           <div className="plg-cover">
-            <Skeleton sx={{ bgcolor: 'grey.900' }} />
+            <Skeleton />
           </div>
           <div className="pgl-name">{'Favourites'}</div>
 

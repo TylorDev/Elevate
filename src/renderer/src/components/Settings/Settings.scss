@@ -1,14 +1,413 @@
-#Input {
-    all: unset;
-    background-color: $secondary;
-    padding: 1rem;
-    border-radius: 1rem;
-    width: 40vw;
-}
+@use '../../styles/variables' as *;
 
-.tabPage {
+.Settings {
+  padding: 2rem;
+  max-width: 700px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  .settings-header {
+    h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.02em;
+    }
+  }
+
+  .settings-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 5px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+
+    .settings-tab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      svg {
+        font-size: 1.1rem;
+      }
+
+      &:hover {
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      &.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+
+  .settings-content {
+    animation: settings-fade-in 0.3s ease;
+  }
+
+  .settings-section {
     display: flex;
     flex-direction: column;
-    align-items: start;
-    gap: 1rem;
+    gap: 1.2rem;
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      h2 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .color-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 20px;
+        color: #000;
+        letter-spacing: 0.02em;
+      }
+    }
+
+    .section-description {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.4);
+      line-height: 1.5;
+    }
+  }
+
+  // Color Picker
+  .color-picker-wrapper {
+    .react-colorful {
+      width: 100% !important;
+      height: 180px !important;
+      border-radius: 14px !important;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+
+      .react-colorful__saturation {
+        border-radius: 14px 14px 0 0 !important;
+      }
+
+      .react-colorful__hue {
+        height: 18px !important;
+        border-radius: 0 0 14px 14px !important;
+      }
+
+      .react-colorful__pointer {
+        width: 22px;
+        height: 22px;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  // Action Buttons
+  .settings-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    align-self: flex-start;
+
+    svg {
+      font-size: 1rem;
+      color: var(--text-principal);
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  // Input Groups
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .settings-input {
+    all: unset;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: white;
+    font-size: 0.85rem;
+    transition: all 0.25s ease;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    &:focus {
+      border-color: var(--text-principal);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb, 186, 255, 0), 0.1);
+    }
+  }
+
+  .settings-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+
+    &.danger:hover {
+      background: rgba(255, 80, 80, 0.15);
+      border-color: rgba(255, 80, 80, 0.3);
+      color: #ff5050;
+    }
+  }
+
+  // Image Preview
+  .image-preview {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    max-height: 200px;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+
+  // Waveform Options
+  .waveform-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .waveform-option {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      text-align: left;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+
+      &.active {
+        background: rgba(var(--accent-rgb, 186, 255, 0), 0.06);
+        border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.25);
+      }
+
+      .waveform-option-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .waveform-option-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .waveform-option-label {
+          font-size: 0.95rem;
+          font-weight: 600;
+          color: white;
+        }
+
+        .waveform-check {
+          display: flex;
+          color: var(--text-principal);
+          font-size: 1rem;
+        }
+
+        .waveform-option-desc {
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.35);
+        }
+      }
+
+      .waveform-visual {
+        width: 100px;
+        height: 44px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        color: var(--text-principal);
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
+
+        &--mirrored {
+          .bar {
+            width: 4px;
+            background: var(--text-principal);
+            border-radius: 2px;
+            animation: waveform-pulse 1.2s ease-in-out infinite alternate;
+          }
+        }
+
+        &--oscilloscope {
+          svg {
+            width: 100%;
+            height: 100%;
+          }
+        }
+      }
+
+      &.active .waveform-visual {
+        opacity: 1;
+      }
+    }
+  }
+
+  // Directory List
+  .directory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .directory-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 3rem 1rem;
+    color: rgba(255, 255, 255, 0.2);
+    font-size: 0.85rem;
+
+    svg {
+      font-size: 2rem;
+      opacity: 0.4;
+    }
+  }
+
+  .directory-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .directory-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      flex: 1;
+
+      .directory-icon {
+        font-size: 1.3rem;
+        color: var(--text-principal);
+        flex-shrink: 0;
+      }
+    }
+
+    .directory-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+
+      .directory-path {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.85);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .directory-stats {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.35);
+      }
+    }
+  }
+}
+
+@keyframes settings-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes waveform-pulse {
+  from { transform: scaleY(0.4); }
+  to   { transform: scaleY(1); }
 }

@@ -4,7 +4,6 @@ import fs from 'fs'
 import log from 'electron-log/main.js'
 import {
   generateCover,
-  getFileInfo,
   processPlaylist,
   processPlaylistCover,
   getOrCreateSong
@@ -319,41 +318,6 @@ async function getPlaylistDetails(playlistPath) {
   const contador = getPlays(playlistPath)
   return { totalDuration, totalTracks, contador }
 }
-const saveLastSong = async (file, index, queueId) => {
-  try {
-    await prisma.lastSong.create({
-      data: {
-        file,
-        index,
-        queueId // Usar queueId en lugar de queue
-      }
-    })
-  } catch (error) {
-    console.error('Error saving last song:', error)
-    throw error // Lanza el error para que el renderer pueda manejarlo
-  }
-}
-const getLastSong = async () => {
-  try {
-    const lastSong = await prisma.lastSong.findFirst({
-      orderBy: {
-        id: 'desc'
-      }
-    })
-
-    if (lastSong) {
-      const { file, index, queueId } = lastSong
-      const song = await getFileInfo(file)
-      return { song, index, queueId }
-    }
-
-    return null
-  } catch (error) {
-    console.error('Error retrieving last song:', error)
-    throw error // Lanza el error para que el renderer pueda manejarlo
-  }
-}
-
 async function updatePlaylistByPath(path, newData) {
   try {
     const playlist = await prisma.playlist.findUnique({
@@ -569,12 +533,5 @@ export function setupPlaylistHandlers() {
     } catch (err) {
       return { success: false, error: err.message }
     }
-  })
-
-  ipcMain.handle('save-last-data', async (event, filepath, index, queueId) => {
-    return await saveLastSong(filepath, index, queueId)
-  })
-  ipcMain.handle('get-last-data', async () => {
-    return await getLastSong()
   })
 }

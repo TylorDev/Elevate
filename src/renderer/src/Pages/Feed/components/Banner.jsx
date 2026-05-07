@@ -1,4 +1,4 @@
-import { Modal } from '@mui/material'
+
 import './Banner.scss'
 import { useEffect, useState } from 'react'
 import banner from './../../../assets/banner.png'

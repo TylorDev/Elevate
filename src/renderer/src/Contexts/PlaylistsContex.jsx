@@ -231,7 +231,13 @@ export const PlaylistsProvider = ({ children }) => {
 
         SetAllSongs((prevSongs) => {
           if (reset) {
-            return newSongs
+            // Deduplicate newSongs internally even on reset
+            const seen = new Set()
+            return newSongs.filter((song) => {
+              if (seen.has(song.filePath)) return false
+              seen.add(song.filePath)
+              return true
+            })
           }
 
           if (!Array.isArray(prevSongs)) {
@@ -239,7 +245,14 @@ export const PlaylistsProvider = ({ children }) => {
           }
 
           const existingFilePaths = new Set(prevSongs.map((song) => song.filePath))
-          const uniqueNewSongs = newSongs.filter((song) => !existingFilePaths.has(song.filePath))
+          const uniqueNewSongs = []
+
+          for (const song of newSongs) {
+            if (!existingFilePaths.has(song.filePath)) {
+              uniqueNewSongs.push(song)
+              existingFilePaths.add(song.filePath) // Add it so we don't pick it twice if it's twice in newSongs
+            }
+          }
 
           return [...prevSongs, ...uniqueNewSongs]
         })

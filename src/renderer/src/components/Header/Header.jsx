@@ -1,9 +1,11 @@
 import './Header.scss'
 import { NavLink } from 'react-router-dom'
-import { PiWaveform } from 'react-icons/pi'
-import { MdBarChart } from 'react-icons/md'
-import { IoCalendarOutline } from 'react-icons/io5'
-import { BsGear } from 'react-icons/bs'
+import {
+  LuAudioWaveform,
+  LuChartColumnIncreasing,
+  LuCalendarDays,
+  LuSettings
+} from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 
 function Header() {
@@ -21,19 +23,19 @@ function Header() {
               handleAwaken(true)
             }}
           >
-            <PiWaveform /> <span className="Link-name">Feed </span>
+            <LuAudioWaveform /> <span className="Link-name">Feed </span>
           </NavLink>
 
           <NavLink to="/search" className={getActiveClass}>
-            <MdBarChart /> <span className="Link-name">Stats </span>
+            <LuChartColumnIncreasing /> <span className="Link-name">Stats </span>
           </NavLink>
 
           <NavLink to="/history" className={getActiveClass}>
-            <IoCalendarOutline /> <span className="Link-name">History </span>
+            <LuCalendarDays /> <span className="Link-name">History </span>
           </NavLink>
 
           <NavLink to="/settings" className={getActiveClass}>
-            <BsGear /> <span className="Link-name">Settings </span>
+            <LuSettings /> <span className="Link-name">Settings </span>
           </NavLink>
         </div>
       </div>
@@ -42,4 +44,3 @@ function Header() {
 }
 
 export default Header
-

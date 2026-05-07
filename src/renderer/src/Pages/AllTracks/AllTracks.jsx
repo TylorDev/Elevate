@@ -11,8 +11,6 @@ const TRACKS_PAGE_SIZE = 100
 
 function AllTracks() {
   const { getAllSongs, allSongs, allSongsHasMore, allSongsLoading, allSongsPage } = usePlaylists()
-  const { dir } = useParams()
-  const { handleResume } = useSuper()
 
   useEffect(() => {
     if (allSongs.length === 0 && !allSongsLoading && allSongsHasMore) {
@@ -26,12 +24,6 @@ function AllTracks() {
     }
   }, [allSongsHasMore, allSongsLoading, allSongsPage, getAllSongs])
 
-  useEffect(() => {
-    if (dir === 'resume' && allSongs.length > 0) {
-      // console.log('lista cargada!')
-      handleResume(allSongs, 'tracks')
-    }
-  }, [allSongs, dir])
   return (
     <div className="AllTracks">
       {/* <PlaylistActions /> */}

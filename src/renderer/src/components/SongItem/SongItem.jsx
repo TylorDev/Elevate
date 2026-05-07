@@ -24,7 +24,7 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
 
   const [isLikedo, setIsLikedo] = useState(Boolean(file.liked))
   const { addPlaylisthistory } = usePlaylists()
-  const { validateLike, toggleLike } = useLikes()
+  const { isLiked, toggleLike } = useLikes()
 
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
@@ -32,10 +32,12 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
 
   useEffect(() => {
     const checkStatus = async () => {
-      await validateLike(file.filePath, file.title || file.fileName, setIsLikedo)
+      if (isLiked) {
+        await isLiked(file.filePath, file.title || file.fileName, setIsLikedo)
+      }
     }
     checkStatus()
-  }, [file.filePath])
+  }, [file.filePath, isLiked])
 
   const openModal = () => {
     setIsVisible(true)

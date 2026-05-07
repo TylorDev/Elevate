@@ -1,0 +1,116 @@
+@use '../../styles/variables' as *;
+
+.HistoryPage {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 100%;
+  overflow-y: auto;
+
+  .history-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .history-icon {
+        font-size: 2.2rem;
+        color: var(--text-principal);
+        filter: drop-shadow(0 0 10px rgba(var(--accent-rgb, 186, 255, 0), 0.3));
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: white;
+      }
+    }
+
+    .history-subtitle {
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.4);
+      margin-left: 3.2rem;
+    }
+  }
+
+  .history-content {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .history-footer {
+    padding: 2rem 0;
+    display: flex;
+    justify-content: center;
+
+    .pagination-container {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.5rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(10px);
+    }
+
+    .pagination-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      background: transparent;
+      color: white;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      svg {
+        font-size: 1.1rem;
+      }
+    }
+
+    .pagination-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-main);
+      font-weight: 700;
+
+      .current {
+        color: var(--text-principal);
+        font-size: 1.1rem;
+      }
+
+      .separator {
+        color: rgba(255, 255, 255, 0.2);
+      }
+
+      .total {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.9rem;
+      }
+    }
+  }
+}

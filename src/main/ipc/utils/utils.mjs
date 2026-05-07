@@ -1,246 +1,30 @@
-import axios from 'axios'
-import { load } from 'cheerio'
 import { parseFile } from 'music-metadata'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { prisma } from '../../prisma.mjs'
 import sharp from 'sharp'
 
-export async function generateCover(files) {
-  if (files.length === 0) {
-    throw new Error('At least one image is required.')
-  }
+// ─── Cover cache directory ───────────────────────────────────────────
+import { createRequire } from 'node:module'
+const require = createRequire(import.meta.url)
+const { app } = require('electron')
 
-  // Limit to a maximum of 4 images
-  const topImages = files
-    .filter((file) => file.picture && file.picture[0] && file.picture[0].type !== 'Other')
-    .sort((a, b) => b.play_count - a.play_count)
-    .slice(0, 4)
-
-  if (topImages.length === 0) {
-    // throw new Error('No valid images to process.')
-  }
-
-  const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data, 'base64'))
-
-  try {
-    // Resize all images to 250x250
-    const resizePromises = imageBuffers.map((buffer) =>
-      sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
-    )
-
-    const resizedImages = await Promise.all(resizePromises)
-
-    // Calculate the grid size based on the number of images
-    const numImages = resizedImages.length
-    const gridSize = Math.ceil(Math.sqrt(numImages))
-    const tileSize = 250 // Each tile is 250x250
-    const totalSize = gridSize * tileSize
-
-    // Create a blank canvas
-    const canvas = sharp({
-      create: {
-        width: totalSize,
-        height: totalSize,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
-      }
-    })
-
-    // Generate composite input array
-    const composites = resizedImages.map((img, index) => {
-      const row = Math.floor(index / gridSize)
-      const col = index % gridSize
-      return {
-        input: img,
-        top: row * tileSize,
-        left: col * tileSize
-      }
-    })
-
-    const tileBuffer = await canvas.composite(composites).png().toBuffer()
-
-    return tileBuffer
-  } catch (error) {
-    console.error('Error creating the cover:', error)
-    throw error
-  }
+function getCoverCacheDir() {
+  const base = app.isPackaged ? app.getPath('userData') : path.resolve('.')
+  const dir = path.join(base, 'covers')
+  fs.mkdirSync(path.join(dir, 'thumb'), { recursive: true })
+  fs.mkdirSync(path.join(dir, 'full'), { recursive: true })
+  return dir
 }
 
-export async function getOrCreateSong(filepath, filename) {
-  // Upsert the song
-  const song = await prisma.songs.upsert({
-    where: { filepath },
-    update: {}, // No actualizamos nada si la canción ya existe
-    create: { filepath, filename }
-  })
-
-  // Check if the song is newly created
-  if (song.createdAt) {
-    // Create UserPreferences if the song is new
-    await prisma.userPreferences.create({
-      data: {
-        song_id: song.song_id
-        // You can set other default values if needed
-      }
-    })
-  } else {
-    //
-  }
-
-  return song
+let coverCacheDir = null
+function ensureCoverDir() {
+  if (!coverCacheDir) coverCacheDir = getCoverCacheDir()
+  return coverCacheDir
 }
 
-const fechtBPM = async (query) => {
-  if (!query || query.trim() === '') {
-    console.debug('La canción no existe')
-    return {
-      Name: 'No name found',
-      Artist: 'No artist found',
-      bpm: '000'
-    }
-  }
-
-  try {
-    const response = await axios.get(
-      `https://songdata.io/search?query=${encodeURIComponent(query)}`
-    )
-    const html = response.data
-
-    // Usar cheerio para parsear el HTML
-    const $ = load(html)
-
-    // Verificar si existe un h2 con el texto de error
-    const errorH2 = $('h2:contains("An error has occurred, please try again later.")')
-    if (errorH2.length) {
-      console.debug('Error message found: An error has occurred, please try again later.')
-      return {
-        Name: 'Error',
-        Artist: 'Error',
-        bpm: 'Error'
-      }
-    }
-
-    // Obtener el primer <td> con clase "table_object"
-    const firstTableObject = $('tbody .table_object').first()
-
-    // Obtener nombre, artista y bpm
-    const nameElement = firstTableObject.find('.table_name').first()
-    const artistElement = firstTableObject.find('.table_artist').first()
-    const trackBpm = firstTableObject.find('.table_bpm').first()
-
-    // Verificar si los elementos existen y tienen texto
-    if (!nameElement.length || !artistElement.length || !trackBpm.length) {
-      console.debug('No se encontraron elementos con las clases esperadas.')
-      return {
-        Name: 'No name found',
-        Artist: 'No artist found',
-        bpm: '000'
-      }
-    }
-
-    // Extraer y devolver el texto
-    return {
-      Name: nameElement.text().trim() || 'No name found',
-      Artist: artistElement.text().trim() || 'No artist found',
-      bpm: trackBpm.text().trim() || '000'
-    }
-  } catch (error) {
-    console.error('Error fetching the data:', error)
-    return {
-      Name: 'Error',
-      Artist: 'Error',
-      bpm: 'Error'
-    }
-  }
-}
-
-export async function getFileInfo(filePath) {
-  try {
-    const stats = fs.statSync(filePath)
-    const { common, format } = await parseFile(filePath)
-    const fileName = path.basename(filePath, path.extname(filePath))
-    const duration = format.duration || 0
-
-    const song = await getOrCreateSong(filePath, fileName)
-
-    const userPreference = await prisma.userPreferences.findUnique({
-      where: { song_id: song.song_id },
-      select: {
-        bpm: true,
-        play_count: true,
-        is_favorite: true
-      }
-    })
-
-    return {
-      filePath,
-      fileName,
-      size: stats.size,
-      duration,
-      ...common,
-      bpm: userPreference?.bpm || 0,
-      play_count: userPreference?.play_count || 0,
-      liked: userPreference?.is_favorite || false
-    }
-  } catch (error) {
-    console.error(`Error processing file ${filePath}:`, error)
-    return null
-  }
-}
-
-export async function getSongBpm(common) {
-  try {
-    const filePath = common.filePath
-    const { format, fileName } = await parseFile(filePath)
-
-    const duration = format.duration || 0
-
-    const query = (() => {
-      if (common.title && common.artist) {
-        return `${common.title}-${common.artist}`
-      }
-      return ''
-    })()
-
-    console.debug('query:', query)
-    // Obtener datos de la canción solo si la query es válida
-    const songData = await fechtBPM(query)
-    console.debug('resultados: ', songData)
-    const bpm = songData?.bpm || 0
-
-    console.log('BPM antes de retornar:', bpm)
-
-    return {
-      fileName,
-      duration,
-      ...common,
-      bpm
-    }
-  } catch (error) {
-    // console.error(`Error processing file ${common.filePath}:`, error)
-    return null
-  }
-}
-
-export async function extractAudioCover(filePath) {
-  try {
-    const { common } = await parseFile(filePath)
-    const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
-
-    if (!picture) {
-      return null
-    }
-
-    return {
-      buffer: Buffer.from(picture.data),
-      format: picture.format || 'image/jpeg'
-    }
-  } catch (error) {
-    // console.error(`Error extracting cover for ${filePath}:`, error)
-    return null
-  }
-}
+// ─── Helpers ─────────────────────────────────────────────────────────
 
 export async function resizeCover(buffer, size = 128) {
   return sharp(buffer)
@@ -248,6 +32,122 @@ export async function resizeCover(buffer, size = 128) {
     .jpeg({ quality: 78, mozjpeg: true })
     .toBuffer()
 }
+
+function hashBuffer(buffer) {
+  return crypto.createHash('md5').update(buffer).digest('hex')
+}
+
+const audioExtensions = ['.mp3', '.wav', '.flac']
+
+export function getAllAudioFiles(dirPath) {
+  let audioFiles = []
+
+  function walkDirectory(currentPath) {
+    try {
+      const files = fs.readdirSync(currentPath)
+      for (const file of files) {
+        const fullPath = path.join(currentPath, file)
+        try {
+          const stats = fs.statSync(fullPath)
+          if (stats.isDirectory()) {
+            walkDirectory(fullPath)
+          } else if (stats.isFile() && audioExtensions.includes(path.extname(fullPath).toLowerCase())) {
+            audioFiles.push(fullPath)
+          }
+        } catch {
+          // Skip inaccessible files
+        }
+      }
+    } catch {
+      // Skip inaccessible directories
+    }
+  }
+
+  walkDirectory(dirPath)
+  return audioFiles
+}
+
+// ─── Song CRUD with metadata caching ─────────────────────────────────
+
+/**
+ * Get or create a song. On first creation, parses the file for metadata
+ * and stores everything in the DB. On subsequent calls, returns DB data directly.
+ */
+export async function getOrCreateSong(filepath, filename) {
+  const existing = await prisma.songs.findUnique({ where: { filepath } })
+
+  if (existing && existing.metadataLoaded) {
+    return existing
+  }
+
+  // Parse metadata from the actual file (only happens once per song)
+  let metadata = {}
+  try {
+    const stats = fs.statSync(filepath)
+    const { common, format } = await parseFile(filepath)
+
+    // Extract cover hash if cover exists
+    let coverHash = null
+    const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
+    if (picture) {
+      coverHash = hashBuffer(Buffer.from(picture.data))
+
+      // Save cover to disk cache if not already there
+      const cacheDir = ensureCoverDir()
+      const thumbPath = path.join(cacheDir, 'thumb', `${coverHash}.jpg`)
+      const fullPath = path.join(cacheDir, 'full', `${coverHash}.jpg`)
+
+      if (!fs.existsSync(thumbPath)) {
+        const thumbBuffer = await resizeCover(Buffer.from(picture.data), 128)
+        fs.writeFileSync(thumbPath, thumbBuffer)
+      }
+      if (!fs.existsSync(fullPath)) {
+        // Save full cover as-is (jpeg compressed for consistency)
+        const fullBuffer = await sharp(Buffer.from(picture.data))
+          .jpeg({ quality: 85 })
+          .toBuffer()
+        fs.writeFileSync(fullPath, fullBuffer)
+      }
+    }
+
+    metadata = {
+      title: common.title || null,
+      artist: common.artist || null,
+      album: common.album || null,
+      genre: common.genre?.[0] || null,
+      year: common.year || null,
+      duration: format.duration || 0,
+      size: stats.size,
+      trackNumber: common.track?.no || null,
+      coverHash,
+      metadataLoaded: true
+    }
+  } catch (error) {
+    console.error(`Error parsing metadata for ${filepath}:`, error.message)
+    metadata = { metadataLoaded: true }
+  }
+
+  const song = await prisma.songs.upsert({
+    where: { filepath },
+    update: metadata,
+    create: {
+      filepath,
+      filename,
+      ...metadata
+    }
+  })
+
+  // Ensure UserPreferences exist
+  await prisma.userPreferences.upsert({
+    where: { song_id: song.song_id },
+    update: {},
+    create: { song_id: song.song_id }
+  })
+
+  return song
+}
+
+// ─── Batch file info (reads from DB, no parseFile) ───────────────────
 
 async function mapWithConcurrency(items, limit, mapper) {
   const results = new Array(items.length)
@@ -266,19 +166,20 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results
 }
 
-export async function getFileInfos(filePaths, { concurrency = 6, includePicture = true } = {}) {
+/**
+ * Gets file info for a list of file paths.
+ * Reads metadata from DB when available, only parses new files.
+ * No longer sends picture data to the renderer.
+ */
+export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
   const fileInfos = await mapWithConcurrency(filePaths, concurrency, async (filePath) => {
     try {
-      const stats = fs.statSync(filePath)
-      const { common, format } = await parseFile(filePath)
       const fileName = path.basename(filePath, path.extname(filePath))
 
-      // Verificación para omitir archivos cuyo nombre contiene un '#'
+      // Skip files with # in the name
       if (fileName.includes('#')) {
         return null
       }
-
-      const duration = format.duration || 0
 
       const song = await getOrCreateSong(filePath, fileName)
 
@@ -286,26 +187,29 @@ export async function getFileInfos(filePaths, { concurrency = 6, includePicture 
         where: { song_id: song.song_id },
         select: {
           bpm: true,
-          play_count: true, // Incluye play_count en la selección
+          play_count: true,
           is_favorite: true
         }
       })
 
-      const commonData = includePicture ? common : { ...common, picture: undefined }
-
       return {
-        filePath,
-        fileName,
-        size: stats.size,
-        duration,
-        ...commonData,
-        // picture: [Buffer.alloc(0)], // Buffer vacío
+        filePath: song.filepath,
+        fileName: song.filename,
+        title: song.title,
+        artist: song.artist,
+        album: song.album,
+        genre: song.genre,
+        year: song.year,
+        duration: song.duration,
+        size: song.size,
+        trackNumber: song.trackNumber,
+        coverHash: song.coverHash,
         bpm: userPreference?.bpm || 0,
         play_count: userPreference?.play_count || 0,
         liked: userPreference?.is_favorite || false
       }
     } catch (error) {
-      // console.error(`Error processing file ${filePath}:`, error)
+      console.error(`Error processing file ${filePath}:`, error.message)
       return null
     }
   })
@@ -313,87 +217,261 @@ export async function getFileInfos(filePaths, { concurrency = 6, includePicture 
   return fileInfos.filter((info) => info !== null)
 }
 
+/**
+ * Single file info (convenience wrapper)
+ */
+export async function getFileInfo(filePath) {
+  const results = await getFileInfos([filePath])
+  return results.length > 0 ? results[0] : null
+}
+
+// ─── Cover extraction (from disk cache) ──────────────────────────────
+
+/**
+ * Extract audio cover. Reads from disk cache first, only parses file if needed.
+ */
+export async function extractAudioCover(filePath) {
+  try {
+    // Check if we have a coverHash in the DB
+    const song = await prisma.songs.findUnique({
+      where: { filepath: filePath },
+      select: { coverHash: true }
+    })
+
+    if (song?.coverHash) {
+      const cacheDir = ensureCoverDir()
+      const fullCoverPath = path.join(cacheDir, 'full', `${song.coverHash}.jpg`)
+
+      if (fs.existsSync(fullCoverPath)) {
+        const buffer = fs.readFileSync(fullCoverPath)
+        return {
+          buffer,
+          format: 'image/jpeg'
+        }
+      }
+    }
+
+    // Fallback: parse the file (rare case — new file not yet indexed)
+    const { common } = await parseFile(filePath)
+    const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
+
+    if (!picture) {
+      return null
+    }
+
+    return {
+      buffer: Buffer.from(picture.data),
+      format: picture.format || 'image/jpeg'
+    }
+  } catch (error) {
+    return null
+  }
+}
+
+// ─── Cover for specific variant (thumb/full from disk) ───────────────
+
+export async function getCoverFromCache(filePath, variant = 'thumb') {
+  try {
+    const song = await prisma.songs.findUnique({
+      where: { filepath: filePath },
+      select: { coverHash: true }
+    })
+
+    if (!song?.coverHash) return null
+
+    const cacheDir = ensureCoverDir()
+    const coverPath = path.join(cacheDir, variant, `${song.coverHash}.jpg`)
+
+    if (!fs.existsSync(coverPath)) return null
+
+    const buffer = fs.readFileSync(coverPath)
+    return {
+      data: buffer,
+      mimeType: 'image/jpeg'
+    }
+  } catch {
+    return null
+  }
+}
+
+// ─── Playlist processing ─────────────────────────────────────────────
+
+export async function processPlaylist(filepath, baseDir, options = {}) {
+  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  return getFileInfos(absolutePaths, options)
+}
+
+export async function processPlaylistCover(filepath, baseDir) {
+  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
+  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
+  return getFileCovers(absolutePaths)
+}
+
 export async function getFileCovers(filePaths) {
   return Promise.all(
     filePaths.map(async (filePath) => {
       try {
-        const stats = fs.statSync(filePath)
-        const { common } = await parseFile(filePath)
         const fileName = path.basename(filePath, path.extname(filePath))
-
         const song = await getOrCreateSong(filePath, fileName)
 
         const userPreference = await prisma.userPreferences.findUnique({
           where: { song_id: song.song_id },
-          select: {
-            play_count: true // Incluye play_count en la selección
-          }
+          select: { play_count: true }
         })
 
-        return {
-          ...common,
+        // Return minimal data needed for cover generation
+        // If coverHash exists, read the cover from disk for generateCover
+        let picture = undefined
+        if (song.coverHash) {
+          const cacheDir = ensureCoverDir()
+          const fullCoverPath = path.join(cacheDir, 'full', `${song.coverHash}.jpg`)
+          if (fs.existsSync(fullCoverPath)) {
+            const buffer = fs.readFileSync(fullCoverPath)
+            picture = [{ data: buffer, format: 'image/jpeg', type: 'Cover (front)' }]
+          }
+        }
 
+        return {
+          picture,
           play_count: userPreference?.play_count || 0
         }
       } catch (error) {
-        // console.error(`Error processing file ${filePath}:`, error)
         return null
       }
     })
   ).then((fileInfos) => fileInfos.filter((info) => info !== null))
 }
 
+// ─── Duration calculation ────────────────────────────────────────────
+
 export async function getTotalDuration(directory) {
   const files = getAllAudioFiles(directory)
   const tracks = await getFileInfos(files)
-
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
-
   return { totalDuration, totalTracks: tracks.length }
 }
 
-export async function processPlaylist(filepath, baseDir, options = {}) {
-  // Lee el contenido del archivo M3U
-  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+// ─── Cover generation (collage) ──────────────────────────────────────
 
-  // Convierte rutas relativas a rutas absolutas
-  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
-
-  // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
-  return getFileInfos(absolutePaths, options)
-}
-
-export async function processPlaylistCover(filepath, baseDir) {
-  // Lee el contenido del archivo M3U
-  const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
-
-  // Convierte rutas relativas a rutas absolutas
-  const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
-
-  // Usa getFileInfos para obtener los metadatos de los archivos listados en el M3U
-  return getFileCovers(absolutePaths)
-}
-
-const audioExtensions = ['.mp3', '.wav', '.flac']
-export function getAllAudioFiles(dirPath) {
-  let audioFiles = []
-
-  function walkDirectory(currentPath) {
-    const files = fs.readdirSync(currentPath)
-    for (const file of files) {
-      const fullPath = path.join(currentPath, file)
-      const stats = fs.statSync(fullPath)
-
-      if (stats.isDirectory()) {
-        walkDirectory(fullPath)
-      } else if (stats.isFile() && audioExtensions.includes(path.extname(fullPath))) {
-        audioFiles.push(fullPath)
-      }
-    }
+export async function generateCover(files) {
+  if (files.length === 0) {
+    return null
   }
 
-  walkDirectory(dirPath)
-  return audioFiles
+  const topImages = files
+    .filter((file) => file.picture && file.picture[0] && file.picture[0].type !== 'Other')
+    .sort((a, b) => b.play_count - a.play_count)
+    .slice(0, 4)
+
+  if (topImages.length === 0) {
+    return null
+  }
+
+  const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data))
+
+  try {
+    const resizePromises = imageBuffers.map((buffer) =>
+      sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
+    )
+
+    const resizedImages = await Promise.all(resizePromises)
+
+    const numImages = resizedImages.length
+    const gridSize = Math.ceil(Math.sqrt(numImages))
+    const tileSize = 250
+    const totalSize = gridSize * tileSize
+
+    const canvas = sharp({
+      create: {
+        width: totalSize,
+        height: totalSize,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      }
+    })
+
+    const composites = resizedImages.map((img, index) => {
+      const row = Math.floor(index / gridSize)
+      const col = index % gridSize
+      return {
+        input: img,
+        top: row * tileSize,
+        left: col * tileSize
+      }
+    })
+
+    const tileBuffer = await canvas.composite(composites).png().toBuffer()
+    return tileBuffer
+  } catch (error) {
+    console.error('Error creating the cover:', error)
+    return null
+  }
+}
+
+// ─── BPM fetching ────────────────────────────────────────────────────
+
+import axios from 'axios'
+import { load } from 'cheerio'
+
+const fechtBPM = async (query) => {
+  if (!query || query.trim() === '') {
+    return { Name: 'No name found', Artist: 'No artist found', bpm: '000' }
+  }
+
+  try {
+    const response = await axios.get(
+      `https://songdata.io/search?query=${encodeURIComponent(query)}`
+    )
+    const html = response.data
+    const $ = load(html)
+
+    const errorH2 = $('h2:contains("An error has occurred, please try again later.")')
+    if (errorH2.length) {
+      return { Name: 'Error', Artist: 'Error', bpm: 'Error' }
+    }
+
+    const firstTableObject = $('tbody .table_object').first()
+    const nameElement = firstTableObject.find('.table_name').first()
+    const artistElement = firstTableObject.find('.table_artist').first()
+    const trackBpm = firstTableObject.find('.table_bpm').first()
+
+    if (!nameElement.length || !artistElement.length || !trackBpm.length) {
+      return { Name: 'No name found', Artist: 'No artist found', bpm: '000' }
+    }
+
+    return {
+      Name: nameElement.text().trim() || 'No name found',
+      Artist: artistElement.text().trim() || 'No artist found',
+      bpm: trackBpm.text().trim() || '000'
+    }
+  } catch (error) {
+    console.error('Error fetching the data:', error)
+    return { Name: 'Error', Artist: 'Error', bpm: 'Error' }
+  }
+}
+
+export async function getSongBpm(common) {
+  try {
+    const filePath = common.filePath
+
+    const query = (() => {
+      if (common.title && common.artist) {
+        return `${common.title}-${common.artist}`
+      }
+      return ''
+    })()
+
+    const songData = await fechtBPM(query)
+    const bpm = songData?.bpm || 0
+
+    return {
+      ...common,
+      bpm
+    }
+  } catch (error) {
+    return null
+  }
 }

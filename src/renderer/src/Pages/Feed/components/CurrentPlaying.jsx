@@ -5,13 +5,12 @@ import { MediaTimeDisplay } from '../../../Components/MediaTimeDisplay/MediaTime
 import './CurrentPlaying.scss'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import { useSuper } from '../../../Contexts/SupeContext'
-
 import { useLikes } from '../../../Contexts/LikeContext'
-import { Skeleton, Typography } from '@mui/material'
+import { Skeleton } from '../../../components/Skeleton/Skeleton'
 
 export function CurrentPlaying() {
   const { currentCover } = usePlaylists()
-  const { currentFile, togglePlayPause, isPlaying } = useSuper()
+  const { currentFile, togglePlayPause, isPlaying, waveformVariant } = useSuper()
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
 
@@ -21,22 +20,20 @@ export function CurrentPlaying() {
 
   return (
     <div className="current-play">
-      <div className="grp  ">
+      <div className="grp">
         <div className="grp-1">
           <div className="cc-artist">
             <span>{currentFile.artist || 'Unknown'} • </span>
             <span>{formatTimestamp(Date.now())}</span>
           </div>
           <div className="cc-like">
-            <Button
+            <button
+              type="button"
               className={currentLike ? 'btnLike liked' : 'btnLike'}
-              onClick={() => {
-                toggleLike()
-              }}
+              onClick={toggleLike}
             >
-              {' '}
               {currentLike ? <LuHeart /> : <LuHeartOff />}
-            </Button>
+            </button>
           </div>
 
           <div className="cc-titulo">
@@ -50,53 +47,41 @@ export function CurrentPlaying() {
           </Button>
         </div>
         <div className="grp-3">
-          <MediaTimeDisplay variant='oscilloscope' />
+          <MediaTimeDisplay variant={waveformVariant} />
         </div>
       </div>
       <div className="content">
-        <img src={currentCover} alt="NO IMG" />
+        <img src={currentCover} alt="Cover" />
       </div>
     </div>
   )
 }
+
 function LoadCurrent() {
   return (
     <div className="current-play" id="LoadCurrentPlay">
-      <div className="grp  ">
+      <div className="grp">
         <div className="grp-1">
           <div className="cc-artist">
-            <Typography component="div" variant={'h5'}>
-              <Skeleton sx={{ bgcolor: 'grey.900' }} />
-            </Typography>
-            <span>
-              <Typography component="div" variant={'h4'} width={'10rem'}>
-                <Skeleton sx={{ bgcolor: 'grey.900' }} />
-              </Typography>
-            </span>
+            <Skeleton width="120px" height="20px" />
           </div>
           <div className="cc-like">
-            <Button className={true ? 'btnLike liked' : 'btnLike'}>
-              {' '}
-              {true ? <LuHeart /> : <LuHeartOff />}
-            </Button>
+            <Skeleton width="30px" height="30px" borderRadius="50%" />
           </div>
-
           <div className="cc-titulo">
-            <Typography component="div" variant={'h4'}>
-              <Skeleton sx={{ bgcolor: 'grey.900' }} />
-            </Typography>
+            <Skeleton width="200px" height="30px" />
           </div>
         </div>
 
         <div className="grp-2">
-          <Button className="btnPlay">{true ? <LuPause /> : <LuPlay />}</Button>
+          <Skeleton width="50px" height="50px" borderRadius="50%" />
         </div>
         <div className="grp-3">
-          <MediaTimeDisplay />
+          <Skeleton width="100%" height="40px" />
         </div>
       </div>
       <div className="content">
-        <Skeleton sx={{ bgcolor: 'grey.900' }} />
+        <Skeleton />
       </div>
     </div>
   )

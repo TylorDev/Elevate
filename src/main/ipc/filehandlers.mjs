@@ -6,7 +6,8 @@ import {
   getAllAudioFiles,
   getOrCreateSong,
   resizeCover,
-  getTotalDuration
+  getTotalDuration,
+  getCoverFromCache
 } from './utils/utils.mjs'
 
 import fs from 'fs'
@@ -113,6 +114,21 @@ async function getAudioCover(filePath, variant = 'thumb') {
     return cachedCover.cover
   }
 
+  // Try disk cache first (populated during indexing)
+  const diskCover = await getCoverFromCache(filePath, variant)
+  if (diskCover) {
+    audioCoverCache.set(cacheKey, {
+      cover: diskCover,
+      expiresAt: Date.now() + COVER_CACHE_TTL
+    })
+    while (audioCoverCache.size > COVER_CACHE_LIMIT) {
+      const oldestKey = audioCoverCache.keys().next().value
+      audioCoverCache.delete(oldestKey)
+    }
+    return diskCover
+  }
+
+  // Fallback: extract from file (should be rare after first indexing)
   const cover = await extractAudioCover(filePath)
 
   if (!cover) {
@@ -120,10 +136,6 @@ async function getAudioCover(filePath, variant = 'thumb') {
       cover: null,
       expiresAt: Date.now() + COVER_CACHE_TTL
     })
-    while (audioCoverCache.size > COVER_CACHE_LIMIT) {
-      const oldestKey = audioCoverCache.keys().next().value
-      audioCoverCache.delete(oldestKey)
-    }
     return null
   }
 

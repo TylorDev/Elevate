@@ -60,6 +60,7 @@ export function SliderVolume() {
               value={displayVolume}
               onChange={(event) => setMediaVolume(parseFloat(event.target.value))}
               className="volume-slider"
+              style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
             />
             <div 
               className="volume-progress-fill" 

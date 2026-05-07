@@ -27,7 +27,7 @@ export function Cola({ list = [], name = 'tracks', filePath = null, actions }) {
         <ul>
           {sortedList.map((file, index) => (
             <SongItem
-              key={file.filePath || index}
+              key={`${file.filePath}-${index}`}
               file={file}
               index={index}
               cola={list}

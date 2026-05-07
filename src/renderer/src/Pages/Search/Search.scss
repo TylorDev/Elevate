@@ -1,27 +1,82 @@
-#tab {
-    color: white
+@use '../../styles/variables' as *;
+
+.SearchPage {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  height: 100%;
+  overflow-y: auto;
+
+  .search-tabs {
+    display: flex;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    width: fit-content;
+
+    .search-tab {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      svg {
+        font-size: 1.2rem;
+      }
+
+      &:hover:not(.active) {
+        color: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      &.active {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-principal);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+
+  .search-results {
+    flex: 1;
+    animation: search-results-fade-in 0.4s ease;
+
+    .tab-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+  }
 }
 
-
-#tabControl {
-
-
-    .Mui-selected {
-        color: $text-principal;
-        /* Cambia el color del texto del tab seleccionado */
-    }
-
-    .MuiTabs-indicator {
-        background-color: $text-principal;
-        /* Cambia el color de la línea indicadora */
-    }
+@keyframes search-results-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@media (min-width: 500px) and (max-width: 620px) {
-
-
-
-    #tab {
-        font-size: 0.7rem;
+@media (max-width: 600px) {
+  .SearchPage {
+    padding: 1rem;
+    
+    .search-tabs {
+      width: 100%;
+      overflow-x: auto;
+      
+      .search-tab {
+        padding: 8px 12px;
+        span { display: none; } // Icon only on mobile
+      }
     }
+  }
 }
