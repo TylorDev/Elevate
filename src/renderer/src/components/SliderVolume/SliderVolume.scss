@@ -54,7 +54,7 @@
         align-items: center;
         gap: 12px;
         z-index: 1800;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+
 
 
         .volume-value {
@@ -95,7 +95,7 @@
                     background: white;
                     border-radius: 50%;
                     cursor: pointer;
-                    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+
 
                     border: 3px solid var(--text-principal);
 
@@ -115,7 +115,7 @@
                 border-radius: 10px;
                 pointer-events: none;
                 z-index: 1;
-                box-shadow: 0 0 15px rgba(var(--accent-rgb, 186, 255, 0), 0.3);
+
             }
         }
 

@@ -8,7 +8,7 @@
   background: rgba(26, 26, 26, 0.4);
   border-radius: 16px;
   border: 1.5px solid var(--accent-color);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+
   padding: 0.8rem;
 
   position: relative;
@@ -20,7 +20,7 @@
   &.active {
     border-color: var(--accent-color);
     background: rgba(var(--accent-rgb), 0.15);
-    box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.3);
+
 
     .tc-title {
       color: var(--accent-color);
@@ -38,7 +38,7 @@
 
     .tc-play-btn {
       transform: scale(1.1);
-      box-shadow: 0 0 20px var(--accent-color);
+
     }
   }
 
