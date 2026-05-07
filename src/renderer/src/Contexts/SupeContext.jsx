@@ -15,16 +15,22 @@ export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
   const scrollRef = useRef(null)
   const listenersAttached = useRef(false)
-  const [isShuffled, setIsShuffled] = useState(false) // 1 ref check
   const [muted, setMuted] = useState(false) // 1 ref  check
   const [loop, setLoop] = useState(false) //  1 ref check
   const [isPlaying, setIsPlaying] = useState(false) //1 ref check
   const [volume, setVolume] = useState(1)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [currentFile, setCurrentFile] = useState('') // 3 ref - 5 ref
-  const [currentIndex, setCurrentIndex] = useState(0) //  4 ref  - 3 ref
-  const { queueState, setQueueState } = useSession()
+  const {
+    queueState,
+    setQueueState,
+    currentFile,
+    setCurrentFile,
+    currentIndex,
+    setCurrentIndex,
+    isShuffled,
+    setIsShuffled
+  } = useSession()
 
   const [isAwaken, setIsAwaken] = useState(false)
   const [waveformVariant, setWaveformVariant] = useState(

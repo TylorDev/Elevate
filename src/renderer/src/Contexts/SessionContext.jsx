@@ -31,12 +31,65 @@ export const SessionProvider = ({ children }) => {
     }
   })
 
+  const [currentFile, setCurrentFile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('currentFile')
+      return saved ? JSON.parse(saved) : ''
+    } catch (e) {
+      console.error('Error loading currentFile from localStorage', e)
+      return ''
+    }
+  })
+
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    try {
+      const saved = localStorage.getItem('currentIndex')
+      return saved ? JSON.parse(saved) : 0
+    } catch (e) {
+      console.error('Error loading currentIndex from localStorage', e)
+      return 0
+    }
+  })
+
+  const [isShuffled, setIsShuffled] = useState(() => {
+    try {
+      const saved = localStorage.getItem('isShuffled')
+      return saved ? JSON.parse(saved) : false
+    } catch (e) {
+      console.error('Error loading isShuffled from localStorage', e)
+      return false
+    }
+  })
+
   useEffect(() => {
     localStorage.setItem('queueState', JSON.stringify(queueState))
   }, [queueState])
 
+  useEffect(() => {
+    localStorage.setItem('isShuffled', JSON.stringify(isShuffled))
+  }, [isShuffled])
+
+  useEffect(() => {
+    localStorage.setItem('currentFile', JSON.stringify(currentFile))
+  }, [currentFile])
+
+  useEffect(() => {
+    localStorage.setItem('currentIndex', JSON.stringify(currentIndex))
+  }, [currentIndex])
+
   return (
-    <SessionContext.Provider value={{ queueState, setQueueState }}>
+    <SessionContext.Provider
+      value={{
+        queueState,
+        setQueueState,
+        currentFile,
+        setCurrentFile,
+        currentIndex,
+        setCurrentIndex,
+        isShuffled,
+        setIsShuffled
+      }}
+    >
       {children}
     </SessionContext.Provider>
   )
