@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState, useMemo, useCallback } from 'react'
 import { LuPlay, LuPause, LuHeart } from 'react-icons/lu'
 import { FaPlusCircle, FaClock, FaListUl, FaEye } from 'react-icons/fa'
 import { extractDominantColor } from '../../utils/useDominantColor'
@@ -10,7 +10,7 @@ import { useLikes } from '../../Contexts/LikeContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './TrackCard.scss'
 
-export function TrackCard({ song, index, list, isFocused }) {
+export const TrackCard = memo(function TrackCard({ song, index, list, isFocused }) {
   const { handleSongClick, currentFile, isPlaying, togglePlayPause } = useSuper()
   const { toggleLike, isLiked: checkLikeStatus } = useLikes()
   const coverUrl = useCoverUrl(song.filePath, 'thumb')
@@ -24,41 +24,44 @@ export function TrackCard({ song, index, list, isFocused }) {
       await checkLikeStatus(song.filePath, song.title || song.fileName, setIsLiked)
     }
     initLikeStatus()
-  }, [song])
+  }, [song?.filePath])
 
-  const handleLike = async (e) => {
+  const handleLike = useCallback(async (e) => {
     e.stopPropagation()
     await toggleLike(song, isLiked)
     setIsLiked(!isLiked)
-  }
+  }, [song, isLiked, toggleLike])
 
-  const onPlay = (e) => {
+  const onPlay = useCallback((e) => {
     e.stopPropagation()
     if (isActive) {
       togglePlayPause()
     } else {
       handleSongClick(song, index, list, 'Mas escuchadas')
     }
-  }
+  }, [isActive, togglePlayPause, handleSongClick, song, index, list])
 
   useEffect(() => {
     if (coverUrl && !coverUrl.includes('svg')) {
-      extractDominantColor(coverUrl).then(color => {
-        setDominantColor(color)
+      const id = requestIdleCallback(() => {
+        extractDominantColor(coverUrl).then(color => {
+          setDominantColor(color)
+        })
       })
+      return () => cancelIdleCallback(id)
     }
   }, [coverUrl])
 
-  const menuOptions = [
+  const menuOptions = useMemo(() => [
     { id: 'add-queue', label: 'Agregar a cola actual', icon: <FaPlusCircle /> },
     { id: 'add-later', label: 'Agregar a ver más tarde', icon: <FaClock /> },
     { id: 'add-playlist', label: 'Agregar a playlist', icon: <FaListUl /> },
-  ]
+  ], [])
 
-  const handleMenuSelect = (optionId) => {
+  const handleMenuSelect = useCallback((optionId) => {
     console.log(`Selected: ${optionId} for song: ${song.title}`)
     // Aquí iría la lógica para cada acción
-  }
+  }, [song?.title])
 
   return (
     <div
@@ -114,4 +117,4 @@ export function TrackCard({ song, index, list, isFocused }) {
       </div>
     </div>
   )
-}
+})

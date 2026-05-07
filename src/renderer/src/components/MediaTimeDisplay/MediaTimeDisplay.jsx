@@ -62,18 +62,15 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const updateDimensions = () => {
-      const rect = canvas.getBoundingClientRect()
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
       const pixelRatio = window.devicePixelRatio || 1
       dimensionsRef.current = {
-        width: Math.max(1, Math.floor(rect.width * pixelRatio)),
-        height: Math.max(1, Math.floor(rect.height * pixelRatio))
+        width: Math.max(1, Math.floor(entry.contentRect.width * pixelRatio)),
+        height: Math.max(1, Math.floor(entry.contentRect.height * pixelRatio))
       }
-    }
-
-    updateDimensions()
-
-    const resizeObserver = new ResizeObserver(updateDimensions)
+    })
     resizeObserver.observe(canvas)
 
     return () => resizeObserver.disconnect()

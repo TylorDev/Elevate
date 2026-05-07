@@ -175,6 +175,10 @@ export const SuperProvider = ({ children }) => {
     }
   }, [])
 
+  const updateProgressRef = useRef(null)
+  const updateDurationRef = useRef(null)
+  const progressRafRef = useRef(null)
+
   useEffect(() => {
     const tryAttachListeners = () => {
       if (listenersAttached.current || !mediaRef.current) {
@@ -182,27 +186,37 @@ export const SuperProvider = ({ children }) => {
         return
       }
 
-      const updateProgress = () => {
-        setProgress(mediaRef.current.currentTime)
+      updateProgressRef.current = () => {
+        if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
+        progressRafRef.current = requestAnimationFrame(() => {
+          if (mediaRef.current) {
+            setProgress(mediaRef.current.currentTime)
+          }
+        })
       }
 
-      const updateDuration = () => {
-        setDuration(mediaRef.current.duration || 0)
+      updateDurationRef.current = () => {
+        setDuration(mediaRef.current?.duration || 0)
       }
 
-      mediaRef.current.addEventListener('timeupdate', updateProgress)
-      mediaRef.current.addEventListener('loadedmetadata', updateDuration)
-      mediaRef.current.addEventListener('durationchange', updateDuration)
+      mediaRef.current.addEventListener('timeupdate', updateProgressRef.current)
+      mediaRef.current.addEventListener('loadedmetadata', updateDurationRef.current)
+      mediaRef.current.addEventListener('durationchange', updateDurationRef.current)
       listenersAttached.current = true
     }
 
     tryAttachListeners()
 
     return () => {
+      if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
       if (mediaRef.current) {
-        mediaRef.current.removeEventListener('timeupdate', () => {})
-        mediaRef.current.removeEventListener('loadedmetadata', () => {})
-        mediaRef.current.removeEventListener('durationchange', () => {})
+        if (updateProgressRef.current) {
+          mediaRef.current.removeEventListener('timeupdate', updateProgressRef.current)
+        }
+        if (updateDurationRef.current) {
+          mediaRef.current.removeEventListener('loadedmetadata', updateDurationRef.current)
+          mediaRef.current.removeEventListener('durationchange', updateDurationRef.current)
+        }
         listenersAttached.current = false
       }
     }
@@ -503,52 +517,56 @@ export const SuperProvider = ({ children }) => {
     // Actualiza el tiempo actual del medio
     mediaRef.current.currentTime = newTime
   }
+  const contextValue = useMemo(() => ({
+    mediaRef, // player
+    currentFile, //player
+    currentIndex, //player
+    isShuffled, //player
+    muted, //player
+    volume,
+    setVolume,
+    setMediaVolume,
+    isPlaying, //player
+    loop, //player
+    togglePlayPause, //player
+    toggleMute, //player
+    toggleRepeat, //player
+    toggleShuffle, //player
+    handlePreviousClick, //player
+    handleNextClick, //player
+    handleSongClick, // utils
+    addhistory, // utils
+    handleGetBPMClick, // utils
+    queueState, //lista en reproduccion
+    handleSaveClick, // guarda la cola actual en la bd.
+    handleQueueAndPlay,
+    PlayQueue,
+    removeTrack,
+    addSong,
+    handleTimelineClick,
+    progress,
+    duration,
+    scrollRef,
+    isAtEnd,
+    getImage,
+    handleColorChange,
+    color,
+    isAwaken,
+    handleAwaken,
+    toggleStep,
+    isStep,
+    handleBackgroundImageUrlChange,
+    backgroundImageUrl,
+    waveformVariant,
+    handleWaveformVariantChange
+  }), [
+    currentFile, currentIndex, isShuffled, muted, volume, isPlaying, loop,
+    queueState, progress, duration, isAtEnd, color, isAwaken, isStep,
+    backgroundImageUrl, waveformVariant
+  ])
+
   return (
-    <SuperContext.Provider
-      value={{
-        mediaRef, // player
-        currentFile, //player
-        currentIndex, //player
-        isShuffled, //player
-        muted, //player
-        volume,
-        setVolume,
-        setMediaVolume,
-        isPlaying, //player
-        loop, //player
-        togglePlayPause, //player
-        toggleMute, //player
-        toggleRepeat, //player
-        toggleShuffle, //player
-        handlePreviousClick, //player
-        handleNextClick, //player
-        handleSongClick, // utils
-        addhistory, // utils
-        handleGetBPMClick, // utils
-        queueState, //lista en reproduccion
-        handleSaveClick, // guarda la cola actual en la bd.
-        handleQueueAndPlay,
-        PlayQueue,
-        removeTrack,
-        addSong,
-        handleTimelineClick,
-        progress,
-        duration,
-        scrollRef,
-        isAtEnd,
-        getImage,
-        handleColorChange,
-        color,
-        isAwaken,
-        handleAwaken,
-        toggleStep,
-        isStep,
-        handleBackgroundImageUrlChange,
-        backgroundImageUrl,
-        waveformVariant,
-        handleWaveformVariantChange
-      }}
-    >
+    <SuperContext.Provider value={contextValue}>
       {children}
     </SuperContext.Provider>
   )
