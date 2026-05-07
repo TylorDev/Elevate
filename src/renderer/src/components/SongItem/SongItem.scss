@@ -10,65 +10,59 @@
     height: 4.5rem;
     display: flex;
     align-items: center;
-    gap: 1.2rem;
+    gap: 0.8rem;
     padding: 0 1.2rem;
     position: relative;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 14px;
-    margin-bottom: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: transparent;
+    border-radius: 8px;
+    margin-bottom: 2px;
+    transition: background 0.15s ease;
+
     overflow: hidden;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.06);
-        transform: scale(1.005);
-        border-color: rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
 
         .ico {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1.1);
         }
 
         .optiones {
             opacity: 1;
-            transform: translateX(0);
         }
     }
 
     &.active {
-        background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
-        border-color: rgba(var(--accent-rgb), 0.2);
-        
+        background: rgba(var(--accent-rgb, 186, 255, 0), 0.05);
+        border-bottom-color: rgba(var(--accent-rgb), 0.1);
+
         .songIndex {
             color: var(--text-principal);
-            font-weight: 800;
+            font-weight: 700;
         }
 
         .song-tittle {
             color: var(--text-principal);
-            font-weight: 700;
         }
     }
 
     .songIndex {
-        width: 24px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.3);
+        width: 28px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-secondary);
         text-align: center;
         flex-shrink: 0;
     }
 
     .cover {
         position: relative;
-        width: 3.2rem;
-        height: 3.2rem;
-        border-radius: 10px;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 4px;
         overflow: hidden;
         flex-shrink: 0;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 
         img {
             width: 100%;
@@ -78,19 +72,18 @@
 
         .ico {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.8);
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: opacity 0.15s ease;
             color: white;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
     }
 
@@ -98,39 +91,49 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 2px;
         min-width: 0;
 
         .song-tittle {
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 600;
             color: white;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            transition: color 0.3s ease;
+            display: block;
+            line-height: 1.2;
+            margin-bottom: 2px;
         }
 
         .song-data-meta {
             font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            .song-views {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+
+                svg {
+                    font-size: 0.8rem;
+                }
+            }
         }
     }
 
     .optiones {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
         opacity: 0;
-        transform: translateX(10px);
-        transition: all 0.3s ease;
+        transition: opacity 0.15s ease;
 
         &.liked {
             opacity: 1;
-            transform: translateX(0);
         }
 
         .btnLike {
@@ -138,24 +141,23 @@
             border: none;
             cursor: pointer;
             padding: 8px;
-            color: rgba(255, 255, 255, 0.4);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
-            transition: all 0.2s ease;
+            transition: color 0.15s ease;
 
             &:hover {
-                color: var(--text-principal);
-                transform: scale(1.1);
+                color: white;
             }
 
             svg {
-                font-size: 1.2rem;
+                font-size: 1.1rem;
             }
         }
 
         &.liked .btnLike {
             color: var(--text-principal);
-            
+
             svg {
                 fill: var(--text-principal);
             }
@@ -164,49 +166,28 @@
 
     .stime {
         font-size: 0.8rem;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.3);
+        font-weight: 500;
+        color: var(--text-secondary);
         width: 45px;
         text-align: right;
         font-variant-numeric: tabular-nums;
     }
 
-    // BARRA DE PROGRESO MODERNA
     .song-progress {
         position: absolute;
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 100%;
-        background: transparent;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.02);
+        z-index: 5;
         pointer-events: none;
-        z-index: 0;
     }
 
     .song-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, 
-            rgba(var(--accent-rgb, 186, 255, 0), 0.15) 0%, 
-            rgba(var(--accent-rgb, 186, 255, 0), 0.02) 100%
-        );
-        border-right: 2px solid var(--text-principal);
-        transition: width 0.3s linear;
-        position: relative;
-
-        &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: -2px;
-            height: 100%;
-            width: 8px;
-            background: linear-gradient(90deg, 
-                var(--text-principal), 
-                transparent
-            );
-            filter: blur(4px);
-            opacity: 0.5;
-        }
+        background: var(--text-principal);
+        transition: width 0.1s linear;
     }
 }
 

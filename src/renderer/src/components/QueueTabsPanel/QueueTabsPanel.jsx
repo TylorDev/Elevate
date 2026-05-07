@@ -28,7 +28,6 @@ function QueueTabsPanel() {
   return (
     <aside className="QueueTabsPanel">
       <div className="QueueTabsPanel__header">
-        <h2 className="QueueTabsPanel__title">Queue & Sources</h2>
         <div className="QueueTabsPanel__tabs" role="tablist" aria-label="Queue sources">
           {TABS.map(({ id, label, icon }) => (
             <button
@@ -43,7 +42,6 @@ function QueueTabsPanel() {
               title={label}
             >
               <span className="tab-icon">{icon}</span>
-              <span className="tab-label">{label}</span>
             </button>
           ))}
         </div>

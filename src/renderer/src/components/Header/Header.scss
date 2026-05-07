@@ -4,13 +4,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     height: 100%;
-    background: rgba(10, 10, 10, 0.4);
-    backdrop-filter: blur(20px);
+    width: 4.5rem;
+    background: var(--primary-color, #0a0a0a);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     padding: 2rem 0;
-    transition: all 0.5s ease;
+    transition: width 0.3s ease;
 
     .nav-sec {
         width: 100%;
@@ -29,97 +29,42 @@
 
     a {
         text-decoration: none;
-        height: 3.5rem;
-        padding: 0 1rem;
-        border-radius: 12px;
-        color: rgba(255, 255, 255, 0.4);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 3.2rem;
+        width: 3.2rem;
+        padding: 0;
+        border-radius: 8px;
+        color: var(--text-secondary);
+        transition: all 0.2s ease;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        gap: 1.2rem;
+        justify-content: center;
         position: relative;
         overflow: hidden;
-        width: 100%;
 
         svg {
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
-            min-width: 1.5rem;
-        }
-
-        .Link-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 0.3px;
-            transition: all 0.3s ease;
+            font-size: 1.4rem;
+            min-width: 1.4rem;
         }
 
         &:hover {
-            color: rgba(255, 255, 255, 0.9);
+            color: white;
             background: rgba(255, 255, 255, 0.05);
-
-            svg {
-                transform: scale(1.1);
-                color: white;
-            }
         }
 
         &.activo {
             color: var(--text-principal);
             background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 
             &::before {
                 content: '';
                 position: absolute;
                 left: 0;
-                top: 20%;
-                height: 60%;
-                width: 4px;
+                top: 25%;
+                height: 50%;
+                width: 3px;
                 background: var(--text-principal);
                 border-radius: 0 4px 4px 0;
-                box-shadow: 0 0 15px var(--text-principal);
-            }
-
-            svg {
-                transform: scale(1.15);
-                filter: drop-shadow(0 0 5px rgba(var(--accent-rgb), 0.5));
-            }
-
-            .Link-name {
-                font-weight: 800;
-                transform: translateX(2px);
             }
         }
-    }
-}
-
-// Pantallas pequeñas (Solo iconos)
-@media (max-width: 1200px) {
-    .navbar {
-        width: 5rem;
-        
-        .Link-name {
-            display: none;
-        }
-
-        a {
-            justify-content: center;
-            padding: 0;
-            width: 3.5rem;
-            margin: 0 auto;
-        }
-    }
-}
-
-// Media Query existente para dispositivos móviles
-@media (min-width: 500px) and (max-width: 620px) {
-    .Link-name {
-        display: none;
-    }
-
-    #Header {
-        width: 4.5rem;
     }
 }

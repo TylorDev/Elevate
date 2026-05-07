@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import './Header.scss'
 import { NavLink } from 'react-router-dom'
 import {
@@ -8,7 +9,7 @@ import {
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 
-function Header() {
+const Header = memo(function Header() {
   const getActiveClass = ({ isActive }) => (isActive ? 'activo' : '')
   const { handleAwaken } = useSuper()
 
@@ -19,28 +20,29 @@ function Header() {
           <NavLink
             to="/"
             className={getActiveClass}
+            title="Feed"
             onClick={() => {
               handleAwaken(true)
             }}
           >
-            <LuAudioWaveform /> <span className="Link-name">Feed </span>
+            <LuAudioWaveform />
           </NavLink>
 
-          <NavLink to="/search" className={getActiveClass}>
-            <LuChartColumnIncreasing /> <span className="Link-name">Stats </span>
+          <NavLink to="/search" className={getActiveClass} title="Stats">
+            <LuChartColumnIncreasing />
           </NavLink>
 
-          <NavLink to="/history" className={getActiveClass}>
-            <LuCalendarDays /> <span className="Link-name">History </span>
+          <NavLink to="/history" className={getActiveClass} title="History">
+            <LuCalendarDays />
           </NavLink>
 
-          <NavLink to="/settings" className={getActiveClass}>
-            <LuSettings /> <span className="Link-name">Settings </span>
+          <NavLink to="/settings" className={getActiveClass} title="Settings">
+            <LuSettings />
           </NavLink>
         </div>
       </div>
     </div>
   )
-}
+})
 
 export default Header

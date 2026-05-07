@@ -1,5 +1,5 @@
-import { memo, useEffect, useMemo, useState } from 'react'
-import { FaPlay, FaPlusCircle, FaClock, FaListUl } from 'react-icons/fa'
+import { memo, useEffect, useMemo, useState, useRef } from 'react'
+import { FaPlay, FaPlusCircle, FaClock, FaListUl, FaEye } from 'react-icons/fa'
 import { LuHeart, LuHeartOff } from 'react-icons/lu'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useMini } from '../../Contexts/MiniContext'
@@ -29,6 +29,7 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
   const { agregarElemento, latersong } = useMini()
   const [isVisible, setIsVisible] = useState(false)
   const mycover = useCoverUrl(file.filePath, 'thumb')
+  const menuRef = useRef(null)
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -55,13 +56,13 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
       { id: 'add later', label: 'Add later', icon: <FaClock /> },
       { id: 'add to playlist', label: 'Add to playlist', icon: <FaListUl /> },
     ]
-    
+
     if (padreActions) {
       Object.keys(padreActions).forEach(key => {
         options.push({ id: key, label: key })
       })
     }
-    
+
     return options
   }, [padreActions])
 
@@ -90,6 +91,12 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
     setIsLikedo((value) => !value)
   }
 
+  const handleContextMenu = (e) => {
+    if (menuRef.current) {
+      menuRef.current.open(e)
+    }
+  }
+
   return (
     <li
       key={index}
@@ -101,14 +108,12 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
           addPlaylisthistory(name)
         }
       }}
+      onContextMenu={handleContextMenu}
     >
       <div className={isActive ? 'songItem active' : 'songItem'}>
-        {isActive && (
-          <div className="song-progress">
-            <div className="song-progress-fill" style={{ width: `${progressPercent}%` }} />
-          </div>
-        )}
-        <div className={`songIndex ${index + 1 >= 100 ? 'infinite' : ''}`}>{index + 1 >= 100 ? '∞' : index + 1}</div>
+        <div className="song-progress">
+          <div className="song-progress-fill" style={{ width: `${isActive ? progressPercent : 0}%` }} />
+        </div>
         <div className="cover">
           <div className="ico">
             <FaPlay />
@@ -119,7 +124,7 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
         <div className="songdata">
           <span className="song-tittle">{file.fileName}</span>
           <span className="song-data-meta">
-            {file.artist || 'Unknow'} • {file.play_count} views
+            {file.artist || 'Unknow'} • <span className="song-views"><FaEye /> {file.play_count}</span>
           </span>
         </div>
 
@@ -127,7 +132,6 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
           <Button className={'btnLike'} onClick={handleClick}>
             {buttonText}
           </Button>
-          <OverflowMenu options={menuOptions} onSelect={handleSelect} />
         </div>
 
         {isVisible && (
@@ -142,6 +146,13 @@ export const SongItem = memo(function SongItem({ file, index, cola, name, padreA
             .toString()
             .padStart(2, '0')}
         </div>
+
+        <OverflowMenu
+          ref={menuRef}
+          options={menuOptions}
+          onSelect={handleSelect}
+          showButton={false}
+        />
       </div>
     </li>
   )
