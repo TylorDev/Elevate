@@ -6,6 +6,9 @@ import { useSuper } from '../../Contexts/SupeContext'
 
 const audioSources = new WeakMap()
 const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
+const SEEK_COLOR = '#ffffff'
+const BARS_COUNT = 72
+const BAR_GAP = 3
 
 export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   const { currentFile, progress, duration, handleTimelineClick, isPlaying, mediaRef } = useSuper()
@@ -18,7 +21,8 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   const isPlayingRef = useRef(isPlaying)
   const seekPreviewRatioRef = useRef(null)
   const variantRef = useRef(normalizeVariant(variant))
-  const dimensionsRef = useRef({ width: 0, height: 0 })
+  // Cached dimensions includes pre-calculated bar sizes
+  const dimensionsRef = useRef({ width: 0, height: 0, barWidth: 0, barStep: 0 })
   const cachedStylesRef = useRef({ baseColor: '#1a1a1a', progressColor: '#baff00', mutedColor: '#6f6f6f' })
   const progressRatio = duration ? Math.min(progress / duration, 1) : 0
 
@@ -66,10 +70,13 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       const entry = entries[0]
       if (!entry) return
       const pixelRatio = window.devicePixelRatio || 1
-      dimensionsRef.current = {
-        width: Math.max(1, Math.floor(entry.contentRect.width * pixelRatio)),
-        height: Math.max(1, Math.floor(entry.contentRect.height * pixelRatio))
-      }
+      const width = Math.max(1, Math.floor(entry.contentRect.width * pixelRatio))
+      const height = Math.max(1, Math.floor(entry.contentRect.height * pixelRatio))
+      
+      const barWidth = Math.max(2, (width - BAR_GAP * (BARS_COUNT - 1)) / BARS_COUNT)
+      const barStep = barWidth + BAR_GAP
+      
+      dimensionsRef.current = { width, height, barWidth, barStep }
     })
     resizeObserver.observe(canvas)
 
@@ -132,14 +139,16 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       }
     }
 
+    // Get context once outside the loop
+    const context = canvas.getContext('2d', { alpha: true })
+    
     const draw = () => {
       if (cancelled) return
 
-      const context = canvas.getContext('2d', { alpha: true })
       if (!context) return
 
       // Use cached dimensions instead of getBoundingClientRect() every frame
-      const { width, height } = dimensionsRef.current
+      const { width, height, barWidth, barStep } = dimensionsRef.current
 
       if (width === 0 || height === 0) {
         animationRef.current = window.requestAnimationFrame(draw)
@@ -163,7 +172,9 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
         seekPreviewRatio: seekPreviewRatioRef.current,
         styles: cachedStylesRef.current,
         variant: variantRef.current,
-        width
+        width,
+        barWidth,
+        barStep
       })
 
       animationRef.current = window.requestAnimationFrame(draw)
@@ -231,25 +242,35 @@ function drawWaveform({
   seekPreviewRatio,
   styles,
   variant,
-  width
+  width,
+  barWidth,
+  barStep
 }) {
   const { baseColor, progressColor, mutedColor } = styles
-  const seekColor = '#ffffff'
-  const bars = 72
-  const gap = 3
-  const barWidth = Math.max(2, (width - gap * (bars - 1)) / bars)
-  const barStep = barWidth + gap
   const progressX = width * progressRatio
   const seekPreviewX = seekPreviewRatio === null ? null : width * seekPreviewRatio
   const hasSeekPreview = seekPreviewX !== null
   const isFutureSeekPreview = hasSeekPreview && seekPreviewX > progressX
   const currentProgressSeekIndex =
     hasSeekPreview && !isFutureSeekPreview
-      ? Math.min(bars - 1, Math.max(0, Math.round((seekPreviewX - barWidth / 2) / barStep)))
+      ? Math.min(BARS_COUNT - 1, Math.max(0, Math.round((seekPreviewX - barWidth / 2) / barStep)))
       : null
 
+  let currentData = data;
+
   if (analyser && data) {
-    const shouldCaptureFrame = isPlaying || !frozenData?.some((value) => value !== 0)
+    let isSilent = false;
+    if (frozenData) {
+       isSilent = true;
+       for (let i = 0; i < frozenData.length; i++) {
+         if (frozenData[i] !== 0) {
+           isSilent = false;
+           break;
+         }
+       }
+    }
+    
+    const shouldCaptureFrame = isPlaying || !isSilent;
 
     if (shouldCaptureFrame) {
       if (variant === 'oscilloscope') {
@@ -257,74 +278,123 @@ function drawWaveform({
       } else {
         analyser.getByteFrequencyData(data)
       }
-
       if (frozenData) frozenData.set(data)
     } else if (frozenData) {
-      data.set(frozenData)
+      // Use frozen data directly without copying
+      currentData = frozenData
     }
   }
 
-  for (let index = 0; index < bars; index++) {
-    const x = index * (barWidth + gap)
+  // Pre-initialize groups
+  const groups = {
+    [baseColor]: [],
+    [progressColor]: [],
+    [SEEK_COLOR]: []
+  };
+
+  const center = height / 2;
+  const isOscilloscope = variant === 'oscilloscope';
+  const dataLength = currentData ? currentData.length - 1 : 0;
+  
+  // Cache current sample to use as previous in the next iteration
+  let currentSample = currentData?.[0] || (isOscilloscope ? 128 : 0);
+
+  for (let index = 0; index < BARS_COUNT; index++) {
+    const x = index * barStep
     const centerX = x + barWidth / 2
-    const sample = data?.[Math.floor((index / bars) * (data.length - 1))]
-    const fallback = variant === 'oscilloscope' ? 128 : 0
-    const level = sample ? sample / 255 : fallback
     const isProgress = centerX <= progressX
     const isCurrentProgressSeek = currentProgressSeekIndex === index
     const isFutureSeekBar = isFutureSeekPreview && centerX > progressX && centerX <= seekPreviewX
     const color = isCurrentProgressSeek
-      ? seekColor
+      ? SEEK_COLOR
       : isProgress
         ? progressColor
         : isFutureSeekBar
-          ? seekColor
+          ? SEEK_COLOR
           : baseColor
 
-    context.fillStyle = color
-
-    if (variant === 'oscilloscope') {
-      const center = height / 2
-      const waveLevel = sample ? (sample - 128) / 128 : 0
+    if (isOscilloscope) {
+      const waveLevel = (currentSample - 128) / 128
       const waveY = center + waveLevel * height * 0.18
-      const nextLevel = data?.[Math.floor(((index + 1) / bars) * (data.length - 1))]
-      const nextWaveLevel = nextLevel ? (nextLevel - 128) / 128 : 0
-      const nextWaveY =
-        center +
-        nextWaveLevel * height * 0.18
+      
+      const nextSampleIndex = Math.floor(((index + 1) / BARS_COUNT) * dataLength)
+      const nextSample = currentData?.[nextSampleIndex] || 128
+      const nextWaveLevel = (nextSample - 128) / 128
+      const nextWaveY = center + nextWaveLevel * height * 0.18
 
-      context.strokeStyle = color
-      context.lineWidth = Math.max(2.2, barWidth * 1)
-      context.lineCap = 'round'
-      context.beginPath()
-      context.moveTo(centerX, waveY)
-      context.lineTo(x + barWidth + gap, nextWaveY)
-      context.stroke()
+      groups[color].push({
+        x1: centerX,
+        y1: waveY,
+        x2: x + barStep,
+        y2: nextWaveY
+      })
+      
+      currentSample = nextSample;
     } else {
+      const fallback = 0;
+      const sample = currentData ? currentSample : fallback;
+      const level = sample / 255
       const barHeight = Math.max(4, level * height * 0.86)
       const y = (height - barHeight) / 2
-      roundedRect(context, x, y, barWidth, barHeight, barWidth / 2)
+      
+      groups[color].push({ x, y, barHeight })
+      
+      if (index < BARS_COUNT - 1) {
+        const nextSampleIndex = Math.floor(((index + 1) / BARS_COUNT) * dataLength)
+        currentSample = currentData?.[nextSampleIndex] || fallback
+      }
+    }
+  }
+
+  if (isOscilloscope) {
+    context.lineWidth = Math.max(2.2, barWidth * 1)
+    context.lineCap = 'round'
+    
+    for (const color in groups) {
+      const lines = groups[color]
+      if (lines.length === 0) continue
+      
+      context.beginPath()
+      context.strokeStyle = color
+      for (let i = 0; i < lines.length; i++) {
+        context.moveTo(lines[i].x1, lines[i].y1)
+        context.lineTo(lines[i].x2, lines[i].y2)
+      }
+      context.stroke()
+    }
+  } else {
+    for (const color in groups) {
+      const rects = groups[color]
+      if (rects.length === 0) continue
+      
+      context.beginPath()
+      context.fillStyle = color
+      const radius = barWidth / 2
+      
+      for (let i = 0; i < rects.length; i++) {
+        const { x, y, barHeight } = rects[i]
+        // Native roundRect - MUCH faster than manual path drawing
+        if (context.roundRect) {
+            context.roundRect(x, y, barWidth, barHeight, radius)
+        } else {
+            // Fallback for very old browsers just in case
+            context.rect(x, y, barWidth, barHeight)
+        }
+      }
+      context.fill()
     }
   }
 
   if (!analyser) {
     context.fillStyle = mutedColor
     context.globalAlpha = 0.28
-    roundedRect(context, 0, height / 2 - 1, width, 2, 1)
+    context.beginPath()
+    if (context.roundRect) {
+        context.roundRect(0, height / 2 - 1, width, 2, 1)
+    } else {
+        context.rect(0, height / 2 - 1, width, 2)
+    }
+    context.fill()
     context.globalAlpha = 1
   }
-}
-
-function roundedRect(context, x, y, width, height, radius) {
-  context.beginPath()
-  context.moveTo(x + radius, y)
-  context.lineTo(x + width - radius, y)
-  context.quadraticCurveTo(x + width, y, x + width, y + radius)
-  context.lineTo(x + width, y + height - radius)
-  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
-  context.lineTo(x + radius, y + height)
-  context.quadraticCurveTo(x, y + height, x, y + height - radius)
-  context.lineTo(x, y + radius)
-  context.quadraticCurveTo(x, y, x + radius, y)
-  context.fill()
 }
