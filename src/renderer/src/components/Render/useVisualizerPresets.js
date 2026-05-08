@@ -116,11 +116,20 @@ export function useVisualizerPresets() {
     };
   }, [isPresetPaused, shuffledKeys, nextPreset]); 
 
+  const setPresetIndex = useCallback((index) => {
+    if (index >= 0 && index < shuffledKeys.length) {
+      setCurrentPresetIndex(index);
+    }
+  }, [shuffledKeys.length]);
+
   return {
     currentPresetName: shuffledKeys[currentPresetIndex] || "",
+    currentPresetIndex,
+    allPresets: shuffledKeys,
     isPresetPaused,
     nextPreset,
     prevPreset,
-    togglePresetPause
+    togglePresetPause,
+    setPresetIndex
   };
 }
