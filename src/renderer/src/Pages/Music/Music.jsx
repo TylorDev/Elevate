@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import './Music.scss'
 
 import Render from '../../components/Render/Render'
@@ -25,52 +25,77 @@ function Music() {
 
   const presetControls = useVisualizerPresets()
 
-  // Sincronizar el autoMode con la lógica de presets
+  // [P6] Ref to track current showControls state without causing re-renders.
+  // handleMouseMove only calls setState when transitioning from hidden → visible.
+  const showControlsRef = useRef(showControls)
+  showControlsRef.current = showControls
+
+  // [P8] Sincronizar el autoMode con la lógica de presets.
+  // Fixed: added isPresetPaused and togglePresetPause to deps to avoid stale closures.
   useEffect(() => {
-    // Si estamos en modo auto, isPresetPaused debe ser false.
-    // Si estamos en manual, isPresetPaused debe ser true.
-    if (autoMode && presetControls.isPresetPaused) {
-      presetControls.togglePresetPause()
-    } else if (!autoMode && !presetControls.isPresetPaused) {
+    const shouldBePaused = !autoMode
+    if (presetControls.isPresetPaused !== shouldBePaused) {
       presetControls.togglePresetPause()
     }
-  }, [autoMode])
+  }, [autoMode, presetControls.isPresetPaused, presetControls.togglePresetPause])
 
-  const handleMouseMove = () => {
-    setShowControls(true)
+  // [P6] Memoized mouse handler — uses ref guard to avoid calling setState
+  // when showControls is already true. Prevents 30-60 re-renders/sec during mouse movement.
+  const handleMouseMove = useCallback(() => {
+    if (!showControlsRef.current) {
+      setShowControls(true)
+    }
     if (idleTimer.current) clearTimeout(idleTimer.current)
     idleTimer.current = setTimeout(() => {
       setShowControls(false)
     }, 10000)
-  }
+  }, [])
 
-  const handleMouseLeave = () => {
+  // [P11] Stable callback — no deps needed thanks to functional setState.
+  const handleMouseLeave = useCallback(() => {
     setShowControls(false)
     if (idleTimer.current) clearTimeout(idleTimer.current)
-  }
+  }, [])
 
+  // [P10] Simplified mediaRef sync — mediaRef is a useRef, its identity never changes.
+  // Only runs once on mount to capture the audio element.
   useEffect(() => {
-    if (mediaRef?.current && !audioEl) {
+    if (mediaRef?.current) {
       setAudioEl(mediaRef.current)
     }
-  }, [mediaRef, audioEl])
+  }, [mediaRef])
 
+  // Cleanup idle timer on unmount
   useEffect(() => {
     return () => {
       if (idleTimer.current) clearTimeout(idleTimer.current)
     }
   }, [])
 
-  const handleLikeClick = (event) => {
+  // [P9] Memoized like handler — avoids recreation on every render.
+  const handleLikeClick = useCallback((event) => {
     event.stopPropagation()
     if (currentFile) {
       toggleLike(currentFile)
     }
-  }
+  }, [currentFile, toggleLike])
+
+  // [P11] Stable toggle callbacks using functional setState.
+  // No dependencies needed — prev => !prev is always current.
+  const toggleCover = useCallback(() => setShowCover(prev => !prev), [])
+  const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer(prev => !prev), [])
+  const toggleAutoMode = useCallback(() => setAutoMode(prev => !prev), [])
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
   const artist = currentFile?.artist || 'Unknown Artist'
   const views = currentFile?.play_count || 0
+
+  // [P12] Memoized background style objects — avoids creating new objects per render
+  // when currentCover hasn't changed.
+  const coverBackgroundStyle = useMemo(
+    () => currentCover ? { backgroundImage: `url(${currentCover})` } : undefined,
+    [currentCover]
+  )
 
   return (
     <div className={`Music ${!enableVisualizer ? 'no-visualizer' : ''}`} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
@@ -79,7 +104,7 @@ function Music() {
       {!showCover && currentCover && (
         <div 
           className="cover-as-background" 
-          style={{ backgroundImage: `url(${currentCover})` }}
+          style={coverBackgroundStyle}
         />
       )}
 
@@ -87,7 +112,7 @@ function Music() {
       {showCover && currentCover && !enableVisualizer && (
         <div 
           className="blurred-cover-background" 
-          style={{ backgroundImage: `url(${currentCover})` }}
+          style={coverBackgroundStyle}
         />
       )}
 
@@ -135,21 +160,21 @@ function Music() {
         <div className="view-switcher">
           <button 
             className={`switcher-btn ${showCover ? 'active' : ''}`}
-            onClick={() => setShowCover(!showCover)}
+            onClick={toggleCover}
           >
             <LuImage /> {showCover ? 'Ocultar Cover' : 'Mostrar Cover'}
           </button>
           
           <button 
             className={`switcher-btn ${enableVisualizer ? 'active' : ''}`}
-            onClick={() => setEnableVisualizer(!enableVisualizer)}
+            onClick={toggleVisualizerEnabled}
           >
             <LuActivity /> {enableVisualizer ? 'Desactivar Visualizador' : 'Activar Visualizador'}
           </button>
 
           <button 
             className={`switcher-btn ${autoMode ? 'active' : ''}`}
-            onClick={() => setAutoMode(!autoMode)}
+            onClick={toggleAutoMode}
           >
             {autoMode ? <LuPlay /> : <LuSettings />} 
             {autoMode ? 'Modo Auto' : 'Modo Manual'}
