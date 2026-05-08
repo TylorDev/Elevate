@@ -1,0 +1,46 @@
+.butterchurn-container {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+
+  canvas {
+    display: block;
+    background: black;
+  }
+
+  .visualizer-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 35px;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    
+    svg {
+      cursor: pointer;
+      color: white;
+      font-size: 18px;
+      transition: transform 0.1s, color 0.1s;
+      
+      &:hover {
+        transform: scale(1.15);
+        color: #eee;
+      }
+    }
+  }
+
+  &:hover {
+    .visualizer-controls {
+      opacity: 1;
+    }
+  }
+}

@@ -3,8 +3,8 @@ import { useEffect, useRef } from 'react'
 import './MediaTimeDisplay.scss'
 
 import { useSuper } from '../../Contexts/SupeContext'
+import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 
-const audioSources = new WeakMap()
 const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
 const SEEK_COLOR = '#ffffff'
 const BARS_COUNT = 72
@@ -72,10 +72,10 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       const pixelRatio = window.devicePixelRatio || 1
       const width = Math.max(1, Math.floor(entry.contentRect.width * pixelRatio))
       const height = Math.max(1, Math.floor(entry.contentRect.height * pixelRatio))
-      
+
       const barWidth = Math.max(2, (width - BAR_GAP * (BARS_COUNT - 1)) / BARS_COUNT)
       const barStep = barWidth + BAR_GAP
-      
+
       dimensionsRef.current = { width, height, barWidth, barStep }
     })
     resizeObserver.observe(canvas)
@@ -87,8 +87,6 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     const canvas = canvasRef.current
 
     if (!canvas) return undefined
-
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext
 
     let cancelled = false
     let audioContext
@@ -105,21 +103,12 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
         return
       }
 
-      if (!AudioContextClass) return
-
       try {
-        const sourceRecord = audioSources.get(media)
-        audioContext = sourceRecord?.audioContext || new AudioContextClass()
-        const analyser = sourceRecord?.analyser || audioContext.createAnalyser()
-        analyser.fftSize = 256
-        analyser.smoothingTimeConstant = 0.82
+        const { audioContext: ctx, analyser: analyzer } = getGlobalAudioContext(media)
+        if (!ctx || !analyzer) return
 
-        const source = sourceRecord?.source || audioContext.createMediaElementSource(media)
-        if (!sourceRecord) {
-          audioSources.set(media, { analyser, audioContext, source })
-          source.connect(analyser)
-          source.connect(audioContext.destination)
-        }
+        audioContext = ctx
+        const analyser = analyzer
 
         analyserRef.current = analyser
         dataRef.current = new Uint8Array(analyser.frequencyBinCount)
@@ -141,7 +130,7 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
 
     // Get context once outside the loop
     const context = canvas.getContext('2d', { alpha: true })
-    
+
     const draw = () => {
       if (cancelled) return
 
@@ -261,15 +250,15 @@ function drawWaveform({
   if (analyser && data) {
     let isSilent = false;
     if (frozenData) {
-       isSilent = true;
-       for (let i = 0; i < frozenData.length; i++) {
-         if (frozenData[i] !== 0) {
-           isSilent = false;
-           break;
-         }
-       }
+      isSilent = true;
+      for (let i = 0; i < frozenData.length; i++) {
+        if (frozenData[i] !== 0) {
+          isSilent = false;
+          break;
+        }
+      }
     }
-    
+
     const shouldCaptureFrame = isPlaying || !isSilent;
 
     if (shouldCaptureFrame) {
@@ -295,7 +284,7 @@ function drawWaveform({
   const center = height / 2;
   const isOscilloscope = variant === 'oscilloscope';
   const dataLength = currentData ? currentData.length - 1 : 0;
-  
+
   // Cache current sample to use as previous in the next iteration
   let currentSample = currentData?.[0] || (isOscilloscope ? 128 : 0);
 
@@ -316,7 +305,7 @@ function drawWaveform({
     if (isOscilloscope) {
       const waveLevel = (currentSample - 128) / 128
       const waveY = center + waveLevel * height * 0.18
-      
+
       const nextSampleIndex = Math.floor(((index + 1) / BARS_COUNT) * dataLength)
       const nextSample = currentData?.[nextSampleIndex] || 128
       const nextWaveLevel = (nextSample - 128) / 128
@@ -328,7 +317,7 @@ function drawWaveform({
         x2: x + barStep,
         y2: nextWaveY
       })
-      
+
       currentSample = nextSample;
     } else {
       const fallback = 0;
@@ -336,9 +325,9 @@ function drawWaveform({
       const level = sample / 255
       const barHeight = Math.max(4, level * height * 0.86)
       const y = (height - barHeight) / 2
-      
+
       groups[color].push({ x, y, barHeight })
-      
+
       if (index < BARS_COUNT - 1) {
         const nextSampleIndex = Math.floor(((index + 1) / BARS_COUNT) * dataLength)
         currentSample = currentData?.[nextSampleIndex] || fallback
@@ -349,11 +338,11 @@ function drawWaveform({
   if (isOscilloscope) {
     context.lineWidth = Math.max(2.2, barWidth * 1)
     context.lineCap = 'round'
-    
+
     for (const color in groups) {
       const lines = groups[color]
       if (lines.length === 0) continue
-      
+
       context.beginPath()
       context.strokeStyle = color
       for (let i = 0; i < lines.length; i++) {
@@ -366,19 +355,19 @@ function drawWaveform({
     for (const color in groups) {
       const rects = groups[color]
       if (rects.length === 0) continue
-      
+
       context.beginPath()
       context.fillStyle = color
       const radius = barWidth / 2
-      
+
       for (let i = 0; i < rects.length; i++) {
         const { x, y, barHeight } = rects[i]
         // Native roundRect - MUCH faster than manual path drawing
         if (context.roundRect) {
-            context.roundRect(x, y, barWidth, barHeight, radius)
+          context.roundRect(x, y, barWidth, barHeight, radius)
         } else {
-            // Fallback for very old browsers just in case
-            context.rect(x, y, barWidth, barHeight)
+          // Fallback for very old browsers just in case
+          context.rect(x, y, barWidth, barHeight)
         }
       }
       context.fill()
@@ -390,9 +379,9 @@ function drawWaveform({
     context.globalAlpha = 0.28
     context.beginPath()
     if (context.roundRect) {
-        context.roundRect(0, height / 2 - 1, width, 2, 1)
+      context.roundRect(0, height / 2 - 1, width, 2, 1)
     } else {
-        context.rect(0, height / 2 - 1, width, 2)
+      context.rect(0, height / 2 - 1, width, 2)
     }
     context.fill()
     context.globalAlpha = 1
