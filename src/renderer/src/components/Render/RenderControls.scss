@@ -1,0 +1,23 @@
+.render-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-family: sans-serif;
+
+  .controls-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+
+    button {
+      cursor: pointer;
+      padding: 8px 12px;
+    }
+  }
+
+  .preset-info {
+    color: #aaa;
+  }
+}
