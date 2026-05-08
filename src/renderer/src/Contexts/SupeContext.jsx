@@ -14,10 +14,9 @@ const SuperContext = createContext()
 export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
   const scrollRef = useRef(null)
-  const listenersAttached = useRef(false)
-  const [muted, setMuted] = useState(false) // 1 ref  check
-  const [loop, setLoop] = useState(false) //  1 ref check
-  const [isPlaying, setIsPlaying] = useState(false) //1 ref check
+  const [muted, setMuted] = useState(false)
+  const [loop, setLoop] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
   const [volume, setVolume] = useState(1)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -47,42 +46,17 @@ export const SuperProvider = ({ children }) => {
   const handleAwaken = (value) => {
     setIsAwaken(value)
   }
+
   const getImage = (name, data) => {
-    // Verificar si la imagen ya existe
     const existingImage = imagesRef.current.get(name)
 
     if (existingImage) {
-      // Logear el nombre y la URL existente
-      // console.log(
-      //   `La imagen con el nombre "${name}" ya existe. URL generada anteriormente: ${existingImage.url}`
-      // )
       return existingImage
     }
 
-    // Generar la nueva URL
     const url = dataToImageUrl(data)
-
     imagesRef.current.set(name, url)
-
     return url
-  }
-
-  const [isAtEnd, setIsAtEnd] = useState(false) // Estado que indica si estamos al final del scroll
-
-  const handleScroll = () => {
-    const element = scrollRef.current
-    if (element) {
-      // Calcular el porcentaje restante
-      const remainingScroll = element.scrollHeight - element.scrollTop - element.clientHeight
-      const threshold = element.scrollHeight * 0.1 // 10% del total
-
-      // Si el remainingScroll es menor o igual al 10% de la altura total, se marca como "al final"
-      const isNearEnd = remainingScroll <= threshold
-
-      if (isNearEnd) console.log('Estás a un 90% del final')
-
-      setIsAtEnd(isNearEnd)
-    }
   }
 
   const navigate = useNavigate()
@@ -165,21 +139,6 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
-  useEffect(() => {
-    const element = scrollRef.current
-    if (element) {
-      element.addEventListener('scroll', handleScroll)
-    }
-
-    return () => {
-      if (element) {
-        element.removeEventListener('scroll', handleScroll)
-      }
-    }
-  }, [])
-
-  const updateProgressRef = useRef(null)
-  const updateDurationRef = useRef(null)
   const progressRafRef = useRef(null)
 
   useEffect(() => {
@@ -341,14 +300,6 @@ export const SuperProvider = ({ children }) => {
   }
   const toggleRepeat = () => {
     toRepeat(mediaRef, loop, setLoop)
-  }
-
-  const handleGetBPMClick = async (common) => {
-    const fileInfo = await electronInvoke('get-bpm', common)
-
-    if (fileInfo) {
-      setCurrentFile(fileInfo)
-    }
   }
 
   const toggleShuffle = () => {
@@ -529,11 +480,10 @@ export const SuperProvider = ({ children }) => {
     toggleShuffle, //player
     handlePreviousClick, //player
     handleNextClick, //player
-    handleSongClick, // utils
-    addhistory, // utils
-    handleGetBPMClick, // utils
-    queueState, //lista en reproduccion
-    handleSaveClick, // guarda la cola actual en la bd.
+    handleSongClick,
+    addhistory,
+    queueState,
+    handleSaveClick,
     handleQueueAndPlay,
     PlayQueue,
     removeTrack,
@@ -542,7 +492,6 @@ export const SuperProvider = ({ children }) => {
     progress,
     duration,
     scrollRef,
-    isAtEnd,
     getImage,
     handleColorChange,
     color,
@@ -556,7 +505,7 @@ export const SuperProvider = ({ children }) => {
     handleWaveformVariantChange
   }), [
     currentFile, currentIndex, isShuffled, muted, volume, isPlaying, loop,
-    queueState, progress, duration, isAtEnd, color, isAwaken, isStep,
+    queueState, progress, duration, color, isAwaken, isStep,
     backgroundImageUrl, waveformVariant
   ])
 

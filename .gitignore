@@ -5,3 +5,16 @@ out
 *.log*
 .db
 /src/main/generated/prisma
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.webp
+*.ico
+
+# Specific image directories
+covers/
+
