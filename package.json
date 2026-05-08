@@ -36,7 +36,7 @@
     "@prisma/adapter-libsql": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "axios": "^1.16.0",
-    "butterchurn": "^2.6.7",
+    "butterchurn": "^3.0.0-beta.5",
     "butterchurn-presets": "^2.4.7",
     "cheerio": "^1.0.0-rc.12",
     "custom-electron-titlebar": "^4.2.8",
