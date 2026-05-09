@@ -3,7 +3,7 @@ import path from 'path'
 import { getOrCreateSong } from './utils.mjs'
 import { prisma } from '../../prisma.mjs'
 
-const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac'])
+const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 const WALK_YIELD_EVERY = 50
 const INDEX_BATCH_SIZE = 20
 

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useSuper } from './SupeContext'
 import { toast } from 'react-toastify'
+import { useArgv } from './ArgvContext'
 
 const AudioContextState = createContext(null)
 
@@ -10,6 +11,7 @@ export const useAudioContext = () => {
 
 export const AudioProvider = ({ children }) => {
   const { currentFile, mediaRef, addhistory } = useSuper()
+  const { launchReady } = useArgv()
   const [path, setPath] = useState(null)
 
   useEffect(() => {
@@ -46,13 +48,36 @@ export const AudioProvider = ({ children }) => {
     return newPath
   }
 
+  useEffect(() => {
+    if (!launchReady || !path || !mediaRef.current) {
+      return
+    }
+
+    const audio = mediaRef.current
+    const tryPlay = () => {
+      audio.play().catch((error) => {
+        console.warn('Auto-play skipped while syncing resumed session:', error?.message || error)
+      })
+    }
+
+    if (audio.readyState >= 2) {
+      tryPlay()
+      return
+    }
+
+    audio.addEventListener('canplay', tryPlay, { once: true })
+    return () => {
+      audio.removeEventListener('canplay', tryPlay)
+    }
+  }, [launchReady, path, mediaRef])
+
   return (
     <AudioContextState.Provider value={{}}>
       {children}
       <audio
         ref={mediaRef}
         controls
-        autoPlay
+        autoPlay={launchReady}
         style={{ display: 'none' }}
         src={path}
       />

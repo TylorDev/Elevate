@@ -1,8 +1,7 @@
  
-import { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect, useMemo } from 'react'
 import { validateLike } from './utilMenu'
-import { ElectronGetter, ElectronSetter } from './utils'
-import { ToLike } from './utilControls'
+import { ElectronGetter } from './utils'
 import { useSuper } from './SupeContext'
 import { toast } from 'react-toastify'
 const ContextLikes = createContext()
@@ -95,11 +94,22 @@ export const LikesProvider = ({ children }) => {
     }
   }, [currentFile?.filePath, currentIndex])
 
+  const likesLookup = useMemo(() => {
+    const fileInfos = likeState.likes?.fileInfos
+
+    if (!Array.isArray(fileInfos)) {
+      return new Map()
+    }
+
+    return new Map(fileInfos.map((file) => [file.filePath, true]))
+  }, [likeState.likes])
+
   return (
     <ContextLikes.Provider
       value={{
         likeState,
         likes: likeState.likes,
+        likesLookup,
         isSongLiked,
         likesong,
         unlikesong,

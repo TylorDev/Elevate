@@ -4,7 +4,7 @@ import { prisma } from '../../prisma.mjs'
 import { getOrCreateSong } from './utils.mjs'
 import { updateDirectoryStats, directoryHasAudio } from './directoryScanner.mjs'
 
-const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac'])
+const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 const DEBOUNCE_MS = 500
 
 /** @type {Map<string, import('chokidar').FSWatcher>} */

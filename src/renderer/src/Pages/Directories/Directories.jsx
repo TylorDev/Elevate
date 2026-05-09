@@ -20,7 +20,7 @@ function Directories() {
   if (directories.length === 0) {
     return (
       <div className="div">
-        <Button onClick={addDirectory}>
+        <Button onClick={() => addDirectory()}>
           <MdCreateNewFolder color="green" size={35} />
         </Button>
         <ul>
@@ -35,7 +35,7 @@ function Directories() {
     <div className="">
       <ul>
         <h1>Directories</h1>
-        <Button onClick={addDirectory}>
+        <Button onClick={() => addDirectory()}>
           <MdCreateNewFolder color="green" size={35} />
         </Button>
         {directories.map((directory) => (

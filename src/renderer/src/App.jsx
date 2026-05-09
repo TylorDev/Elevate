@@ -1,7 +1,8 @@
 import './App.scss'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Main from './Layouts/Main/Main'
+import { useArgv } from './Contexts/ArgvContext'
 
 // Lazy-loaded pages — each page loads as a separate chunk on demand
 const Feed = lazy(() => import('./Pages/Feed/Feed'))
@@ -27,6 +28,112 @@ function PageLoader() {
 }
 
 function App() {
+  const { handleExternalPayload } = useArgv()
+
+  useEffect(() => {
+    const getPathForFile = (file) => {
+      if (!file) {
+        return ''
+      }
+
+      return window.electron?.webUtils?.getPathForFile?.(file) || ''
+    }
+
+    const handleDragOver = (event) => {
+      event.preventDefault()
+    }
+
+    const handleDrop = (event) => {
+      event.preventDefault()
+
+      const files = Array.from(event.dataTransfer?.files || [])
+      const fallbackFilePaths = files
+        .map((file) => getPathForFile(file))
+        .filter(Boolean)
+
+      const items = Array.from(event.dataTransfer?.items || [])
+      const itemEntries = items
+        .map((item) => ({
+          item,
+          entry: item?.webkitGetAsEntry?.() || null
+        }))
+        .filter(({ entry }) => Boolean(entry))
+
+      const droppedDirectories = itemEntries
+        .filter(({ entry }) => entry.isDirectory)
+        .map(({ item, entry }) => {
+          const asFilePath = getPathForFile(item?.getAsFile?.())
+          return asFilePath || entry.fullPath || entry.name
+        })
+        .filter(Boolean)
+
+      const droppedFilePathsFromEntries = itemEntries
+        .filter(({ entry }) => entry.isFile)
+        .map(({ item }) => getPathForFile(item?.getAsFile?.()))
+        .filter(Boolean)
+
+      const uniqueFilePaths = [...new Set(
+        itemEntries.length > 0
+          ? droppedFilePathsFromEntries
+          : fallbackFilePaths
+      )]
+      const uniqueDirectoryPaths = [...new Set(droppedDirectories)]
+      const hasDirectories = uniqueDirectoryPaths.length > 0
+      const hasMultipleFiles = uniqueFilePaths.length > 1
+      const hasSingleFileOnly = uniqueFilePaths.length === 1 && !hasDirectories
+
+      console.info('[drop] raw transfer', {
+        fileCount: files.length,
+        itemCount: items.length,
+        fallbackFilePaths,
+        droppedFilePathsFromEntries,
+        droppedDirectories: uniqueDirectoryPaths
+      })
+
+      if (hasSingleFileOnly) {
+        console.info('[drop] single file:', uniqueFilePaths[0])
+      }
+
+      if (hasMultipleFiles) {
+        console.info('[drop] files:', uniqueFilePaths)
+      }
+
+      if (uniqueDirectoryPaths.length === 1) {
+        console.info('[drop] directory:', uniqueDirectoryPaths[0])
+      } else if (uniqueDirectoryPaths.length > 1) {
+        console.info('[drop] directories:', uniqueDirectoryPaths)
+      }
+
+      const droppedPaths = [...uniqueFilePaths, ...uniqueDirectoryPaths]
+      if (droppedPaths.length > 0) {
+        void window.electron.ipcRenderer
+          .invoke('process-dropped-paths', droppedPaths)
+          .then((payload) => {
+            console.info('[drop] playback payload:', {
+              kind: payload?.kind,
+              files: payload?.files?.length || 0,
+              directories: payload?.directories?.length || 0,
+              songs: payload?.songs?.length || 0,
+              queueName: payload?.queueName
+            })
+
+            return handleExternalPayload(payload)
+          })
+          .catch((error) => {
+            console.error('Error processing dropped paths:', error)
+          })
+      }
+    }
+
+    window.addEventListener('dragover', handleDragOver)
+    window.addEventListener('drop', handleDrop)
+
+    return () => {
+      window.removeEventListener('dragover', handleDragOver)
+      window.removeEventListener('drop', handleDrop)
+    }
+  }, [handleExternalPayload])
+
   return (
     <div className="App">
       <Routes>

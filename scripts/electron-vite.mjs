@@ -1,11 +1,19 @@
 import { spawn } from 'node:child_process'
+import { join } from 'node:path'
 
 const env = { ...process.env }
 delete env.ELECTRON_RUN_AS_NODE
 
-const child = spawn('electron-vite', process.argv.slice(2), {
+const [command = 'dev', ...appArgs] = process.argv.slice(2)
+const cli = process.execPath
+const cliArgs = [join(process.cwd(), 'node_modules', 'electron-vite', 'bin', 'electron-vite.js'), command]
+
+if (appArgs.length > 0) {
+  cliArgs.push('--', ...appArgs)
+}
+
+const child = spawn(cli, cliArgs, {
   env,
-  shell: true,
   stdio: 'inherit'
 })
 

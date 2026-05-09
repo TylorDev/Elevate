@@ -107,7 +107,7 @@ function Settings() {
 
             <button
               className="settings-action-btn"
-              onClick={addDirectory}
+              onClick={() => addDirectory()}
               disabled={directoriesLoading}
             >
               <LuFolderPlus />

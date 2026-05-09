@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 const api = {}
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { contextBridge, ipcRenderer } = electron
+const { contextBridge, ipcRenderer, webUtils } = electron
 const electronAPI = {
   ipcRenderer: {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
@@ -16,6 +16,15 @@ const electronAPI = {
     },
     removeAllListeners: (channel) => {
       ipcRenderer.removeAllListeners(channel)
+    }
+  },
+  webUtils: {
+    getPathForFile: (file) => {
+      try {
+        return webUtils.getPathForFile(file)
+      } catch {
+        return ''
+      }
     }
   }
 }

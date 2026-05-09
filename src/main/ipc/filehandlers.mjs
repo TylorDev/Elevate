@@ -3,20 +3,17 @@ import log from 'electron-log/main.js'
 import {
   extractAudioCover,
   getFileInfos,
-  getOrCreateSong,
   resizeCover,
   getCoverFromCache
 } from './utils/utils.mjs'
 
 import {
   scanDirectoryAsync,
-  discoverSubdirectories,
   indexDirectoryIncrementally,
   updateDirectoryStats
 } from './utils/directoryScanner.mjs'
 
 import {
-  startWatching,
   stopWatching,
   setNotifyRenderer
 } from './utils/directoryWatcher.mjs'
@@ -26,6 +23,7 @@ import path from 'path'
 import { sendNotification } from '../index.mjs'
 import { prisma } from '../prisma.mjs'
 import { setBraveVolume } from './audio.mjs'
+import { addDirectoryToLibrary } from './utils/libraryIngestion.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron
@@ -214,94 +212,26 @@ export function setupFilehandlers() {
   // ─── add-directory ───────────────────────────────────────────────
   // Opens native dialog, discovers sub-directories with audio,
   // registers them in DB, and kicks off background indexing.
-  ipcMain.handle('add-directory', async () => {
+  ipcMain.handle('add-directory', async (_, providedPath = null) => {
     try {
-      const result = await dialog.showOpenDialog({
-        properties: ['openDirectory']
-      })
+      let selectedPath = providedPath
 
-      if (result.canceled) {
-        return null
-      }
-      const selectedPath = result.filePaths[0]
-
-      // Discover sub-directories that contain audio files
-      const audioDirs = await discoverSubdirectories(selectedPath)
-
-      if (audioDirs.length === 0) {
-        return { success: false, message: 'No audio files found in the selected directory.' }
-      }
-
-      // Find or create the root directory entry (only if it has direct audio)
-      let rootDirRecord = null
-      if (audioDirs.includes(selectedPath)) {
-        rootDirRecord = await prisma.directory.upsert({
-          where: { path: selectedPath },
-          update: {},
-          create: { path: selectedPath }
-        })
-      }
-
-      // Register each sub-directory with its parent relationship
-      for (const dirPath of audioDirs) {
-        if (dirPath === selectedPath) continue
-
-        const parentPath = path.dirname(dirPath)
-        const parentRecord = await prisma.directory.findUnique({
-          where: { path: parentPath }
+      if (!selectedPath) {
+        const result = await dialog.showOpenDialog({
+          properties: ['openDirectory']
         })
 
-        await prisma.directory.upsert({
-          where: { path: dirPath },
-          update: {},
-          create: {
-            path: dirPath,
-            // Only assign parentId if the parent actually exists in the DB
-            parentId: parentRecord?.id || rootDirRecord?.id || null
-          }
-        })
-      }
-
-      invalidateDirectoryCache()
-
-      // Start watching the root directory (covers all subdirectories recursively)
-      startWatching(selectedPath)
-
-      // Background indexing — don't await, respond to renderer immediately
-      const allDirsToIndex = await prisma.directory.findMany({
-        where: { path: { in: audioDirs } }
-      })
-
-      setImmediate(async () => {
-        for (const dir of allDirsToIndex) {
-          try {
-            const stats = await indexDirectoryIncrementally(dir.path, (progress) => {
-              sendNotification(
-                JSON.stringify({
-                  type: 'scan-progress',
-                  ...progress
-                })
-              )
-            })
-
-            await prisma.directory.update({
-              where: { id: dir.id },
-              data: {
-                totalTracks: stats.totalTracks,
-                totalDuration: stats.totalDuration,
-                lastScannedAt: new Date()
-              }
-            })
-          } catch (err) {
-            console.error(`Error indexing ${dir.path}:`, err.message)
-          }
+        if (result.canceled) {
+          return null
         }
 
-        // Notify renderer that indexing is complete
-        sendNotification('[directory-changed]')
-      })
+        selectedPath = result.filePaths[0]
+      }
 
-      return { success: true, message: 'Directory added successfully.', count: audioDirs.length }
+      return await addDirectoryToLibrary(selectedPath, {
+        notifyRenderer: sendNotification,
+        invalidateDirectoryCache
+      })
     } catch (error) {
       console.error('Error selecting files:', error)
       throw error

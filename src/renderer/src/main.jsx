@@ -9,6 +9,7 @@ import { LikesProvider } from './Contexts/LikeContext'
 import { AudioProvider } from './Contexts/AudioContext'
 import { PlaylistsProvider } from './Contexts/PlaylistsContex'
 import { SessionProvider } from './Contexts/SessionContext'
+import { ArgvProvider } from './Contexts/ArgvContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -17,13 +18,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <SuperProvider>
           <AppProvider>
             <MiniProvider>
-              <PlaylistsProvider>
-                <LikesProvider>
-                  <AudioProvider>
-                    <App />
-                  </AudioProvider>
-                </LikesProvider>
-              </PlaylistsProvider>
+              <ArgvProvider>
+                <PlaylistsProvider>
+                  <LikesProvider>
+                    <AudioProvider>
+                      <App />
+                    </AudioProvider>
+                  </LikesProvider>
+                </PlaylistsProvider>
+              </ArgvProvider>
             </MiniProvider>
           </AppProvider>
         </SuperProvider>

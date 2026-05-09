@@ -98,6 +98,8 @@ export const ElectronGetter = async (action, setState = null, value = null, mess
     } else {
       console.log('No files were selected')
     }
+
+    return fileInfos
   } catch (error) {
     // Mostrar el error del backend
     toast.error(error.message || 'Error desconocido', {
@@ -112,6 +114,7 @@ export const ElectronGetter = async (action, setState = null, value = null, mess
       transition: Bounce
     })
     console.error('Error selecting files:', error)
+    throw error
   }
 }
 

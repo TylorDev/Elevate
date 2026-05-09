@@ -65,7 +65,7 @@ export const SuperProvider = ({ children }) => {
   const navigate = useNavigate()
 
   const PlayQueue = (list, name, index = null) => {
-    if (index) {
+    if (index !== null && index !== undefined && list[index]) {
       setCurrentFile(list[index])
       setQueueState({
         currentQueue: list,

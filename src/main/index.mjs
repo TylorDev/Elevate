@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import icon from '../../resources/icon.png'
 import log from 'electron-log/main.js'
+import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
 
 let mainWin
 let prisma
@@ -88,10 +89,15 @@ const saveWindowState = () => {
 }
 
 export function sendNotification(message) {
+  if (!mainWin || mainWin.isDestroyed() || mainWin.webContents.isDestroyed()) {
+    return
+  }
+
   mainWin.webContents.send('notification', message)
 }
 
 function createWindow() {
+  markLaunchWindowPending()
   const savedState = loadWindowState()
 
   const mainWindow = new BrowserWindow({
@@ -175,10 +181,21 @@ if (!gotTheLock) {
   app.quit()
 } else {
   app.on('second-instance', (event, commandLine, workingDirectory) => {
+    console.info('[argv/main] second-instance event', {
+      commandLine,
+      workingDirectory
+    })
+
     if (mainWin) {
       if (mainWin.isMinimized()) mainWin.restore()
       mainWin.focus()
     }
+
+    void processAndDispatchLaunchArgs(commandLine.slice(1), {
+      mainWindow: mainWin,
+      workingDirectory,
+      notifyRenderer: sendNotification
+    })
   })
 
   app.whenReady().then(async () => {
@@ -202,6 +219,7 @@ if (!gotTheLock) {
 
   setupMusicHandlers()
   setupFilehandlers()
+  setupArgvHandlers()
   setupPlaylistHandlers()
   setupLikeSongHandlers()
 
@@ -210,6 +228,13 @@ if (!gotTheLock) {
   await initializeWatchers()
 
   createWindow()
+  console.info('[argv/main] initial process.argv', process.argv)
+  await processAndDispatchLaunchArgs(process.argv.slice(1), {
+    mainWindow: mainWin,
+    workingDirectory: process.cwd(),
+    notifyRenderer: sendNotification,
+    batchWindowMs: 0
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

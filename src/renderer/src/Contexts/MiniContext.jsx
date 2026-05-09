@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import {
   createLatestOnlyInvoker,
   ElectronDelete,
@@ -114,11 +114,25 @@ export const MiniProvider = ({ children }) => {
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
     setDirectoriesLoaded(false)
   }
-  const addDirectory = async () => {
-    const result = await ElectronGetter('add-directory', null, null, 'Directorio agregado!')
-    if (result && result.success) {
-      getDirectories({ force: true })
+
+  const addDirectory = async (directoryPath = null) => {
+    const normalizedPath =
+      directoryPath && typeof directoryPath === 'object' && 'nativeEvent' in directoryPath
+        ? null
+        : directoryPath
+
+    const result = await ElectronGetter(
+      'add-directory',
+      null,
+      normalizedPath,
+      'Directorio agregado!'
+    )
+
+    if (result) {
+      await getDirectories({ force: true })
     }
+
+    return result
   }
   const getDirFiles = (setState, value) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
