@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { DirItem } from '../../DirItem/DirItem'
 import { useMini } from '../../../Contexts/MiniContext'
 import Cola from '../../Cola/Cola'
+import VirtualizedQueueEntityList from '../VirtualizedQueueEntityList'
 import './DirectoriesQueueTab.scss'
+
+const DIRECTORY_ROW_HEIGHT = 76
+const DIRECTORY_OVERSCAN = 6
 
 function getLastPart(path = '') {
   const parts = path.split('\\')
@@ -15,7 +19,6 @@ function DirectoriesQueueTab({ isActive }) {
     useMini()
   const [selectedDirectory, setSelectedDirectory] = useState(null)
   const [currentDir, setCurrentDir] = useState([])
-  const getDirFilesRef = useRef(getDirFiles)
   const selectedDirectoryPath = selectedDirectory?.path
 
   useEffect(() => {
@@ -25,15 +28,16 @@ function DirectoriesQueueTab({ isActive }) {
   }, [directoriesLoaded, directoriesLoading, getDirectories, isActive])
 
   useEffect(() => {
-    getDirFilesRef.current = getDirFiles
-  }, [getDirFiles])
-
-  useEffect(() => {
     if (!selectedDirectoryPath) return
 
     setCurrentDir([])
-    getDirFilesRef.current(setCurrentDir, selectedDirectoryPath)
-  }, [selectedDirectoryPath])
+    getDirFiles(setCurrentDir, selectedDirectoryPath)
+  }, [getDirFiles, selectedDirectoryPath])
+
+  const renderDirectoryRow = useCallback(
+    (directory, index, style) => <DirItem key={directory?.id || index} directory={directory} disableNavigation onSelect={setSelectedDirectory} style={style} />,
+    []
+  )
 
   if (selectedDirectory) {
     return (
@@ -56,24 +60,15 @@ function DirectoriesQueueTab({ isActive }) {
 
   return (
     <div className="DirectoriesQueueTab">
-      <ul className="DirectoriesQueueTab__list">
-        {directories.length > 0 ? (
-          directories.map((directory) => (
-            <DirItem
-              key={directory.id}
-              directory={directory}
-              disableNavigation
-              onSelect={setSelectedDirectory}
-            />
-          ))
-        ) : (
-          <>
-            <DirItem />
-            <DirItem />
-            <DirItem />
-          </>
-        )}
-      </ul>
+      <VirtualizedQueueEntityList
+        className="DirectoriesQueueTab__list"
+        items={directories}
+        itemSize={DIRECTORY_ROW_HEIGHT}
+        overscanCount={DIRECTORY_OVERSCAN}
+        itemKey={(index, directory) => directory?.id || directory?.path || `directory-${index}`}
+        renderItem={renderDirectoryRow}
+        loading={!directoriesLoaded && directoriesLoading}
+      />
     </div>
   )
 }

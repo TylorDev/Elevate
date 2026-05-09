@@ -15,6 +15,7 @@ export function UndefinedItem({
   onMenuSelect,
   to,
   className = '',
+  style,
   isLoading = false,
   loadingComponent
 }) {
@@ -38,7 +39,7 @@ export function UndefinedItem({
   }
 
   return (
-    <li className={`UndefinedItem ${className}`}>
+    <li className={`UndefinedItem ${className}`} style={style}>
       <div className="ui-cover-wrapper" onClick={onTitleClick || undefined}>
         {typeof cover === 'string' ? (
           <img src={cover} alt={title} className="ui-cover-img" />

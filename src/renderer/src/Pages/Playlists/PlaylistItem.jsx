@@ -1,43 +1,35 @@
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { FaPlay, FaEdit, FaTrash } from 'react-icons/fa'
+import { formatDuration } from '../../../timeUtils'
+import { FaTrash } from 'react-icons/fa'
 import { useNavigate } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import Modal from '../../Components/Modal/Modal'
-import PlaylistForm from '../../Components/PlaylistForm/PlaylistForm'
-import { useEffect, useState } from 'react'
+import { memo, useMemo } from 'react'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
 import { UndefinedItem } from '../../Components/UndefinedItem/UndefinedItem'
 
-export function PlaylistItem({
+export const PlaylistItem = memo(function PlaylistItem({
   playlist,
   addPlaylisthistory,
-  index,
   onSelect,
-  disableNavigation = false
+  disableNavigation = false,
+  style
 }) {
   if (!playlist) {
     return (
-      <li className="PlaylistItem loading" id="LoadPlaylistItem">
+      <li className="PlaylistItem loading" id="LoadPlaylistItem" style={style}>
         <Skeleton height="60px" borderRadius="12px" />
       </li>
     )
   }
 
-  const { deletePlaylist, updatePlaylist } = usePlaylists()
+  const { deletePlaylist } = usePlaylists()
   const { getImage, handleQueueAndPlay } = useSuper()
   const navigate = useNavigate()
 
-  const [isVisible, setIsVisible] = useState(false)
-  const [back, setBack] = useState(null)
-
-  useEffect(() => {
-    const cover = getImage(playlist.path, playlist.cover)
-    setBack(cover)
-  }, [playlist, getImage])
-
-  const openModal = () => setIsVisible(true)
-  const closeModal = () => setIsVisible(false)
+  const back = useMemo(
+    () => (playlist.cover ? getImage(playlist.path, playlist.cover) : null),
+    [getImage, playlist.cover, playlist.path]
+  )
 
   const selectPlaylist = () => {
     if (disableNavigation) {
@@ -53,32 +45,25 @@ export function PlaylistItem({
   }
 
   const menuOptions = [
-    { id: 'edit', label: 'Edit Playlist', icon: <FaEdit /> },
-    { id: 'delete', label: 'Delete Playlist', icon: <FaTrash color="#ff4444" /> },
+    { id: 'delete', label: 'Delete Playlist', icon: <FaTrash color="#ff4444" /> }
   ]
 
   const handleMenuSelect = (optionId) => {
     if (optionId === 'delete') deletePlaylist(playlist.path)
-    if (optionId === 'edit') openModal()
   }
 
   return (
-    <>
-      <UndefinedItem
-        cover={back}
-        title={playlist.nombre}
-        subtitle={`${playlist.numElementos} tracks`}
-        extraInfo={formatDuration(playlist.duracion)}
-        onTitleClick={selectPlaylist}
-        onPlayClick={handlePlayClick}
-        menuOptions={menuOptions}
-        onMenuSelect={handleMenuSelect}
-        className="PlaylistItem-ui"
-      />
-
-      <Modal isVisible={isVisible} closeModal={closeModal}>
-        <PlaylistForm playlist={playlist} onUpdate={updatePlaylist} close={closeModal} />
-      </Modal>
-    </>
+    <UndefinedItem
+      cover={back}
+      title={playlist.nombre}
+      subtitle={`${playlist.numElementos} tracks`}
+      extraInfo={formatDuration(playlist.duracion)}
+      onTitleClick={selectPlaylist}
+      onPlayClick={handlePlayClick}
+      menuOptions={menuOptions}
+      onMenuSelect={handleMenuSelect}
+      className="PlaylistItem-ui"
+      style={style}
+    />
   )
-}
+})

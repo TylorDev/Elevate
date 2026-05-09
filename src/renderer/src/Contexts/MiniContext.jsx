@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createLatestOnlyInvoker,
   ElectronDelete,
@@ -15,13 +15,19 @@ const MiniContext = createContext()
  
 export const MiniProvider = ({ children }) => {
   const [recents, setRecents] = useState([])
-  const getRecents = () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!')
+  const getRecents = useCallback(
+    () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!'),
+    []
+  )
 
   const [most, setMost] = useState([])
-  const getMost = () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!')
+  const getMost = useCallback(
+    () => ElectronGetter('get-most-played', setMost, null, 'Mas eschados cargados!'),
+    []
+  )
 
   const [results, setResults] = useState([])
-  const searchSongs = async (value) => await ElectronGetter2('search', setResults, value)
+  const searchSongs = useCallback(async (value) => await ElectronGetter2('search', setResults, value), [])
 
   const [directories, setDiretories] = useState([])
   const [directoriesLoading, setDirectoriesLoading] = useState(false)
@@ -36,41 +42,44 @@ export const MiniProvider = ({ children }) => {
   const { getImage } = useSuper()
 
   // Función para agregar un elemento al final de la lista
-  function agregarElemento(elemento) {
+  const agregarElemento = useCallback((elemento) => {
     if (elemento === null || elemento === undefined) {
       console.error('Elemento no puede ser nulo o indefinido.')
       return
     }
 
-    const existe = lista.some((item) => item.filePath === elemento.filePath)
-    if (existe) {
-      console.warn('Elemento ya existe en la lista.')
-      return
-    }
+    setLista((currentList) => {
+      const existe = currentList.some((item) => item.filePath === elemento.filePath)
 
-    setLista([...lista, elemento])
-    console.log(lista)
-  }
+      if (existe) {
+        console.warn('Elemento ya existe en la lista.')
+        return currentList
+      }
+
+      return [...currentList, elemento]
+    })
+  }, [])
 
   // Función para eliminar un elemento por su índice
-  function eliminarElemento(elemento) {
+  const eliminarElemento = useCallback((elemento) => {
     if (elemento === null || elemento === undefined) {
       console.error('Elemento no puede ser nulo o indefinido.')
       return
     }
 
-    const existe = lista.some((item) => item.filePath === elemento.filePath)
-    if (!existe) {
-      console.warn('Elemento no encontrado en la lista.')
-      console.log(lista)
-      return
-    }
+    setLista((currentList) => {
+      const existe = currentList.some((item) => item.filePath === elemento.filePath)
 
-    setLista(lista.filter((item) => item.filePath !== elemento.filePath))
-    console.log(lista)
-  }
+      if (!existe) {
+        console.warn('Elemento no encontrado en la lista.')
+        return currentList
+      }
 
-  const getDirectories = async ({ force = false } = {}) => {
+      return currentList.filter((item) => item.filePath !== elemento.filePath)
+    })
+  }, [])
+
+  const getDirectories = useCallback(async ({ force = false } = {}) => {
     if (!force && directoriesLoaded) {
       return directories
     }
@@ -104,18 +113,18 @@ export const MiniProvider = ({ children }) => {
 
     directoriesRequestRef.current = request
     return request
-  }
+  }, [directories, directoriesLoaded])
 
-  const getDirectoryData = (setState, path) => {
+  const getDirectoryData = useCallback((setState, path) => {
     ElectronGetter('get-directory-by-path', setState, path, 'directorios obtenidos!')
-  }
-  const deleteDirectory = async (path) => {
+  }, [])
+  const deleteDirectory = useCallback(async (path) => {
     await ElectronDelete('delete-directory', path, 'directorio eliminado!')
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
     setDirectoriesLoaded(false)
-  }
+  }, [])
 
-  const addDirectory = async (directoryPath = null) => {
+  const addDirectory = useCallback(async (directoryPath = null) => {
     const normalizedPath =
       directoryPath && typeof directoryPath === 'object' && 'nativeEvent' in directoryPath
         ? null
@@ -133,10 +142,10 @@ export const MiniProvider = ({ children }) => {
     }
 
     return result
-  }
-  const getDirFiles = (setState, value) => {
+  }, [getDirectories])
+  const getDirFiles = useCallback((setState, value) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
-  }
+  }, [])
 
   // Listen for directory changes from the watcher and scan progress
   const getDirectoriesRef = useRef(getDirectories)
@@ -171,10 +180,11 @@ export const MiniProvider = ({ children }) => {
     }
   }, [])
 
-  const getHistory = (page = 1) =>
+  const getHistory = useCallback((page = 1) =>
     ElectronGetter('get-history', setHistory, page, 'se obtuvo el historial')
+  , [])
 
-  const getlatersongs = async () => {
+  const getlatersongs = useCallback(async () => {
     await ElectronGetter(
       'get-listen-later',
       (laterData) => {
@@ -186,56 +196,81 @@ export const MiniProvider = ({ children }) => {
       null,
       'listen later cargados!'
     )
-  }
+  }, [getImage])
 
-  const removelatersong = (common) => ElectronSetter('remove-listen-later', common, getlatersongs)
-  const latersong = (common) => ElectronSetter('listen-later-song', common)
-  const getTotalTracks = (setState) => {
+  const removelatersong = useCallback((common) => ElectronSetter('remove-listen-later', common, getlatersongs), [getlatersongs])
+  const latersong = useCallback((common) => ElectronSetter('listen-later-song', common), [])
+  const getTotalTracks = useCallback((setState) => {
     ElectronGetter2('get-all-audio-files-number', setState)
-  }
-  const getTotalLikes = (setState) => {
+  }, [])
+  const getTotalLikes = useCallback((setState) => {
     ElectronGetter2('get-likes-number', setState)
-  }
-  const getTotalLists = (setState) => {
+  }, [])
+  const getTotalLists = useCallback((setState) => {
     ElectronGetter2('get-playlists-number', setState)
-  }
-  return (
-    <MiniContext.Provider
-      value={{
-        recents, //     LISTA RECIENTES
-        getRecents, //  OBTIENE LA  LISTA RECIENTES
+  }, [])
 
-        most, //      LISTA MAS POPULARES
-        getMost, //      OBTIENE LA LISTA  MAS POPULARES
-
-        results, // LISTA BARRA DE BUSQUEDA
-        searchSongs, // BUSCA CANCIONES EN LA BD
-
-        directories, // LISTA DIRECTORIOS
+  const contextValue = useMemo(() => ({
+        recents,
+        getRecents,
+        most,
+        getMost,
+        results,
+        searchSongs,
+        directories,
         directoriesLoading,
         directoriesLoaded,
         directoriesLastLoadedAt,
-        scanProgress, // PROGRESO DE ESCANEO { dirPath, processed, total }
+        scanProgress,
         addDirectory,
-        getDirectories, //  OBTIENE LA  LISTA DIRECTORIOS
-        deleteDirectory, // borra un directorio especifico
+        getDirectories,
+        deleteDirectory,
         getDirFiles,
-        history, // LISTA DE HISTORIAL
-        getHistory, //  OBTIENE LA  LISTA DE HISTORIAL
+        history,
+        getHistory,
         getDirectoryData,
-
-        later, //  LISTA MAS TARDE
-        getlatersongs, //  OBTIENE LA LISTA MAS TARDE
-        removelatersong, // QUITA UNA CANCION DE ESCUCHAR MAS TARDE
-        latersong, // agrega una cancion a la LISTA MAS TARDE
-        lista, // lista personalizada
+        later,
+        getlatersongs,
+        removelatersong,
+        latersong,
+        lista,
         agregarElemento,
         eliminarElemento,
         getTotalTracks,
         getTotalLikes,
         getTotalLists
-      }}
-    >
+      }), [
+        recents,
+        getRecents,
+        most,
+        getMost,
+        results,
+        searchSongs,
+        directories,
+        directoriesLoading,
+        directoriesLoaded,
+        directoriesLastLoadedAt,
+        scanProgress,
+        addDirectory,
+        getDirectories,
+        deleteDirectory,
+        getDirFiles,
+        history,
+        getHistory,
+        getDirectoryData,
+        later,
+        getlatersongs,
+        removelatersong,
+        latersong,
+        lista,
+        agregarElemento,
+        eliminarElemento,
+        getTotalTracks,
+        getTotalLikes,
+        getTotalLists
+      ])
+  return (
+    <MiniContext.Provider value={contextValue}>
       {children}
     </MiniContext.Provider>
   )

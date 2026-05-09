@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useEffect, useState, useMemo } from 'react'
+import { createContext, useContext, useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { dataToImageUrl, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
 import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
 import { useNavigate } from 'react-router-dom'
@@ -50,7 +50,7 @@ export const SuperProvider = ({ children }) => {
     setIsAwaken(value)
   }
 
-  const getImage = (name, data) => {
+  const getImage = useCallback((name, data) => {
     const existingImage = imagesRef.current.get(name)
 
     if (existingImage) {
@@ -60,7 +60,7 @@ export const SuperProvider = ({ children }) => {
     const url = dataToImageUrl(data)
     imagesRef.current.set(name, url)
     return url
-  }
+  }, [])
 
   const navigate = useNavigate()
 
@@ -106,7 +106,7 @@ export const SuperProvider = ({ children }) => {
         newFilePath
       )
       if (newQueue) {
-        setQueueState((prevState) => ({
+        setQueueState(() => ({
           queueName: filePath,
           currentQueue: newQueue,
           originalQueue: newQueue
@@ -120,7 +120,7 @@ export const SuperProvider = ({ children }) => {
 
       if (newQueue) {
         const processedQueue = newQueue.processedData
-        setQueueState((prevState) => ({
+        setQueueState(() => ({
           queueName: filePath,
           currentQueue: processedQueue,
           originalQueue: processedQueue
@@ -150,8 +150,8 @@ export const SuperProvider = ({ children }) => {
     const audio = mediaRef.current
 
     const updateProgress = () => {
-      if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
-      progressRafRef.current = requestAnimationFrame(() => {
+      if (progressRafRef.current) window.cancelAnimationFrame(progressRafRef.current)
+      progressRafRef.current = window.requestAnimationFrame(() => {
         setProgress(audio.currentTime)
       })
     }
@@ -172,7 +172,7 @@ export const SuperProvider = ({ children }) => {
     audio.addEventListener('ended', handleEnded)
 
     return () => {
-      if (progressRafRef.current) cancelAnimationFrame(progressRafRef.current)
+      if (progressRafRef.current) window.cancelAnimationFrame(progressRafRef.current)
       audio.removeEventListener('timeupdate', updateProgress)
       audio.removeEventListener('loadedmetadata', updateDuration)
       audio.removeEventListener('durationchange', updateDuration)
@@ -201,17 +201,17 @@ export const SuperProvider = ({ children }) => {
 
 
 
-  const handlePreviousClick = () => {
+  const handlePreviousClick = useCallback(() => {
     if (currentIndex > 0) {
       goToPrevious(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
     }
-  }
+  }, [currentIndex, queueState.currentQueue, setCurrentFile, setCurrentIndex])
 
-  const handleNextClick = () => {
+  const handleNextClick = useCallback(() => {
     if (currentIndex < queueState.currentQueue.length - 1) {
       goToNext(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
     }
-  }
+  }, [currentIndex, queueState.currentQueue, setCurrentFile, setCurrentIndex])
 
   const togglePlayPause = () => {
     if (!currentFile?.filePath && queueState.currentQueue.length > 0) {
@@ -225,7 +225,7 @@ export const SuperProvider = ({ children }) => {
     toMute(mediaRef, muted, setMuted)
   }
 
-  const setMediaVolume = (value) => {
+  const setMediaVolume = useCallback((value) => {
     const nextVolume = Math.max(0, Math.min(1, Number(value) || 0))
     setVolume(nextVolume)
 
@@ -235,7 +235,7 @@ export const SuperProvider = ({ children }) => {
     }
 
     setMuted(nextVolume === 0)
-  }
+  }, [])
 
   const [isStep, setIsStep] = useState(false)
   const minVolume = 0.02 // Define el volumen mínimo permitido
@@ -319,15 +319,15 @@ export const SuperProvider = ({ children }) => {
     navigate('/music')
   }
 
-  const handleSaveClick = async () => {
+  const handleSaveClick = useCallback(async () => {
     const paths = queueState.currentQueue.map((file) => file.filePath)
     const result = await electronInvoke('save-m3u', { filePaths: paths })
     if (result && result.success) {
       console.log('M3U file saved successfully at', result.path)
     }
-  }
+  }, [queueState.currentQueue])
 
-  const removeTrack = async (playlistPath, index) => {
+  const removeTrack = useCallback(async (playlistPath, index) => {
     const result = await electronInvoke('update-list', {
       filePath: playlistPath,
       index
@@ -354,9 +354,9 @@ export const SuperProvider = ({ children }) => {
         })
       }, 1000)
     }
-  }
+  }, [])
 
-  const addSong = async (playlistPath, newTrack) => {
+  const addSong = useCallback(async (playlistPath, newTrack) => {
     const result = await electronInvoke('add-new-song', {
       filePath: playlistPath,
       song: newTrack.filePath
@@ -381,15 +381,15 @@ export const SuperProvider = ({ children }) => {
         transition: Bounce
       })
     }
-  }
+  }, [])
 
-  const addhistory = (common) => ElectronSetter('add-history', common)
+  const addhistory = useCallback((common) => ElectronSetter('add-history', common), [])
 
-  const handleSongClick = (file, index, list, name) => {
+  const handleSongClick = useCallback((file, index, list, name) => {
     setCurrentFile(file)
     setCurrentIndex(index)
     setQueueState({ currentQueue: list, originalQueue: list, queueName: name })
-  }
+  }, [setCurrentFile, setCurrentIndex, setQueueState])
 
 
 

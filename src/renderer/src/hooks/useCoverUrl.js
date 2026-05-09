@@ -20,6 +20,11 @@ const coverCaches = {
   full: new Map()
 }
 
+const pendingCoverLoads = {
+  thumb: new Map(),
+  full: new Map()
+}
+
 function toObjectUrl(cover) {
   if (!cover?.data) return null
 
@@ -46,9 +51,74 @@ function pruneCache(cache, limit) {
   }
 }
 
+function getCoverCache(variant = 'thumb') {
+  return coverCaches[variant] || coverCaches.thumb
+}
+
+function getPendingCoverLoads(variant = 'thumb') {
+  return pendingCoverLoads[variant] || pendingCoverLoads.thumb
+}
+
+function getCoverConfig(variant = 'thumb') {
+  return COVER_CONFIG[variant] || COVER_CONFIG.thumb
+}
+
+export function getCachedCoverUrl(filePath, variant = 'thumb') {
+  if (!filePath) return DEFAULT_COVER
+
+  const cache = getCoverCache(variant)
+  const cachedEntry = cache.get(filePath)
+
+  if (!cachedEntry) {
+    return null
+  }
+
+  touchCacheEntry(cache, filePath, cachedEntry)
+  return cachedEntry.url || DEFAULT_COVER
+}
+
+export function preloadCoverUrl(filePath, variant = 'thumb') {
+  if (!filePath) {
+    return Promise.resolve(DEFAULT_COVER)
+  }
+
+  const cachedUrl = getCachedCoverUrl(filePath, variant)
+  if (cachedUrl) {
+    return Promise.resolve(cachedUrl)
+  }
+
+  const cache = getCoverCache(variant)
+  const pendingLoads = getPendingCoverLoads(variant)
+  const config = getCoverConfig(variant)
+  const pendingLoad = pendingLoads.get(filePath)
+
+  if (pendingLoad) {
+    return pendingLoad
+  }
+
+  const loadPromise = dedupedInvoke(config.action, filePath)
+    .then((cover) => {
+      const url = toObjectUrl(cover) || DEFAULT_COVER
+      cache.set(filePath, { url })
+      pruneCache(cache, config.limit)
+      return url
+    })
+    .catch((error) => {
+      console.error(`Error loading ${variant} cover:`, error)
+      cache.set(filePath, { url: DEFAULT_COVER })
+      pruneCache(cache, config.limit)
+      return DEFAULT_COVER
+    })
+    .finally(() => {
+      pendingLoads.delete(filePath)
+    })
+
+  pendingLoads.set(filePath, loadPromise)
+  return loadPromise
+}
+
 export function useCoverUrl(filePath, variant = 'thumb') {
   const [coverUrl, setCoverUrl] = useState(DEFAULT_COVER)
-  const config = COVER_CONFIG[variant] || COVER_CONFIG.thumb
 
   useEffect(() => {
     let isMounted = true
@@ -60,12 +130,10 @@ export function useCoverUrl(filePath, variant = 'thumb') {
       }
     }
 
-    const cache = coverCaches[variant] || coverCaches.thumb
-    const cachedEntry = cache.get(filePath)
+    const cachedUrl = getCachedCoverUrl(filePath, variant)
 
-    if (cachedEntry) {
-      touchCacheEntry(cache, filePath, cachedEntry)
-      setCoverUrl(cachedEntry.url || DEFAULT_COVER)
+    if (cachedUrl) {
+      setCoverUrl(cachedUrl)
       return () => {
         isMounted = false
       }
@@ -73,28 +141,16 @@ export function useCoverUrl(filePath, variant = 'thumb') {
 
     setCoverUrl(DEFAULT_COVER)
 
-    dedupedInvoke(config.action, filePath)
-      .then((cover) => {
-        if (!isMounted) return
-
-        const url = toObjectUrl(cover) || DEFAULT_COVER
-        cache.set(filePath, { url })
-        pruneCache(cache, config.limit)
+    preloadCoverUrl(filePath, variant).then((url) => {
+      if (isMounted) {
         setCoverUrl(url)
-      })
-      .catch((error) => {
-        console.error(`Error loading ${variant} cover:`, error)
-        if (isMounted) {
-          cache.set(filePath, { url: DEFAULT_COVER })
-          pruneCache(cache, config.limit)
-          setCoverUrl(DEFAULT_COVER)
-        }
-      })
+      }
+    })
 
     return () => {
       isMounted = false
     }
-  }, [config.action, config.limit, filePath, variant])
+  }, [filePath, variant])
 
   return coverUrl
 }

@@ -1,5 +1,8 @@
- 
-import { createContext, useState, useContext, useEffect, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Bounce, toast } from 'react-toastify'
+import { useCoverUrl } from '../hooks/useCoverUrl'
+import { useMini } from './MiniContext'
+import { useSuper } from './SupeContext'
 import {
   createLatestOnlyInvoker,
   dataToImageUrl,
@@ -8,20 +11,18 @@ import {
   ElectronGetter,
   ElectronSetter2
 } from './utils'
-import { Bounce, toast } from 'react-toastify'
-import { useCoverUrl } from '../hooks/useCoverUrl'
-
-import { useSuper } from './SupeContext'
-import { useMini } from './MiniContext'
 
 const ContextLikes = createContext()
 
 export const usePlaylists = () => useContext(ContextLikes)
 
 export const PlaylistsProvider = ({ children }) => {
-  const { currentFile, getImage } = useSuper()
+  const { currentFile } = useSuper()
   const currentCover = useCoverUrl(currentFile?.filePath, 'full')
-  const [allSongs, SetAllSongs] = useState([]) // 1 ref - 5 ref
+  const { getDirectories, deleteDirectory } = useMini()
+  const { removeTrack, addSong } = useSuper()
+
+  const [allSongs, SetAllSongs] = useState([])
   const [allSongsLoading, setAllSongsLoading] = useState(false)
   const [allSongsHasMore, setAllSongsHasMore] = useState(true)
   const [allSongsPage, setAllSongsPage] = useState(0)
@@ -35,95 +36,61 @@ export const PlaylistsProvider = ({ children }) => {
   const playlistsInvokerRef = useRef(createLatestOnlyInvoker())
   const allSongsRequestRef = useRef(null)
   const allSongsLoadedPagesRef = useRef(new Set())
-  const [arrayCovers, setArrayCovers] = useState([])
-  const [arrayAlbums, setArrayAlbums] = useState([])
+  const [, setArrayCovers] = useState([])
+  const [, setArrayAlbums] = useState([])
+  const [news, setNews] = useState([])
 
-  const { removeTrack, addSong } = useSuper()
-
-  const { getDirectories, deleteDirectory } = useMini()
-  const removeSongFromList = async (playlistPath, index) => {
-    await removeTrack(playlistPath, index)
-
-    getSavedLists({ force: true })
-  }
-
-  const addSongToList = async (playlistPath, newTrack) => {
-    await addSong(playlistPath, newTrack)
-    getSavedLists({ force: true })
-  }
-
-  const updateArrayCovers = (someArray) => {
+  const updateArrayCovers = useCallback((someArray) => {
     if (someArray == null) {
       return null
     }
-    // Crear un Set para filePaths existentes
-    const existingFilePaths = new Set(arrayCovers.map((item) => item.filePath))
 
-    // Filtrar someArray para encontrar los nuevos elementos
-    const newItems = someArray.filter((item) => {
-      if (existingFilePaths.has(item.filePath)) {
-        return false
-      } else {
-        // console.log(`Nuevo filePath encontrado: ${item.filePath}.`)
-        return true
+    setArrayCovers((currentCovers) => {
+      const existingFilePaths = new Set(currentCovers.map((item) => item.filePath))
+      const newItems = someArray.filter((item) => !existingFilePaths.has(item.filePath))
+
+      if (newItems.length === 0) {
+        return currentCovers
       }
+
+      return currentCovers.concat(
+        newItems.map((item, index) => ({
+          id: currentCovers.length + index,
+          filePath: item.filePath,
+          cover: item.picture && item.picture.length > 0 ? dataToImageUrl(item.picture[0]) : null
+        }))
+      )
     })
+  }, [])
 
-    // Crear un array de nuevos objetos con id generado (puedes ajustar esto según sea necesario)
-    const newArrayCover = arrayCovers.concat(
-      newItems.map((item, index) => ({
-        id: arrayCovers.length + index, // Generar un nuevo id basado en el tamaño actual del arrayCover
-        filePath: item.filePath,
-        cover: item.picture && item.picture.length > 0 ? dataToImageUrl(item.picture[0]) : null
-      }))
-    )
-
-    // Actualizar el estado con el nuevo arrayCover
-    setArrayCovers(newArrayCover)
-    // console.log('arrayCover actualizado:', newArrayCover)
-  }
-
-  const updateArrayAlbums = (someArray) => {
+  const updateArrayAlbums = useCallback((someArray) => {
     if (someArray == null) {
       return null
     }
-    // Crear un Set para filePaths existentes
-    const existingFilePaths = new Set(arrayAlbums.map((item) => item.path))
 
-    // Filtrar someArray para encontrar los nuevos elementos
-    const newItems = someArray.filter((item) => {
-      if (existingFilePaths.has(item.path)) {
-        return false
-      } else {
-        console.log(`Nuevo filePath encontrado: ${item.path}.`)
-        return true
+    setArrayAlbums((currentAlbums) => {
+      const existingFilePaths = new Set(currentAlbums.map((item) => item.path))
+      const newItems = someArray.filter((item) => !existingFilePaths.has(item.path))
+
+      if (newItems.length === 0) {
+        return currentAlbums
       }
+
+      return currentAlbums.concat(
+        newItems.map((item, index) => ({
+          id: currentAlbums.length + index,
+          path: item.path,
+          cover: dataToImageUrl(item.cover)
+        }))
+      )
     })
-
-    // Crear un array de nuevos objetos con id generado (puedes ajustar esto según sea necesario)
-    const newArrayCover = arrayAlbums.concat(
-      newItems.map((item, index) => ({
-        id: arrayAlbums.length + index, // Generar un nuevo id basado en el tamaño actual del arrayCover
-        path: item.path,
-        cover: dataToImageUrl(item.cover)
-      }))
-    )
-
-    // Actualizar el estado con el nuevo arrayCover
-    setArrayAlbums(newArrayCover)
-    console.log('arrayAlbums actualizado:', newArrayCover)
-  }
+  }, [])
 
   useEffect(() => {
     updateArrayAlbums(playlists)
-  }, [playlists])
+  }, [playlists, updateArrayAlbums])
 
-  const openM3U = async () => {
-    await ElectronGetter('load-list', SetAllSongs, null, 'se cargo correctamente la lista nueva') // 0 ref
-    getSavedLists({ force: true })
-  }
-
-  const getSavedLists = async ({ force = false } = {}) => {
+  const getSavedLists = useCallback(async ({ force = false } = {}) => {
     if (!force && playlistsLoaded) {
       return playlists
     }
@@ -157,51 +124,9 @@ export const PlaylistsProvider = ({ children }) => {
 
     playlistsRequestRef.current = request
     return request
-  }
-  const getRandomList = () =>
-    ElectronGetter('get-random-playlist', setRandomPlaylist, null, 'random list cargada')
-  const addPlaylisthistory = (path) => ElectronSetter2('load-list-to-history', path)
-  const updatePlaylist = async (path, data) => {
-    const response = await ElectronSetter2('change-list-name', path, data)
+  }, [playlists, playlistsLoaded])
 
-    if (response.success) {
-      console.log(response.message)
-      getSavedLists({ force: true })
-    } else {
-      console.error(response.message)
-      toast.error(response.message, {
-        position: 'bottom-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'dark',
-        transition: Bounce
-      })
-    }
-
-    return response // Retornar la respuesta para un manejo posterior si es necesario
-  }
-
-  const deletePlaylist = async (filePath) => {
-    await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
-    setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
-    setPlaylistsLoaded(false)
-  }
-  const getUniqueList = async (setState, filePath) => {
-    await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
-  }
-
-  const deleteDirectoryList = async (path) => {
-    await deleteDirectory(path)
-
-    SetAllSongs([])
-    allSongsLoadedPagesRef.current.clear()
-    getAllSongs(1, { reset: true })
-  }
-  const getAllSongs = async (page = 1, { pageSize = 100, reset = false } = {}) => {
+  const getAllSongs = useCallback(async (page = 1, { pageSize = 100, reset = false } = {}) => {
     const nextPage = Math.max(Number(page) || 1, 1)
 
     if (allSongsRequestRef.current) {
@@ -231,7 +156,6 @@ export const PlaylistsProvider = ({ children }) => {
 
         SetAllSongs((prevSongs) => {
           if (reset) {
-            // Deduplicate newSongs internally even on reset
             const seen = new Set()
             return newSongs.filter((song) => {
               if (seen.has(song.filePath)) return false
@@ -250,7 +174,7 @@ export const PlaylistsProvider = ({ children }) => {
           for (const song of newSongs) {
             if (!existingFilePaths.has(song.filePath)) {
               uniqueNewSongs.push(song)
-              existingFilePaths.add(song.filePath) // Add it so we don't pick it twice if it's twice in newSongs
+              existingFilePaths.add(song.filePath)
             }
           }
 
@@ -277,21 +201,84 @@ export const PlaylistsProvider = ({ children }) => {
 
     allSongsRequestRef.current = request
     return request
-  }
+  }, [])
 
-  const [news, setNews] = useState([])
-  const getNews = async () =>
-    await ElectronGetter('get-new-audio-files', setNews, null, 'Recientes obtenidos!')
+  const openM3U = useCallback(async () => {
+    await ElectronGetter('load-list', SetAllSongs, null, 'se cargo correctamente la lista nueva')
+    await getSavedLists({ force: true })
+  }, [getSavedLists])
+
+  const getRandomList = useCallback(
+    () => ElectronGetter('get-random-playlist', setRandomPlaylist, null, 'random list cargada'),
+    []
+  )
+
+  const addPlaylisthistory = useCallback((path) => ElectronSetter2('load-list-to-history', path), [])
+
+  const updatePlaylist = useCallback(async (path, data) => {
+    const response = await ElectronSetter2('change-list-name', path, data)
+
+    if (response.success) {
+      console.log(response.message)
+      await getSavedLists({ force: true })
+    } else {
+      console.error(response.message)
+      toast.error(response.message, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+    }
+
+    return response
+  }, [getSavedLists])
+
+  const deletePlaylist = useCallback(async (filePath) => {
+    await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
+    setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
+    setPlaylistsLoaded(false)
+  }, [])
+
+  const getUniqueList = useCallback(async (setState, filePath) => {
+    await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
+  }, [])
+
+  const removeSongFromList = useCallback(async (playlistPath, index) => {
+    await removeTrack(playlistPath, index)
+    await getSavedLists({ force: true })
+  }, [getSavedLists, removeTrack])
+
+  const addSongToList = useCallback(async (playlistPath, newTrack) => {
+    await addSong(playlistPath, newTrack)
+    await getSavedLists({ force: true })
+  }, [addSong, getSavedLists])
+
+  const deleteDirectoryList = useCallback(async (path) => {
+    await deleteDirectory(path)
+    SetAllSongs([])
+    allSongsLoadedPagesRef.current.clear()
+    await getAllSongs(1, { reset: true })
+  }, [deleteDirectory, getAllSongs])
+
+  const getNews = useCallback(
+    async () => ElectronGetter('get-new-audio-files', setNews, null, 'Recientes obtenidos!'),
+    []
+  )
 
   useEffect(() => {
     const handleNotification = async (message) => {
-      if (message == '[new]' || message === '[directory-changed]') {
+      if (message === '[new]' || message === '[directory-changed]') {
         getAllSongs(1, { reset: true })
         getDirectories({ force: true })
-        if (message === '[directory-changed]') return // No toast for watcher events
+        if (message === '[directory-changed]') return
       }
 
-      // Skip scan-progress JSON messages from toast
       try {
         const parsed = typeof message === 'string' ? JSON.parse(message) : null
         if (parsed?.type === 'scan-progress') return
@@ -317,42 +304,66 @@ export const PlaylistsProvider = ({ children }) => {
     return () => {
       window.electron.ipcRenderer.off('notification', handleNotification)
     }
-  }, [])
+  }, [getAllSongs, getDirectories])
 
-  return (
-    <ContextLikes.Provider
-      value={{
-        allSongs,
-        allSongsLoading,
-        allSongsHasMore,
-        allSongsPage,
-        allSongsTotal,
-        playlists,
-        playlistsLoading,
-        playlistsLoaded,
-        playlistsLastLoadedAt,
-        getSavedLists,
-        addPlaylisthistory,
-        deletePlaylist,
-        getUniqueList,
-        getAllSongs,
-        openM3U,
-
-        randomPlaylist,
-        updatePlaylist,
-        news,
-        getNews,
-        updateArrayCovers,
-
-        currentCover,
-        updateArrayAlbums,
-        getRandomList,
-        removeSongFromList,
-        addSongToList,
-        deleteDirectoryList
-      }}
-    >
-      {children}
-    </ContextLikes.Provider>
+  const contextValue = useMemo(
+    () => ({
+      allSongs,
+      allSongsLoading,
+      allSongsHasMore,
+      allSongsPage,
+      allSongsTotal,
+      playlists,
+      playlistsLoading,
+      playlistsLoaded,
+      playlistsLastLoadedAt,
+      getSavedLists,
+      addPlaylisthistory,
+      deletePlaylist,
+      getUniqueList,
+      getAllSongs,
+      openM3U,
+      randomPlaylist,
+      updatePlaylist,
+      news,
+      getNews,
+      updateArrayCovers,
+      currentCover,
+      updateArrayAlbums,
+      getRandomList,
+      removeSongFromList,
+      addSongToList,
+      deleteDirectoryList
+    }),
+    [
+      addPlaylisthistory,
+      addSongToList,
+      allSongs,
+      allSongsHasMore,
+      allSongsLoading,
+      allSongsPage,
+      allSongsTotal,
+      currentCover,
+      deleteDirectoryList,
+      deletePlaylist,
+      getAllSongs,
+      getNews,
+      getRandomList,
+      getSavedLists,
+      getUniqueList,
+      news,
+      openM3U,
+      playlists,
+      playlistsLastLoadedAt,
+      playlistsLoaded,
+      playlistsLoading,
+      randomPlaylist,
+      removeSongFromList,
+      updateArrayAlbums,
+      updateArrayCovers,
+      updatePlaylist
+    ]
   )
+
+  return <ContextLikes.Provider value={contextValue}>{children}</ContextLikes.Provider>
 }

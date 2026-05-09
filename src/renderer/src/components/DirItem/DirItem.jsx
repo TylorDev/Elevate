@@ -5,12 +5,12 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
 import { useSuper } from '../../Contexts/SupeContext'
-import { useEffect, useState } from 'react'
+import { memo, useMemo } from 'react'
 
-export function DirItem({ directory, onSelect, disableNavigation = false }) {
+export const DirItem = memo(function DirItem({ directory, onSelect, disableNavigation = false, style }) {
   if (!directory) {
     return (
-      <div className="dirItem loading">
+      <div className="dirItem loading" style={style}>
         <Skeleton height="60px" borderRadius="12px" />
       </div>
     )
@@ -19,12 +19,10 @@ export function DirItem({ directory, onSelect, disableNavigation = false }) {
   const navigate = useNavigate()
   const { deleteDirectoryList } = usePlaylists()
   const { getImage } = useSuper()
-  const [cover, setCover] = useState(null)
-
-  useEffect(() => {
-    const fetchedCover = getImage(directory.path, directory.cover)
-    setCover(fetchedCover)
-  }, [directory, getImage])
+  const cover = useMemo(
+    () => (directory.cover ? getImage(directory.path, directory.cover) : null),
+    [directory.cover, directory.path, getImage]
+  )
 
   const getLastPart = (path) => {
     const parts = path.split('\\')
@@ -68,6 +66,7 @@ export function DirItem({ directory, onSelect, disableNavigation = false }) {
       menuOptions={menuOptions}
       onMenuSelect={handleMenuSelect}
       className="dirItem-ui"
+      style={style}
     />
   )
-}
+})
