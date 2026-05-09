@@ -31,6 +31,9 @@ export const SuperProvider = ({ children }) => {
     setIsShuffled
   } = useSession()
 
+  const currentCoverUrl = useCoverUrl(currentFile?.filePath, 'full')
+  const previousCoverUrl = useRef('')
+
   const [isAwaken, setIsAwaken] = useState(false)
   const [waveformVariant, setWaveformVariant] = useState(
     () => localStorage.getItem('waveformVariant') || 'mirrored'
@@ -192,8 +195,8 @@ export const SuperProvider = ({ children }) => {
   }, [currentFile?.filePath])
 
   useEffect(() => {
-    WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick)
-  }, [currentFile])
+    WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick)
+  }, [currentFile, currentCoverUrl])
 
 
 
@@ -398,8 +401,7 @@ export const SuperProvider = ({ children }) => {
     return localStorage.getItem('backgroundImageUrl') || ''
   })
 
-  const currentCoverUrl = useCoverUrl(currentFile?.filePath, 'full')
-  const previousCoverUrl = useRef('')
+
 
   useEffect(() => {
     if (color) {

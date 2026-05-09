@@ -3,12 +3,23 @@ import log from 'electron-log/main.js'
 import {
   extractAudioCover,
   getFileInfos,
-  getAllAudioFiles,
   getOrCreateSong,
   resizeCover,
-  getTotalDuration,
   getCoverFromCache
 } from './utils/utils.mjs'
+
+import {
+  scanDirectoryAsync,
+  discoverSubdirectories,
+  indexDirectoryIncrementally,
+  updateDirectoryStats
+} from './utils/directoryScanner.mjs'
+
+import {
+  startWatching,
+  stopWatching,
+  setNotifyRenderer
+} from './utils/directoryWatcher.mjs'
 
 import fs from 'fs'
 import path from 'path'
@@ -18,27 +29,22 @@ import { setBraveVolume } from './audio.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron
-const watchedDirectories = new Set()
-const directoryDetailsCache = new Map()
 const audioPathsCache = new Map()
 const audioCoverCache = new Map()
-const DIRECTORY_DETAILS_TTL = 60 * 1000
 const AUDIO_PATHS_TTL = 60 * 1000
 const COVER_CACHE_TTL = 10 * 60 * 1000
 const COVER_CACHE_LIMIT = 400
 let pendingDirectoriesRequest = null
 
-function invalidateDirectoryCache(dirPath = null) {
+export function invalidateDirectoryCache(dirPath = null) {
   pendingDirectoriesRequest = null
 
   if (!dirPath) {
-    directoryDetailsCache.clear()
     audioPathsCache.clear()
     audioCoverCache.clear()
     return
   }
 
-  directoryDetailsCache.delete(dirPath)
   audioPathsCache.delete(dirPath)
   for (const key of audioCoverCache.keys()) {
     if (key.startsWith(`${dirPath}:`) || key.includes(`:${dirPath}:`)) {
@@ -47,14 +53,16 @@ function invalidateDirectoryCache(dirPath = null) {
   }
 }
 
-function getCachedAudioFiles(dirPath) {
+async function getCachedAudioFiles(dirPath) {
   const cachedFiles = audioPathsCache.get(dirPath)
 
   if (cachedFiles && cachedFiles.expiresAt > Date.now()) {
     return cachedFiles.files
   }
 
-  const files = getAllAudioFiles(dirPath)
+  // Use recursive=true here because the UI expects to see all files
+  // inside the directory, even if we register subdirectories individually.
+  const files = await scanDirectoryAsync(dirPath, true)
   audioPathsCache.set(dirPath, {
     files,
     expiresAt: Date.now() + AUDIO_PATHS_TTL
@@ -68,7 +76,11 @@ async function getUniqueAudioPaths() {
 
   if (!directories.length) return []
 
-  const allAudioFiles = directories.flatMap((dir) => getCachedAudioFiles(dir.path))
+  const allAudioFiles = []
+  for (const dir of directories) {
+    const files = await getCachedAudioFiles(dir.path)
+    allAudioFiles.push(...files)
+  }
   return [...new Set(allAudioFiles)]
 }
 
@@ -163,120 +175,24 @@ async function getAudioCover(filePath, variant = 'thumb') {
   return result
 }
 
-async function getDirectoryDetails(directory) {
-  const cachedDetails = directoryDetailsCache.get(directory.path)
-
-  if (cachedDetails && cachedDetails.expiresAt > Date.now()) {
-    return {
-      ...directory,
-      ...cachedDetails.details
-    }
-  }
-
-  const details = await getTotalDuration(directory.path)
-  directoryDetailsCache.set(directory.path, {
-    details,
-    expiresAt: Date.now() + DIRECTORY_DETAILS_TTL
-  })
-
-  return {
-    ...directory,
-    ...details
-  }
-}
-
-async function getDirectoriesWithDetails() {
-  if (pendingDirectoriesRequest) {
-    return pendingDirectoriesRequest
-  }
-
-  pendingDirectoriesRequest = prisma.directory
-    .findMany()
-    .then((directories) => Promise.all(directories.map((directory) => getDirectoryDetails(directory))))
-    .finally(() => {
-      pendingDirectoriesRequest = null
-    })
-
-  return pendingDirectoriesRequest
-}
-
-async function startWatchingDirectories() {
-  try {
-    console.log('Starting')
-    const directories = await prisma.directory.findMany()
-
-    directories.forEach(({ path }) => {
-      watchDirectory(path)
-    })
-  } catch (error) {
-    console.error('Error al obtener los directorios:', error)
-  }
-}
-
-function watchDirectory(dirPath) {
-  if (watchedDirectories.has(dirPath)) {
-    console.debug(`El directorio ${dirPath} ya está siendo vigilado.`)
-    return
-  }
-
-  try {
-    fs.watch(dirPath, (eventType, filename) => handleFileChange(eventType, filename, dirPath))
-    watchedDirectories.add(dirPath)
-    console.debug(`Vigilando el directorio: ${dirPath}`)
-  } catch (error) {
-    console.error(`Error al intentar vigilar el directorio ${dirPath}:`, error)
-  }
-}
-
-function handleFileChange(eventType, filename, dirPath) {
-  if (eventType !== 'rename' || !filename) return
-
-  const fullPath = buildFullPath(filename, dirPath)
-  if (isFile(fullPath)) {
-    invalidateDirectoryCache(dirPath)
-    const basenameWithoutExt = extractBasename(filename)
-    getOrCreateSong(fullPath, basenameWithoutExt)
-    debugFileDetails(fullPath, basenameWithoutExt)
-  }
-}
-
-function buildFullPath(filename, dirPath) {
-  return path.join(dirPath, filename)
-}
-
-function isFile(fullPath) {
-  return fs.existsSync(fullPath) && fs.lstatSync(fullPath).isFile()
-}
-
-function extractBasename(filename) {
-  return path.parse(filename).name
-}
-
-function debugFileDetails(fullPath, basenameWithoutExt) {
-  sendNotification(`[new]`)
-  console.debug(`Archivo detectado:`)
-  console.debug(`Ruta completa: ${fullPath}`)
-  console.debug(`Basename sin extensión: ${basenameWithoutExt}`)
-}
-
 export function setupFilehandlers() {
-  startWatchingDirectories()
+  // Connect the watcher notification system to the renderer
+  setNotifyRenderer((message) => sendNotification(message))
+
+  // Signal file watcher (for Brave volume control)
   const signalFilePath =
     process.env.ELEVATE_SIGNAL_FILE || path.join(app.getPath('userData'), 'signal.txt')
   if (fs.existsSync(signalFilePath)) {
     log.info('File exists, starting watch:', signalFilePath)
 
-    // Vigilar el archivo
     fs.watch(signalFilePath, (eventType, filename) => {
       if (filename) {
-        // Leer el contenido del archivo
         fs.readFile(signalFilePath, 'utf8', (err, data) => {
           if (err) {
             console.error(`Error al leer el archivo: ${err}`)
             return
           }
 
-          // Eliminar el BOM si está presente
           if (data.startsWith('\ufeff')) {
             data = data.slice(1)
           }
@@ -295,6 +211,9 @@ export function setupFilehandlers() {
     log.info('Signal file not found, skipping optional watcher:', signalFilePath)
   }
 
+  // ─── add-directory ───────────────────────────────────────────────
+  // Opens native dialog, discovers sub-directories with audio,
+  // registers them in DB, and kicks off background indexing.
   ipcMain.handle('add-directory', async () => {
     try {
       const result = await dialog.showOpenDialog({
@@ -302,19 +221,87 @@ export function setupFilehandlers() {
       })
 
       if (result.canceled) {
-        return null // O manejar la cancelación según sea necesario
+        return null
       }
-      const directoryPath = result.filePaths[0]
+      const selectedPath = result.filePaths[0]
 
-      // Upsert en Prisma para agregar o actualizar el directorio
-      await prisma.directory.upsert({
-        where: { path: directoryPath },
-        update: {},
-        create: { path: directoryPath }
-      })
+      // Discover sub-directories that contain audio files
+      const audioDirs = await discoverSubdirectories(selectedPath)
+
+      if (audioDirs.length === 0) {
+        return { success: false, message: 'No audio files found in the selected directory.' }
+      }
+
+      // Find or create the root directory entry (only if it has direct audio)
+      let rootDirRecord = null
+      if (audioDirs.includes(selectedPath)) {
+        rootDirRecord = await prisma.directory.upsert({
+          where: { path: selectedPath },
+          update: {},
+          create: { path: selectedPath }
+        })
+      }
+
+      // Register each sub-directory with its parent relationship
+      for (const dirPath of audioDirs) {
+        if (dirPath === selectedPath) continue
+
+        const parentPath = path.dirname(dirPath)
+        const parentRecord = await prisma.directory.findUnique({
+          where: { path: parentPath }
+        })
+
+        await prisma.directory.upsert({
+          where: { path: dirPath },
+          update: {},
+          create: {
+            path: dirPath,
+            // Only assign parentId if the parent actually exists in the DB
+            parentId: parentRecord?.id || rootDirRecord?.id || null
+          }
+        })
+      }
+
       invalidateDirectoryCache()
 
-      return { success: true, message: 'Directory added sucessfully.' }
+      // Start watching the root directory (covers all subdirectories recursively)
+      startWatching(selectedPath)
+
+      // Background indexing — don't await, respond to renderer immediately
+      const allDirsToIndex = await prisma.directory.findMany({
+        where: { path: { in: audioDirs } }
+      })
+
+      setImmediate(async () => {
+        for (const dir of allDirsToIndex) {
+          try {
+            const stats = await indexDirectoryIncrementally(dir.path, (progress) => {
+              sendNotification(
+                JSON.stringify({
+                  type: 'scan-progress',
+                  ...progress
+                })
+              )
+            })
+
+            await prisma.directory.update({
+              where: { id: dir.id },
+              data: {
+                totalTracks: stats.totalTracks,
+                totalDuration: stats.totalDuration,
+                lastScannedAt: new Date()
+              }
+            })
+          } catch (err) {
+            console.error(`Error indexing ${dir.path}:`, err.message)
+          }
+        }
+
+        // Notify renderer that indexing is complete
+        sendNotification('[directory-changed]')
+      })
+
+      return { success: true, message: 'Directory added successfully.', count: audioDirs.length }
     } catch (error) {
       console.error('Error selecting files:', error)
       throw error
@@ -408,7 +395,7 @@ export function setupFilehandlers() {
       }
 
       // Obtener todos los archivos de audio del directorio específico
-      const audioFiles = getCachedAudioFiles(directoryPath)
+      const audioFiles = await getCachedAudioFiles(directoryPath)
 
       // Filtrar archivos duplicados
       const uniqueAudioFiles = Array.from(new Set(audioFiles))
@@ -420,13 +407,17 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('delete-directory', async (event, path) => {
+  // ─── delete-directory ────────────────────────────────────────────
+  ipcMain.handle('delete-directory', async (event, dirPath) => {
     try {
-      // Eliminar el directorio por su ruta
+      // Stop watching this directory
+      await stopWatching(dirPath)
+
+      // Delete the directory (cascade deletes children via Prisma relation)
       await prisma.directory.delete({
-        where: { path: path }
+        where: { path: dirPath }
       })
-      invalidateDirectoryCache(path)
+      invalidateDirectoryCache(dirPath)
       return { success: true, message: 'Directory deleted successfully.' }
     } catch (error) {
       console.error('Error deleting directory:', error)
@@ -434,30 +425,94 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-directory-by-path', async (event, path) => {
+  // ─── get-directory-by-path ───────────────────────────────────────
+  // Now reads stats directly from the DB instead of recalculating.
+  ipcMain.handle('get-directory-by-path', async (event, dirPath) => {
     try {
-      // Obtener el directorio con un path específico
       const directory = await prisma.directory.findUnique({
-        where: { path }
+        where: { path: dirPath }
       })
 
       if (!directory) {
         throw new Error('Directory not found')
       }
 
-      // Obtener las propiedades totalTracks y totalDuration
-      return await getDirectoryDetails(directory)
+      // If never scanned, trigger a quick scan
+      if (!directory.lastScannedAt) {
+        const stats = await updateDirectoryStats(dirPath)
+        return { ...directory, ...stats }
+      }
+
+      return directory
     } catch (error) {
       console.error('Error retrieving directory:', error)
       throw error
     }
   })
 
+  // ─── get-all-directories ─────────────────────────────────────────
+  // Reads stats from DB. Only rescans directories that have never been scanned.
   ipcMain.handle('get-all-directories', async () => {
     try {
-      return await getDirectoriesWithDetails()
+      if (pendingDirectoriesRequest) {
+        return pendingDirectoriesRequest
+      }
+
+      pendingDirectoriesRequest = (async () => {
+        const directories = await prisma.directory.findMany()
+
+        // For directories that have never been scanned, trigger an async scan sequentially
+        const unscanned = directories.filter((d) => !d.lastScannedAt)
+        if (unscanned.length > 0) {
+          for (const dir of unscanned) {
+            try {
+              const stats = await updateDirectoryStats(dir.path)
+              dir.totalTracks = stats.totalTracks
+              dir.totalDuration = stats.totalDuration
+            } catch (err) {
+              console.error(`Error initial scan for ${dir.path}:`, err.message)
+            }
+          }
+        }
+
+        return directories
+      })().finally(() => {
+        pendingDirectoriesRequest = null
+      })
+
+      return pendingDirectoriesRequest
     } catch (error) {
       console.error('Error retrieving directories:', error)
+      throw error
+    }
+  })
+
+  // ─── rescan-directory ────────────────────────────────────────────
+  // Force a full re-scan of a specific directory.
+  ipcMain.handle('rescan-directory', async (_, dirPath) => {
+    try {
+      const stats = await indexDirectoryIncrementally(dirPath, (progress) => {
+        sendNotification(
+          JSON.stringify({
+            type: 'scan-progress',
+            ...progress
+          })
+        )
+      })
+
+      await prisma.directory.updateMany({
+        where: { path: dirPath },
+        data: {
+          totalTracks: stats.totalTracks,
+          totalDuration: stats.totalDuration,
+          lastScannedAt: new Date()
+        }
+      })
+
+      invalidateDirectoryCache(dirPath)
+      return { success: true, ...stats }
+    } catch (error) {
+      console.error('Error rescanning directory:', error)
       throw error
     }
   })

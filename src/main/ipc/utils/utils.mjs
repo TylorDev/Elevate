@@ -37,35 +37,9 @@ function hashBuffer(buffer) {
   return crypto.createHash('md5').update(buffer).digest('hex')
 }
 
-const audioExtensions = ['.mp3', '.wav', '.flac']
-
-export function getAllAudioFiles(dirPath) {
-  let audioFiles = []
-
-  function walkDirectory(currentPath) {
-    try {
-      const files = fs.readdirSync(currentPath)
-      for (const file of files) {
-        const fullPath = path.join(currentPath, file)
-        try {
-          const stats = fs.statSync(fullPath)
-          if (stats.isDirectory()) {
-            walkDirectory(fullPath)
-          } else if (stats.isFile() && audioExtensions.includes(path.extname(fullPath).toLowerCase())) {
-            audioFiles.push(fullPath)
-          }
-        } catch {
-          // Skip inaccessible files
-        }
-      }
-    } catch {
-      // Skip inaccessible directories
-    }
-  }
-
-  walkDirectory(dirPath)
-  return audioFiles
-}
+// getAllAudioFiles has been moved to directoryScanner.mjs (async version)
+// Re-export for backward compatibility
+export { scanDirectoryAsync as getAllAudioFiles } from './directoryScanner.mjs'
 
 // ─── Song CRUD with metadata caching ─────────────────────────────────
 
@@ -347,12 +321,9 @@ export async function getFileCovers(filePaths) {
 
 // ─── Duration calculation ────────────────────────────────────────────
 
-export async function getTotalDuration(directory) {
-  const files = getAllAudioFiles(directory)
-  const tracks = await getFileInfos(files)
-  const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
-  return { totalDuration, totalTracks: tracks.length }
-}
+// getTotalDuration has been moved to directoryScanner.mjs (updateDirectoryStats)
+// Re-export for backward compatibility
+export { updateDirectoryStats as getTotalDuration } from './directoryScanner.mjs'
 
 // ─── Cover generation (collage) ──────────────────────────────────────
 

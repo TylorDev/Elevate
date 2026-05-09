@@ -285,10 +285,20 @@ export const PlaylistsProvider = ({ children }) => {
 
   useEffect(() => {
     const handleNotification = async (message) => {
-      if (message == '[new]') {
+      if (message == '[new]' || message === '[directory-changed]') {
         getAllSongs(1, { reset: true })
         getDirectories({ force: true })
+        if (message === '[directory-changed]') return // No toast for watcher events
       }
+
+      // Skip scan-progress JSON messages from toast
+      try {
+        const parsed = typeof message === 'string' ? JSON.parse(message) : null
+        if (parsed?.type === 'scan-progress') return
+      } catch {
+        // Not JSON, continue to toast
+      }
+
       toast.success(message || 'Completado!', {
         position: 'bottom-right',
         autoClose: 3000,

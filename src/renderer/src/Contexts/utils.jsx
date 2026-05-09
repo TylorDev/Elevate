@@ -4,13 +4,13 @@ export const shuffleArray = (array, currentIndex) => {
   // Copia el array original para no modificarlo
   let newArray = [...array]
 
-  // Mueve el elemento actual a la primera posición
-  ;[newArray[0], newArray[currentIndex]] = [newArray[currentIndex], newArray[0]]
+    // Mueve el elemento actual a la primera posición
+    ;[newArray[0], newArray[currentIndex]] = [newArray[currentIndex], newArray[0]]
 
   // Aplica el algoritmo de Fisher-Yates solo desde el índice 1
   for (let i = newArray.length - 1; i > 1; i--) {
     const j = 1 + Math.floor(Math.random() * i) // solo intercambia desde el índice 1 en adelante
-    ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
+      ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
   }
 
   return newArray
@@ -252,18 +252,18 @@ export const electronInvoke = async (action, ...args) => {
   }
 }
 
-export function WindowsPlayer(mediaRef, currentFile, handlePreviousClick, handleNextClick) {
+export function WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick) {
   const audio = mediaRef.current
 
   if ('mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: currentFile.title ? currentFile.title : currentFile.fileName,
-      artist: currentFile.artist || 'Unknown',
-      album: 'Unknown',
+      title: currentFile?.title || currentFile?.fileName || 'Unknown',
+      artist: currentFile?.artist || 'Unknown',
+      album: currentFile?.album || 'Unknown',
       artwork: [
         {
-          src: dataToImageUrl(currentFile?.picture?.[0] || {}),
-          sizes: '300x300',
+          src: currentCoverUrl || 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg',
+          sizes: '512x512',
           type: 'image/jpeg'
         }
       ]

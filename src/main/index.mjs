@@ -62,12 +62,28 @@ const loadWindowState = () => {
 
 const saveWindowState = () => {
   if (!mainWin) return
-  const bounds = mainWin.getBounds()
-  const state = {
-    isMaximized: mainWin.isMaximized(),
-    isMinimized: mainWin.isMinimized(),
-    ...bounds
+  
+  const isMaximized = mainWin.isMaximized()
+  const isMinimized = mainWin.isMinimized()
+  
+  let state = {}
+  try {
+    state = JSON.parse(fs.readFileSync(getConfigPath(), 'utf-8'))
+  } catch {
+    // ignore
   }
+
+  if (!isMaximized && !isMinimized) {
+    const bounds = mainWin.getBounds()
+    state.x = bounds.x
+    state.y = bounds.y
+    state.width = bounds.width
+    state.height = bounds.height
+  }
+  
+  state.isMaximized = isMaximized
+  state.isMinimized = isMinimized
+
   fs.writeFileSync(getConfigPath(), JSON.stringify(state))
 }
 
@@ -135,6 +151,10 @@ function createWindow() {
   mainWindow.on('close', saveWindowState)
   mainWindow.on('resize', saveWindowState)
   mainWindow.on('move', saveWindowState)
+  mainWindow.on('maximize', saveWindowState)
+  mainWindow.on('unmaximize', saveWindowState)
+  mainWindow.on('minimize', saveWindowState)
+  mainWindow.on('restore', saveWindowState)
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -149,7 +169,19 @@ function createWindow() {
 }
 
 ///////////////////
-app.whenReady().then(async () => {
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWin) {
+      if (mainWin.isMinimized()) mainWin.restore()
+      mainWin.focus()
+    }
+  })
+
+  app.whenReady().then(async () => {
   app.setAppUserModelId('com.electron')
   console.log(process.versions.node)
 
@@ -173,6 +205,10 @@ app.whenReady().then(async () => {
   setupPlaylistHandlers()
   setupLikeSongHandlers()
 
+  // Initialize directory watchers for all existing directories
+  const { initializeWatchers } = await import('./ipc/utils/directoryWatcher.mjs')
+  await initializeWatchers()
+
   createWindow()
 
   app.on('activate', function () {
@@ -190,13 +226,22 @@ app.whenReady().then(async () => {
   })
 })
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
     if (isQuitting) {
       return
     }
 
     isQuitting = true
+
+    // Stop all directory watchers
+    try {
+      const { stopAll } = await import('./ipc/utils/directoryWatcher.mjs')
+      await stopAll()
+    } catch (err) {
+      log.error('Error stopping watchers:', err)
+    }
+
     if (prisma) {
       void prisma.$disconnect().finally(() => app.quit())
       return
@@ -209,3 +254,5 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
 })
+
+}

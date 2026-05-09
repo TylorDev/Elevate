@@ -72,6 +72,13 @@ model Historial {
 }
 
 model Directory {
-  id   Int    @id @default(autoincrement())
-  path String @unique
+  id            Int         @id @default(autoincrement())
+  path          String      @unique
+  parentId      Int?
+  parent        Directory?  @relation("DirectoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      Directory[] @relation("DirectoryTree")
+  totalTracks   Int         @default(0)
+  totalDuration Float       @default(0)
+  lastScannedAt DateTime?
+  createdAt     DateTime    @default(now())
 }

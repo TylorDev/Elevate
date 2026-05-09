@@ -23,7 +23,17 @@ function getPortableDataDir() {
     return null
   }
 
-  const executableDataDir = join(dirname(app.getPath('exe')), 'data')
+  const exeDir = dirname(app.getPath('exe'))
+
+  if (exeDir.includes('unpacked')) {
+    const unpackedDataDir = join(exeDir, 'data')
+    if (!existsSync(unpackedDataDir)) {
+      mkdirSync(unpackedDataDir, { recursive: true })
+    }
+    return unpackedDataDir
+  }
+
+  const executableDataDir = join(exeDir, 'data')
   return existsSync(executableDataDir) ? executableDataDir : null
 }
 
@@ -46,10 +56,10 @@ function getDatabasePath() {
 
 function findTemplateDatabase() {
   const candidates = [
-    resolve('prisma/dev.db'),
-    join(app.getAppPath(), 'prisma/dev.db'),
-    join(process.resourcesPath || '', 'prisma/dev.db'),
-    join(__dirname, '../../prisma/dev.db')
+    resolve('prisma/template.db'),
+    join(app.getAppPath(), 'prisma/template.db'),
+    join(process.resourcesPath || '', 'prisma/template.db'),
+    join(__dirname, '../../prisma/template.db')
   ]
 
   return candidates.find((candidate) => existsSync(candidate))

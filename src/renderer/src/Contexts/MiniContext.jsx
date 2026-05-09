@@ -1,4 +1,4 @@
-import { createContext, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import {
   createLatestOnlyInvoker,
   ElectronDelete,
@@ -29,6 +29,7 @@ export const MiniProvider = ({ children }) => {
   const [directoriesLastLoadedAt, setDirectoriesLastLoadedAt] = useState(null)
   const directoriesRequestRef = useRef(null)
   const directoriesInvokerRef = useRef(createLatestOnlyInvoker())
+  const [scanProgress, setScanProgress] = useState(null)
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
@@ -114,12 +115,47 @@ export const MiniProvider = ({ children }) => {
     setDirectoriesLoaded(false)
   }
   const addDirectory = async () => {
-    await ElectronGetter('add-directory', null, null, 'Directorio agregado!') // 0 ref
-    getDirectories({ force: true })
+    const result = await ElectronGetter('add-directory', null, null, 'Directorio agregado!')
+    if (result && result.success) {
+      getDirectories({ force: true })
+    }
   }
   const getDirFiles = (setState, value) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
   }
+
+  // Listen for directory changes from the watcher and scan progress
+  const getDirectoriesRef = useRef(getDirectories)
+  getDirectoriesRef.current = getDirectories
+
+  useEffect(() => {
+    const handleDirectoryNotification = (message) => {
+      if (message === '[directory-changed]') {
+        getDirectoriesRef.current({ force: true })
+        setScanProgress(null)
+        return
+      }
+
+      // Handle scan progress messages
+      try {
+        const parsed = typeof message === 'string' ? JSON.parse(message) : message
+        if (parsed?.type === 'scan-progress') {
+          setScanProgress({
+            dirPath: parsed.dirPath,
+            processed: parsed.processed,
+            total: parsed.total
+          })
+        }
+      } catch {
+        // Not a JSON message, ignore
+      }
+    }
+
+    window.electron.ipcRenderer.on('notification', handleDirectoryNotification)
+    return () => {
+      window.electron.ipcRenderer.off('notification', handleDirectoryNotification)
+    }
+  }, [])
 
   const getHistory = (page = 1) =>
     ElectronGetter('get-history', setHistory, page, 'se obtuvo el historial')
@@ -165,6 +201,7 @@ export const MiniProvider = ({ children }) => {
         directoriesLoading,
         directoriesLoaded,
         directoriesLastLoadedAt,
+        scanProgress, // PROGRESO DE ESCANEO { dirPath, processed, total }
         addDirectory,
         getDirectories, //  OBTIENE LA  LISTA DIRECTORIOS
         deleteDirectory, // borra un directorio especifico
