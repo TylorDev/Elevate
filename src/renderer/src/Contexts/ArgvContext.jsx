@@ -10,6 +10,7 @@ export const ArgvProvider = ({ children }) => {
   const { PlayQueue } = useSuper()
   const { getDirectories } = useMini()
   const [launchReady, setLaunchReady] = useState(false)
+  const [autoplayRequestId, setAutoplayRequestId] = useState(0)
   const queueRef = useRef(Promise.resolve())
 
   const applyPayload = async (payload) => {
@@ -53,7 +54,12 @@ export const ArgvProvider = ({ children }) => {
     })
 
     queueRef.current = queueRef.current
-      .then(() => applyPayload(payload))
+      .then(async () => {
+        await applyPayload(payload)
+        if (payload?.songs?.length > 0) {
+          setAutoplayRequestId((current) => current + 1)
+        }
+      })
       .catch((error) => {
         console.error('Error applying launch payload:', error)
       })
@@ -108,7 +114,7 @@ export const ArgvProvider = ({ children }) => {
   }, [])
 
   return (
-    <ArgvContext.Provider value={{ launchReady, handleExternalPayload }}>
+    <ArgvContext.Provider value={{ launchReady, autoplayRequestId, handleExternalPayload }}>
       {children}
     </ArgvContext.Provider>
   )

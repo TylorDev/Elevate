@@ -9,6 +9,49 @@ import { useSession } from './SessionContext'
 
 const SuperContext = createContext()
 const PlaybackProgressContext = createContext({ progress: 0, duration: 0 })
+const AUDIO_STORAGE_KEYS = {
+  volume: 'audioControls.volume',
+  muted: 'audioControls.muted',
+  loop: 'audioControls.loop',
+  shuffled: 'audioControls.shuffled',
+  step: 'audioControls.step'
+}
+
+function readStoredBoolean(key, fallback = false) {
+  try {
+    const value = localStorage.getItem(key)
+
+    if (value == null) {
+      return fallback
+    }
+
+    const parsed = JSON.parse(value)
+    return typeof parsed === 'boolean' ? parsed : fallback
+  } catch (error) {
+    console.error(`Error loading ${key} from localStorage`, error)
+    return fallback
+  }
+}
+
+function readStoredNumber(key, fallback = 0) {
+  try {
+    const value = localStorage.getItem(key)
+
+    if (value == null) {
+      return fallback
+    }
+
+    const parsed = JSON.parse(value)
+    if (typeof parsed !== 'number' || !Number.isFinite(parsed)) {
+      return fallback
+    }
+
+    return Math.max(0, Math.min(1, parsed))
+  } catch (error) {
+    console.error(`Error loading ${key} from localStorage`, error)
+    return fallback
+  }
+}
 
 function findFileIndex(queue, filePath) {
   if (!filePath || !Array.isArray(queue)) {
@@ -26,10 +69,10 @@ function createDisplayedQueue(baseQueue, reverseActive) {
 export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
   const scrollRef = useRef(null)
-  const [muted, setMuted] = useState(false)
-  const [loop, setLoop] = useState(false)
+  const [muted, setMuted] = useState(() => readStoredBoolean(AUDIO_STORAGE_KEYS.muted, false))
+  const [loop, setLoop] = useState(() => readStoredBoolean(AUDIO_STORAGE_KEYS.loop, false))
   const [isPlaying, setIsPlaying] = useState(false)
-  const [volume, setVolume] = useState(1)
+  const [volume, setVolume] = useState(() => readStoredNumber(AUDIO_STORAGE_KEYS.volume, 1))
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
   const {
@@ -47,6 +90,7 @@ export const SuperProvider = ({ children }) => {
   const previousCoverUrl = useRef('')
 
   const [isAwaken, setIsAwaken] = useState(false)
+  const [isStep, setIsStep] = useState(() => readStoredBoolean(AUDIO_STORAGE_KEYS.step, false))
   const [waveformVariant, setWaveformVariant] = useState(
     () => localStorage.getItem('waveformVariant') || 'mirrored'
   )
@@ -55,6 +99,26 @@ export const SuperProvider = ({ children }) => {
     setWaveformVariant(variant)
     localStorage.setItem('waveformVariant', variant)
   }
+
+  useEffect(() => {
+    localStorage.setItem(AUDIO_STORAGE_KEYS.volume, JSON.stringify(volume))
+  }, [volume])
+
+  useEffect(() => {
+    localStorage.setItem(AUDIO_STORAGE_KEYS.muted, JSON.stringify(muted))
+  }, [muted])
+
+  useEffect(() => {
+    localStorage.setItem(AUDIO_STORAGE_KEYS.loop, JSON.stringify(loop))
+  }, [loop])
+
+  useEffect(() => {
+    localStorage.setItem(AUDIO_STORAGE_KEYS.shuffled, JSON.stringify(isShuffled))
+  }, [isShuffled])
+
+  useEffect(() => {
+    localStorage.setItem(AUDIO_STORAGE_KEYS.step, JSON.stringify(isStep))
+  }, [isStep])
 
   const imagesRef = useRef(new Map())
 
@@ -135,6 +199,32 @@ export const SuperProvider = ({ children }) => {
   const PlayQueue = (list, name, index = null) => {
     applyBaseQueue(list, name, index)
   }
+
+  const appendToCurrentQueue = useCallback(
+    (song) => {
+      if (!song?.filePath) {
+        return
+      }
+
+      setQueueState((previousState) => {
+        const currentQueue = Array.isArray(previousState?.currentQueue)
+          ? previousState.currentQueue
+          : []
+        const originalQueue = Array.isArray(previousState?.originalQueue)
+          ? previousState.originalQueue
+          : currentQueue
+        const nextOriginalQueue = [...originalQueue, song]
+        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled)
+
+        return {
+          queueName: previousState?.queueName || 'search-results',
+          currentQueue: nextQueue,
+          originalQueue: nextOriginalQueue
+        }
+      })
+    },
+    [isShuffled, setQueueState]
+  )
 
   const appendToQueueAndPlay = useCallback(
     (song) => {
@@ -284,7 +374,7 @@ export const SuperProvider = ({ children }) => {
   }, [currentIndex, queueState.currentQueue, setCurrentFile, setCurrentIndex])
 
   const handleNextClick = useCallback(() => {
-    if (currentIndex < queueState.currentQueue.length - 1) {
+    if (queueState.currentQueue.length > 0) {
       goToNext(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
     }
   }, [currentIndex, queueState.currentQueue, setCurrentFile, setCurrentIndex])
@@ -318,7 +408,6 @@ export const SuperProvider = ({ children }) => {
     setMuted(nextVolume === 0)
   }, [])
 
-  const [isStep, setIsStep] = useState(false)
   const minVolume = 0.02
 
   const fadeOut = (fadeDuration) => {
@@ -558,6 +647,7 @@ export const SuperProvider = ({ children }) => {
     handleNextClick,
     handleSongClick,
     reorderCurrentQueue,
+    appendToCurrentQueue,
     appendToQueueAndPlay,
     addhistory,
     queueState,
@@ -583,6 +673,7 @@ export const SuperProvider = ({ children }) => {
   }), [
     addhistory,
     addSong,
+    appendToCurrentQueue,
     appendToQueueAndPlay,
     backgroundImageUrl,
     color,

@@ -32,7 +32,9 @@ export const SessionProvider = ({ children }) => {
 
   const [currentIndex, setCurrentIndex] = useState(() => readStorageValue('currentIndex', 0))
 
-  const [isShuffled, setIsShuffled] = useState(() => readStorageValue('isShuffled', false))
+  const [isShuffled, setIsShuffled] = useState(() =>
+    readStorageValue('audioControls.shuffled', false)
+  )
   const [manualQueueOrders, setManualQueueOrders] = useState(() =>
     readStorageValue('manualQueueOrders', {})
   )
@@ -40,10 +42,6 @@ export const SessionProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('queueState', JSON.stringify(queueState))
   }, [queueState])
-
-  useEffect(() => {
-    localStorage.setItem('isShuffled', JSON.stringify(isShuffled))
-  }, [isShuffled])
 
   useEffect(() => {
     localStorage.setItem('currentFile', JSON.stringify(currentFile))

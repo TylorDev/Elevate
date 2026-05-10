@@ -14,23 +14,37 @@ datasource db {
   provider = "sqlite"
 }
 
+enum PlaybackSourceKind {
+  LIBRARY
+  PLAYLIST
+  DIRECTORY
+}
+
+enum HistoryEntityKind {
+  SONG
+  PLAYLIST
+  DIRECTORY
+}
+
 model Songs {
-  song_id         Int               @id @default(autoincrement())
-  filepath        String            @unique
-  filename        String
-  title           String?
-  artist          String?
-  album           String?
-  genre           String?
-  year            Int?
-  duration        Float             @default(0)
-  size            Int               @default(0)
-  trackNumber     Int?
-  coverHash       String?
-  metadataLoaded  Boolean           @default(false)
-  UserPreferences UserPreferences[]
-  PlayHistory     PlayHistory[]
-  timestamp       DateTime          @default(now())
+  song_id           Int               @id @default(autoincrement())
+  filepath          String            @unique
+  filename          String
+  title             String?
+  artist            String?
+  album             String?
+  genre             String?
+  year              Int?
+  duration          Float             @default(0)
+  size              Int               @default(0)
+  trackNumber       Int?
+  coverHash         String?
+  metadataLoaded    Boolean           @default(false)
+  UserPreferences   UserPreferences[]
+  PlayHistory       PlayHistory[]
+  PlaybackEvent     PlaybackEvent[]
+  AppHistoryEvent   AppHistoryEvent[]
+  timestamp         DateTime          @default(now())
 }
 
 model UserPreferences {
@@ -41,7 +55,6 @@ model UserPreferences {
   skip_count   Int           @default(0)
   bpm          Int           @default(0)
   Songs        Songs         @relation(fields: [song_id], references: [song_id])
-  PlayHistory  PlayHistory[]
 }
 
 model PlayHistory {
@@ -49,19 +62,20 @@ model PlayHistory {
   song_id   Int
   timestamp DateTime @default(now())
 
-  Songs           Songs           @relation(fields: [song_id], references: [song_id])
-  UserPreferences UserPreferences @relation(fields: [song_id], references: [song_id])
+  Songs Songs @relation(fields: [song_id], references: [song_id])
 }
 
 model Playlist {
-  id           Int         @id @default(autoincrement())
-  path         String      @unique
-  nombre       String      @unique
-  duracion     Int         @default(0)
-  numElementos Int         @default(0)
-  createdAt    DateTime    @default(now())
-  historial    Historial[]
-  totalplays   Int         @default(0)
+  id             Int               @id @default(autoincrement())
+  path           String            @unique
+  nombre         String            @unique
+  duracion       Int               @default(0)
+  numElementos   Int               @default(0)
+  createdAt      DateTime          @default(now())
+  historial      Historial[]
+  totalplays     Int               @default(0)
+  PlaybackEvent  PlaybackEvent[]
+  AppHistoryEvent AppHistoryEvent[]
 }
 
 model Historial {
@@ -72,13 +86,57 @@ model Historial {
 }
 
 model Directory {
-  id            Int         @id @default(autoincrement())
-  path          String      @unique
-  parentId      Int?
-  parent        Directory?  @relation("DirectoryTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children      Directory[] @relation("DirectoryTree")
-  totalTracks   Int         @default(0)
-  totalDuration Float       @default(0)
-  lastScannedAt DateTime?
-  createdAt     DateTime    @default(now())
+  id              Int               @id @default(autoincrement())
+  path            String            @unique
+  parentId        Int?
+  parent          Directory?        @relation("DirectoryTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children        Directory[]       @relation("DirectoryTree")
+  totalTracks     Int               @default(0)
+  totalDuration   Float             @default(0)
+  lastScannedAt   DateTime?
+  createdAt       DateTime          @default(now())
+  PlaybackEvent   PlaybackEvent[]
+  AppHistoryEvent AppHistoryEvent[]
+}
+
+model PlaybackEvent {
+  id                Int                @id @default(autoincrement())
+  songId            Int
+  startedAt         DateTime
+  endedAt           DateTime?
+  secondsPlayed     Float              @default(0)
+  completionRatio   Float              @default(0)
+  isShortView       Boolean            @default(false)
+  isLongView        Boolean            @default(false)
+  sourceKind        PlaybackSourceKind
+  sourcePlaylistId  Int?
+  sourceDirectoryId Int?
+  createdAt         DateTime           @default(now())
+  song              Songs              @relation(fields: [songId], references: [song_id], onDelete: Cascade)
+  sourcePlaylist    Playlist?          @relation(fields: [sourcePlaylistId], references: [id], onDelete: SetNull)
+  sourceDirectory   Directory?         @relation(fields: [sourceDirectoryId], references: [id], onDelete: SetNull)
+  appHistoryEvent   AppHistoryEvent?
+
+  @@index([songId, startedAt])
+  @@index([sourcePlaylistId, startedAt])
+  @@index([sourceDirectoryId, startedAt])
+  @@index([isShortView, startedAt])
+  @@index([isLongView, startedAt])
+}
+
+model AppHistoryEvent {
+  id              Int               @id @default(autoincrement())
+  entityKind      HistoryEntityKind
+  occurredAt      DateTime          @default(now())
+  songId          Int?
+  playlistId      Int?
+  directoryId     Int?
+  playbackEventId Int?              @unique
+  song            Songs?            @relation(fields: [songId], references: [song_id], onDelete: SetNull)
+  playlist        Playlist?         @relation(fields: [playlistId], references: [id], onDelete: SetNull)
+  directory       Directory?        @relation(fields: [directoryId], references: [id], onDelete: SetNull)
+  playbackEvent   PlaybackEvent?    @relation(fields: [playbackEventId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([entityKind, occurredAt])
 }

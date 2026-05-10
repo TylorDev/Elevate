@@ -259,6 +259,95 @@ export const PlaylistsProvider = ({ children }) => {
     await getSavedLists({ force: true })
   }, [addSong, getSavedLists])
 
+  const resolvePlaylistSaveDirectory = useCallback(async (sourcePath = '') => {
+    const result = await dedupedInvoke('get-playlist-save-directory', sourcePath)
+    return result?.path || null
+  }, [])
+
+  const listPlaylistSaveDirectory = useCallback(async (directoryPath) => {
+    return dedupedInvoke('list-playlist-save-directory', directoryPath)
+  }, [])
+
+  const savePlaylistFromTracks = useCallback(
+    async (tracks = [], { nombre = '', targetDirectory = '', replacePath = null } = {}) => {
+      const filePaths = tracks
+        .map((track) => track?.filePath)
+        .filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+
+      if (filePaths.length === 0) {
+        toast.error('No hay canciones para guardar.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return { success: false, error: 'No tracks to save' }
+      }
+
+      let result
+
+      try {
+        result = await dedupedInvoke('save-m3u', {
+          filePaths,
+          targetDirectory,
+          targetPath: replacePath,
+          nombre
+        })
+      } catch (error) {
+        toast.error(error?.message || 'No se pudo guardar la playlist.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+
+        return { success: false, error: error?.message || 'Error saving playlist' }
+      }
+
+      if (!result?.success) {
+        toast.error(result?.error || 'No se pudo guardar la playlist.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return result
+      }
+
+      await getSavedLists({ force: true })
+
+      toast.success(`Playlist guardada: ${result.playlistName}`, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+
+      return result
+    },
+    [getSavedLists]
+  )
+
   const deleteDirectoryList = useCallback(async (path) => {
     await deleteDirectory(path)
     SetAllSongs([])
@@ -333,7 +422,10 @@ export const PlaylistsProvider = ({ children }) => {
       getRandomList,
       removeSongFromList,
       addSongToList,
-      deleteDirectoryList
+      deleteDirectoryList,
+      resolvePlaylistSaveDirectory,
+      listPlaylistSaveDirectory,
+      savePlaylistFromTracks
     }),
     [
       addPlaylisthistory,
@@ -359,6 +451,9 @@ export const PlaylistsProvider = ({ children }) => {
       playlistsLoading,
       randomPlaylist,
       removeSongFromList,
+      resolvePlaylistSaveDirectory,
+      listPlaylistSaveDirectory,
+      savePlaylistFromTracks,
       updateArrayAlbums,
       updateArrayCovers,
       updatePlaylist

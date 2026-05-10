@@ -299,6 +299,30 @@ function extractPlaylistName(filePath) {
   return path.basename(filePath, path.extname(filePath))
 }
 
+function normalizePlaylistFileName(nombre = '') {
+  return String(nombre)
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+}
+
+function buildPlaylistTargetPath({ targetPath = null, targetDirectory = null, nombre = '' } = {}) {
+  if (targetPath) {
+    return path.resolve(targetPath)
+  }
+
+  const normalizedName = normalizePlaylistFileName(nombre)
+
+  if (!normalizedName) {
+    throw new Error('Playlist name is required')
+  }
+
+  if (!targetDirectory) {
+    throw new Error('Target directory is required')
+  }
+
+  return path.join(targetDirectory, `${normalizedName}.m3u`)
+}
+
 function normalizeSearchQuery(value) {
   if (typeof value !== 'string') {
     return ''
@@ -309,7 +333,7 @@ function normalizeSearchQuery(value) {
 
 async function savePlaylist(filePath, filePaths) {
   const playlistName = extractPlaylistName(filePath)
-  const m3uContent = createM3uContent(filePaths, '')
+  const m3uContent = createM3uContent(filePaths)
   const saveResult = await saveM3uFile(filePath, m3uContent)
 
   if (!saveResult.success) {
@@ -317,6 +341,51 @@ async function savePlaylist(filePath, filePaths) {
   }
 
   return { success: true, playlistName }
+}
+
+async function persistPlaylistRecord(filePath) {
+  const playlistName = extractPlaylistName(filePath)
+  const conflictingPlaylist = await prisma.playlist.findUnique({
+    where: { nombre: playlistName }
+  })
+
+  if (conflictingPlaylist && conflictingPlaylist.path !== filePath) {
+    return {
+      success: false,
+      error: `Ya existe una playlist llamada "${playlistName}".`
+    }
+  }
+
+  const { totalDuration, totalTracks } = await getPlaylistDetails(filePath)
+  const playlist = await updatePlaylist(filePath, playlistName, totalDuration, totalTracks, 0)
+
+  return {
+    success: true,
+    path: filePath,
+    playlistName,
+    playlist
+  }
+}
+
+async function savePlaylistToTarget({
+  filePaths,
+  targetPath = null,
+  targetDirectory = null,
+  nombre = ''
+} = {}) {
+  const playlistPath = buildPlaylistTargetPath({
+    targetPath,
+    targetDirectory,
+    nombre
+  })
+  const { success, error } = await savePlaylist(playlistPath, filePaths)
+
+  if (!success) {
+    return { success: false, error }
+  }
+
+  invalidatePlaylistCache(playlistPath)
+  return persistPlaylistRecord(playlistPath)
 }
 async function getPlaylistDetails(playlistPath) {
   const m3uDirectory = path.dirname(playlistPath)
@@ -424,28 +493,16 @@ export function setupPlaylistHandlers() {
       if (!filePath) return []
       const baseDir = path.dirname(filePath)
       const filePaths = await getM3ufilepaths(filePath, baseDir) //
-      const { success, playlistName, error } = await savePlaylist(filePath, filePaths)
+      const result = await savePlaylistToTarget({
+        filePaths,
+        targetPath: filePath
+      })
 
-      if (!success) {
-        return { success: false, error }
+      if (!result.success) {
+        return { success: false, error: result.error }
       }
 
-      const { totalDuration, totalTracks } = await getPlaylistDetails(filePath)
-      const playlistData = {
-        path: filePath,
-        nombre: playlistName,
-        duracion: totalDuration,
-        numElementos: totalTracks,
-        totalplays: 0
-      }
-
-      return await updatePlaylist(
-        playlistData.path,
-        playlistData.nombre,
-        playlistData.duracion,
-        playlistData.numElementos,
-        playlistData.totalplays
-      )
+      return result.playlist
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -557,6 +614,14 @@ export function setupPlaylistHandlers() {
 
     const baseDir = path.dirname(filePath)
     const filePaths = await getM3ufilepaths(filePath, baseDir) //
+
+    if (filePaths.includes(song)) {
+      return {
+        success: false,
+        error: 'La cancion ya existe en esta playlist.'
+      }
+    }
+
     filePaths.push(song)
     const saveResult = await savePlaylist(filePath, filePaths)
     invalidatePlaylistCache(filePath)
@@ -577,32 +642,24 @@ export function setupPlaylistHandlers() {
     return { ...removeTrack(playlistData.path, playlistData), songName: filename }
   })
 
-  ipcMain.handle('save-m3u', async (event, { filePaths }) => {
+  ipcMain.handle('save-m3u', async (event, request = {}) => {
     try {
-      const filePath = await saveDialog()
-      const { success, playlistName, error } = await savePlaylist(filePath, filePaths)
-      invalidatePlaylistCache(filePath)
+      const { filePaths = [], targetPath = null, targetDirectory = null, nombre = '' } = request
+      const resolvedTargetPath =
+        targetPath || (await saveDialog())
 
-      if (!success) {
-        return { success: false, error }
+      if (!resolvedTargetPath) {
+        return { success: false, error: 'Save canceled' }
       }
 
-      const { totalDuration, totalTracks } = await getPlaylistDetails(filePath)
-      const playlistData = {
-        path: filePath,
-        nombre: playlistName,
-        duracion: totalDuration,
-        numElementos: totalTracks,
-        totalplays: 0
-      }
+      const result = await savePlaylistToTarget({
+        filePaths,
+        targetPath: resolvedTargetPath,
+        targetDirectory,
+        nombre
+      })
 
-      return await updatePlaylist(
-        playlistData.path,
-        playlistData.nombre,
-        playlistData.duracion,
-        playlistData.numElementos,
-        playlistData.totalplays
-      )
+      return result
     } catch (err) {
       return { success: false, error: err.message }
     }

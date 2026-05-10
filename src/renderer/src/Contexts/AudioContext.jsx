@@ -10,8 +10,8 @@ export const useAudioContext = () => {
 }
 
 export const AudioProvider = ({ children }) => {
-  const { currentFile, mediaRef, addhistory } = useSuper()
-  const { launchReady } = useArgv()
+  const { currentFile, mediaRef, addhistory, volume, muted, loop } = useSuper()
+  const { autoplayRequestId } = useArgv()
   const [path, setPath] = useState(null)
 
   useEffect(() => {
@@ -49,7 +49,18 @@ export const AudioProvider = ({ children }) => {
   }
 
   useEffect(() => {
-    if (!launchReady || !path || !mediaRef.current) {
+    if (!path || !mediaRef.current) {
+      return
+    }
+
+    const audio = mediaRef.current
+    audio.volume = Math.max(0, Math.min(1, Number(volume) || 0))
+    audio.muted = Boolean(muted)
+    audio.loop = Boolean(loop)
+  }, [loop, mediaRef, muted, path, volume])
+
+  useEffect(() => {
+    if (!autoplayRequestId || !path || !mediaRef.current) {
       return
     }
 
@@ -69,7 +80,7 @@ export const AudioProvider = ({ children }) => {
     return () => {
       audio.removeEventListener('canplay', tryPlay)
     }
-  }, [launchReady, path, mediaRef])
+  }, [autoplayRequestId, path, mediaRef])
 
   return (
     <AudioContextState.Provider value={{}}>
@@ -77,9 +88,9 @@ export const AudioProvider = ({ children }) => {
       <audio
         ref={mediaRef}
         controls
-        autoPlay={launchReady}
         style={{ display: 'none' }}
         src={path}
+        autoPlay
       />
     </AudioContextState.Provider>
   )

@@ -7,6 +7,7 @@ import { useSession } from '../../Contexts/SessionContext'
 import { useSuper } from '../../Contexts/SupeContext'
 import { DEFAULT_COVER, preloadCoverUrl } from '../../hooks/useCoverUrl'
 import Modal from '../Modal/Modal'
+import PlaylistSaveModal from '../PlaylistSaveModal/PlaylistSaveModal'
 import { FormAddTo } from '../SongItem/FormAddTo'
 import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
@@ -76,6 +77,27 @@ function areArraysEqual(first = [], second = []) {
   }
 
   return first.every((value, index) => value === second[index])
+}
+
+function dedupeSongsByFilePath(list = []) {
+  if (!Array.isArray(list) || list.length === 0) {
+    return []
+  }
+
+  const seenFilePaths = new Set()
+
+  return list.filter((file) => {
+    if (!file?.filePath) {
+      return true
+    }
+
+    if (seenFilePaths.has(file.filePath)) {
+      return false
+    }
+
+    seenFilePaths.add(file.filePath)
+    return true
+  })
 }
 
 function resolveManualOrder(list, persistedOrder) {
@@ -263,12 +285,13 @@ export function Cola({
   sourceKey,
   onMoveCommit
 }) {
-  const { handleSongClick, currentFile } = useSuper()
+  const { handleSongClick, currentFile, appendToCurrentQueue } = useSuper()
   const { manualQueueOrders, setManualQueueOrders } = useSession()
   const { likesLookup, toggleLike } = useLikes()
-  const { agregarElemento, latersong } = useMini()
+  const { latersong } = useMini()
   const { addPlaylisthistory } = usePlaylists()
   const [selectedPlaylistSong, setSelectedPlaylistSong] = useState(null)
+  const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
   const [coverUrls, setCoverUrls] = useState({})
   const [pinnedSongPath, setPinnedSongPath] = useState(null)
@@ -280,9 +303,11 @@ export function Cola({
   const isDescending = true
 
   const baseList = useMemo(() => {
-    if (preserveOrder) return list
+    const uniqueList = dedupeSongsByFilePath(list)
 
-    return list
+    if (preserveOrder) return uniqueList
+
+    return uniqueList
       .slice()
       .sort((a, b) => (isDescending ? b.play_count - a.play_count : a.play_count - b.play_count))
   }, [isDescending, list, preserveOrder])
@@ -335,7 +360,8 @@ export function Cola({
     const options = [
       { id: 'add to queue', label: 'Add to queue' },
       { id: 'add later', label: 'Add later' },
-      { id: 'add to playlist', label: 'Add to playlist' }
+      { id: 'add to playlist', label: 'Add to playlist' },
+      { id: 'save as playlist', label: 'Guardar como playlist' }
     ]
 
     if (actions) {
@@ -430,7 +456,7 @@ export function Cola({
   const onMenuSelect = useCallback(
     (optionId, file, index) => {
       if (optionId === 'add to queue') {
-        agregarElemento(file)
+        appendToCurrentQueue(file)
         return
       }
 
@@ -444,6 +470,11 @@ export function Cola({
         return
       }
 
+      if (optionId === 'save as playlist') {
+        setIsSavePlaylistVisible(true)
+        return
+      }
+
       const action = actions?.[optionId]
       if (action) {
         action(file, index)
@@ -451,7 +482,7 @@ export function Cola({
         console.log('Opcion no reconocida:', optionId)
       }
     },
-    [actions, agregarElemento, latersong]
+    [actions, appendToCurrentQueue, latersong]
   )
 
   const handleItemsRendered = useCallback(
@@ -742,6 +773,13 @@ export function Cola({
           <FormAddTo file={selectedPlaylistSong} />
         </Modal>
       )}
+
+      <PlaylistSaveModal
+        isVisible={isSavePlaylistVisible}
+        onClose={() => setIsSavePlaylistVisible(false)}
+        tracks={displayedList}
+        sourceName={name}
+      />
     </div>
   )
 }

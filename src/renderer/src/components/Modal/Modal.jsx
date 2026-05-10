@@ -1,6 +1,6 @@
 import './Modal.scss'
 
-const Modal = ({ isVisible, closeModal, children }) => {
+const Modal = ({ isVisible, closeModal, children, contentClassName = '' }) => {
   const modalStyle = {
     display: isVisible ? 'flex' : 'none'
   }
@@ -13,7 +13,10 @@ const Modal = ({ isVisible, closeModal, children }) => {
     <>
       <div style={overlayStyle} className="overlayStyle" onClick={closeModal} />
 
-      <div style={modalStyle} className="modalStyle">
+      <div
+        style={modalStyle}
+        className={contentClassName ? `modalStyle ${contentClassName}` : 'modalStyle'}
+      >
         <button
           onClick={(event) => {
             event.stopPropagation()

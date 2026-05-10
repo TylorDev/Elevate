@@ -11,7 +11,8 @@ import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './TrackCard.scss'
 
 export const TrackCard = memo(function TrackCard({ song, index, list, isFocused }) {
-  const { handleSongClick, currentFile, isPlaying, togglePlayPause } = useSuper()
+  const { handleSongClick, currentFile, isPlaying, togglePlayPause, appendToCurrentQueue } =
+    useSuper()
   const { toggleLike, isLiked: checkLikeStatus } = useLikes()
   const coverUrl = useCoverUrl(song.filePath, 'thumb')
   const [dominantColor, setDominantColor] = useState({ hex: '#baff00', rgb: '186, 255, 0' })
@@ -59,9 +60,14 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
   ], [])
 
   const handleMenuSelect = useCallback((optionId) => {
+    if (optionId === 'add-queue') {
+      appendToCurrentQueue(song)
+      return
+    }
+
     console.log(`Selected: ${optionId} for song: ${song.title}`)
     // Aquí iría la lógica para cada acción
-  }, [song?.title])
+  }, [appendToCurrentQueue, song])
 
   return (
     <div

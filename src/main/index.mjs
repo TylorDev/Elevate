@@ -262,11 +262,17 @@ if (!gotTheLock) {
   console.log(process.versions.node)
 
   const prismaModule = await import('./prisma.mjs')
-  const [{ setupLikeSongHandlers, setupMusicHandlers }, { setupPlaylistHandlers }, { setupFilehandlers }] =
+  const [
+    { setupLikeSongHandlers, setupMusicHandlers },
+    { setupPlaylistHandlers },
+    { setupFilehandlers },
+    { setupPlaylistSaveExplorerHandlers }
+  ] =
     await Promise.all([
       import('./ipc/likehandlers.mjs'),
       import('./ipc/playlistHandlers.mjs'),
-      import('./ipc/filehandlers.mjs')
+      import('./ipc/filehandlers.mjs'),
+      import('./ipc/playlistSaveExplorerHandlers.mjs')
     ])
 
   prisma = prismaModule.prisma
@@ -281,6 +287,7 @@ if (!gotTheLock) {
   setupFilehandlers()
   setupArgvHandlers()
   setupPlaylistHandlers()
+  setupPlaylistSaveExplorerHandlers()
   setupLikeSongHandlers()
 
   // Initialize directory watchers for all existing directories
