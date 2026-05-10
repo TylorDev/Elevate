@@ -10,7 +10,7 @@ import { useLikes } from '../../Contexts/LikeContext'
 import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay } from 'react-icons/lu'
 
 function Music() {
-  const { mediaRef, currentFile } = useSuper()
+  const { mediaRef, currentFile, togglePlayPause } = useSuper()
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const [audioEl, setAudioEl] = useState(null)
@@ -80,6 +80,14 @@ function Music() {
     }
   }, [currentFile, toggleLike])
 
+  const handleBackgroundClick = useCallback((event) => {
+    if (event.target instanceof Element && event.target.closest('button')) {
+      return
+    }
+
+    togglePlayPause()
+  }, [togglePlayPause])
+
   // [P11] Stable toggle callbacks using functional setState.
   // No dependencies needed — prev => !prev is always current.
   const toggleCover = useCallback(() => setShowCover(prev => !prev), [])
@@ -98,7 +106,12 @@ function Music() {
   )
 
   return (
-    <div className={`Music ${!enableVisualizer ? 'no-visualizer' : ''}`} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+    <div
+      className={`Music ${!enableVisualizer ? 'no-visualizer' : ''}`}
+      onClick={handleBackgroundClick}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+    >
       
       {/* Cover como fondo cuando está oculto */}
       {!showCover && currentCover && (

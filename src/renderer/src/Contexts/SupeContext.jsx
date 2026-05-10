@@ -1,6 +1,14 @@
 import { createContext, useContext, useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { dataToImageUrl, electronInvoke, ElectronSetter, WindowsPlayer } from './utils'
-import { goToNext, goToPrevious, toPlay, toMute, toRepeat, toShuffle } from './utilControls'
+import {
+  createWeightedShuffledQueue,
+  goToNext,
+  goToPrevious,
+  toPlay,
+  toMute,
+  toRepeat,
+  toShuffle
+} from './utilControls'
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
 import { useCoverUrl } from '../hooks/useCoverUrl'
@@ -61,9 +69,23 @@ function findFileIndex(queue, filePath) {
   return queue.findIndex((file) => file?.filePath === filePath)
 }
 
-function createDisplayedQueue(baseQueue, reverseActive) {
+function createDisplayedQueue(baseQueue, shuffledActive, currentFile) {
   const nextBaseQueue = Array.isArray(baseQueue) ? [...baseQueue] : []
-  return reverseActive ? nextBaseQueue.reverse() : nextBaseQueue
+  return shuffledActive ? createWeightedShuffledQueue(nextBaseQueue, currentFile) : nextBaseQueue
+}
+
+function isEditableElement(element) {
+  if (!(element instanceof HTMLElement)) {
+    return false
+  }
+
+  const tagName = element.tagName?.toLowerCase()
+
+  if (tagName === 'input' || tagName === 'textarea' || tagName === 'select') {
+    return true
+  }
+
+  return element.isContentEditable
 }
 
 export const SuperProvider = ({ children }) => {
@@ -167,7 +189,7 @@ export const SuperProvider = ({ children }) => {
   const reorderCurrentQueue = useCallback(
     (nextBaseQueue) => {
       const baseQueue = Array.isArray(nextBaseQueue) ? [...nextBaseQueue] : []
-      const displayedQueue = createDisplayedQueue(baseQueue, isShuffled)
+      const displayedQueue = createDisplayedQueue(baseQueue, isShuffled, currentFile)
       const activeFilePath = currentFile?.filePath
       const activeIndex = findFileIndex(displayedQueue, activeFilePath)
 
@@ -214,7 +236,7 @@ export const SuperProvider = ({ children }) => {
           ? previousState.originalQueue
           : currentQueue
         const nextOriginalQueue = [...originalQueue, song]
-        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled)
+        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled, currentFile)
 
         return {
           queueName: previousState?.queueName || 'search-results',
@@ -223,7 +245,7 @@ export const SuperProvider = ({ children }) => {
         }
       })
     },
-    [isShuffled, setQueueState]
+    [currentFile, isShuffled, setQueueState]
   )
 
   const appendToQueueAndPlay = useCallback(
@@ -240,10 +262,10 @@ export const SuperProvider = ({ children }) => {
           ? previousState.originalQueue
           : currentQueue
         const nextOriginalQueue = [...originalQueue, song]
-        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled)
+        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled, song)
         const nextIndex = findFileIndex(nextQueue, song.filePath)
 
-        setCurrentFile(song)
+        setCurrentFile(nextQueue[nextIndex] || song)
         setCurrentIndex(nextIndex >= 0 ? nextIndex : 0)
 
         return {
@@ -254,6 +276,75 @@ export const SuperProvider = ({ children }) => {
       })
     },
     [isShuffled, setCurrentFile, setCurrentIndex, setQueueState]
+  )
+
+  const removeFromCurrentQueue = useCallback(
+    (index) => {
+      setQueueState((previousState) => {
+        const currentQueue = Array.isArray(previousState?.currentQueue)
+          ? previousState.currentQueue
+          : []
+        const originalQueue = Array.isArray(previousState?.originalQueue)
+          ? previousState.originalQueue
+          : currentQueue
+
+        if (!Number.isInteger(index) || index < 0 || index >= currentQueue.length) {
+          return previousState
+        }
+
+        const removedFile = currentQueue[index]
+        const nextCurrentQueue = currentQueue.filter((_, itemIndex) => itemIndex !== index)
+        let removedOriginal = false
+        const nextOriginalQueue = originalQueue.filter((file) => {
+          if (!removedOriginal && file?.filePath === removedFile?.filePath) {
+            removedOriginal = true
+            return false
+          }
+
+          return true
+        })
+
+        if (nextCurrentQueue.length === 0) {
+          setCurrentFile('')
+          setCurrentIndex(0)
+        } else if (currentIndex === index) {
+          const nextIndex = Math.min(index, nextCurrentQueue.length - 1)
+          setCurrentFile(nextCurrentQueue[nextIndex] || '')
+          setCurrentIndex(nextIndex)
+        } else if (currentIndex > index) {
+          const nextIndex = currentIndex - 1
+          setCurrentFile(nextCurrentQueue[nextIndex] || nextCurrentQueue[0] || '')
+          setCurrentIndex(nextIndex)
+        } else {
+          const activeFilePath = currentFile?.filePath
+          const activeIndex = findFileIndex(nextCurrentQueue, activeFilePath)
+
+          if (activeIndex >= 0) {
+            setCurrentFile(nextCurrentQueue[activeIndex])
+            setCurrentIndex(activeIndex)
+          }
+        }
+
+        toast.success('Eliminada correctamente!', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+
+        return {
+          ...previousState,
+          currentQueue: nextCurrentQueue,
+          originalQueue: nextOriginalQueue
+        }
+      })
+    },
+    [currentFile?.filePath, currentIndex, setCurrentFile, setCurrentIndex, setQueueState]
   )
 
   const openDirectoryQueue = useCallback(
@@ -383,14 +474,53 @@ export const SuperProvider = ({ children }) => {
     WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick)
   }, [currentCoverUrl, currentFile, handleNextClick, handlePreviousClick])
 
-  const togglePlayPause = () => {
+  useEffect(() => {
+    void window.electron?.windowControls?.updateTaskbarPlayerState?.({
+      isPlaying,
+      title: currentFile?.title || currentFile?.fileName || '',
+      artist: currentFile?.artist || '',
+      hasPrevious: currentIndex > 0,
+      hasNext: queueState.currentQueue.length > 0,
+      previewMode: 'full-window'
+    })
+  }, [
+    currentFile?.artist,
+    currentFile?.fileName,
+    currentFile?.title,
+    currentIndex,
+    isPlaying,
+    queueState.currentQueue.length
+  ])
+
+  const togglePlayPause = useCallback(() => {
     if (!currentFile?.filePath && queueState.currentQueue.length > 0) {
       setCurrentFile(queueState.currentQueue[0])
       setCurrentIndex(0)
     } else {
       toPlay(mediaRef, isPlaying)
     }
-  }
+  }, [currentFile?.filePath, isPlaying, queueState.currentQueue, setCurrentFile, setCurrentIndex])
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event) => {
+      if (event.code !== 'Space' || event.repeat) {
+        return
+      }
+
+      if (isEditableElement(document.activeElement)) {
+        return
+      }
+
+      event.preventDefault()
+      togglePlayPause()
+    }
+
+    window.addEventListener('keydown', handleGlobalKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown)
+    }
+  }, [togglePlayPause])
 
   const toggleMute = () => {
     toMute(mediaRef, muted, setMuted)
@@ -465,6 +595,33 @@ export const SuperProvider = ({ children }) => {
     }
   }
 
+  useEffect(() => {
+    const unsubscribe = window.electron?.windowControls?.onAppCommand?.((command) => {
+      if (command === 'previous-track') {
+        handlePreviousClick()
+        return
+      }
+
+      if (command === 'toggle-playback') {
+        togglePlayPause()
+        return
+      }
+
+      if (command === 'next-track') {
+        handleNextClick()
+        return
+      }
+
+      if (command === 'toggle-step') {
+        toggleStep()
+      }
+    })
+
+    return () => {
+      unsubscribe?.()
+    }
+  }, [handleNextClick, handlePreviousClick, togglePlayPause, toggleStep])
+
   const toggleRepeat = () => {
     toRepeat(mediaRef, loop, setLoop)
   }
@@ -476,6 +633,7 @@ export const SuperProvider = ({ children }) => {
       queueState.originalQueue,
       currentFile,
       setQueueState,
+      setCurrentFile,
       setCurrentIndex,
       setIsShuffled
     )
@@ -649,6 +807,7 @@ export const SuperProvider = ({ children }) => {
     reorderCurrentQueue,
     appendToCurrentQueue,
     appendToQueueAndPlay,
+    removeFromCurrentQueue,
     addhistory,
     queueState,
     handleSaveClick,
@@ -693,6 +852,7 @@ export const SuperProvider = ({ children }) => {
     openDirectoryQueue,
     queueState,
     reorderCurrentQueue,
+    removeFromCurrentQueue,
     removeTrack,
     setCurrentFile,
     setCurrentIndex,

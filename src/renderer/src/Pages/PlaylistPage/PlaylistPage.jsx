@@ -12,7 +12,6 @@ import { GoPencil } from 'react-icons/go'
 import { useSuper } from '../../Contexts/SupeContext'
 import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
-import { PlaylistActions } from './../../Components/PlaylistActions/PlaylistActions'
 
 function PlaylistPage() {
   const { dir } = useParams() // Obtener el parámetro de la URL
@@ -20,7 +19,7 @@ function PlaylistPage() {
 
   const [isVisible, setIsVisible] = useState(false) // Moved to the top
   const [back, setBack] = useState()
-  const { getUniqueList, updatePlaylist, playlists, removeSongFromList } = usePlaylists()
+  const { getUniqueList, updatePlaylist, playlistsLastLoadedAt } = usePlaylists()
   const { queueState, handleQueueAndPlay, getImage } = useSuper() // Combined the two useSuper calls
 
   useEffect(() => {
@@ -29,7 +28,7 @@ function PlaylistPage() {
     }
 
     getData()
-  }, [dir, queueState, playlists])
+  }, [dir, getUniqueList, playlistsLastLoadedAt, queueState])
 
   useEffect(() => {
     if (current?.playlistData) {
@@ -56,12 +55,6 @@ function PlaylistPage() {
   }
 
   const data = current.playlistData
-  const actions = {
-    'Remove from the playlist': (file, index) => {
-      console.log('eliminando a ', file.fileName)
-      removeSongFromList(data.path, index)
-    }
-  }
 
   return (
     <div className="PlaylistPage">
@@ -103,7 +96,7 @@ function PlaylistPage() {
       </div>
 
       <div className="plg-cola">
-        <Cola list={current.processedData} name={dir} filePath={dir} actions={actions} />
+        <Cola list={current.processedData} name={dir} />
       </div>
     </div>
   )

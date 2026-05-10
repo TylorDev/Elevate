@@ -2,7 +2,6 @@ import { createRequire } from 'node:module'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
-import icon from '../../resources/icon.png'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
 
@@ -12,8 +11,54 @@ let isQuitting = false
 const defaultRemoteDebuggingPort = '9222'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } = electron
+const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen, Menu, Tray, nativeImage } = electron
 const windowStateChannel = 'window:state-changed'
+const appCommandChannel = 'app:command'
+let tray = null
+let hasShutdownStarted = false
+const mainDir = fileURLToPath(new URL('.', import.meta.url))
+let taskbarPlayerState = {
+  isPlaying: false,
+  title: '',
+  artist: '',
+  hasPrevious: false,
+  hasNext: false,
+  previewMode: 'full-window'
+}
+
+function resolveIconPath() {
+  const candidates = [
+    join(process.resourcesPath || '', 'icon.png'),
+    join(process.resourcesPath || '', 'resources', 'icon.png'),
+    join(mainDir, '../../resources/icon.png')
+  ]
+
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || ''
+}
+
+const iconPath = resolveIconPath()
+const trayImage = iconPath ? nativeImage.createFromPath(iconPath) : null
+
+function createSvgDataUrl(svgMarkup) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`
+}
+
+function createThumbarIcon(pathData) {
+  return nativeImage.createFromDataURL(
+    createSvgDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+        <path fill="#111111" d="${pathData}" />
+      </svg>
+    `)
+  )
+}
+
+const thumbarIcons = {
+  previous: createThumbarIcon('M11 16l13-8v16zM7 8h2v16H7z'),
+  play: createThumbarIcon('M10 8l13 8-13 8z'),
+  pause: createThumbarIcon('M10 8h5v16h-5zM18 8h5v16h-5z'),
+  next: createThumbarIcon('M9 8l13 8-13 8zM23 8h2v16h-2z')
+}
 
 try {
   process.loadEnvFile()
@@ -113,6 +158,152 @@ function sendWindowState() {
   mainWin.webContents.send(windowStateChannel, getWindowStatePayload())
 }
 
+function sendAppCommand(command) {
+  if (!mainWin || mainWin.isDestroyed() || mainWin.webContents.isDestroyed()) {
+    return
+  }
+
+  mainWin.webContents.send(appCommandChannel, command)
+}
+
+function updateTaskbarControls() {
+  if (process.platform !== 'win32' || !mainWin || mainWin.isDestroyed()) {
+    return
+  }
+
+  const tooltipParts = [taskbarPlayerState.title, taskbarPlayerState.artist].filter(Boolean)
+  const thumbnailTooltip = tooltipParts.join(' - ') || 'Elevate'
+
+  mainWin.setThumbnailToolTip(thumbnailTooltip)
+
+  mainWin.setThumbarButtons([
+    {
+      tooltip: 'Previous',
+      icon: thumbarIcons.previous,
+      click: () => sendAppCommand('previous-track'),
+      flags: taskbarPlayerState.hasPrevious ? ['dismissonclick'] : ['disabled']
+    },
+    {
+      tooltip: taskbarPlayerState.isPlaying ? 'Pause' : 'Play',
+      icon: taskbarPlayerState.isPlaying ? thumbarIcons.pause : thumbarIcons.play,
+      click: () => sendAppCommand('toggle-playback'),
+      flags: ['dismissonclick']
+    },
+    {
+      tooltip: 'Next',
+      icon: thumbarIcons.next,
+      click: () => sendAppCommand('next-track'),
+      flags: taskbarPlayerState.hasNext ? ['dismissonclick'] : ['disabled']
+    }
+  ])
+}
+
+function restoreMainWindow() {
+  if (!mainWin || mainWin.isDestroyed()) {
+    return
+  }
+
+  if (mainWin.isMinimized()) {
+    mainWin.restore()
+  }
+
+  if (!mainWin.isVisible()) {
+    mainWin.show()
+  }
+
+  mainWin.focus()
+  sendWindowState()
+  updateTaskbarControls()
+}
+
+function hideMainWindowToTray() {
+  if (!mainWin || mainWin.isDestroyed()) {
+    return
+  }
+
+  saveWindowState()
+  mainWin.hide()
+  sendWindowState()
+}
+
+async function shutdownApp() {
+  if (hasShutdownStarted) {
+    return
+  }
+
+  hasShutdownStarted = true
+  isQuitting = true
+
+  if (tray && !tray.isDestroyed()) {
+    tray.destroy()
+    tray = null
+  }
+
+  try {
+    const { stopAll } = await import('./ipc/utils/directoryWatcher.mjs')
+    await stopAll()
+  } catch (err) {
+    log.error('Error stopping watchers:', err)
+  }
+
+  try {
+    if (prisma) {
+      await prisma.$disconnect()
+    }
+  } catch (error) {
+    log.error('Error disconnecting Prisma:', error)
+  }
+
+  app.quit()
+}
+
+function buildTrayMenu() {
+  return Menu.buildFromTemplate([
+    {
+      label: 'Restaurar',
+      click: () => restoreMainWindow()
+    },
+    {
+      label: 'Pause/Play',
+      click: () => sendAppCommand('toggle-playback')
+    },
+    {
+      label: 'Step',
+      click: () => sendAppCommand('toggle-step')
+    },
+    {
+      type: 'separator'
+    },
+    {
+      label: 'Cerrar App',
+      click: () => {
+        void shutdownApp()
+      }
+    }
+  ])
+}
+
+function createTray() {
+  if (tray && !tray.isDestroyed()) {
+    tray.setContextMenu(buildTrayMenu())
+    return tray
+  }
+
+  if (!trayImage || trayImage.isEmpty()) {
+    log.error('Tray icon could not be loaded from path:', iconPath)
+    return null
+  }
+
+  tray = new Tray(trayImage)
+  tray.setToolTip('Elevate')
+  tray.setContextMenu(buildTrayMenu())
+  tray.on('click', () => {
+    restoreMainWindow()
+  })
+
+  return tray
+}
+
 function setupWindowControlHandlers() {
   ipcMain.handle('window:minimize', () => {
     if (!mainWin || mainWin.isDestroyed()) {
@@ -143,7 +334,28 @@ function setupWindowControlHandlers() {
     mainWin.close()
   })
 
+  ipcMain.handle('window:restore', () => {
+    restoreMainWindow()
+  })
+
+  ipcMain.handle('window:quit', async () => {
+    await shutdownApp()
+  })
+
   ipcMain.handle('window:get-state', () => getWindowStatePayload())
+  ipcMain.handle('window:update-taskbar-player-state', (_, payload = {}) => {
+    taskbarPlayerState = {
+      ...taskbarPlayerState,
+      isPlaying: Boolean(payload.isPlaying),
+      title: String(payload.title || ''),
+      artist: String(payload.artist || ''),
+      hasPrevious: Boolean(payload.hasPrevious),
+      hasNext: Boolean(payload.hasNext),
+      previewMode: payload.previewMode === 'cover-clip' ? 'cover-clip' : 'full-window'
+    }
+
+    updateTaskbarControls()
+  })
 }
 
 function createWindow() {
@@ -162,9 +374,9 @@ function createWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#000000',
-    icon: icon,
+    icon: iconPath || undefined,
 
-    ...(process.platform === 'linux' ? { icon } : {}),
+    ...(process.platform === 'linux' && iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)),
       sandbox: false,
@@ -199,9 +411,18 @@ function createWindow() {
     })
 
     sendWindowState()
+    updateTaskbarControls()
   })
 
-  mainWindow.on('close', saveWindowState)
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault()
+      hideMainWindowToTray()
+      return
+    }
+
+    saveWindowState()
+  })
   mainWindow.on('resize', saveWindowState)
   mainWindow.on('move', saveWindowState)
   mainWindow.on('maximize', () => {
@@ -294,6 +515,7 @@ if (!gotTheLock) {
   const { initializeWatchers } = await import('./ipc/utils/directoryWatcher.mjs')
   await initializeWatchers()
 
+  createTray()
   createWindow()
   console.info('[argv/main] initial process.argv', process.argv)
   await processAndDispatchLaunchArgs(process.argv.slice(1), {
@@ -320,30 +542,17 @@ if (!gotTheLock) {
 
 app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
-    if (isQuitting) {
+    if (!isQuitting) {
       return
     }
-
-    isQuitting = true
-
-    // Stop all directory watchers
-    try {
-      const { stopAll } = await import('./ipc/utils/directoryWatcher.mjs')
-      await stopAll()
-    } catch (err) {
-      log.error('Error stopping watchers:', err)
-    }
-
-    if (prisma) {
-      void prisma.$disconnect().finally(() => app.quit())
-      return
-    }
-
-    app.quit()
   }
 })
 
 app.on('will-quit', () => {
+  if (tray && !tray.isDestroyed()) {
+    tray.destroy()
+    tray = null
+  }
   globalShortcut.unregisterAll()
 })
 

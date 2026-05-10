@@ -118,9 +118,13 @@ export const OverflowMenu = memo(forwardRef(function OverflowMenu({ options, onS
           {options.map((option, index) => (
             <div
               key={option.id || index}
-              className="overflow-item"
+              className={option.disabled ? 'overflow-item is-disabled' : 'overflow-item'}
+              aria-disabled={option.disabled ? 'true' : undefined}
               onClick={(e) => {
                 e.stopPropagation()
+                if (option.disabled) {
+                  return
+                }
                 onSelect(option.id)
                 setIsOpen(false)
               }}

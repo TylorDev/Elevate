@@ -81,11 +81,11 @@ export function GlobalSearchProvider({ children }) {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [filters, setFilters] = useState({
-    directory: false,
-    playlist: false,
+    directory: true,
+    playlist: true,
     artist: true,
     name: true,
-    configuration: false
+    configuration: true
   })
   const [songs, setSongs] = useState(createCategoryState)
   const [playlists, setPlaylists] = useState(createCategoryState)

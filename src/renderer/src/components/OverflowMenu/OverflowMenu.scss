@@ -82,6 +82,24 @@
       text-align: left;
     }
   }
+
+  .overflow-item.is-disabled {
+    cursor: not-allowed;
+    color: rgba(255, 255, 255, 0.35);
+
+    .overflow-icon {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    &:hover {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.35);
+
+      .overflow-icon {
+        color: rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
 }
 
 @keyframes overflow-modern-in {

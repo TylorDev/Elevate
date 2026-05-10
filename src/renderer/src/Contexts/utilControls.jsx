@@ -12,6 +12,70 @@ export const goToNext = (currentIndex, queue, setCurrentIndex, setCurrentFile) =
   setCurrentFile(queue[newIndex])
 }
 
+function getPlayCount(file) {
+  const playCount = Number(file?.play_count)
+  return Number.isFinite(playCount) ? playCount : 0
+}
+
+function shuffleGroup(group) {
+  const nextGroup = [...group]
+
+  for (let index = nextGroup.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[nextGroup[index], nextGroup[randomIndex]] = [nextGroup[randomIndex], nextGroup[index]]
+  }
+
+  return nextGroup
+}
+
+function getBaseQueue(queue, originalQueue) {
+  if (Array.isArray(originalQueue) && originalQueue.length > 0) {
+    return [...originalQueue]
+  }
+
+  return Array.isArray(queue) ? [...queue] : []
+}
+
+function groupAndShuffleByPlayCount(queue) {
+  const groups = new Map()
+
+  for (const file of queue) {
+    const playCount = getPlayCount(file)
+    const currentGroup = groups.get(playCount) || []
+    currentGroup.push(file)
+    groups.set(playCount, currentGroup)
+  }
+
+  return Array.from(groups.keys())
+    .sort((left, right) => left - right)
+    .flatMap((playCount) => shuffleGroup(groups.get(playCount) || []))
+}
+
+export function createWeightedShuffledQueue(queue, currentFile = null) {
+  const baseQueue = Array.isArray(queue) ? [...queue] : []
+
+  if (baseQueue.length <= 1) {
+    return baseQueue
+  }
+
+  const activeFilePath = currentFile?.filePath
+
+  if (!activeFilePath) {
+    return groupAndShuffleByPlayCount(baseQueue)
+  }
+
+  const activeIndex = baseQueue.findIndex((file) => file?.filePath === activeFilePath)
+
+  if (activeIndex < 0) {
+    return groupAndShuffleByPlayCount(baseQueue)
+  }
+
+  const activeSong = baseQueue[activeIndex]
+  const remainingQueue = baseQueue.filter((_, index) => index !== activeIndex)
+
+  return [activeSong, ...groupAndShuffleByPlayCount(remainingQueue)]
+}
+
 // mediaUtils.js
 
 export const toPlay = (mediaRef, isPlaying) => {
@@ -47,15 +111,16 @@ export const toShuffle = (
   originalQueue,
   currentFile,
   setQueueState,
+  setCurrentFile,
   setCurrentIndex,
   setIsShuffled
 ) => {
-  const baseQueue = Array.isArray(originalQueue) ? originalQueue : []
-  const nextQueue = isShuffled ? [...baseQueue] : [...baseQueue].reverse()
+  const baseQueue = getBaseQueue(queue, originalQueue)
   const activeFilePath = currentFile?.filePath
-  const nextIndex = activeFilePath
-    ? nextQueue.findIndex((item) => item?.filePath === activeFilePath)
-    : -1
+  const nextQueue = isShuffled
+    ? [...baseQueue]
+    : createWeightedShuffledQueue(baseQueue, currentFile)
+  const nextIndex = activeFilePath ? nextQueue.findIndex((item) => item?.filePath === activeFilePath) : -1
 
   setQueueState((prevState) => ({
     ...prevState,
@@ -64,8 +129,12 @@ export const toShuffle = (
   }))
 
   if (nextIndex >= 0) {
+    setCurrentFile(nextQueue[nextIndex])
     setCurrentIndex(nextIndex)
+  } else if (!activeFilePath && nextQueue.length > 0 && !isShuffled) {
+    setCurrentIndex(0)
   } else if (nextQueue.length === 0) {
+    setCurrentFile('')
     setCurrentIndex(0)
   }
 

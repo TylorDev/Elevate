@@ -285,11 +285,11 @@ export function Cola({
   sourceKey,
   onMoveCommit
 }) {
-  const { handleSongClick, currentFile, appendToCurrentQueue } = useSuper()
+  const { handleSongClick, currentFile, appendToCurrentQueue, removeFromCurrentQueue } = useSuper()
   const { manualQueueOrders, setManualQueueOrders } = useSession()
   const { likesLookup, toggleLike } = useLikes()
   const { latersong } = useMini()
-  const { addPlaylisthistory } = usePlaylists()
+  const { addPlaylisthistory, removeSongFromList } = usePlaylists()
   const [selectedPlaylistSong, setSelectedPlaylistSong] = useState(null)
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
@@ -325,6 +325,13 @@ export function Cola({
       : displayedList.length >= virtualizationThreshold
 
   const activeFilePath = currentFile?.filePath ?? null
+  const isDirectorySource = typeof name === 'string' && name.startsWith('folder:')
+  const isCurrentQueueSource = name === 'currentQueue'
+  const isPlaylistSource =
+    typeof name === 'string' &&
+    !isDirectorySource &&
+    !isCurrentQueueSource &&
+    /\.m3u8?$/i.test(name)
 
   const isPinMoveEnabled =
     enablePinMove &&
@@ -361,7 +368,8 @@ export function Cola({
       { id: 'add to queue', label: 'Add to queue' },
       { id: 'add later', label: 'Add later' },
       { id: 'add to playlist', label: 'Add to playlist' },
-      { id: 'save as playlist', label: 'Guardar como playlist' }
+      { id: 'save as playlist', label: 'Guardar como playlist' },
+      { id: 'remove', label: 'Eliminar', disabled: isDirectorySource }
     ]
 
     if (actions) {
@@ -371,7 +379,7 @@ export function Cola({
     }
 
     return options
-  }, [actions])
+  }, [actions, isDirectorySource])
 
   const commitMovedList = useCallback(
     (nextList) => {
@@ -475,6 +483,22 @@ export function Cola({
         return
       }
 
+      if (optionId === 'remove') {
+        if (isDirectorySource) {
+          return
+        }
+
+        if (isCurrentQueueSource) {
+          removeFromCurrentQueue(index)
+          return
+        }
+
+        if (isPlaylistSource) {
+          void removeSongFromList(name, index)
+          return
+        }
+      }
+
       const action = actions?.[optionId]
       if (action) {
         action(file, index)
@@ -482,7 +506,17 @@ export function Cola({
         console.log('Opcion no reconocida:', optionId)
       }
     },
-    [actions, appendToCurrentQueue, latersong]
+    [
+      actions,
+      appendToCurrentQueue,
+      isCurrentQueueSource,
+      isDirectorySource,
+      isPlaylistSource,
+      latersong,
+      name,
+      removeFromCurrentQueue,
+      removeSongFromList
+    ]
   )
 
   const handleItemsRendered = useCallback(

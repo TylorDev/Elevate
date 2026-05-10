@@ -15,6 +15,7 @@ function PlaylistsQueueTab({ isActive }) {
     getSavedLists,
     getUniqueList,
     playlists,
+    playlistsLastLoadedAt,
     playlistsLoaded,
     playlistsLoading
   } = usePlaylists()
@@ -33,7 +34,7 @@ function PlaylistsQueueTab({ isActive }) {
 
     setCurrentPlaylist(null)
     getUniqueList(setCurrentPlaylist, selectedPlaylistPath)
-  }, [getUniqueList, selectedPlaylistPath])
+  }, [getUniqueList, playlistsLastLoadedAt, selectedPlaylistPath])
 
   const renderPlaylistRow = useCallback(
     (playlist, index, style) => (

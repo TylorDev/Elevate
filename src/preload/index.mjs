@@ -6,6 +6,7 @@ const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { contextBridge, ipcRenderer, webUtils } = electron
 const windowStateChannel = 'window:state-changed'
+const appCommandChannel = 'app:command'
 const electronAPI = {
   ipcRenderer: {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
@@ -31,13 +32,23 @@ const electronAPI = {
   windowControls: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+    restore: () => ipcRenderer.invoke('window:restore'),
     close: () => ipcRenderer.invoke('window:close'),
+    quit: () => ipcRenderer.invoke('window:quit'),
     getState: () => ipcRenderer.invoke('window:get-state'),
+    updateTaskbarPlayerState: (payload) => ipcRenderer.invoke('window:update-taskbar-player-state', payload),
     onStateChange: (callback) => {
       const listener = (_, payload) => callback(payload)
       ipcRenderer.on(windowStateChannel, listener)
       return () => {
         ipcRenderer.removeListener(windowStateChannel, listener)
+      }
+    },
+    onAppCommand: (callback) => {
+      const listener = (_, command) => callback(command)
+      ipcRenderer.on(appCommandChannel, listener)
+      return () => {
+        ipcRenderer.removeListener(appCommandChannel, listener)
       }
     }
   }

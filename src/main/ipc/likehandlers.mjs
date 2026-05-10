@@ -287,21 +287,134 @@ function normalizeSearchQuery(value) {
   return value.trim().replace(/\s+/g, ' ')
 }
 
-function getSongSearchPriority(song, normalizedQuery, filters) {
-  const loweredQuery = normalizedQuery.toLocaleLowerCase()
-  const title = String(song.title || '').toLocaleLowerCase()
-  const filename = String(song.filename || '').toLocaleLowerCase()
-  const artist = String(song.artist || '').toLocaleLowerCase()
+function normalizeSearchText(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
 
-  if (filters.name && (title.includes(loweredQuery) || filename.includes(loweredQuery))) {
+  return value
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+function compactSearchText(value) {
+  return normalizeSearchText(value).replace(/\s+/g, '')
+}
+
+function parseArtistTitleFromFilename(filename) {
+  if (typeof filename !== 'string' || !filename.includes(' - ')) {
+    return { artist: '', title: '' }
+  }
+
+  const [artistPart, ...titleParts] = filename.split(' - ')
+  const artist = artistPart?.trim() || ''
+  const title = titleParts.join(' - ').trim()
+
+  if (!artist || !title) {
+    return { artist: '', title: '' }
+  }
+
+  return { artist, title }
+}
+
+function createQueryInfo(query) {
+  const normalized = normalizeSearchText(query)
+  const compact = compactSearchText(query)
+
+  return {
+    raw: query,
+    normalized,
+    compact
+  }
+}
+
+function getFieldMatchScore(value, queryInfo) {
+  const normalizedValue = normalizeSearchText(value)
+
+  if (!normalizedValue || !queryInfo.normalized) {
+    return null
+  }
+
+  if (normalizedValue === queryInfo.normalized) {
     return 0
   }
 
-  if (filters.artist && artist.includes(loweredQuery)) {
+  if (normalizedValue.startsWith(queryInfo.normalized)) {
     return 1
   }
 
-  return 2
+  if (normalizedValue.includes(queryInfo.normalized)) {
+    return 2
+  }
+
+  const compactValue = compactSearchText(value)
+
+  if (!compactValue || !queryInfo.compact) {
+    return null
+  }
+
+  if (compactValue === queryInfo.compact) {
+    return 3
+  }
+
+  if (compactValue.startsWith(queryInfo.compact)) {
+    return 4
+  }
+
+  if (compactValue.includes(queryInfo.compact)) {
+    return 5
+  }
+
+  return null
+}
+
+function getSongSearchMatch(song, queryInfo, filters) {
+  const parsedFromFilename = parseArtistTitleFromFilename(song.filename || '')
+  const title = String(song.title || '')
+  const filename = String(song.filename || '')
+  const artist = String(song.artist || '')
+
+  const candidateScores = []
+
+  if (filters.name) {
+    candidateScores.push(
+      getFieldMatchScore(title, queryInfo),
+      getFieldMatchScore(parsedFromFilename.title, queryInfo) != null
+        ? getFieldMatchScore(parsedFromFilename.title, queryInfo) + 10
+        : null,
+      getFieldMatchScore(filename, queryInfo) != null
+        ? getFieldMatchScore(filename, queryInfo) + 20
+        : null,
+      getFieldMatchScore(`${artist} ${title}`, queryInfo) != null
+        ? getFieldMatchScore(`${artist} ${title}`, queryInfo) + 30
+        : null,
+      getFieldMatchScore(`${parsedFromFilename.artist} ${parsedFromFilename.title}`, queryInfo) != null
+        ? getFieldMatchScore(`${parsedFromFilename.artist} ${parsedFromFilename.title}`, queryInfo) + 40
+        : null
+    )
+  }
+
+  if (filters.artist) {
+    candidateScores.push(
+      getFieldMatchScore(artist, queryInfo) != null ? getFieldMatchScore(artist, queryInfo) + 50 : null,
+      getFieldMatchScore(parsedFromFilename.artist, queryInfo) != null
+        ? getFieldMatchScore(parsedFromFilename.artist, queryInfo) + 60
+        : null
+    )
+  }
+
+  const priority = candidateScores
+    .filter((score) => score != null)
+    .sort((left, right) => left - right)[0]
+
+  return {
+    matches: priority != null,
+    priority: priority ?? Number.POSITIVE_INFINITY
+  }
 }
 
 async function searchSongsPage(request = {}) {
@@ -323,64 +436,51 @@ async function searchSongsPage(request = {}) {
     }
   }
 
-  const clauses = []
-
-  if (filters.name) {
-    clauses.push({ title: { contains: query } }, { filename: { contains: query } })
-  }
-
-  if (filters.artist) {
-    clauses.push({ artist: { contains: query } })
-  }
-
-  const whereClause = { OR: clauses }
   const offset = (page - 1) * pageSize
+  const queryInfo = createQueryInfo(query)
 
   try {
-    const [songs, total] = await Promise.all([
-      prisma.songs.findMany({
-        where: whereClause,
-        include: {
-          UserPreferences: {
-            select: {
-              play_count: true
-            }
+    const songs = await prisma.songs.findMany({
+      include: {
+        UserPreferences: {
+          select: {
+            play_count: true
           }
         }
-      }),
-      prisma.songs.count({
-        where: whereClause
-      })
-    ])
+      }
+    })
 
-    const sortedSongs = songs
-      .slice()
+    const matchedSongs = songs
+      .map((song) => ({
+        song,
+        match: getSongSearchMatch(song, queryInfo, filters)
+      }))
+      .filter(({ match }) => match.matches)
       .sort((left, right) => {
-        const leftPriority = getSongSearchPriority(left, query, filters)
-        const rightPriority = getSongSearchPriority(right, query, filters)
-
-        if (leftPriority !== rightPriority) {
-          return leftPriority - rightPriority
+        if (left.match.priority !== right.match.priority) {
+          return left.match.priority - right.match.priority
         }
 
-        const leftName = String(left.title || left.filename || '').toLocaleLowerCase()
-        const rightName = String(right.title || right.filename || '').toLocaleLowerCase()
+        const leftName = normalizeSearchText(left.song.title || left.song.filename || '')
+        const rightName = normalizeSearchText(right.song.title || right.song.filename || '')
 
         if (leftName !== rightName) {
           return leftName.localeCompare(rightName)
         }
 
-        const leftArtist = String(left.artist || '').toLocaleLowerCase()
-        const rightArtist = String(right.artist || '').toLocaleLowerCase()
+        const leftArtist = normalizeSearchText(left.song.artist || '')
+        const rightArtist = normalizeSearchText(right.song.artist || '')
 
         if (leftArtist !== rightArtist) {
           return leftArtist.localeCompare(rightArtist)
         }
 
-        return left.song_id - right.song_id
+        return left.song.song_id - right.song.song_id
       })
+      .map(({ song }) => song)
 
-    const paginatedSongs = sortedSongs.slice(offset, offset + pageSize)
+    const total = matchedSongs.length
+    const paginatedSongs = matchedSongs.slice(offset, offset + pageSize)
     const items = Array.isArray(paginatedSongs)
       ? paginatedSongs.map((song) => ({
           song_id: song.song_id,
