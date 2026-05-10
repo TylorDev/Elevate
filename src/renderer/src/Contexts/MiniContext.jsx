@@ -26,9 +26,6 @@ export const MiniProvider = ({ children }) => {
     []
   )
 
-  const [results, setResults] = useState([])
-  const searchSongs = useCallback(async (value) => await ElectronGetter2('search', setResults, value), [])
-
   const [directories, setDiretories] = useState([])
   const [directoriesLoading, setDirectoriesLoading] = useState(false)
   const [directoriesLoaded, setDirectoriesLoaded] = useState(false)
@@ -215,8 +212,6 @@ export const MiniProvider = ({ children }) => {
         getRecents,
         most,
         getMost,
-        results,
-        searchSongs,
         directories,
         directoriesLoading,
         directoriesLoaded,
@@ -244,8 +239,6 @@ export const MiniProvider = ({ children }) => {
         getRecents,
         most,
         getMost,
-        results,
-        searchSongs,
         directories,
         directoriesLoading,
         directoriesLoaded,

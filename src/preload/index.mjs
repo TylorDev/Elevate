@@ -5,6 +5,7 @@ const api = {}
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { contextBridge, ipcRenderer, webUtils } = electron
+const windowStateChannel = 'window:state-changed'
 const electronAPI = {
   ipcRenderer: {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
@@ -24,6 +25,19 @@ const electronAPI = {
         return webUtils.getPathForFile(file)
       } catch {
         return ''
+      }
+    }
+  },
+  windowControls: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    getState: () => ipcRenderer.invoke('window:get-state'),
+    onStateChange: (callback) => {
+      const listener = (_, payload) => callback(payload)
+      ipcRenderer.on(windowStateChannel, listener)
+      return () => {
+        ipcRenderer.removeListener(windowStateChannel, listener)
       }
     }
   }

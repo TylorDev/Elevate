@@ -53,7 +53,14 @@ function DirectoriesQueueTab({ isActive }) {
           </button>
           <span className="current-path">{getLastPart(selectedDirectory.path)}</span>
         </div>
-        <Cola list={currentDir} name={`folder:${selectedDirectory.path}`} />
+        <Cola
+          list={currentDir}
+          name={`folder:${selectedDirectory.path}`}
+          preserveOrder
+          enablePinMove
+          pinMoveScope="source-local"
+          sourceKey={`folder:${selectedDirectory.path}`}
+        />
       </div>
     )
   }

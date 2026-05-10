@@ -1,6 +1,6 @@
 import './App.scss'
 import { lazy, Suspense, useEffect } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Main from './Layouts/Main/Main'
 import { useArgv } from './Contexts/ArgvContext'
 
@@ -13,7 +13,6 @@ const History = lazy(() => import('./Pages/History/History'))
 const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
 const Directories = lazy(() => import('./Pages/Directories/Directories'))
 const Music = lazy(() => import('./Pages/Music/Music'))
-const Search = lazy(() => import('./Pages/Search/Search'))
 const PlaylistPage = lazy(() => import('./Pages/PlaylistPage/PlaylistPage'))
 const DirPage = lazy(() => import('./Pages/DirPage/DirPage'))
 const Settings = lazy(() => import('./Components/Settings/Settings'))
@@ -148,7 +147,7 @@ function App() {
           <Route path="/history" element={<Suspense fallback={<PageLoader />}><History /></Suspense>} />
           <Route path="/tracks/:dir" element={<Suspense fallback={<PageLoader />}><AllTracks /></Suspense>} />
           <Route path="/tracks/" element={<Suspense fallback={<PageLoader />}><AllTracks /></Suspense>} />
-          <Route path="/search" element={<Suspense fallback={<PageLoader />}><Search /></Suspense>} />
+          <Route path="/search" element={<Navigate to="/" replace />} />
           <Route path="/directories" element={<Suspense fallback={<PageLoader />}><Directories /></Suspense>} />
           <Route path="/directories/:directory/:play" element={<Suspense fallback={<PageLoader />}><DirPage /></Suspense>} />
           <Route path="/music" element={<Suspense fallback={<PageLoader />}><Music /></Suspense>} />

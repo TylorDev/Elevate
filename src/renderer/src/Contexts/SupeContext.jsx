@@ -7,10 +7,22 @@ import { useCoverUrl } from '../hooks/useCoverUrl'
 import { extractDominantColor } from '../utils/useDominantColor'
 import { useSession } from './SessionContext'
 
-// Crear el contexto
 const SuperContext = createContext()
+const PlaybackProgressContext = createContext({ progress: 0, duration: 0 })
 
-// Proveedor del contexto
+function findFileIndex(queue, filePath) {
+  if (!filePath || !Array.isArray(queue)) {
+    return -1
+  }
+
+  return queue.findIndex((file) => file?.filePath === filePath)
+}
+
+function createDisplayedQueue(baseQueue, reverseActive) {
+  const nextBaseQueue = Array.isArray(baseQueue) ? [...baseQueue] : []
+  return reverseActive ? nextBaseQueue.reverse() : nextBaseQueue
+}
+
 export const SuperProvider = ({ children }) => {
   const mediaRef = useRef(null)
   const scrollRef = useRef(null)
@@ -64,53 +76,126 @@ export const SuperProvider = ({ children }) => {
 
   const navigate = useNavigate()
 
+  const resetReverseState = useCallback(() => {
+    setIsShuffled(false)
+  }, [setIsShuffled])
+
+  const applyBaseQueue = useCallback(
+    (list, name, index = null) => {
+      const baseQueue = Array.isArray(list) ? [...list] : []
+      const hasExplicitIndex =
+        index !== null && index !== undefined && Number.isInteger(index) && index >= 0 && baseQueue[index]
+      const nextIndex = hasExplicitIndex ? index : 0
+      const nextFile = baseQueue[nextIndex] || ''
+
+      resetReverseState()
+      setQueueState({
+        currentQueue: baseQueue,
+        originalQueue: baseQueue,
+        queueName: name
+      })
+      setCurrentFile(nextFile)
+      setCurrentIndex(baseQueue.length > 0 ? nextIndex : 0)
+    },
+    [resetReverseState, setCurrentFile, setCurrentIndex, setQueueState]
+  )
+
+  const reorderCurrentQueue = useCallback(
+    (nextBaseQueue) => {
+      const baseQueue = Array.isArray(nextBaseQueue) ? [...nextBaseQueue] : []
+      const displayedQueue = createDisplayedQueue(baseQueue, isShuffled)
+      const activeFilePath = currentFile?.filePath
+      const activeIndex = findFileIndex(displayedQueue, activeFilePath)
+
+      setQueueState((previousState) => ({
+        ...previousState,
+        currentQueue: displayedQueue,
+        originalQueue: baseQueue
+      }))
+
+      if (activeIndex >= 0) {
+        setCurrentFile(displayedQueue[activeIndex])
+        setCurrentIndex(activeIndex)
+        return
+      }
+
+      if (displayedQueue.length === 0) {
+        setCurrentFile('')
+        setCurrentIndex(0)
+        return
+      }
+
+      const fallbackIndex = Math.max(0, Math.min(currentIndex, displayedQueue.length - 1))
+      setCurrentFile(displayedQueue[fallbackIndex])
+      setCurrentIndex(fallbackIndex)
+    },
+    [currentFile?.filePath, currentIndex, isShuffled, setCurrentFile, setCurrentIndex, setQueueState]
+  )
+
   const PlayQueue = (list, name, index = null) => {
-    if (index !== null && index !== undefined && list[index]) {
-      setCurrentFile(list[index])
-      setQueueState({
-        currentQueue: list,
-        originalQueue: list,
-        queueName: name
-      })
-      setCurrentIndex(index) // Establece el índice al de la canción proporcionada
-    } else if (list.length > 0) {
-      setCurrentFile(list[0])
-      setQueueState({
-        currentQueue: list,
-        originalQueue: list,
-        queueName: name
-      })
-      setCurrentIndex(0) // Restablecer el índice a 0
-    } else {
-      // Manejar el caso en que la lista está vacía
-      setCurrentFile('')
-      setQueueState({
-        currentQueue: [],
-        originalQueue: [],
-        queueName: name
-      })
-      setCurrentIndex(0)
-    }
+    applyBaseQueue(list, name, index)
   }
+
+  const appendToQueueAndPlay = useCallback(
+    (song) => {
+      if (!song?.filePath) {
+        return
+      }
+
+      setQueueState((previousState) => {
+        const currentQueue = Array.isArray(previousState?.currentQueue)
+          ? previousState.currentQueue
+          : []
+        const originalQueue = Array.isArray(previousState?.originalQueue)
+          ? previousState.originalQueue
+          : currentQueue
+        const nextOriginalQueue = [...originalQueue, song]
+        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled)
+        const nextIndex = findFileIndex(nextQueue, song.filePath)
+
+        setCurrentFile(song)
+        setCurrentIndex(nextIndex >= 0 ? nextIndex : 0)
+
+        return {
+          queueName: previousState?.queueName || 'search-results',
+          currentQueue: nextQueue,
+          originalQueue: nextOriginalQueue
+        }
+      })
+    },
+    [isShuffled, setCurrentFile, setCurrentIndex, setQueueState]
+  )
+
+  const openDirectoryQueue = useCallback(
+    async (directoryPath, { shouldNavigate = true } = {}) => {
+      if (!directoryPath) {
+        return []
+      }
+
+      const nextQueue = await window.electron.ipcRenderer.invoke('get-audio-in-directory', directoryPath)
+
+      if (!Array.isArray(nextQueue) || nextQueue.length === 0) {
+        return []
+      }
+
+      applyBaseQueue(nextQueue, `folder:${directoryPath}`, 0)
+
+      if (shouldNavigate) {
+        navigate(`/directories/${encodeURIComponent(directoryPath)}/false`)
+      }
+
+      return nextQueue
+    },
+    [applyBaseQueue, navigate]
+  )
 
   const handleQueueAndPlay = async (song = undefined, index = undefined, filePath, shouldNavigate = true) => {
     if (filePath.startsWith('folder:')) {
       const newFilePath = filePath.replace(/^folder:/, '')
-      if (shouldNavigate) {
-        navigate(`/directories/${encodeURIComponent(newFilePath)}/false?song=${encodeURIComponent(song.filePath)}`)
-      }
-      setCurrentFile(song)
-      setCurrentIndex(index)
-      const newQueue = await window.electron.ipcRenderer.invoke(
-        'get-audio-in-directory',
-        newFilePath
-      )
-      if (newQueue) {
-        setQueueState(() => ({
-          queueName: filePath,
-          currentQueue: newQueue,
-          originalQueue: newQueue
-        }))
+      await openDirectoryQueue(newFilePath, { shouldNavigate })
+      if (song?.filePath && typeof index === 'number') {
+        setCurrentFile(song)
+        setCurrentIndex(index)
       }
       return
     }
@@ -120,19 +205,17 @@ export const SuperProvider = ({ children }) => {
 
       if (newQueue) {
         const processedQueue = newQueue.processedData
-        setQueueState(() => ({
-          queueName: filePath,
-          currentQueue: processedQueue,
-          originalQueue: processedQueue
-        }))
+        const nextIndex = typeof index === 'number' ? index : 0
+
+        applyBaseQueue(processedQueue, filePath, nextIndex)
 
         if (shouldNavigate) {
           navigate(`/playlists/${filePath}`)
         }
 
         if (processedQueue && processedQueue.length > 0) {
-          setCurrentFile(song || processedQueue[0])
-          setCurrentIndex(index || 0)
+          setCurrentFile(song || processedQueue[nextIndex] || processedQueue[0])
+          setCurrentIndex(nextIndex)
         } else {
           console.error('Processed queue is empty')
         }
@@ -180,7 +263,7 @@ export const SuperProvider = ({ children }) => {
       audio.removeEventListener('pause', handlePause)
       audio.removeEventListener('ended', handleEnded)
     }
-  }, [queueState.currentQueue, currentIndex]) // Depend on these to keep handleNextClick fresh if needed, or use a ref for handleNextClick
+  }, [queueState.currentQueue, currentIndex])
 
   useEffect(() => {
     if (mediaRef.current) {
@@ -194,13 +277,6 @@ export const SuperProvider = ({ children }) => {
     }
   }, [currentFile?.filePath])
 
-  useEffect(() => {
-    WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick)
-  }, [currentFile, currentCoverUrl])
-
-
-
-
   const handlePreviousClick = useCallback(() => {
     if (currentIndex > 0) {
       goToPrevious(currentIndex, queueState.currentQueue, setCurrentIndex, setCurrentFile)
@@ -213,6 +289,10 @@ export const SuperProvider = ({ children }) => {
     }
   }, [currentIndex, queueState.currentQueue, setCurrentFile, setCurrentIndex])
 
+  useEffect(() => {
+    WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick)
+  }, [currentCoverUrl, currentFile, handleNextClick, handlePreviousClick])
+
   const togglePlayPause = () => {
     if (!currentFile?.filePath && queueState.currentQueue.length > 0) {
       setCurrentFile(queueState.currentQueue[0])
@@ -221,6 +301,7 @@ export const SuperProvider = ({ children }) => {
       toPlay(mediaRef, isPlaying)
     }
   }
+
   const toggleMute = () => {
     toMute(mediaRef, muted, setMuted)
   }
@@ -238,69 +319,63 @@ export const SuperProvider = ({ children }) => {
   }, [])
 
   const [isStep, setIsStep] = useState(false)
-  const minVolume = 0.02 // Define el volumen mínimo permitido
+  const minVolume = 0.02
 
-  // Función para hacer fade out
-  const fadeOut = (duration) => {
-    const interval = 50 // Intervalo en milisegundos
-    const steps = duration / interval // Número de pasos
-    const stepVolume = (mediaRef.current.volume - minVolume) / steps // Reducción del volumen por paso
+  const fadeOut = (fadeDuration) => {
+    const interval = 50
+    const steps = fadeDuration / interval
+    const stepVolume = (mediaRef.current.volume - minVolume) / steps
 
-    let currentStep = 0
+    let currentStepCount = 0
 
     const fadeOutInterval = setInterval(() => {
-      if (currentStep < steps) {
-        mediaRef.current.volume -= stepVolume // Reducir el volumen
-        // Asegurarse de no bajar del volumen mínimo
+      if (currentStepCount < steps) {
+        mediaRef.current.volume -= stepVolume
         if (mediaRef.current.volume < minVolume) {
           mediaRef.current.volume = minVolume
         }
-        currentStep++
+        currentStepCount++
       } else {
-        clearInterval(fadeOutInterval) // Detener el intervalo
+        clearInterval(fadeOutInterval)
       }
     }, interval)
   }
 
-  // Función para hacer fade in
-  const fadeIn = (duration) => {
-    const interval = 50 // Intervalo en milisegundos
-    const steps = duration / interval // Número de pasos
-    const stepVolume = (1 - mediaRef.current.volume) / steps // Incremento del volumen por paso
+  const fadeIn = (fadeDuration) => {
+    const interval = 50
+    const steps = fadeDuration / interval
+    const stepVolume = (1 - mediaRef.current.volume) / steps
 
-    let currentStep = 0
+    let currentStepCount = 0
 
     const fadeInInterval = setInterval(() => {
-      if (currentStep < steps) {
-        mediaRef.current.volume += stepVolume // Aumentar el volumen
-        // Asegurarse de no sobrepasar el volumen máximo (1.0)
+      if (currentStepCount < steps) {
+        mediaRef.current.volume += stepVolume
         if (mediaRef.current.volume > 1.0) {
           mediaRef.current.volume = 1.0
         }
-        currentStep++
+        currentStepCount++
       } else {
-        clearInterval(fadeInInterval) // Detener el intervalo
+        clearInterval(fadeInInterval)
       }
     }, interval)
   }
 
   const toggleStep = () => {
     if (!isStep) {
-      // Si no está activo, activar el step
       setIsStep(true)
-      fadeOut(1000) // Hacer fade out en 2 segundos al 10% de volumen
+      fadeOut(1000)
 
-      // Restablecer el estado después de 60 segundos
       setTimeout(() => {
-        fadeIn(1000) // Hacer fade in en 2 segundos al 100% de volumen
+        fadeIn(1000)
         setIsStep(false)
-      }, 45000) // 60000 ms = 60 s
+      }, 45000)
     } else {
-      // Si está activo, restaurar el volumen inmediatamente
-      fadeIn(1000) // Hacer fade in en 2 segundos al 100% de volumen
+      fadeIn(1000)
       setIsStep(false)
     }
   }
+
   const toggleRepeat = () => {
     toRepeat(mediaRef, loop, setLoop)
   }
@@ -310,10 +385,9 @@ export const SuperProvider = ({ children }) => {
       isShuffled,
       queueState.currentQueue,
       queueState.originalQueue,
-      currentIndex,
-      (newQueue) => {
-        setQueueState((prevState) => ({ ...prevState, currentQueue: newQueue }))
-      },
+      currentFile,
+      setQueueState,
+      setCurrentIndex,
       setIsShuffled
     )
     navigate('/music')
@@ -333,11 +407,10 @@ export const SuperProvider = ({ children }) => {
       index
     })
 
-    // Manejar el resultado de la operación
     if (result && result.success) {
       setQueueState((prevState) => ({
         ...prevState,
-        currentQueue: prevState.currentQueue.filter((_, i) => i !== index)
+        currentQueue: prevState.currentQueue.filter((_, itemIndex) => itemIndex !== index)
       }))
 
       setTimeout(() => {
@@ -354,7 +427,7 @@ export const SuperProvider = ({ children }) => {
         })
       }, 1000)
     }
-  }, [])
+  }, [setQueueState])
 
   const addSong = useCallback(async (playlistPath, newTrack) => {
     const result = await electronInvoke('add-new-song', {
@@ -381,17 +454,18 @@ export const SuperProvider = ({ children }) => {
         transition: Bounce
       })
     }
-  }, [])
+  }, [setQueueState])
 
   const addhistory = useCallback((common) => ElectronSetter('add-history', common), [])
 
-  const handleSongClick = useCallback((file, index, list, name) => {
-    setCurrentFile(file)
-    setCurrentIndex(index)
-    setQueueState({ currentQueue: list, originalQueue: list, queueName: name })
-  }, [setCurrentFile, setCurrentIndex, setQueueState])
-
-
+  const handleSongClick = useCallback(
+    (file, index, list, name) => {
+      applyBaseQueue(list, name, index)
+      setCurrentFile(file)
+      setCurrentIndex(index)
+    },
+    [applyBaseQueue, setCurrentFile, setCurrentIndex]
+  )
 
   const [color, setColor] = useState(() => {
     return localStorage.getItem('colorManual') || ''
@@ -400,8 +474,6 @@ export const SuperProvider = ({ children }) => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState(() => {
     return localStorage.getItem('backgroundImageUrl') || ''
   })
-
-
 
   useEffect(() => {
     if (color) {
@@ -432,10 +504,8 @@ export const SuperProvider = ({ children }) => {
   }, [color, currentCoverUrl])
 
   const handleColorChange = (value) => {
-    // Validar si el valor es un color hexadecimal válido
     const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/
 
-    // Solo actualizar el estado si el valor es un color hex válido o vacío
     if (hexColorRegex.test(value) || value === '') {
       setColor(value)
     }
@@ -446,53 +516,58 @@ export const SuperProvider = ({ children }) => {
     localStorage.setItem('backgroundImageUrl', value)
   }
 
-  const handleTimelineClick = (e) => {
-    // Obtiene el contenedor de la línea de tiempo
-    const timeline = e.currentTarget
+  const handleTimelineClick = (event) => {
+    const timeline = event.currentTarget
 
-    // Verifica si el contenedor es válido
     if (!timeline || !mediaRef.current) return
 
-    // Obtiene el ancho del contenedor de la línea de tiempo
     const timelineWidth = timeline.clientWidth
+    const clickPosition = Math.max(0, Math.min(event.nativeEvent.offsetX, timelineWidth))
+    const mediaDuration = mediaRef.current.duration || 0
+    const newTime = (clickPosition / timelineWidth) * mediaDuration
 
-    // Asegura que el clic se realizó dentro del contenedor
-    const clickPosition = Math.max(0, Math.min(e.nativeEvent.offsetX, timelineWidth))
-
-    // Calcula el nuevo tiempo en la línea de tiempo
-    const newTime = (clickPosition / timelineWidth) * duration
-
-    // Actualiza el tiempo actual del medio
     mediaRef.current.currentTime = newTime
   }
+
+  const playbackProgressValue = useMemo(
+    () => ({
+      progress,
+      duration
+    }),
+    [duration, progress]
+  )
+
   const contextValue = useMemo(() => ({
-    mediaRef, // player
-    currentFile, //player
-    currentIndex, //player
-    isShuffled, //player
-    muted, //player
+    mediaRef,
+    currentFile,
+    setCurrentFile,
+    currentIndex,
+    setCurrentIndex,
+    isShuffled,
+    muted,
     volume,
     setVolume,
     setMediaVolume,
-    isPlaying, //player
-    loop, //player
-    togglePlayPause, //player
-    toggleMute, //player
-    toggleRepeat, //player
-    toggleShuffle, //player
-    handlePreviousClick, //player
-    handleNextClick, //player
+    isPlaying,
+    loop,
+    togglePlayPause,
+    toggleMute,
+    toggleRepeat,
+    toggleShuffle,
+    handlePreviousClick,
+    handleNextClick,
     handleSongClick,
+    reorderCurrentQueue,
+    appendToQueueAndPlay,
     addhistory,
     queueState,
     handleSaveClick,
     handleQueueAndPlay,
+    openDirectoryQueue,
     PlayQueue,
     removeTrack,
     addSong,
     handleTimelineClick,
-    progress,
-    duration,
     scrollRef,
     getImage,
     handleColorChange,
@@ -506,17 +581,46 @@ export const SuperProvider = ({ children }) => {
     waveformVariant,
     handleWaveformVariantChange
   }), [
-    currentFile, currentIndex, isShuffled, muted, volume, isPlaying, loop,
-    queueState, progress, duration, color, isAwaken, isStep,
-    backgroundImageUrl, waveformVariant
+    addhistory,
+    addSong,
+    appendToQueueAndPlay,
+    backgroundImageUrl,
+    color,
+    currentFile,
+    currentIndex,
+    getImage,
+    handleNextClick,
+    handlePreviousClick,
+    handleQueueAndPlay,
+    handleSongClick,
+    isAwaken,
+    isPlaying,
+    isShuffled,
+    isStep,
+    loop,
+    muted,
+    openDirectoryQueue,
+    queueState,
+    reorderCurrentQueue,
+    removeTrack,
+    setCurrentFile,
+    setCurrentIndex,
+    setMediaVolume,
+    toggleMute,
+    togglePlayPause,
+    toggleRepeat,
+    toggleShuffle,
+    toggleStep,
+    volume,
+    waveformVariant
   ])
 
   return (
-    <SuperContext.Provider value={contextValue}>
-      {children}
-    </SuperContext.Provider>
+    <PlaybackProgressContext.Provider value={playbackProgressValue}>
+      <SuperContext.Provider value={contextValue}>{children}</SuperContext.Provider>
+    </PlaybackProgressContext.Provider>
   )
 }
 
-// Hook personalizado para acceder al contexto
 export const useSuper = () => useContext(SuperContext)
+export const usePlaybackProgress = () => useContext(PlaybackProgressContext)

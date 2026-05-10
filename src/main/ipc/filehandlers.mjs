@@ -96,6 +96,20 @@ function normalizeAudioPageRequest(request = {}) {
   }
 }
 
+function normalizeSearchQuery(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function getPathLeaf(pathValue = '') {
+  const normalizedPath = String(pathValue).replace(/\\/g, '/')
+  const segments = normalizedPath.split('/').filter(Boolean)
+  return segments[segments.length - 1] || normalizedPath
+}
+
 async function getAudioFilesPage(request) {
   const { page, pageSize } = normalizeAudioPageRequest(request)
   const uniqueAudioFiles = await getUniqueAudioPaths()
@@ -171,6 +185,61 @@ async function getAudioCover(filePath, variant = 'thumb') {
   }
 
   return result
+}
+
+async function searchDirectoriesPage(request = {}) {
+  const query = normalizeSearchQuery(request?.query)
+  const page = Math.max(Number(request?.page) || 1, 1)
+  const pageSize = Math.min(Math.max(Number(request?.pageSize) || 30, 1), 60)
+
+  if (!query) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: 0,
+      hasMore: false
+    }
+  }
+
+  const matchingDirectories = await prisma.directory.findMany({
+    where: {
+      path: {
+        contains: query
+      }
+    }
+  })
+
+  const sortedDirectories = matchingDirectories
+    .slice()
+    .sort((left, right) =>
+      getPathLeaf(left.path).localeCompare(getPathLeaf(right.path), undefined, {
+        sensitivity: 'base'
+      })
+    )
+
+  const start = (page - 1) * pageSize
+  const items = sortedDirectories.slice(start, start + pageSize).map((directory) => ({
+    type: 'directory',
+    id: directory.id,
+    title: getPathLeaf(directory.path),
+    subtitle: `${directory.totalTracks ?? 0} tracks`,
+    meta: directory.path,
+    actionPayload: {
+      path: directory.path
+    },
+    path: directory.path,
+    totalTracks: directory.totalTracks,
+    totalDuration: directory.totalDuration
+  }))
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: sortedDirectories.length,
+    hasMore: start + items.length < sortedDirectories.length
+  }
 }
 
 export function setupFilehandlers() {
@@ -415,6 +484,10 @@ export function setupFilehandlers() {
       console.error('Error retrieving directories:', error)
       throw error
     }
+  })
+
+  ipcMain.handle('search-directories-page', async (event, request) => {
+    return searchDirectoriesPage(request)
   })
 
   // ─── rescan-directory ────────────────────────────────────────────

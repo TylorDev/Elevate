@@ -13,7 +13,6 @@ import CurrentQueueTab from './Current/CurrentQueueTab'
 import DirectoriesQueueTab from './Directories/DirectoriesQueueTab'
 import LikesQueueTab from './Likes/LikesQueueTab'
 import PlaylistsQueueTab from './Playlists/PlaylistsQueueTab'
-import { useSession } from '../../Contexts/SessionContext'
 
 const TABS = [
   { id: 'current', label: 'Current', icon: <RiPlayList2Fill />, Component: CurrentQueueTab },
@@ -24,8 +23,9 @@ const TABS = [
 ]
 
 function QueueTabsPanel() {
-  const { queueState } = useSession()
   const [activeTab, setActiveTab] = useState('current')
+  const activeTabConfig = TABS.find(({ id }) => id === activeTab) || TABS[0]
+  const ActiveComponent = activeTabConfig.Component
 
   return (
     <aside className="QueueTabsPanel">
@@ -50,18 +50,15 @@ function QueueTabsPanel() {
       </div>
 
       <div className="QueueTabsPanel__body">
-        {TABS.map(({ id, Component }) => (
-          <section
-            key={id}
-            className={activeTab === id ? 'QueueTabsPanel__pane is-active' : 'QueueTabsPanel__pane'}
-            role="tabpanel"
-            id={`queue-tab-${id}`}
-            aria-labelledby={`queue-tab-button-${id}`}
-            hidden={activeTab !== id}
-          >
-            <Component isActive={activeTab === id} />
-          </section>
-        ))}
+        <section
+          key={activeTabConfig.id}
+          className="QueueTabsPanel__pane is-active"
+          role="tabpanel"
+          id={`queue-tab-${activeTabConfig.id}`}
+          aria-labelledby={`queue-tab-button-${activeTabConfig.id}`}
+        >
+          <ActiveComponent isActive />
+        </section>
       </div>
     </aside>
   )

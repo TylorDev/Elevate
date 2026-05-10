@@ -9,7 +9,6 @@ import {
   getOrCreateSong
 } from './utils/utils.mjs'
 import { prisma } from '../prisma.mjs'
-import sharp from 'sharp'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron
@@ -299,6 +298,15 @@ const saveM3uFile = async (m3uFilePath, m3uContent) => {
 function extractPlaylistName(filePath) {
   return path.basename(filePath, path.extname(filePath))
 }
+
+function normalizeSearchQuery(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim().replace(/\s+/g, ' ')
+}
+
 async function savePlaylist(filePath, filePaths) {
   const playlistName = extractPlaylistName(filePath)
   const m3uContent = createM3uContent(filePaths, '')
@@ -345,6 +353,67 @@ async function getM3ufilepaths(filepath) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
   const absolutePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
   return absolutePaths.map((absPath) => absPath.trim())
+}
+
+async function searchPlaylistsPage(request = {}) {
+  const query = normalizeSearchQuery(request?.query)
+  const page = Math.max(Number(request?.page) || 1, 1)
+  const pageSize = Math.min(Math.max(Number(request?.pageSize) || 30, 1), 60)
+
+  if (!query) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: 0,
+      hasMore: false
+    }
+  }
+
+  const matchingPlaylists = await prisma.playlist.findMany({
+    where: {
+      OR: [
+        { nombre: { contains: query } },
+        { path: { contains: query } }
+      ]
+    }
+  })
+
+  const sortedPlaylists = matchingPlaylists
+    .slice()
+    .sort((left, right) =>
+      left.nombre.localeCompare(right.nombre, undefined, { sensitivity: 'base' })
+    )
+
+  const start = (page - 1) * pageSize
+  const pageItems = sortedPlaylists.slice(start, start + pageSize)
+
+  const items = await Promise.all(
+    pageItems.map(async (playlist) => ({
+      type: 'playlist',
+      id: playlist.id,
+      title: playlist.nombre,
+      subtitle: `${playlist.numElementos} tracks`,
+      meta: playlist.path,
+      actionPayload: {
+        path: playlist.path
+      },
+      cover: await getCachedPlaylistCover(playlist),
+      path: playlist.path,
+      nombre: playlist.nombre,
+      duracion: playlist.duracion,
+      numElementos: playlist.numElementos,
+      totalplays: playlist.totalplays
+    }))
+  )
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: sortedPlaylists.length,
+    hasMore: start + items.length < sortedPlaylists.length
+  }
 }
 
 ///-----------------
@@ -410,6 +479,10 @@ export function setupPlaylistHandlers() {
   //Simple
   ipcMain.handle('get-playlists', async () => {
     return await getPlaylists()
+  })
+
+  ipcMain.handle('search-playlists-page', async (event, request) => {
+    return searchPlaylistsPage(request)
   })
 
   ipcMain.handle('get-playlists-number', async () => {
@@ -480,7 +553,7 @@ export function setupPlaylistHandlers() {
     console.log(filePath)
 
     const filename = path.basename(song)
-    const newSong = await getOrCreateSong(song, filename)
+    await getOrCreateSong(song, filename)
 
     const baseDir = path.dirname(filePath)
     const filePaths = await getM3ufilepaths(filePath, baseDir) //

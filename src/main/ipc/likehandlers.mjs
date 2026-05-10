@@ -279,33 +279,134 @@ async function getLatestPlayHistoryRecord() {
     return { success: false, error: error.message }
   }
 }
-async function searchSongPathsByName(searchText) {
+function normalizeSearchQuery(value) {
+  if (typeof value !== 'string') {
+    return ''
+  }
+
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function getSongSearchPriority(song, normalizedQuery, filters) {
+  const loweredQuery = normalizedQuery.toLocaleLowerCase()
+  const title = String(song.title || '').toLocaleLowerCase()
+  const filename = String(song.filename || '').toLocaleLowerCase()
+  const artist = String(song.artist || '').toLocaleLowerCase()
+
+  if (filters.name && (title.includes(loweredQuery) || filename.includes(loweredQuery))) {
+    return 0
+  }
+
+  if (filters.artist && artist.includes(loweredQuery)) {
+    return 1
+  }
+
+  return 2
+}
+
+async function searchSongsPage(request = {}) {
+  const query = normalizeSearchQuery(request?.query)
+  const page = Math.max(Number(request?.page) || 1, 1)
+  const pageSize = Math.min(Math.max(Number(request?.pageSize) || 50, 1), 100)
+  const filters = {
+    name: request?.filters?.name !== false,
+    artist: request?.filters?.artist !== false
+  }
+
+  if (!query || (!filters.name && !filters.artist)) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: 0,
+      hasMore: false
+    }
+  }
+
+  const clauses = []
+
+  if (filters.name) {
+    clauses.push({ title: { contains: query } }, { filename: { contains: query } })
+  }
+
+  if (filters.artist) {
+    clauses.push({ artist: { contains: query } })
+  }
+
+  const whereClause = { OR: clauses }
+  const offset = (page - 1) * pageSize
+
   try {
-    const songs = await prisma.songs.findMany({
-      where: {
-        OR: [
-          {
-            filename: {
-              contains: searchText
-            }
-          },
-          {
-            filepath: {
-              contains: searchText
+    const [songs, total] = await Promise.all([
+      prisma.songs.findMany({
+        where: whereClause,
+        include: {
+          UserPreferences: {
+            select: {
+              play_count: true
             }
           }
-        ]
-      },
-      select: {
-        filepath: true
-      }
-    })
+        }
+      }),
+      prisma.songs.count({
+        where: whereClause
+      })
+    ])
 
-    const paths = Array.isArray(songs) ? songs.map((song) => song.filepath) : []
+    const sortedSongs = songs
+      .slice()
+      .sort((left, right) => {
+        const leftPriority = getSongSearchPriority(left, query, filters)
+        const rightPriority = getSongSearchPriority(right, query, filters)
 
-    return paths
+        if (leftPriority !== rightPriority) {
+          return leftPriority - rightPriority
+        }
+
+        const leftName = String(left.title || left.filename || '').toLocaleLowerCase()
+        const rightName = String(right.title || right.filename || '').toLocaleLowerCase()
+
+        if (leftName !== rightName) {
+          return leftName.localeCompare(rightName)
+        }
+
+        const leftArtist = String(left.artist || '').toLocaleLowerCase()
+        const rightArtist = String(right.artist || '').toLocaleLowerCase()
+
+        if (leftArtist !== rightArtist) {
+          return leftArtist.localeCompare(rightArtist)
+        }
+
+        return left.song_id - right.song_id
+      })
+
+    const paginatedSongs = sortedSongs.slice(offset, offset + pageSize)
+    const items = Array.isArray(paginatedSongs)
+      ? paginatedSongs.map((song) => ({
+          song_id: song.song_id,
+          filePath: song.filepath,
+          fileName: song.title || song.filename,
+          artist: song.artist || '',
+          album: song.album || '',
+          genre: song.genre || '',
+          year: song.year || 0,
+          duration: Number(song.duration) || 0,
+          size: song.size || 0,
+          trackNumber: song.trackNumber || 0,
+          metadataLoaded: Boolean(song.metadataLoaded),
+          play_count: Number(song.UserPreferences?.[0]?.play_count) || 0
+        }))
+      : []
+
+    return {
+      items,
+      page,
+      pageSize,
+      total: Number(total || 0),
+      hasMore: offset + items.length < total
+    }
   } catch (error) {
-    console.error('Error al buscar canciones:', error)
+    console.error('Error searching songs page:', error)
     throw error
   }
 }
@@ -440,10 +541,7 @@ export function setupMusicHandlers() {
     }
   })
 
-  ipcMain.handle('search', async (event, query) => {
-    const results = await searchSongPathsByName(query)
-    console.debug(results)
-    const fileInfos = await getFileInfos(results, { includePicture: false })
-    return fileInfos
+  ipcMain.handle('search-songs-page', async (event, request) => {
+    return searchSongsPage(request)
   })
 }

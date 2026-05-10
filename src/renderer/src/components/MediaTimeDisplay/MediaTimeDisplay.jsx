@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import './MediaTimeDisplay.scss'
 
-import { useSuper } from '../../Contexts/SupeContext'
+import { usePlaybackProgress, useSuper } from '../../Contexts/SupeContext'
 import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 
 const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
@@ -11,7 +11,8 @@ const BARS_COUNT = 72
 const BAR_GAP = 3
 
 export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
-  const { currentFile, progress, duration, handleTimelineClick, isPlaying, mediaRef } = useSuper()
+  const { currentFile, handleTimelineClick, isPlaying, mediaRef } = useSuper()
+  const { progress, duration } = usePlaybackProgress()
   const canvasRef = useRef(null)
   const analyserRef = useRef(null)
   const dataRef = useRef(null)

@@ -67,7 +67,10 @@ function PlaylistsQueueTab({ isActive }) {
         <Cola
           list={currentPlaylist?.processedData || []}
           name={selectedPlaylist.path}
-          filePath={selectedPlaylist.path}
+          preserveOrder
+          enablePinMove
+          pinMoveScope="source-local"
+          sourceKey={selectedPlaylist.path}
         />
       </div>
     )

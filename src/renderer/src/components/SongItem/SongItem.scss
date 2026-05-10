@@ -17,9 +17,27 @@
     background: transparent;
     border-radius: 8px;
     margin-bottom: 2px;
-
-
     overflow: hidden;
+
+    .songItem__pinIndicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        color: rgba(255, 255, 255, 0.22);
+        flex-shrink: 0;
+        transition: color 120ms ease, transform 120ms ease;
+
+        &.is-active {
+            color: var(--text-principal);
+            transform: scale(1.05);
+        }
+
+        svg {
+            font-size: 0.95rem;
+        }
+    }
 
     &:hover {
         background: rgba(255, 255, 255, 0.04);
@@ -81,7 +99,6 @@
             align-items: center;
             justify-content: center;
             opacity: 0;
-
             color: white;
             font-size: 0.9rem;
         }
@@ -131,7 +148,6 @@
         gap: 4px;
         opacity: 0;
 
-
         &.liked {
             opacity: 1;
         }
@@ -144,7 +160,6 @@
             color: var(--text-secondary);
             display: flex;
             align-items: center;
-
 
             &:hover {
                 color: white;
@@ -187,11 +202,14 @@
     .song-progress-fill {
         height: 100%;
         background: var(--text-principal);
-
     }
 }
 
-// Media Queries para pantallas más pequeñas
+.visible.is-pinned .songItem {
+    background: rgba(var(--accent-rgb, 186, 255, 0), 0.14);
+    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 186, 255, 0), 0.35);
+}
+
 @media (max-width: 1440px) {
     .songItem {
         height: 3.8rem;

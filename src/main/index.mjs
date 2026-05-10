@@ -13,6 +13,7 @@ const defaultRemoteDebuggingPort = '9222'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen } = electron
+const windowStateChannel = 'window:state-changed'
 
 try {
   process.loadEnvFile()
@@ -96,6 +97,55 @@ export function sendNotification(message) {
   mainWin.webContents.send('notification', message)
 }
 
+function getWindowStatePayload() {
+  return {
+    isMaximized: Boolean(mainWin?.isMaximized?.()),
+    isMinimized: Boolean(mainWin?.isMinimized?.()),
+    platform: process.platform
+  }
+}
+
+function sendWindowState() {
+  if (!mainWin || mainWin.isDestroyed() || mainWin.webContents.isDestroyed()) {
+    return
+  }
+
+  mainWin.webContents.send(windowStateChannel, getWindowStatePayload())
+}
+
+function setupWindowControlHandlers() {
+  ipcMain.handle('window:minimize', () => {
+    if (!mainWin || mainWin.isDestroyed()) {
+      return
+    }
+
+    mainWin.minimize()
+  })
+
+  ipcMain.handle('window:toggle-maximize', () => {
+    if (!mainWin || mainWin.isDestroyed()) {
+      return
+    }
+
+    if (mainWin.isMaximized()) {
+      mainWin.unmaximize()
+      return
+    }
+
+    mainWin.maximize()
+  })
+
+  ipcMain.handle('window:close', () => {
+    if (!mainWin || mainWin.isDestroyed()) {
+      return
+    }
+
+    mainWin.close()
+  })
+
+  ipcMain.handle('window:get-state', () => getWindowStatePayload())
+}
+
 function createWindow() {
   markLaunchWindowPending()
   const savedState = loadWindowState()
@@ -112,11 +162,6 @@ function createWindow() {
     frame: false,
     titleBarStyle: 'hidden',
     backgroundColor: '#000000',
-
-    titleBarOverlay: {
-      color: '#0a0a0a00',
-      symbolColor: '#ffffff'
-    },
     icon: icon,
 
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -152,15 +197,29 @@ function createWindow() {
         mainWindow.webContents.openDevTools()
       }
     })
+
+    sendWindowState()
   })
 
   mainWindow.on('close', saveWindowState)
   mainWindow.on('resize', saveWindowState)
   mainWindow.on('move', saveWindowState)
-  mainWindow.on('maximize', saveWindowState)
-  mainWindow.on('unmaximize', saveWindowState)
-  mainWindow.on('minimize', saveWindowState)
-  mainWindow.on('restore', saveWindowState)
+  mainWindow.on('maximize', () => {
+    saveWindowState()
+    sendWindowState()
+  })
+  mainWindow.on('unmaximize', () => {
+    saveWindowState()
+    sendWindowState()
+  })
+  mainWindow.on('minimize', () => {
+    saveWindowState()
+    sendWindowState()
+  })
+  mainWindow.on('restore', () => {
+    saveWindowState()
+    sendWindowState()
+  })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
@@ -216,6 +275,7 @@ if (!gotTheLock) {
   log.info('App started, version:', process.versions.node)
 
   ipcMain.on('ping', () => log.info('pong'))
+  setupWindowControlHandlers()
 
   setupMusicHandlers()
   setupFilehandlers()

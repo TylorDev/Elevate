@@ -1,6 +1,21 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 
 const SessionContext = createContext()
+const EMPTY_QUEUE_STATE = {
+  currentQueue: [],
+  originalQueue: [],
+  queueName: ''
+}
+
+function readStorageValue(key, fallback) {
+  try {
+    const saved = localStorage.getItem(key)
+    return saved ? JSON.parse(saved) : fallback
+  } catch (error) {
+    console.error(`Error loading ${key} from localStorage`, error)
+    return fallback
+  }
+}
 
 export const useSession = () => {
   const context = useContext(SessionContext)
@@ -11,55 +26,16 @@ export const useSession = () => {
 }
 
 export const SessionProvider = ({ children }) => {
-  const [queueState, setQueueState] = useState(() => {
-    try {
-      const saved = localStorage.getItem('queueState')
-      return saved
-        ? JSON.parse(saved)
-        : {
-            currentQueue: [],
-            originalQueue: [],
-            queueName: ''
-          }
-    } catch (e) {
-      console.error('Error loading queueState from localStorage', e)
-      return {
-        currentQueue: [],
-        originalQueue: [],
-        queueName: ''
-      }
-    }
-  })
+  const [queueState, setQueueState] = useState(() => readStorageValue('queueState', EMPTY_QUEUE_STATE))
 
-  const [currentFile, setCurrentFile] = useState(() => {
-    try {
-      const saved = localStorage.getItem('currentFile')
-      return saved ? JSON.parse(saved) : ''
-    } catch (e) {
-      console.error('Error loading currentFile from localStorage', e)
-      return ''
-    }
-  })
+  const [currentFile, setCurrentFile] = useState(() => readStorageValue('currentFile', ''))
 
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    try {
-      const saved = localStorage.getItem('currentIndex')
-      return saved ? JSON.parse(saved) : 0
-    } catch (e) {
-      console.error('Error loading currentIndex from localStorage', e)
-      return 0
-    }
-  })
+  const [currentIndex, setCurrentIndex] = useState(() => readStorageValue('currentIndex', 0))
 
-  const [isShuffled, setIsShuffled] = useState(() => {
-    try {
-      const saved = localStorage.getItem('isShuffled')
-      return saved ? JSON.parse(saved) : false
-    } catch (e) {
-      console.error('Error loading isShuffled from localStorage', e)
-      return false
-    }
-  })
+  const [isShuffled, setIsShuffled] = useState(() => readStorageValue('isShuffled', false))
+  const [manualQueueOrders, setManualQueueOrders] = useState(() =>
+    readStorageValue('manualQueueOrders', {})
+  )
 
   useEffect(() => {
     localStorage.setItem('queueState', JSON.stringify(queueState))
@@ -77,6 +53,10 @@ export const SessionProvider = ({ children }) => {
     localStorage.setItem('currentIndex', JSON.stringify(currentIndex))
   }, [currentIndex])
 
+  useEffect(() => {
+    localStorage.setItem('manualQueueOrders', JSON.stringify(manualQueueOrders))
+  }, [manualQueueOrders])
+
   return (
     <SessionContext.Provider
       value={{
@@ -87,7 +67,9 @@ export const SessionProvider = ({ children }) => {
         currentIndex,
         setCurrentIndex,
         isShuffled,
-        setIsShuffled
+        setIsShuffled,
+        manualQueueOrders,
+        setManualQueueOrders
       }}
     >
       {children}

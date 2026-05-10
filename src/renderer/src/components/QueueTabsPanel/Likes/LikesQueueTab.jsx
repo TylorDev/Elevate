@@ -14,7 +14,14 @@ function LikesQueueTab({ isActive }) {
 
   return (
     <div className="LikesQueueTab">
-      <Cola list={likes?.fileInfos || []} name="favourites" />
+      <Cola
+        list={likes?.fileInfos || []}
+        name="favourites"
+        preserveOrder
+        enablePinMove
+        pinMoveScope="source-local"
+        sourceKey="favourites"
+      />
     </div>
   )
 }

@@ -1,34 +1,41 @@
 .Main {
+    --status-height: 1.75rem;
     display: grid;
     grid-template-areas:
-        "header search queue"
         "header outlet queue"
         "header outlet queue"
         "header player queue";
     grid-template-columns: auto minmax(0, 1fr) minmax(300px, 350px);
-    grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr) 6.5rem;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) 6.5rem;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
+    position: relative;
 
+
+    &__status {
+        position: absolute;
+        inset: 0 0 auto 0;
+        overflow: visible;
+        z-index: 2200;
+    }
 
     &__header {
         grid-area: header;
         height: 100%;
 
         overflow: hidden;
+
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     &__queue {
         grid-area: queue;
         height: 100%;
-        overflow: hidden;
-    }
 
-    &__search {
-        grid-area: search;
-        min-width: 0;
         overflow: hidden;
+        background: var(--primary-color, #0a0a0a);
+        border-left: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     &__player {
@@ -40,11 +47,36 @@
     }
 }
 
+.Main--header-hidden {
+    grid-template-areas:
+        "outlet queue"
+        "outlet queue"
+        "player queue";
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+}
+
+.Main--queue-hidden {
+    grid-template-areas:
+        "header outlet"
+        "header outlet"
+        "header player";
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.Main--header-hidden.Main--queue-hidden {
+    grid-template-areas:
+        "outlet"
+        "outlet"
+        "player";
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .outlet {
     grid-area: outlet;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    padding-top: var(--status-height);
 }
 
 #AudioPlayer {
@@ -82,9 +114,14 @@
         &__queue {
             display: none;
         }
+    }
 
-        &__search {
-            display: none;
-        }
+    .Main--header-hidden,
+    .Main--queue-hidden,
+    .Main--header-hidden.Main--queue-hidden {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "outlet"
+            "player";
     }
 }

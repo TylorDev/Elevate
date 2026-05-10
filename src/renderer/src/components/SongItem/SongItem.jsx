@@ -1,6 +1,7 @@
 import { memo, useMemo, useRef } from 'react'
 import { FaPlay, FaEye } from 'react-icons/fa'
-import { LuHeart, LuHeartOff } from 'react-icons/lu'
+import { LuHeart, LuHeartOff, LuPin } from 'react-icons/lu'
+import { usePlaybackProgress } from '../../Contexts/SupeContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { Button } from './../Button/Button'
 import './SongItem.scss'
@@ -18,6 +19,15 @@ function areStylesEqual(prevStyle, nextStyle) {
   )
 }
 
+const INACTIVE_PROGRESS_STYLE = { width: '0%' }
+
+function ActiveSongProgress() {
+  const { progress, duration } = usePlaybackProgress()
+  const progressPercent = duration ? Math.min((progress / duration) * 100, 100) : 0
+
+  return <div className="song-progress-fill" style={{ width: `${progressPercent}%` }} />
+}
+
 export const SongItemView = memo(function SongItemView({
   title,
   artist,
@@ -25,13 +35,18 @@ export const SongItemView = memo(function SongItemView({
   durationText,
   coverUrl,
   isActive = false,
-  progressPercent = 0,
+  isPinned = false,
+  isPinEnabled = false,
   isLiked = false,
   style,
   menuOptions,
   onPlay,
   onToggleLike,
-  onMenuSelect
+  onMenuSelect,
+  onPointerDown,
+  onPointerUp,
+  onPointerLeave,
+  onPointerCancel
 }) {
   const menuRef = useRef(null)
 
@@ -42,10 +57,25 @@ export const SongItemView = memo(function SongItemView({
   }
 
   return (
-    <li className="visible" style={style} onClick={onPlay} onContextMenu={handleContextMenu}>
+    <li
+      className={isPinned ? 'visible is-pinned' : 'visible'}
+      style={style}
+      onClick={onPlay}
+      onContextMenu={handleContextMenu}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerLeave}
+      onPointerCancel={onPointerCancel}
+    >
       <div className={isActive ? 'songItem active' : 'songItem'}>
+        {isPinEnabled && (
+          <div className={isPinned ? 'songItem__pinIndicator is-active' : 'songItem__pinIndicator'}>
+            <LuPin />
+          </div>
+        )}
+
         <div className="song-progress">
-          <div className="song-progress-fill" style={{ width: `${isActive ? progressPercent : 0}%` }} />
+          {isActive ? <ActiveSongProgress /> : <div className="song-progress-fill" style={INACTIVE_PROGRESS_STYLE} />}
         </div>
         <div className="cover">
           <div className="ico">
@@ -57,7 +87,7 @@ export const SongItemView = memo(function SongItemView({
         <div className="songdata">
           <span className="song-tittle">{title}</span>
           <span className="song-data-meta">
-            {artist || 'Unknow'} â€¢{' '}
+            {artist || 'Unknow'} •{' '}
             <span className="song-views">
               <FaEye /> {playCount}
             </span>
@@ -89,12 +119,17 @@ function SongItemContainer({
   style,
   coverUrl,
   isActive = false,
-  progressPercent = 0,
+  isPinned = false,
+  isPinEnabled = false,
   isLiked = false,
   menuOptions,
   onPlay,
   onToggleLike,
-  onMenuSelect
+  onMenuSelect,
+  onPointerDown,
+  onPointerUp,
+  onPointerLeave,
+  onPointerCancel
 }) {
   if (!file) {
     return <div className="songItem loading">Cargando...</div>
@@ -116,13 +151,18 @@ function SongItemContainer({
       durationText={durationText}
       coverUrl={coverUrl}
       isActive={isActive}
-      progressPercent={progressPercent}
+      isPinned={isPinned}
+      isPinEnabled={isPinEnabled}
       isLiked={isLiked}
       style={style}
       menuOptions={menuOptions}
       onPlay={() => onPlay?.(file, index)}
       onToggleLike={(event) => onToggleLike?.(event, file, isLiked)}
       onMenuSelect={(optionId) => onMenuSelect?.(optionId, file, index)}
+      onPointerDown={(event) => onPointerDown?.(event, file, index)}
+      onPointerUp={(event) => onPointerUp?.(event, file, index)}
+      onPointerLeave={(event) => onPointerLeave?.(event, file, index)}
+      onPointerCancel={(event) => onPointerCancel?.(event, file, index)}
     />
   )
 }
@@ -135,12 +175,17 @@ function areSongItemViewPropsEqual(prevProps, nextProps) {
     prevProps.durationText === nextProps.durationText &&
     prevProps.coverUrl === nextProps.coverUrl &&
     prevProps.isActive === nextProps.isActive &&
-    prevProps.progressPercent === nextProps.progressPercent &&
+    prevProps.isPinned === nextProps.isPinned &&
+    prevProps.isPinEnabled === nextProps.isPinEnabled &&
     prevProps.isLiked === nextProps.isLiked &&
     prevProps.menuOptions === nextProps.menuOptions &&
     prevProps.onPlay === nextProps.onPlay &&
     prevProps.onToggleLike === nextProps.onToggleLike &&
     prevProps.onMenuSelect === nextProps.onMenuSelect &&
+    prevProps.onPointerDown === nextProps.onPointerDown &&
+    prevProps.onPointerUp === nextProps.onPointerUp &&
+    prevProps.onPointerLeave === nextProps.onPointerLeave &&
+    prevProps.onPointerCancel === nextProps.onPointerCancel &&
     areStylesEqual(prevProps.style, nextProps.style)
   )
 }
@@ -151,12 +196,17 @@ function areSongItemContainerPropsEqual(prevProps, nextProps) {
     prevProps.index === nextProps.index &&
     prevProps.coverUrl === nextProps.coverUrl &&
     prevProps.isActive === nextProps.isActive &&
-    prevProps.progressPercent === nextProps.progressPercent &&
+    prevProps.isPinned === nextProps.isPinned &&
+    prevProps.isPinEnabled === nextProps.isPinEnabled &&
     prevProps.isLiked === nextProps.isLiked &&
     prevProps.menuOptions === nextProps.menuOptions &&
     prevProps.onPlay === nextProps.onPlay &&
     prevProps.onToggleLike === nextProps.onToggleLike &&
     prevProps.onMenuSelect === nextProps.onMenuSelect &&
+    prevProps.onPointerDown === nextProps.onPointerDown &&
+    prevProps.onPointerUp === nextProps.onPointerUp &&
+    prevProps.onPointerLeave === nextProps.onPointerLeave &&
+    prevProps.onPointerCancel === nextProps.onPointerCancel &&
     areStylesEqual(prevProps.style, nextProps.style)
   )
 }

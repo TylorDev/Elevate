@@ -3,8 +3,13 @@ import { FixedSizeList } from 'react-window'
 
 const DEFAULT_MIN_HEIGHT = 240
 const DEFAULT_LOADING_COUNT = 4
+const LOAD_MORE_THRESHOLD = 4
 
 const VirtualizedRow = memo(function VirtualizedRow({ index, style, data }) {
+  if (data.hasMore && index >= data.items.length) {
+    return <div style={style} className="VirtualizedCola__loader">Loading more...</div>
+  }
+
   const item = data.items[index]
   return data.renderItem(item, index, style)
 })
@@ -17,6 +22,8 @@ export function VirtualizedQueueEntityList({
   itemKey,
   renderItem,
   loading = false,
+  hasMore = false,
+  onLoadMore,
   loadingCount = DEFAULT_LOADING_COUNT,
   emptyState = null
 }) {
@@ -54,22 +61,34 @@ export function VirtualizedQueueEntityList({
   const itemData = useMemo(
     () => ({
       items: displayItems,
-      renderItem
+      renderItem,
+      hasMore
     }),
-    [displayItems, renderItem]
+    [displayItems, hasMore, renderItem]
   )
+
+  const itemCount = displayItems.length + (hasMore ? 1 : 0)
 
   return (
     <div ref={containerRef} className={className}>
       {displayItems.length > 0 ? (
         <FixedSizeList
           height={height}
-          itemCount={displayItems.length}
+          itemCount={itemCount}
           itemData={itemData}
           itemKey={(index, data) =>
-            itemKey ? itemKey(index, data.items[index]) : data.items[index]?.id || index
+            data.hasMore && index >= data.items.length
+              ? `loader-${index}`
+              : itemKey
+                ? itemKey(index, data.items[index])
+                : data.items[index]?.id || index
           }
           itemSize={itemSize}
+          onItemsRendered={({ visibleStopIndex }) => {
+            if (hasMore && !loading && visibleStopIndex >= displayItems.length - LOAD_MORE_THRESHOLD) {
+              onLoadMore?.()
+            }
+          }}
           overscanCount={overscanCount}
           width="100%"
         >

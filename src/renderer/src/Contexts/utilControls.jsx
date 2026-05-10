@@ -1,7 +1,5 @@
 // queueUtils.js
 
-import { shuffleArray } from './utils'
-
 export const goToPrevious = (currentIndex, queue, setCurrentIndex, setCurrentFile) => {
   const newIndex = currentIndex === 0 ? queue.length - 1 : currentIndex - 1
   setCurrentIndex(newIndex)
@@ -47,16 +45,30 @@ export const toShuffle = (
   isShuffled,
   queue,
   originalQueue,
-  currentIndex,
-  setQueue,
+  currentFile,
+  setQueueState,
+  setCurrentIndex,
   setIsShuffled
 ) => {
-  if (isShuffled) {
-    setQueue(originalQueue)
-  } else {
-    const shuffledQueue = shuffleArray(queue, currentIndex)
-    setQueue(shuffledQueue)
+  const baseQueue = Array.isArray(originalQueue) ? originalQueue : []
+  const nextQueue = isShuffled ? [...baseQueue] : [...baseQueue].reverse()
+  const activeFilePath = currentFile?.filePath
+  const nextIndex = activeFilePath
+    ? nextQueue.findIndex((item) => item?.filePath === activeFilePath)
+    : -1
+
+  setQueueState((prevState) => ({
+    ...prevState,
+    currentQueue: nextQueue,
+    originalQueue: baseQueue
+  }))
+
+  if (nextIndex >= 0) {
+    setCurrentIndex(nextIndex)
+  } else if (nextQueue.length === 0) {
+    setCurrentIndex(0)
   }
+
   setIsShuffled(!isShuffled)
 }
 export const ToLike = (currentFile, currentLike, likesong, unlikesong, setCurrentLike) => {

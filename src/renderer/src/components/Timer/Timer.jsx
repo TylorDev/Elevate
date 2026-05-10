@@ -1,9 +1,9 @@
 import './Timer.scss'
-import { useSuper } from '../../Contexts/SupeContext'
+import { usePlaybackProgress } from '../../Contexts/SupeContext'
 import { SliderVolume } from '../SliderVolume/SliderVolume'
 
 export function Timer() {
-  const { progress, duration } = useSuper()
+  const { progress, duration } = usePlaybackProgress()
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00'
