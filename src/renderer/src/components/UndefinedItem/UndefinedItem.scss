@@ -2,14 +2,18 @@
 
 .UndefinedItem {
   height: 5rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-areas:
+    "cover title menu"
+    "cover tracks menu"
+    "cover duration menu";
   align-items: center;
-  gap: 1.5rem;
-  padding: 0 1.2rem;
-  background: rgba(255, 255, 255, 0.02);
+  column-gap: 1rem;
+  padding: 0 1rem;
   border-radius: 16px;
   margin-bottom: 8px;
-
   border: 1px solid rgba(255, 255, 255, 0.03);
   position: relative;
   overflow: hidden;
@@ -19,11 +23,6 @@
     transform: translateY(-2px);
     border-color: rgba(255, 255, 255, 0.1);
 
-
-    .ui-cover-overlay {
-      opacity: 1;
-    }
-
     .ui-actions {
       opacity: 1;
       transform: translateX(0);
@@ -31,12 +30,12 @@
   }
 
   .ui-cover-wrapper {
+    grid-area: cover;
     position: relative;
     width: 3.5rem;
     height: 3.5rem;
     border-radius: 12px;
     overflow: hidden;
-    flex-shrink: 0;
     background: rgba(255, 255, 255, 0.05);
     cursor: pointer;
     display: flex;
@@ -54,33 +53,15 @@
       color: var(--text-principal);
       opacity: 0.8;
     }
-
-    .ui-cover-overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-
-
-      .ui-quick-play {
-        color: white;
-        font-size: 1.2rem;
-        filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
-      }
-    }
   }
 
   .ui-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    display: contents;
     min-width: 0;
 
     .ui-title {
+      grid-area: title;
+      align-self: end;
       all: unset;
       font-size: 1.05rem;
       font-weight: 700;
@@ -89,7 +70,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       cursor: pointer;
-
       text-decoration: none;
       display: block;
 
@@ -99,67 +79,48 @@
     }
 
     .ui-metadata {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 0.8rem;
-      color: rgba(255, 255, 255, 0.4);
-      font-weight: 500;
+      display: contents;
+
+      .ui-subtitle,
+      .ui-extra {
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .ui-subtitle {
+        grid-area: tracks;
+        align-self: center;
+      }
 
       .ui-extra {
-        position: relative;
-        padding-left: 12px;
-
-        &::before {
-          content: '•';
-          position: absolute;
-          left: 0;
-          opacity: 0.5;
-        }
+        grid-area: duration;
+        align-self: center;
+        font-variant-numeric: tabular-nums;
       }
     }
   }
 
   .ui-actions {
+    grid-area: menu;
+    justify-self: end;
+    align-self: center;
     display: flex;
     align-items: center;
     gap: 12px;
     opacity: 0;
     transform: translateX(10px);
-
-
-    .ui-play-btn {
-      background: var(--text-principal);
-      color: #000;
-      border: none;
-      width: 2.8rem;
-      height: 2.8rem;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-
-
-      &:hover {
-        transform: scale(1.1);
-        filter: brightness(1.1);
-
-      }
-
-      svg {
-        font-size: 1rem;
-        margin-left: 2px;
-      }
-    }
   }
 }
 
-// Media Queries
 @media (max-width: 1440px) {
   .UndefinedItem {
     height: 4.2rem;
-    gap: 1rem;
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    column-gap: 1rem;
     padding: 0 1rem;
 
     .ui-cover-wrapper {
@@ -169,6 +130,10 @@
 
     .ui-info .ui-title {
       font-size: 0.95rem;
+    }
+
+    .ui-actions {
+      justify-self: end;
     }
   }
 }

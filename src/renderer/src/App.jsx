@@ -17,6 +17,8 @@ const PlaylistPage = lazy(() => import('./Pages/PlaylistPage/PlaylistPage'))
 const DirPage = lazy(() => import('./Pages/DirPage/DirPage'))
 const Settings = lazy(() => import('./Components/Settings/Settings'))
 const Lista = lazy(() => import('./Pages/Lista/Lista'))
+import DebugOverlay from './components/DebugOverlay/DebugOverlay'
+
 
 function PageLoader() {
   return (
@@ -165,6 +167,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      <DebugOverlay />
     </div>
   )
 }

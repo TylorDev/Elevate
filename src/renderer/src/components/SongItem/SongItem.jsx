@@ -68,11 +68,15 @@ export const SongItemView = memo(function SongItemView({
       onPointerCancel={onPointerCancel}
     >
       <div className={isActive ? 'songItem active' : 'songItem'}>
-        {isPinEnabled && (
-          <div className={isPinned ? 'songItem__pinIndicator is-active' : 'songItem__pinIndicator'}>
-            <LuPin />
-          </div>
-        )}
+        <div
+          className={[
+            'songItem__pinIndicator',
+            isPinned ? 'is-active' : '',
+            isPinEnabled ? '' : 'is-hidden'
+          ].filter(Boolean).join(' ')}
+        >
+          {isPinEnabled ? <LuPin /> : null}
+        </div>
 
         <div className="song-progress">
           {isActive ? <ActiveSongProgress /> : <div className="song-progress-fill" style={INACTIVE_PROGRESS_STYLE} />}
@@ -86,7 +90,7 @@ export const SongItemView = memo(function SongItemView({
 
         <div className="songdata">
           <span className="song-tittle">{title}</span>
-          <span className="song-data-meta">
+          <span className="song-artist">
             {artist || 'Unknow'} •{' '}
             <span className="song-views">
               <FaEye /> {playCount}

@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom'
-import { FaPlay } from 'react-icons/fa'
-import { Button } from '../Button/Button'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './UndefinedItem.scss'
 
@@ -46,9 +44,6 @@ export function UndefinedItem({
         ) : (
           <div className="ui-cover-icon">{cover}</div>
         )}
-        <div className="ui-cover-overlay">
-          <FaPlay className="ui-quick-play" />
-        </div>
       </div>
 
       <div className="ui-info">
@@ -60,16 +55,10 @@ export function UndefinedItem({
       </div>
 
       <div className="ui-actions">
-        {onPlayClick && (
-          <Button className="ui-play-btn" onClick={onPlayClick}>
-            <FaPlay />
-          </Button>
-        )}
-        
         {menuOptions.length > 0 && (
-          <OverflowMenu 
-            options={menuOptions} 
-            onSelect={onMenuSelect} 
+          <OverflowMenu
+            options={menuOptions}
+            onSelect={onMenuSelect}
           />
         )}
       </div>
