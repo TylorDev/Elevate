@@ -19,17 +19,17 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <SuperProvider>
           <AppProvider>
             <MiniProvider>
-              <ArgvProvider>
-                <GlobalSearchProvider>
-                  <PlaylistsProvider>
+              <PlaylistsProvider>
+                <ArgvProvider>
+                  <GlobalSearchProvider>
                     <LikesProvider>
                       <AudioProvider>
                         <App />
                       </AudioProvider>
                     </LikesProvider>
-                  </PlaylistsProvider>
-                </GlobalSearchProvider>
-              </ArgvProvider>
+                  </GlobalSearchProvider>
+                </ArgvProvider>
+              </PlaylistsProvider>
             </MiniProvider>
           </AppProvider>
         </SuperProvider>

@@ -5,7 +5,8 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
 import { useSuper } from '../../Contexts/SupeContext'
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
+import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 
 export const DirItem = memo(function DirItem({ directory, onSelect, disableNavigation = false, style }) {
   if (!directory) {
@@ -19,6 +20,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   const navigate = useNavigate()
   const { deleteDirectoryList } = usePlaylists()
   const { getImage } = useSuper()
+  const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const cover = useMemo(
     () => (directory.cover ? getImage(directory.path, directory.cover) : null),
     [directory.cover, directory.path, getImage]
@@ -51,22 +53,36 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
 
   const handleMenuSelect = (optionId) => {
     if (optionId === 'remove') {
-      deleteDirectoryList(directory.path)
+      setIsConfirmVisible(true)
     }
   }
 
   return (
-    <UndefinedItem
-      cover={cover || <BsFolderFill />}
-      title={getLastPart(directory.path)}
-      subtitle={`${directory.totalTracks} tracks`}
-      extraInfo={formatDuration(directory.totalDuration)}
-      onTitleClick={selectDirectory}
-      onPlayClick={handlePlayClick}
-      menuOptions={menuOptions}
-      onMenuSelect={handleMenuSelect}
-      className="dirItem-ui"
-      style={style}
-    />
+    <>
+      <UndefinedItem
+        cover={cover || <BsFolderFill />}
+        title={getLastPart(directory.path)}
+        subtitle={`${directory.totalTracks} tracks`}
+        extraInfo={formatDuration(directory.totalDuration)}
+        onTitleClick={selectDirectory}
+        onPlayClick={handlePlayClick}
+        menuOptions={menuOptions}
+        onMenuSelect={handleMenuSelect}
+        className="dirItem-ui"
+        style={style}
+      />
+
+      <ConfirmActionModal
+        isVisible={isConfirmVisible}
+        title="Remove directory?"
+        message="Are you sure you want to remove this directory from the library? This only removes it from Elevate, not from your filesystem."
+        confirmLabel="Remove directory"
+        onCancel={() => setIsConfirmVisible(false)}
+        onConfirm={() => {
+          setIsConfirmVisible(false)
+          void deleteDirectoryList(directory.path)
+        }}
+      />
+    </>
   )
 })

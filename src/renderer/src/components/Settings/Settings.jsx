@@ -9,10 +9,12 @@ import {
   LuCheck,
   LuFolderOpen,
   LuFolderPlus,
-  LuLibrary
+  LuLibrary,
+  LuListMusic
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 import { useMini } from '../../Contexts/MiniContext'
+import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './Settings.scss'
 
 const TABS = [
@@ -46,6 +48,7 @@ function Settings() {
   } = useSuper()
 
   const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } = useMini()
+  const { openM3U } = usePlaylists()
 
   const [activeTab, setActiveTab] = useState('library')
   const [imageUrl, setImageUrl] = useState(null)
@@ -113,6 +116,25 @@ function Settings() {
               <LuFolderPlus />
               <span>Add Folder</span>
             </button>
+
+            <div className="settings-card">
+              <div className="settings-card__icon">
+                <LuListMusic />
+              </div>
+              <div className="settings-card__content">
+                <h3>Import Playlist</h3>
+                <p>
+                  Import an existing `.m3u` file and add it to your playlists library.
+                </p>
+              </div>
+              <button
+                className="settings-action-btn"
+                onClick={() => openM3U()}
+              >
+                <LuListMusic />
+                <span>Import M3U</span>
+              </button>
+            </div>
 
             <div className="directory-list">
               {directories.length === 0 && (

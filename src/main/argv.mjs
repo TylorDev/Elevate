@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { app, ipcMain } from 'electron'
+import { importPlaylistFile } from './ipc/playlistHandlers.mjs'
 import { getFileInfos } from './ipc/utils/utils.mjs'
 import { addDirectoryToLibrary, isSupportedAudioFile } from './ipc/utils/libraryIngestion.mjs'
 
@@ -20,6 +21,10 @@ function createEmptyPayload() {
     queueName: '',
     startIndex: 0
   }
+}
+
+function isPlaylistFile(filePath) {
+  return path.extname(filePath).toLowerCase() === '.m3u'
 }
 
 function normalizeExistingPath(rawValue, workingDirectory) {
@@ -89,10 +94,11 @@ function appendUniqueSongs(targetSongs, incomingSongs, seenSongPaths) {
 function summarizePayload(payload) {
   return {
     kind: payload.kind,
-    files: payload.files.length,
-    directories: payload.directories.length,
-    songs: payload.songs.length,
-    queueName: payload.queueName
+    files: payload.files?.length || 0,
+    directories: payload.directories?.length || 0,
+    songs: payload.songs?.length || 0,
+    queueName: payload.queueName,
+    playlistPath: payload.playlistPath || null
   }
 }
 
@@ -131,6 +137,11 @@ function normalizeLaunchEntries(rawArgs, workingDirectory = process.cwd()) {
 
     if (stats.isFile() && isSupportedAudioFile(resolvedPath)) {
       orderedEntries.push({ type: 'file', path: resolvedPath })
+      continue
+    }
+
+    if (stats.isFile() && isPlaylistFile(resolvedPath)) {
+      orderedEntries.push({ type: 'playlist', path: resolvedPath })
     }
   }
 
@@ -152,6 +163,37 @@ async function processLaunchEntries(
   const directories = []
   const songs = []
   const seenSongPaths = new Set()
+  const playlistEntries = orderedEntries.filter((entry) => entry.type === 'playlist')
+
+  if (playlistEntries.length === 1 && orderedEntries.length === 1) {
+    let importedPlaylist
+
+    try {
+      importedPlaylist = await importPlaylistFile(playlistEntries[0].path)
+    } catch (error) {
+      notifyRenderer(error?.message || 'No se pudo importar la playlist.')
+      return createEmptyPayload()
+    }
+
+    if (!importedPlaylist?.success) {
+      notifyRenderer(importedPlaylist?.error || 'No se pudo importar la playlist.')
+      return createEmptyPayload()
+    }
+
+    notifyRenderer(`Playlist importada: ${importedPlaylist.playlistName}`)
+
+    return {
+      kind: 'playlist-import',
+      files: [],
+      directories: [],
+      songs: [],
+      hasDirectories: false,
+      queueName: importedPlaylist.playlistName || importedPlaylist.path,
+      startIndex: 0,
+      playlistPath: importedPlaylist.path,
+      playlistName: importedPlaylist.playlistName
+    }
+  }
 
   const filePaths = orderedEntries
     .filter((entry) => entry.type === 'file')
@@ -189,7 +231,11 @@ async function processLaunchEntries(
 }
 
 async function dispatchPayloadToRenderer(payload, mainWindow) {
-  if (!payload || payload.kind === 'empty' || payload.songs.length === 0) {
+  if (
+    !payload ||
+    payload.kind === 'empty' ||
+    (payload.kind !== 'playlist-import' && payload.songs.length === 0)
+  ) {
     return
   }
 
@@ -280,7 +326,12 @@ export function setupArgvHandlers() {
 
   ipcMain.handle('process-dropped-paths', async (_, droppedPaths = []) => {
     return processLaunchArgs(droppedPaths, {
-      workingDirectory: process.cwd()
+      workingDirectory: process.cwd(),
+      notifyRenderer: (message) => {
+        if (message) {
+          _.sender.send('notification', message)
+        }
+      }
     })
   })
 }

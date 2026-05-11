@@ -1,0 +1,66 @@
+.confirm-action-modal {
+  min-width: min(440px, calc(100vw - 32px));
+  max-width: 440px;
+  min-height: auto;
+  max-height: none;
+  background: #151515;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+
+  .btn-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+  }
+}
+
+.confirm-action-modal__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  h3 {
+    margin: 0;
+    color: white;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+}
+
+.confirm-action-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.confirm-action-modal__button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.86);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.is-danger {
+    background: rgba(255, 80, 80, 0.14);
+    border-color: rgba(255, 80, 80, 0.32);
+    color: #ff7a7a;
+  }
+
+  &.is-primary {
+    background: rgba(var(--accent-rgb, 186, 255, 0), 0.12);
+    border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.26);
+    color: var(--text-principal);
+  }
+}

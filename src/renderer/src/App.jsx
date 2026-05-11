@@ -77,6 +77,7 @@ function App() {
           : fallbackFilePaths
       )]
       const uniqueDirectoryPaths = [...new Set(droppedDirectories)]
+      const droppedPlaylistPaths = uniqueFilePaths.filter((filePath) => /\.m3u$/i.test(filePath))
       const hasDirectories = uniqueDirectoryPaths.length > 0
       const hasMultipleFiles = uniqueFilePaths.length > 1
       const hasSingleFileOnly = uniqueFilePaths.length === 1 && !hasDirectories
@@ -86,7 +87,8 @@ function App() {
         itemCount: items.length,
         fallbackFilePaths,
         droppedFilePathsFromEntries,
-        droppedDirectories: uniqueDirectoryPaths
+        droppedDirectories: uniqueDirectoryPaths,
+        droppedPlaylistPaths
       })
 
       if (hasSingleFileOnly) {
@@ -95,6 +97,12 @@ function App() {
 
       if (hasMultipleFiles) {
         console.info('[drop] files:', uniqueFilePaths)
+      }
+
+      if (droppedPlaylistPaths.length === 1) {
+        console.info('[drop] playlist file:', droppedPlaylistPaths[0])
+      } else if (droppedPlaylistPaths.length > 1) {
+        console.info('[drop] playlist files:', droppedPlaylistPaths)
       }
 
       if (uniqueDirectoryPaths.length === 1) {
@@ -113,7 +121,8 @@ function App() {
               files: payload?.files?.length || 0,
               directories: payload?.directories?.length || 0,
               songs: payload?.songs?.length || 0,
-              queueName: payload?.queueName
+              queueName: payload?.queueName,
+              playlistPath: payload?.playlistPath || null
             })
 
             return handleExternalPayload(payload)

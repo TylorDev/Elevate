@@ -249,14 +249,15 @@ function getRandomIndex(total) {
   return Math.floor(Math.random() * total)
 }
 
-async function saveDialog() {
+async function saveDialog(nombre = '') {
   let isValid = false
   let filePath
+  const suggestedFileName = normalizePlaylistFileName(nombre) || 'playlist'
 
   while (!isValid) {
     const { filePath: selectedPath } = await dialog.showSaveDialog({
       title: 'Save list',
-      defaultPath: path.join(app.getPath('documents'), 'playlist.m3u'),
+      defaultPath: path.join(app.getPath('documents'), `${suggestedFileName}.m3u`),
       filters: [{ name: 'Listas de reproducción', extensions: ['m3u'] }]
     })
 
@@ -424,6 +425,34 @@ async function getM3ufilepaths(filepath) {
   return absolutePaths.map((absPath) => absPath.trim())
 }
 
+export async function importPlaylistFile(filePath) {
+  const resolvedFilePath = path.resolve(filePath)
+  const filePaths = await getM3ufilepaths(resolvedFilePath)
+
+  if (filePaths.length === 0) {
+    return {
+      success: false,
+      error: 'La playlist no contiene canciones.'
+    }
+  }
+
+  const result = await savePlaylistToTarget({
+    filePaths,
+    targetPath: resolvedFilePath
+  })
+
+  if (!result.success) {
+    return result
+  }
+
+  return {
+    success: true,
+    path: result.path,
+    playlistName: result.playlistName,
+    playlist: result.playlist
+  }
+}
+
 async function searchPlaylistsPage(request = {}) {
   const query = normalizeSearchQuery(request?.query)
   const page = Math.max(Number(request?.page) || 1, 1)
@@ -491,12 +520,7 @@ export function setupPlaylistHandlers() {
     try {
       const filePath = await selectFile()
       if (!filePath) return []
-      const baseDir = path.dirname(filePath)
-      const filePaths = await getM3ufilepaths(filePath, baseDir) //
-      const result = await savePlaylistToTarget({
-        filePaths,
-        targetPath: filePath
-      })
+      const result = await importPlaylistFile(filePath)
 
       if (!result.success) {
         return { success: false, error: result.error }
@@ -646,7 +670,7 @@ export function setupPlaylistHandlers() {
     try {
       const { filePaths = [], targetPath = null, targetDirectory = null, nombre = '' } = request
       const resolvedTargetPath =
-        targetPath || (await saveDialog())
+        targetPath || (await saveDialog(nombre))
 
       if (!resolvedTargetPath) {
         return { success: false, error: 'Save canceled' }
