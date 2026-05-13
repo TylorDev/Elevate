@@ -1,0 +1,39 @@
+.AudioPlayerPartMetaStack {
+    grid-area: meta;
+    min-width: 0;
+    width: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 0.04rem;
+}
+
+.AudioPlayerPartMetaStack__cover {
+    grid-area: cover;
+    align-self: stretch;
+    height: 100%;
+    min-height: 2.9rem;
+}
+
+.AudioPlayerPartMetaStack__title,
+.AudioPlayerPartMetaStack__artist,
+.AudioPlayerPartMetaStack__views {
+    display: block;
+    min-width: 0;
+    width: 100%;
+    line-height: 1.1;
+}
+
+.AudioPlayerPartMetaStack__title {
+    font-size: 0.78rem;
+}
+
+.AudioPlayerPartMetaStack__artist {
+    font-size: 0.64rem;
+}
+
+.AudioPlayerPartMetaStack__views {
+    font-size: 0.58rem;
+}

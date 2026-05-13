@@ -1,0 +1,53 @@
+.AudioPlayerPartTime {
+    grid-area: timer;
+    min-width: 0;
+    color: $text-secondary;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.AudioPlayerPartTime--inline {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08rem;
+    font-size: 0.76rem;
+}
+
+.AudioPlayerPartTime__separator {
+    color: $text-secondary;
+    line-height: 1;
+}
+
+.AudioPlayerPartTime__current,
+.AudioPlayerPartTime__duration {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    color: $text-secondary;
+    justify-content: center;
+    width: auto;
+    font-size: inherit;
+}
+
+.AudioPlayerPartTime--split {
+    .AudioPlayerPartTime__current,
+    .AudioPlayerPartTime__duration {
+        width: auto;
+        min-width: 0;
+        font-size: 0.58rem;
+        justify-content: flex-start;
+    }
+
+    .AudioPlayerPartTime__current {
+        grid-area: current-time;
+        justify-self: start;
+    }
+
+    .AudioPlayerPartTime__duration {
+        grid-area: duration;
+        justify-self: end;
+    }
+}

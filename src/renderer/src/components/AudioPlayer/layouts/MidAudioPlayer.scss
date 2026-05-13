@@ -1,0 +1,32 @@
+.AudioPlayerLayoutMid {
+    display: grid;
+    grid-template-columns: auto auto 2rem auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+        "progress progress progress progress progress progress progress progress"
+        "controls timer spacer cover title like volume menu"
+        "controls timer spacer cover meta like volume menu"
+        "controls timer spacer cover meta like volume menu";
+    align-items: start;
+    justify-content: start;
+    justify-items: start;
+    gap: 0.14rem 0.18rem;
+    padding: 0.4rem 0.45rem;
+
+}
+
+.AudioPlayerLayoutMid__progress {
+    height: 2.05rem;
+    border-radius: 0.4rem;
+}
+
+.AudioPlayerLayoutMid__actions {
+    display: contents;
+}
+
+.AudioPlayerLayoutMid__time {
+    justify-self: start;
+    align-self: center;
+    gap: 0.06rem;
+    font-size: 0.72rem;
+}

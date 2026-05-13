@@ -1,0 +1,135 @@
+#btnShuffle-true {
+    color: $text-principal;
+}
+
+#btnShuffle-false {
+    color: white;
+}
+
+.AudioPlayerPartActions {
+    display: contents;
+}
+
+.AudioPlayerPartActions__controls {
+    grid-area: controls;
+    align-self: stretch;
+}
+
+.AudioPlayerPartActions__volume,
+.AudioPlayerPartActions__like,
+.AudioPlayerPartActions__menu {
+    justify-self: center;
+    align-self: stretch;
+}
+
+.AudioPlayerPartActions__like {
+    grid-area: like;
+    width: 1.9rem;
+
+    svg {
+        font-size: 0.88rem;
+    }
+}
+
+.AudioPlayerPartActions__volume {
+    grid-area: volume;
+
+    .volume-button {
+        width: 1.9rem;
+        height: 1.9rem;
+
+        svg {
+            font-size: 0.9rem;
+        }
+    }
+}
+
+.AudioPlayerPartActions__menu {
+    grid-area: menu;
+
+    .btnMenu {
+        min-width: 1.9rem;
+        width: 1.9rem;
+        height: 1.9rem;
+    }
+}
+
+.AudioPlayerLayoutMid {
+    .AudioPlayerPartActions__controls {
+        justify-content: flex-start;
+        justify-self: start;
+        gap: 0.12rem;
+
+        .btnPlay {
+            width: 2rem !important;
+            height: 2rem !important;
+        }
+
+        svg {
+            font-size: 0.92rem;
+        }
+
+        .btnPlay svg {
+            font-size: 0.95rem;
+        }
+    }
+
+    .AudioPlayerPartActions__like,
+    .AudioPlayerPartActions__volume,
+    .AudioPlayerPartActions__menu {
+        justify-self: start;
+    }
+
+    .AudioPlayerPartActions__menu .btnMenu svg {
+        font-size: 0.9rem;
+    }
+
+    .controls-overflow,
+    .SliderVolume .volume-panel {
+        bottom: calc(100% + 0.3rem);
+    }
+
+    .controls-overflow {
+        left: auto;
+        right: 0;
+    }
+}
+
+.AudioPlayerLayoutTiny {
+    .AudioPlayerPartActions__controls {
+        justify-content: center;
+        gap: 0.14rem;
+
+        .btnPlay {
+            width: 1.85rem !important;
+            height: 1.85rem !important;
+        }
+
+        svg,
+        .btnPlay svg {
+            font-size: 0.88rem;
+        }
+    }
+
+    .AudioPlayerPartActions__volume {
+        justify-self: center;
+        align-self: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .AudioPlayerPartActions__menu .btnMenu svg {
+        font-size: 0.88rem;
+    }
+
+    .controls-overflow,
+    .SliderVolume .volume-panel {
+        bottom: calc(100% + 0.25rem);
+    }
+
+    .controls-overflow {
+        left: auto;
+        right: 0;
+    }
+}
