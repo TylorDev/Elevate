@@ -36,6 +36,7 @@ const electronAPI = {
     close: () => ipcRenderer.invoke('window:close'),
     quit: () => ipcRenderer.invoke('window:quit'),
     getState: () => ipcRenderer.invoke('window:get-state'),
+    toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),
     updateTaskbarPlayerState: (payload) => ipcRenderer.invoke('window:update-taskbar-player-state', payload),
     onStateChange: (callback) => {
       const listener = (_, payload) => callback(payload)
@@ -51,6 +52,10 @@ const electronAPI = {
         ipcRenderer.removeListener(appCommandChannel, listener)
       }
     }
+  },
+  imageSources: {
+    validateRemote: (url) => ipcRenderer.invoke('image-source:validate-remote', { url }),
+    pickLocal: () => ipcRenderer.invoke('image-source:pick-local')
   }
 }
 

@@ -8,7 +8,7 @@
 
   .feed-spacer {
     flex: 1;
-    min-height: 200px;
+    min-height: 100px;
   }
 
   .feed-bottom-content {
@@ -16,30 +16,24 @@
     padding: 20px 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 40px;
     background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  }
 
-    .feed-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 40px;
+  .feed-loading,
+  .feed-error-message {
+    padding: 40px;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+  }
 
-      .feed-title {
-        font-size: 2.5rem;
-        font-weight: 900;
-        letter-spacing: -1.5px;
-        margin: 0;
-        text-transform: uppercase;
-
-
-
-      }
-    }
+  &--error {
+    justify-content: center;
+    align-items: center;
   }
 }
 
-// Adjusting global main padding if necessary
 main {
   padding: 0 !important;
 }

@@ -44,6 +44,7 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
   const [windowState, setWindowState] = useState({
     isMaximized: false,
     isMinimized: false,
+    isAlwaysOnTop: false,
     platform: 'unknown'
   })
   const searchTriggerRef = useRef(null)
@@ -87,7 +88,11 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
         <StatusIconButton title="Settings" onClick={() => navigate('/settings')}>
           <LuSlidersHorizontal />
         </StatusIconButton>
-        <StatusIconButton title="Always on top">
+        <StatusIconButton
+          title={windowState.isAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+          isActive={windowState.isAlwaysOnTop}
+          onClick={() => void window.electron.windowControls.toggleAlwaysOnTop()}
+        >
           <LuPin />
         </StatusIconButton>
       </div>

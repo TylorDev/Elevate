@@ -214,6 +214,24 @@
     .input-row {
       display: flex;
       gap: 8px;
+      
+      .settings-action-btn.s-btn {
+        height: 40px;
+        padding: 0 14px;
+        align-self: center;
+      }
+    }
+
+    .settings-error {
+      font-size: 0.8rem;
+      color: #ff5050;
+      margin-top: 2px;
+    }
+
+    .settings-success {
+      font-size: 0.8rem;
+      color: var(--text-principal);
+      margin-top: 2px;
     }
   }
 

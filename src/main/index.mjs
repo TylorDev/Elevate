@@ -146,6 +146,7 @@ function getWindowStatePayload() {
   return {
     isMaximized: Boolean(mainWin?.isMaximized?.()),
     isMinimized: Boolean(mainWin?.isMinimized?.()),
+    isAlwaysOnTop: Boolean(mainWin?.isAlwaysOnTop?.()),
     platform: process.platform
   }
 }
@@ -343,6 +344,15 @@ function setupWindowControlHandlers() {
   })
 
   ipcMain.handle('window:get-state', () => getWindowStatePayload())
+  ipcMain.handle('window:toggle-always-on-top', () => {
+    if (!mainWin || mainWin.isDestroyed()) {
+      return
+    }
+
+    const currentValue = mainWin.isAlwaysOnTop()
+    mainWin.setAlwaysOnTop(!currentValue)
+    sendWindowState()
+  })
   ipcMain.handle('window:update-taskbar-player-state', (_, payload = {}) => {
     taskbarPlayerState = {
       ...taskbarPlayerState,
@@ -487,13 +497,15 @@ if (!gotTheLock) {
     { setupLikeSongHandlers, setupMusicHandlers },
     { setupPlaylistHandlers },
     { setupFilehandlers },
-    { setupPlaylistSaveExplorerHandlers }
+    { setupPlaylistSaveExplorerHandlers },
+    { setupImageSourceHandlers }
   ] =
     await Promise.all([
       import('./ipc/likehandlers.mjs'),
       import('./ipc/playlistHandlers.mjs'),
       import('./ipc/filehandlers.mjs'),
-      import('./ipc/playlistSaveExplorerHandlers.mjs')
+      import('./ipc/playlistSaveExplorerHandlers.mjs'),
+      import('./ipc/imageSourceHandlers.mjs')
     ])
 
   prisma = prismaModule.prisma
@@ -510,6 +522,7 @@ if (!gotTheLock) {
   setupPlaylistHandlers()
   setupPlaylistSaveExplorerHandlers()
   setupLikeSongHandlers()
+  setupImageSourceHandlers()
 
   // Initialize directory watchers for all existing directories
   const { initializeWatchers } = await import('./ipc/utils/directoryWatcher.mjs')

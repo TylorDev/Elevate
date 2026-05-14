@@ -1,0 +1,36 @@
+.feed-ranking-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  margin-bottom: 30px;
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    padding: 0 40px;
+    text-transform: uppercase;
+    color: #fff;
+  }
+
+  &__container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 40px 20px 40px;
+    
+    // Hide scrollbar
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  &__empty {
+    padding: 20px 40px;
+    color: rgba(255, 255, 255, 0.5);
+    font-style: italic;
+  }
+}
