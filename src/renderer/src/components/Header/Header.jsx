@@ -28,7 +28,7 @@ const Header = memo(function Header() {
             <LuAudioWaveform />
           </NavLink>
 
-          <NavLink to="/search" className={getActiveClass} title="Stats">
+          <NavLink to="/statistics" className={getActiveClass} title="Stats">
             <LuChartColumnIncreasing />
           </NavLink>
 

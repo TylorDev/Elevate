@@ -19,6 +19,7 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
   const [isLiked, setIsLiked] = useState(false)
 
   const isActive = currentFile?.filePath === song.filePath
+  const shortViews = song.short_view_count || 0
 
   useEffect(() => {
     const initLikeStatus = async () => {
@@ -111,7 +112,7 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
         <div className="tc-footer">
           <div className="tc-stats">
             <FaEye />
-            <span>{song.play_count || 0}</span>
+            <span>{shortViews}</span>
           </div>
           <button 
             className={`tc-like-btn ${isLiked ? 'liked' : ''}`}

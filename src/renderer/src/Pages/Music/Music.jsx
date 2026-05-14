@@ -9,6 +9,17 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay } from 'react-icons/lu'
 
+function formatListeningHours(seconds) {
+  const totalSeconds = Math.max(0, Number(seconds) || 0)
+  const hours = totalSeconds / 3600
+
+  if (hours >= 1) {
+    return `${hours.toFixed(1)} h`
+  }
+
+  return `${Math.round(totalSeconds / 60)} min`
+}
+
 function Music() {
   const { mediaRef, currentFile, togglePlayPause } = useSuper()
   const { currentCover } = usePlaylists()
@@ -96,7 +107,28 @@ function Music() {
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
   const artist = currentFile?.artist || 'Unknown Artist'
-  const views = currentFile?.play_count || 0
+  const songStats = [
+    {
+      label: 'Horas',
+      value: formatListeningHours(currentFile?.active_listening_seconds)
+    },
+    {
+      label: 'Cortas',
+      value: currentFile?.short_view_count || 0
+    },
+    {
+      label: 'Largas',
+      value: currentFile?.long_view_count || 0
+    },
+    {
+      label: 'Repeticiones',
+      value: currentFile?.consecutive_repeat_count || 0
+    },
+    {
+      label: 'Skips',
+      value: currentFile?.skip_count || 0
+    }
+  ]
 
   // [P12] Memoized background style objects — avoids creating new objects per render
   // when currentCover hasn't changed.
@@ -154,7 +186,14 @@ function Music() {
               <h1 className="title">{title}</h1>
               <h2 className="artist">{artist}</h2>
               <div className="stats">
-                <span className="views">{views} reprod.</span>
+                <div className="song-stat-grid">
+                  {songStats.map((stat) => (
+                    <span className="song-stat-pill" key={stat.label}>
+                      <strong>{stat.value}</strong>
+                      <small>{stat.label}</small>
+                    </span>
+                  ))}
+                </div>
                 <button
                   className={`like-btn ${likeState.currentLike ? 'liked' : ''}`}
                   onClick={handleLikeClick}

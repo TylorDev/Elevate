@@ -126,15 +126,41 @@
         .stats {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
+          justify-content: center;
+          flex-wrap: wrap;
+          gap: 1rem;
           margin-top: 2rem;
 
-          .views {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 0.4rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
+          .song-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(72px, 1fr));
+            gap: 0.55rem;
+            max-width: min(100%, 560px);
+          }
+
+          .song-stat-pill {
+            display: grid;
+            gap: 0.15rem;
+            padding: 0.62rem 0.7rem;
+            border: 1px solid rgba(186, 255, 0, 0.22);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.08);
             color: #ddd;
+            backdrop-filter: blur(10px);
+
+            strong {
+              color: #baff00;
+              font-size: 1rem;
+              line-height: 1;
+            }
+
+            small {
+              color: rgba(255, 255, 255, 0.62);
+              font-size: 0.66rem;
+              font-weight: 800;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+            }
           }
 
           .like-btn {
@@ -167,6 +193,18 @@
         .track-info-overlay {
           opacity: 1;
         }
+      }
+    }
+  }
+
+  @media (max-width: 760px) {
+    .Player-main .cover-wrapper .track-info-overlay {
+      .title {
+        font-size: 1.7rem;
+      }
+
+      .stats .song-stat-grid {
+        grid-template-columns: repeat(2, minmax(86px, 1fr));
       }
     }
   }

@@ -12,9 +12,9 @@ export const goToNext = (currentIndex, queue, setCurrentIndex, setCurrentFile) =
   setCurrentFile(queue[newIndex])
 }
 
-function getPlayCount(file) {
-  const playCount = Number(file?.play_count)
-  return Number.isFinite(playCount) ? playCount : 0
+function getShortViewCount(file) {
+  const shortViewCount = Number(file?.short_view_count)
+  return Number.isFinite(shortViewCount) ? shortViewCount : 0
 }
 
 function shuffleGroup(group) {
@@ -36,19 +36,19 @@ function getBaseQueue(queue, originalQueue) {
   return Array.isArray(queue) ? [...queue] : []
 }
 
-function groupAndShuffleByPlayCount(queue) {
+function groupAndShuffleByShortViews(queue) {
   const groups = new Map()
 
   for (const file of queue) {
-    const playCount = getPlayCount(file)
-    const currentGroup = groups.get(playCount) || []
+    const shortViewCount = getShortViewCount(file)
+    const currentGroup = groups.get(shortViewCount) || []
     currentGroup.push(file)
-    groups.set(playCount, currentGroup)
+    groups.set(shortViewCount, currentGroup)
   }
 
   return Array.from(groups.keys())
     .sort((left, right) => left - right)
-    .flatMap((playCount) => shuffleGroup(groups.get(playCount) || []))
+    .flatMap((shortViewCount) => shuffleGroup(groups.get(shortViewCount) || []))
 }
 
 export function createWeightedShuffledQueue(queue, currentFile = null) {
@@ -61,19 +61,19 @@ export function createWeightedShuffledQueue(queue, currentFile = null) {
   const activeFilePath = currentFile?.filePath
 
   if (!activeFilePath) {
-    return groupAndShuffleByPlayCount(baseQueue)
+    return groupAndShuffleByShortViews(baseQueue)
   }
 
   const activeIndex = baseQueue.findIndex((file) => file?.filePath === activeFilePath)
 
   if (activeIndex < 0) {
-    return groupAndShuffleByPlayCount(baseQueue)
+    return groupAndShuffleByShortViews(baseQueue)
   }
 
   const activeSong = baseQueue[activeIndex]
   const remainingQueue = baseQueue.filter((_, index) => index !== activeIndex)
 
-  return [activeSong, ...groupAndShuffleByPlayCount(remainingQueue)]
+  return [activeSong, ...groupAndShuffleByShortViews(remainingQueue)]
 }
 
 // mediaUtils.js

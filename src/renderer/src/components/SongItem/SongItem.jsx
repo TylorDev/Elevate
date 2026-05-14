@@ -31,7 +31,7 @@ function ActiveSongProgress() {
 export const SongItemView = memo(function SongItemView({
   title,
   artist,
-  playCount,
+  shortViewCount,
   durationText,
   coverUrl,
   isActive = false,
@@ -93,7 +93,7 @@ export const SongItemView = memo(function SongItemView({
           <span className="song-artist">
             {artist || 'Unknow'} •{' '}
             <span className="song-views">
-              <FaEye /> {playCount}
+              <FaEye /> {shortViewCount}
             </span>
           </span>
         </div>
@@ -151,7 +151,7 @@ function SongItemContainer({
     <SongItemView
       title={file.fileName}
       artist={file.artist}
-      playCount={file.play_count}
+      shortViewCount={file.short_view_count || 0}
       durationText={durationText}
       coverUrl={coverUrl}
       isActive={isActive}
@@ -175,7 +175,7 @@ function areSongItemViewPropsEqual(prevProps, nextProps) {
   return (
     prevProps.title === nextProps.title &&
     prevProps.artist === nextProps.artist &&
-    prevProps.playCount === nextProps.playCount &&
+    prevProps.shortViewCount === nextProps.shortViewCount &&
     prevProps.durationText === nextProps.durationText &&
     prevProps.coverUrl === nextProps.coverUrl &&
     prevProps.isActive === nextProps.isActive &&

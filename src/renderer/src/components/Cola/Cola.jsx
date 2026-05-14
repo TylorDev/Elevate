@@ -309,7 +309,11 @@ export function Cola({
 
     return uniqueList
       .slice()
-      .sort((a, b) => (isDescending ? b.play_count - a.play_count : a.play_count - b.play_count))
+      .sort((a, b) =>
+        isDescending
+          ? (b.short_view_count || 0) - (a.short_view_count || 0)
+          : (a.short_view_count || 0) - (b.short_view_count || 0)
+      )
   }, [isDescending, list, preserveOrder])
 
   const persistedOrder =

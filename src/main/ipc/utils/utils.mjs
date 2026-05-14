@@ -161,7 +161,12 @@ export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
         where: { song_id: song.song_id },
         select: {
           bpm: true,
-          play_count: true,
+          skip_count: true,
+          short_view_count: true,
+          long_view_count: true,
+          long_play_seconds: true,
+          active_listening_seconds: true,
+          consecutive_repeat_count: true,
           is_favorite: true
         }
       })
@@ -179,7 +184,12 @@ export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
         trackNumber: song.trackNumber,
         coverHash: song.coverHash,
         bpm: userPreference?.bpm || 0,
-        play_count: userPreference?.play_count || 0,
+        skip_count: userPreference?.skip_count || 0,
+        short_view_count: userPreference?.short_view_count || 0,
+        long_view_count: userPreference?.long_view_count || 0,
+        long_play_seconds: userPreference?.long_play_seconds || 0,
+        active_listening_seconds: userPreference?.active_listening_seconds || 0,
+        consecutive_repeat_count: userPreference?.consecutive_repeat_count || 0,
         liked: userPreference?.is_favorite || false
       }
     } catch (error) {
@@ -293,7 +303,7 @@ export async function getFileCovers(filePaths) {
 
         const userPreference = await prisma.userPreferences.findUnique({
           where: { song_id: song.song_id },
-          select: { play_count: true }
+          select: { short_view_count: true }
         })
 
         // Return minimal data needed for cover generation
@@ -310,7 +320,7 @@ export async function getFileCovers(filePaths) {
 
         return {
           picture,
-          play_count: userPreference?.play_count || 0
+          short_view_count: userPreference?.short_view_count || 0
         }
       } catch (error) {
         return null
@@ -334,7 +344,7 @@ export async function generateCover(files) {
 
   const topImages = files
     .filter((file) => file.picture && file.picture[0] && file.picture[0].type !== 'Other')
-    .sort((a, b) => b.play_count - a.play_count)
+    .sort((a, b) => b.short_view_count - a.short_view_count)
     .slice(0, 4)
 
   if (topImages.length === 0) {

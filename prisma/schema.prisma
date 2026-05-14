@@ -48,13 +48,18 @@ model Songs {
 }
 
 model UserPreferences {
-  song_id      Int           @id
-  play_count   Int           @default(0)
-  is_favorite  Boolean       @default(false)
-  listen_later Boolean       @default(false)
-  skip_count   Int           @default(0)
-  bpm          Int           @default(0)
-  Songs        Songs         @relation(fields: [song_id], references: [song_id])
+  song_id                  Int     @id
+  play_count               Int     @default(0)
+  is_favorite              Boolean @default(false)
+  listen_later             Boolean @default(false)
+  skip_count               Int     @default(0)
+  short_view_count         Int     @default(0)
+  long_view_count          Int     @default(0)
+  long_play_seconds        Float   @default(0)
+  active_listening_seconds Float   @default(0)
+  consecutive_repeat_count Int     @default(0)
+  bpm                      Int     @default(0)
+  Songs                    Songs   @relation(fields: [song_id], references: [song_id])
 }
 
 model PlayHistory {
@@ -139,4 +144,15 @@ model AppHistoryEvent {
 
   @@index([occurredAt])
   @@index([entityKind, occurredAt])
+}
+
+model PlayerSession {
+  id                Int     @id @default(1)
+  song_id           Int?
+  position_sec      Float   @default(0)
+  resume_from_start Boolean @default(true)
+  queue_type        String  @default("NONE")
+  queue_source      String?
+  queue_song_ids    String  @default("[]")
+  queue_index       Int     @default(0)
 }

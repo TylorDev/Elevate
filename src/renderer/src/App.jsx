@@ -10,6 +10,7 @@ const Favourites = lazy(() => import('./Pages/Favourites/Favourites'))
 const ListenLater = lazy(() => import('./Pages/ListenLater/ListenLater'))
 const AllTracks = lazy(() => import('./Pages/AllTracks/AllTracks'))
 const History = lazy(() => import('./Pages/History/History'))
+const Statistics = lazy(() => import('./Pages/Statistics/Statistics'))
 const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
 const Directories = lazy(() => import('./Pages/Directories/Directories'))
 const Music = lazy(() => import('./Pages/Music/Music'))
@@ -156,6 +157,7 @@ function App() {
           <Route path="/listen-later/:dir" element={<Suspense fallback={<PageLoader />}><ListenLater /></Suspense>} />
           <Route path="/listen-later/" element={<Suspense fallback={<PageLoader />}><ListenLater /></Suspense>} />
           <Route path="/history" element={<Suspense fallback={<PageLoader />}><History /></Suspense>} />
+          <Route path="/statistics" element={<Suspense fallback={<PageLoader />}><Statistics /></Suspense>} />
           <Route path="/tracks/:dir" element={<Suspense fallback={<PageLoader />}><AllTracks /></Suspense>} />
           <Route path="/tracks/" element={<Suspense fallback={<PageLoader />}><AllTracks /></Suspense>} />
           <Route path="/search" element={<Navigate to="/" replace />} />

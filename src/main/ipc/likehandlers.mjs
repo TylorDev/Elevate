@@ -7,6 +7,25 @@ import { getSongBpm } from './utils/utils.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { ipcMain } = electron
+const PLAYBACK_EVENT_TYPES = new Set([
+  'short-view-award',
+  'long-view-award',
+  'skip-award',
+  'playback-finalize'
+])
+const STAT_SELECT = {
+  play_count: true,
+  skip_count: true,
+  short_view_count: true,
+  long_view_count: true,
+  long_play_seconds: true,
+  active_listening_seconds: true,
+  consecutive_repeat_count: true,
+  bpm: true,
+  is_favorite: true
+}
+
+let lastRecordedPlaybackSongId = null
 
 function withoutPictures(fileInfos) {
   return fileInfos.map((fileInfo) => ({ ...fileInfo, picture: undefined }))
@@ -105,11 +124,15 @@ async function addPlayHistory(song_id) {
       update: {
         play_count: {
           increment: 1
+        },
+        short_view_count: {
+          increment: 1
         }
       },
       create: {
         song_id,
-        play_count: 1 // Inicializa play_count en 1
+        play_count: 1, // Inicializa play_count en 1
+        short_view_count: 1
       }
     })
 
@@ -128,13 +151,12 @@ async function addPlayHistory(song_id) {
 
 async function getMostPlayedSongsWithDetails() {
   try {
-    // Obtener todos los registros de canciones ordenadas por play_count en orden descendente
     const userPreferences = await prisma.userPreferences.findMany({
       orderBy: {
-        play_count: 'desc' // Ordenar por el conteo de reproducciones
+        short_view_count: 'desc'
       },
       select: {
-        play_count: true,
+        short_view_count: true,
         Songs: {
           select: {
             filepath: true,
@@ -148,7 +170,7 @@ async function getMostPlayedSongsWithDetails() {
     const songs = userPreferences.map((record) => ({
       filepath: record.Songs.filepath,
       filename: record.Songs.filename,
-      play_count: record.play_count
+      short_view_count: record.short_view_count
     }))
     const paths = songs.map((song) => song.filepath)
     const firstTenPaths = paths.slice(0, 10)
@@ -157,6 +179,70 @@ async function getMostPlayedSongsWithDetails() {
   } catch (error) {
     console.error('Error retrieving most played songs:', error)
     return { success: false, error: error.message }
+  }
+}
+
+function formatRankedSong(record, metricKey) {
+  const song = record.Songs
+  return {
+    song_id: song.song_id,
+    filePath: song.filepath,
+    fileName: song.filename,
+    title: song.title,
+    artist: song.artist,
+    album: song.album,
+    genre: song.genre,
+    year: song.year,
+    duration: Number(song.duration) || 0,
+    coverHash: song.coverHash,
+    short_view_count: Number(record.short_view_count) || 0,
+    long_view_count: Number(record.long_view_count) || 0,
+    long_play_seconds: Number(record.long_play_seconds) || 0,
+    active_listening_seconds: Number(record.active_listening_seconds) || 0,
+    consecutive_repeat_count: Number(record.consecutive_repeat_count) || 0,
+    skip_count: Number(record.skip_count) || 0,
+    metricValue: Number(record[metricKey]) || 0
+  }
+}
+
+async function getRanking(metricKey, limit = 50) {
+  const rows = await prisma.userPreferences.findMany({
+    where: {
+      [metricKey]: {
+        gt: 0
+      }
+    },
+    orderBy: {
+      [metricKey]: 'desc'
+    },
+    take: limit,
+    include: {
+      Songs: true
+    }
+  })
+
+  return rows.map((record) => formatRankedSong(record, metricKey))
+}
+
+async function getStatisticsRankings(request = {}) {
+  const limit = Math.min(Math.max(Number(request?.limit) || 50, 1), 100)
+  const [shortViews, longViews, duration, repeats, skips] = await Promise.all([
+    getRanking('short_view_count', limit),
+    getRanking('long_view_count', limit),
+    getRanking('long_play_seconds', limit),
+    getRanking('consecutive_repeat_count', limit),
+    getRanking('skip_count', limit)
+  ])
+
+  return {
+    success: true,
+    rankings: {
+      shortViews,
+      longViews,
+      duration,
+      repeats,
+      skips
+    }
   }
 }
 async function getPlayHistoryOrdered(page = 1) {
@@ -332,6 +418,96 @@ function createQueryInfo(query) {
   }
 }
 
+function normalizePlaybackNumber(value, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) && number > 0 ? number : fallback
+}
+
+async function recordPlaybackStats(payload = {}) {
+  const filePath = payload?.filePath
+  const fileName = payload?.fileName
+  const eventType = String(payload?.eventType || '')
+
+  if (!filePath || !PLAYBACK_EVENT_TYPES.has(eventType)) {
+    return { success: false, error: 'Invalid playback payload' }
+  }
+
+  const song = await getOrCreateSong(filePath, fileName || '')
+  const duration = normalizePlaybackNumber(payload?.duration, Number(song.duration) || 0)
+  const activeListeningSeconds = normalizePlaybackNumber(payload?.activeListeningSeconds, 0)
+  const shouldCreateHistory = Boolean(payload?.shortViewAwarded || payload?.longViewAwarded)
+  const isConsecutiveRepeat =
+    eventType === 'playback-finalize' && shouldCreateHistory
+      ? lastRecordedPlaybackSongId === song.song_id
+      : false
+  const updateData = {}
+  const createData = { song_id: song.song_id }
+  let shouldCreatePlayHistory = false
+
+  if (eventType === 'skip-award') {
+    updateData.skip_count = { increment: 1 }
+    createData.skip_count = 1
+  }
+
+  if (eventType === 'short-view-award') {
+    updateData.short_view_count = { increment: 1 }
+    updateData.play_count = { increment: 1 }
+    createData.short_view_count = 1
+    createData.play_count = 1
+  }
+
+  if (eventType === 'long-view-award') {
+    updateData.long_view_count = { increment: 1 }
+    updateData.long_play_seconds = { increment: duration }
+    createData.long_view_count = 1
+    createData.long_play_seconds = duration
+  }
+
+  if (eventType === 'playback-finalize') {
+    updateData.active_listening_seconds = { increment: activeListeningSeconds }
+    createData.active_listening_seconds = activeListeningSeconds
+    shouldCreatePlayHistory = shouldCreateHistory
+  }
+
+  if (isConsecutiveRepeat) {
+    updateData.consecutive_repeat_count = { increment: 1 }
+    createData.consecutive_repeat_count = 1
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userPreferences.upsert({
+      where: { song_id: song.song_id },
+      update: updateData,
+      create: createData
+    })
+
+    if (shouldCreatePlayHistory) {
+      await tx.playHistory.create({
+        data: {
+          song_id: song.song_id
+        }
+      })
+    }
+  })
+
+  if (eventType === 'playback-finalize' && shouldCreateHistory) {
+    lastRecordedPlaybackSongId = song.song_id
+  }
+
+  const stats = await prisma.userPreferences.findUnique({
+    where: { song_id: song.song_id },
+    select: STAT_SELECT
+  })
+
+  return {
+    success: true,
+    songId: song.song_id,
+    eventType,
+    isConsecutiveRepeat,
+    stats
+  }
+}
+
 function getFieldMatchScore(value, queryInfo) {
   const normalizedValue = normalizeSearchText(value)
 
@@ -443,9 +619,7 @@ async function searchSongsPage(request = {}) {
     const songs = await prisma.songs.findMany({
       include: {
         UserPreferences: {
-          select: {
-            play_count: true
-          }
+          select: STAT_SELECT
         }
       }
     })
@@ -494,7 +668,14 @@ async function searchSongsPage(request = {}) {
           size: song.size || 0,
           trackNumber: song.trackNumber || 0,
           metadataLoaded: Boolean(song.metadataLoaded),
-          play_count: Number(song.UserPreferences?.[0]?.play_count) || 0
+          skip_count: Number(song.UserPreferences?.[0]?.skip_count) || 0,
+          short_view_count: Number(song.UserPreferences?.[0]?.short_view_count) || 0,
+          long_view_count: Number(song.UserPreferences?.[0]?.long_view_count) || 0,
+          long_play_seconds: Number(song.UserPreferences?.[0]?.long_play_seconds) || 0,
+          active_listening_seconds:
+            Number(song.UserPreferences?.[0]?.active_listening_seconds) || 0,
+          consecutive_repeat_count:
+            Number(song.UserPreferences?.[0]?.consecutive_repeat_count) || 0
         }))
       : []
 
@@ -545,6 +726,15 @@ export function setupLikeSongHandlers() {
       return { success: true, songId: song.song_id }
     } catch (error) {
       console.error('Error liking song:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('playback:record', async (event, payload) => {
+    try {
+      return await recordPlaybackStats(payload)
+    } catch (error) {
+      console.error('Error recording playback stats:', error)
       return { success: false, error: error.message }
     }
   })
@@ -610,6 +800,15 @@ export function setupLikeSongHandlers() {
   ipcMain.handle('get-most-played', async (event) => {
     const paths = await getMostPlayedSongsWithDetails()
     return getFileInfos(paths, { includePicture: false })
+  })
+
+  ipcMain.handle('statistics:get-rankings', async (event, request) => {
+    try {
+      return await getStatisticsRankings(request)
+    } catch (error) {
+      console.error('Error retrieving statistics rankings:', error)
+      return { success: false, error: error.message }
+    }
   })
 
   ipcMain.handle('remove-listen-later', (event, filepath, filename) => {
