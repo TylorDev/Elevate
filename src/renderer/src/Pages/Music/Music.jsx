@@ -3,11 +3,12 @@ import './Music.scss'
 
 import Render from '../../components/Render/Render'
 import RenderControls from '../../components/Render/RenderControls'
+import VisualizerPresetManager from '../../components/Render/VisualizerPresetManager'
 import { useVisualizerPresets } from '../../components/Render/useVisualizerPresets'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
-import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay } from 'react-icons/lu'
+import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay, LuLayoutGrid } from 'react-icons/lu'
 
 function formatListeningHours(seconds) {
   const totalSeconds = Math.max(0, Number(seconds) || 0)
@@ -32,6 +33,7 @@ function Music() {
   const [autoMode, setAutoMode] = useState(true)
 
   const [showControls, setShowControls] = useState(false)
+  const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false)
   const idleTimer = useRef(null)
 
   const presetControls = useVisualizerPresets()
@@ -104,6 +106,7 @@ function Music() {
   const toggleCover = useCallback(() => setShowCover(prev => !prev), [])
   const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer(prev => !prev), [])
   const toggleAutoMode = useCallback(() => setAutoMode(prev => !prev), [])
+  const togglePresetManager = useCallback(() => setIsPresetManagerOpen(prev => !prev), [])
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
   const artist = currentFile?.artist || 'Unknown Artist'
@@ -231,6 +234,14 @@ function Music() {
             {autoMode ? <LuPlay /> : <LuSettings />} 
             {autoMode ? 'Modo Auto' : 'Modo Manual'}
           </button>
+
+          <button 
+            className={`switcher-btn ${isPresetManagerOpen ? 'active' : ''}`}
+            onClick={togglePresetManager}
+          >
+            <LuLayoutGrid />
+            Admin Presets
+          </button>
         </div>
 
         {/* RenderControls visible en Modo Manual y si el visualizador está activo */}
@@ -249,6 +260,21 @@ function Music() {
           </div>
         )}
       </div>
+
+      <VisualizerPresetManager
+        isOpen={isPresetManagerOpen}
+        onClose={() => setIsPresetManagerOpen(false)}
+        activePresetItems={presetControls.activePresetItems}
+        currentPresetName={presetControls.currentPresetName}
+        cycleDurationMs={presetControls.cycleDurationMs}
+        setCycleDurationMs={presetControls.setCycleDurationMs}
+        cycleMode={presetControls.cycleMode}
+        setCycleMode={presetControls.setCycleMode}
+        presetSource={presetControls.presetSource}
+        setPresetSource={presetControls.setPresetSource}
+        toggleFavorite={presetControls.toggleFavorite}
+        onSelectPreset={presetControls.setPresetByName}
+      />
     </div>
   )
 }
