@@ -19,7 +19,7 @@ function getCoverCacheDir() {
 }
 
 let coverCacheDir = null
-function ensureCoverDir() {
+export function ensureCoverDir() {
   if (!coverCacheDir) coverCacheDir = getCoverCacheDir()
   return coverCacheDir
 }

@@ -14,13 +14,13 @@ import Modal from '../../Components/Modal/Modal'
 import PlaylistForm from './../../Components/PlaylistForm/PlaylistForm'
 
 function PlaylistPage() {
-  const { dir } = useParams() // Obtener el parámetro de la URL
+  const { dir } = useParams()
   const [current, setCurrent] = useState([])
 
-  const [isVisible, setIsVisible] = useState(false) // Moved to the top
+  const [isVisible, setIsVisible] = useState(false)
   const [back, setBack] = useState()
-  const { getUniqueList, updatePlaylist, playlistsLastLoadedAt } = usePlaylists()
-  const { queueState, handleQueueAndPlay, getImage } = useSuper() // Combined the two useSuper calls
+  const { getUniqueList, updatePlaylistMetadata } = usePlaylists()
+  const { handleQueueAndPlay, getImage } = useSuper()
 
   useEffect(() => {
     async function getData() {
@@ -28,15 +28,16 @@ function PlaylistPage() {
     }
 
     getData()
-  }, [dir, getUniqueList, playlistsLastLoadedAt, queueState])
+  }, [dir, getUniqueList])
 
   useEffect(() => {
     if (current?.playlistData) {
       const data = current?.playlistData
-      const cover = getImage(data.path, current.cover)
+      const coverToUse = current.effectiveCover || current.cover
+      const cover = getImage(data.path, coverToUse)
       setBack(cover)
     }
-  }, [current, back])
+  }, [current, getImage])
 
   const openModal = () => {
     setIsVisible(true)
@@ -46,22 +47,56 @@ function PlaylistPage() {
     setIsVisible(false)
   }
 
+  const handleUpdatePlaylistMetadata = async (path, payload) => {
+    const response = await updatePlaylistMetadata(path, payload)
+
+    if (response?.success && response.playlist) {
+      setCurrent((previous) => {
+        if (!previous?.playlistData) {
+          return previous
+        }
+
+        return {
+          ...previous,
+          playlistData: {
+            ...previous.playlistData,
+            ...response.playlist
+          },
+          effectiveCover: response.effectiveCover ?? previous.effectiveCover,
+          cover:
+            payload.coverMode === 'auto'
+              ? previous.cover
+              : response.effectiveCover ?? previous.cover,
+          coverConfig: response.coverConfig ?? previous.coverConfig
+        }
+      })
+    }
+
+    return response
+  }
+
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)
   }
 
   if (!current || !current.playlistData) {
-    return <div>Cargando...</div> // O un mensaje adecuado de "cargando"
+    return <div>Cargando...</div>
   }
 
   const data = current.playlistData
+  const suggestedCovers = current.suggestedCovers || []
+  const coverConfig = current.coverConfig || {}
 
   return (
     <div className="PlaylistPage">
       <Modal isVisible={isVisible} closeModal={closeModal}>
         <PlaylistForm
           playlist={current.playlistData}
-          onUpdate={updatePlaylist}
+          suggestedCovers={suggestedCovers}
+          coverConfig={coverConfig}
+          automaticCover={current.cover}
+          effectiveCover={current.effectiveCover}
+          onUpdate={handleUpdatePlaylistMetadata}
           close={closeModal}
         />
       </Modal>
@@ -85,7 +120,6 @@ function PlaylistPage() {
             <Button
               onClick={async () => {
                 await handleQueueAndPlay(undefined, undefined, data.path)
-                // console.log('Nombre en PlaylistPagePlayClick: ' + (data.path || '[sin nombre]'))
               }}
             >
               <FaPlay />

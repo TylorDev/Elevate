@@ -1,6 +1,11 @@
+import { createPortal } from 'react-dom'
 import './Modal.scss'
 
 const Modal = ({ isVisible, closeModal, children, contentClassName = '' }) => {
+  if (typeof document === 'undefined') {
+    return null
+  }
+
   const modalStyle = {
     display: isVisible ? 'flex' : 'none'
   }
@@ -9,7 +14,7 @@ const Modal = ({ isVisible, closeModal, children, contentClassName = '' }) => {
     display: isVisible ? 'block' : 'none'
   }
 
-  return (
+  return createPortal(
     <>
       <div style={overlayStyle} className="overlayStyle" onClick={closeModal} />
 
@@ -28,7 +33,8 @@ const Modal = ({ isVisible, closeModal, children, contentClassName = '' }) => {
         </button>
         {children}
       </div>
-    </>
+    </>,
+    document.body
   )
 }
 

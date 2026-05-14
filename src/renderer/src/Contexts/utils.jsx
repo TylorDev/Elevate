@@ -23,6 +23,17 @@ export const dataToImageUrl = (input, mimeType = 'image/png') => {
     return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
   }
 
+  if (typeof input === 'string') {
+    if (
+      input.startsWith('data:') ||
+      input.startsWith('blob:') ||
+      input.startsWith('http://') ||
+      input.startsWith('https://')
+    ) {
+      return input
+    }
+  }
+
   // Verifica si el input es un Uint8Array
   if (input instanceof Uint8Array) {
     const blob = new Blob([input], { type: mimeType })

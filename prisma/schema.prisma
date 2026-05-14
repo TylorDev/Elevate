@@ -71,16 +71,20 @@ model PlayHistory {
 }
 
 model Playlist {
-  id             Int               @id @default(autoincrement())
-  path           String            @unique
-  nombre         String            @unique
-  duracion       Int               @default(0)
-  numElementos   Int               @default(0)
-  createdAt      DateTime          @default(now())
-  historial      Historial[]
-  totalplays     Int               @default(0)
-  PlaybackEvent  PlaybackEvent[]
-  AppHistoryEvent AppHistoryEvent[]
+  id                    Int               @id @default(autoincrement())
+  path                  String            @unique
+  nombre                String            @unique
+  duracion              Int               @default(0)
+  numElementos          Int               @default(0)
+  createdAt             DateTime          @default(now())
+  historial             Historial[]
+  totalplays            Int               @default(0)
+  PlaybackEvent         PlaybackEvent[]
+  AppHistoryEvent       AppHistoryEvent[]
+  customCoverMode       String?
+  customCoverValue      String?
+  customCoverSelection  String?
+  customCoverUpdatedAt  DateTime?
 }
 
 model Historial {

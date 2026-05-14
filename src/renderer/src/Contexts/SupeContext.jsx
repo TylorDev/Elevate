@@ -150,13 +150,21 @@ export const SuperProvider = ({ children }) => {
 
   const getImage = useCallback((name, data) => {
     const existingImage = imagesRef.current.get(name)
+    const nextSignature = typeof data === 'string' ? data : data
 
-    if (existingImage) {
-      return existingImage
+    if (existingImage?.signature === nextSignature) {
+      return existingImage.url
+    }
+
+    if (existingImage?.url?.startsWith?.('blob:')) {
+      URL.revokeObjectURL(existingImage.url)
     }
 
     const url = dataToImageUrl(data)
-    imagesRef.current.set(name, url)
+    imagesRef.current.set(name, {
+      url,
+      signature: nextSignature
+    })
     return url
   }, [])
 

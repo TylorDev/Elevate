@@ -239,6 +239,54 @@ export const PlaylistsProvider = ({ children }) => {
     return response
   }, [getSavedLists])
 
+  const updatePlaylistMetadata = useCallback(async (path, payload) => {
+    const response = await dedupedInvoke('update-playlist-metadata', {
+      path,
+      ...payload
+    })
+
+    if (response.success) {
+      console.log('Playlist metadata updated:', response.playlist)
+      if (response.playlist) {
+        setPlaylists((previousPlaylists) =>
+          previousPlaylists.map((playlist) =>
+            playlist.path === path
+              ? {
+                  ...playlist,
+                  ...response.playlist,
+                  cover: response.effectiveCover ?? response.playlist.cover ?? playlist.cover,
+                  effectiveCover:
+                    response.effectiveCover ?? response.playlist.effectiveCover ?? playlist.effectiveCover,
+                  coverConfig: response.coverConfig ?? response.playlist.coverConfig ?? playlist.coverConfig
+                }
+              : playlist
+          )
+        )
+        setPlaylistsLoaded(true)
+        setPlaylistsLastLoadedAt(Date.now())
+      }
+
+      void getSavedLists({ force: true }).catch((error) => {
+        console.error('Error refreshing playlists in background:', error)
+      })
+    } else {
+      console.error('Error updating playlist metadata:', response.error)
+      toast.error(response.error || 'Error al actualizar la playlist', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+    }
+
+    return response
+  }, [getSavedLists])
+
   const deletePlaylist = useCallback(async (filePath) => {
     await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
     setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
@@ -489,6 +537,7 @@ export const PlaylistsProvider = ({ children }) => {
       openM3U,
       randomPlaylist,
       updatePlaylist,
+      updatePlaylistMetadata,
       news,
       getNews,
       updateArrayCovers,
@@ -533,7 +582,8 @@ export const PlaylistsProvider = ({ children }) => {
       savePlaylistFromTracks,
       updateArrayAlbums,
       updateArrayCovers,
-      updatePlaylist
+      updatePlaylist,
+      updatePlaylistMetadata
     ]
   )
 

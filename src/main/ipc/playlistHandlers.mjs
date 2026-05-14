@@ -2,11 +2,14 @@ import { createRequire } from 'node:module'
 import path from 'path'
 import fs from 'fs'
 import log from 'electron-log/main.js'
+import sharp from 'sharp'
 import {
+  getCoverFromCache,
   generateCover,
   processPlaylist,
   processPlaylistCover,
-  getOrCreateSong
+  getOrCreateSong,
+  ensureCoverDir
 } from './utils/utils.mjs'
 import { prisma } from '../prisma.mjs'
 const require = createRequire(import.meta.url)
@@ -37,6 +40,212 @@ function invalidatePlaylistCache(playlistPath = null) {
       playlistCoverCache.delete(key)
     }
   }
+}
+
+async function getTop10SuggestedCovers(playlistPath) {
+  try {
+    const baseDir = path.dirname(playlistPath)
+    const songs = await processPlaylist(playlistPath, baseDir)
+    const sortedSongs = songs
+      .filter((song) => song.coverHash || song.filePath)
+      .sort((a, b) => (Number(b.short_view_count) || 0) - (Number(a.short_view_count) || 0))
+      .slice(0, 10)
+
+    return Promise.all(
+      sortedSongs.map(async (song, index) => {
+        const cover = song.filePath ? await getCoverFromCache(song.filePath, 'full') : null
+
+        return {
+          suggestedId: song.filePath || song.coverHash || `suggested-${index}`,
+          filePath: song.filePath || null,
+          title: song.title || song.fileName || null,
+          artist: song.artist || null,
+          coverHash: song.coverHash || null,
+          short_view_count: Number(song.short_view_count) || 0,
+          picture: cover?.data
+            ? [{ data: cover.data, type: 'Cover (front)', format: cover.mimeType || 'image/jpeg' }]
+            : []
+        }
+      })
+    )
+  } catch (error) {
+    console.error('Error getting top 10 suggested covers:', error)
+    return []
+  }
+}
+
+function dataUrlToBuffer(dataUrl) {
+  if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+    return null
+  }
+
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/)
+  if (!match) {
+    return null
+  }
+
+  return {
+    mimeType: match[1],
+    buffer: Buffer.from(match[2], 'base64')
+  }
+}
+
+function bufferToDataUrl(buffer, mimeType = 'image/png') {
+  if (!buffer) {
+    return null
+  }
+
+  return `data:${mimeType};base64,${Buffer.from(buffer).toString('base64')}`
+}
+
+function buildCoverConfig(playlist) {
+  if (!playlist) {
+    return null
+  }
+
+  return {
+    customCoverMode: playlist.customCoverMode || null,
+    customCoverValue: playlist.customCoverValue || null,
+    customCoverSelection: playlist.customCoverSelection
+      ? JSON.parse(playlist.customCoverSelection)
+      : null
+  }
+}
+
+function buildPlaylistSummary(playlist, effectiveCover = null) {
+  if (!playlist) {
+    return null
+  }
+
+  return {
+    id: playlist.id,
+    path: playlist.path,
+    nombre: playlist.nombre,
+    duracion: playlist.duracion,
+    numElementos: playlist.numElementos,
+    createdAt: playlist.createdAt,
+    totalplays: playlist.totalplays,
+    cover: effectiveCover,
+    effectiveCover,
+    coverConfig: buildCoverConfig(playlist)
+  }
+}
+
+async function generatePlaylistCoverFromSelectedImages(selectedItems) {
+  if (!selectedItems || selectedItems.length !== 4) {
+    throw new Error('Se requieren exactamente 4 imágenes para el collage')
+  }
+
+  try {
+    const imageBuffers = []
+
+    for (const item of selectedItems) {
+      if (item.filePath) {
+        const cachedCover = await getCoverFromCache(item.filePath, 'full')
+        if (cachedCover?.data) {
+          imageBuffers.push(Buffer.from(cachedCover.data))
+          continue
+        }
+      }
+
+      if (item.coverHash) {
+        const cacheDir = ensureCoverDir()
+        const fullCoverPath = path.join(cacheDir, 'full', `${item.coverHash}.jpg`)
+        if (fs.existsSync(fullCoverPath)) {
+          imageBuffers.push(await fs.promises.readFile(fullCoverPath))
+          continue
+        }
+      }
+
+      if (item.picture && item.picture[0]?.data) {
+        imageBuffers.push(Buffer.from(item.picture[0].data))
+      } else if (item.localPath && fs.existsSync(item.localPath)) {
+        imageBuffers.push(await fs.promises.readFile(item.localPath))
+      } else if (item.resolvedUrl) {
+        const parsed = dataUrlToBuffer(item.resolvedUrl)
+        if (parsed?.buffer) {
+          imageBuffers.push(parsed.buffer)
+        }
+      }
+    }
+
+    if (imageBuffers.length < 4) {
+      throw new Error('No se pudieron obtener las 4 imágenes para el collage')
+    }
+
+    const resizedImages = await Promise.all(
+      imageBuffers.slice(0, 4).map((buffer) =>
+        sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
+      )
+    )
+
+    const canvas = sharp({
+      create: {
+        width: 500,
+        height: 500,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 }
+      }
+    })
+
+    const composites = resizedImages.map((img, index) => ({
+      input: img,
+      top: Math.floor(index / 2) * 250,
+      left: (index % 2) * 250
+    }))
+
+    const tileBuffer = await canvas.composite(composites).png().toBuffer()
+    return tileBuffer
+  } catch (error) {
+    console.error('Error generating collage from selected images:', error)
+    throw error
+  }
+}
+
+async function getEffectiveCover(playlist, fallbackCover = null) {
+  if (playlist?.customCoverMode && (playlist?.customCoverValue || playlist?.customCoverSelection)) {
+    try {
+      const resolvedDataUrl = dataUrlToBuffer(playlist.customCoverValue)
+
+      if (resolvedDataUrl?.buffer) {
+        return playlist.customCoverValue
+      }
+
+      let coverBuffer = null
+
+      if (playlist.customCoverMode === 'local-image') {
+        if (playlist.customCoverValue && fs.existsSync(playlist.customCoverValue)) {
+          coverBuffer = await sharp(playlist.customCoverValue)
+            .resize(500, 500, { fit: 'cover' })
+            .png()
+            .toBuffer()
+        }
+      } else if (playlist.customCoverMode === 'remote-image') {
+        const axios = (await import('axios')).default
+        const response = await axios.get(playlist.customCoverValue, { responseType: 'arraybuffer' })
+        coverBuffer = await sharp(Buffer.from(response.data))
+          .resize(500, 500, { fit: 'cover' })
+          .png()
+          .toBuffer()
+      } else if (playlist.customCoverMode === 'suggested-collage') {
+        const selection = playlist.customCoverSelection
+          ? JSON.parse(playlist.customCoverSelection)
+          : null
+
+        if (selection && Array.isArray(selection) && selection.length === 4) {
+          coverBuffer = await generatePlaylistCoverFromSelectedImages(selection)
+        }
+      }
+
+      if (coverBuffer) {
+        return coverBuffer
+      }
+    } catch (error) {
+      console.error('Error getting effective cover:', error)
+    }
+  }
+
+  return fallbackCover ?? getCachedPlaylistCover(playlist)
 }
 
 async function getCachedPlaylistCover(playlist) {
@@ -195,7 +404,7 @@ async function getPlaylists({ take = null, skip = null } = {}) {
 
   const options = {
     orderBy: {
-      totalplays: 'desc' // Ordena de más reproducciones a menos reproducciones
+      totalplays: 'desc'
     }
   }
 
@@ -205,11 +414,17 @@ async function getPlaylists({ take = null, skip = null } = {}) {
   const request = prisma.playlist
     .findMany(options)
     .then(async (playlists) => {
-      for (const playlist of playlists) {
-        playlist.cover = await getCachedPlaylistCover(playlist)
-      }
-
-      return playlists
+      return Promise.all(
+        playlists.map(async (playlist) => {
+          const effectiveCover = await getEffectiveCover(playlist)
+          return {
+            ...playlist,
+            cover: effectiveCover,
+            effectiveCover,
+            coverConfig: buildCoverConfig(playlist)
+          }
+        })
+      )
     })
     .finally(() => {
       pendingPlaylistRequests.delete(requestKey)
@@ -487,7 +702,10 @@ async function searchPlaylistsPage(request = {}) {
   const pageItems = sortedPlaylists.slice(start, start + pageSize)
 
   const items = await Promise.all(
-    pageItems.map(async (playlist) => ({
+    pageItems.map(async (playlist) => {
+      const effectiveCover = await getEffectiveCover(playlist)
+
+      return ({
       type: 'playlist',
       id: playlist.id,
       title: playlist.nombre,
@@ -496,13 +714,20 @@ async function searchPlaylistsPage(request = {}) {
       actionPayload: {
         path: playlist.path
       },
-      cover: await getCachedPlaylistCover(playlist),
+      cover: effectiveCover,
+      effectiveCover,
+      coverConfig: {
+        customCoverMode: playlist.customCoverMode || null,
+        customCoverValue: playlist.customCoverValue || null,
+        customCoverSelection: playlist.customCoverSelection ? JSON.parse(playlist.customCoverSelection) : null
+      },
       path: playlist.path,
       nombre: playlist.nombre,
       duracion: playlist.duracion,
       numElementos: playlist.numElementos,
       totalplays: playlist.totalplays
-    }))
+    })
+    })
   )
 
   return {
@@ -532,7 +757,7 @@ export function setupPlaylistHandlers() {
     }
   })
 
-  ipcMain.handle('get-list', async (event, filepath) => {
+ipcMain.handle('get-list', async (event, filepath) => {
     if (!filepath || filepath === '') {
       log.error('get-list: filepath is empty or undefined')
       return { success: false, error: 'filepath is required' }
@@ -540,15 +765,23 @@ export function setupPlaylistHandlers() {
     try {
       log.info('get-list: loading playlist:', filepath)
       const baseDir = path.dirname(filepath)
-      const coverData = await processPlaylist(filepath, baseDir)
-      const processedData = coverData.map((song) => ({ ...song, picture: undefined }))
+      const playlistSongs = await processPlaylist(filepath, baseDir)
+      const processedData = playlistSongs.map((song) => ({ ...song, picture: undefined }))
       const playlistData = await getPlaylist(filepath)
-      const cover = await generateCover(coverData)
+      const cover = playlistData ? await getCachedPlaylistCover(playlistData) : null
+      const suggestedCovers = await getTop10SuggestedCovers(filepath)
+      const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
+
+      const coverConfig = buildCoverConfig(playlistData)
+
       log.info('get-list: loaded successfully')
       return {
         processedData,
         playlistData,
-        cover
+        cover,
+        suggestedCovers,
+        effectiveCover,
+        coverConfig
       }
     } catch (err) {
       log.error('get-list error:', err.message)
@@ -587,6 +820,95 @@ export function setupPlaylistHandlers() {
 
   ipcMain.handle('change-list-name', async (event, filepath, newData) => {
     await updatePlaylistByPath(filepath, newData)
+  })
+
+  ipcMain.handle('update-playlist-metadata', async (event, { path: filepath, nombre, coverMode, coverValue, coverSelection }) => {
+    try {
+      if (!filepath) {
+        return { success: false, error: 'filepath is required' }
+      }
+
+      const existingPlaylist = await prisma.playlist.findUnique({
+        where: { path: filepath }
+      })
+
+      if (!existingPlaylist) {
+        return { success: false, error: 'Playlist no encontrada' }
+      }
+
+      const updateData = {}
+
+      if (nombre !== undefined && nombre !== null) {
+        updateData.nombre = nombre.trim()
+      }
+
+      if (coverMode !== undefined) {
+        updateData.customCoverMode = coverMode
+
+        if (coverMode === 'suggested-collage') {
+          if (coverSelection && Array.isArray(coverSelection) && coverSelection.length === 4) {
+            const suggestedCovers = await getTop10SuggestedCovers(filepath)
+            const selectedItems = coverSelection
+              .map((selection) => {
+                const selectedId =
+                  typeof selection === 'string'
+                    ? selection
+                    : selection?.suggestedId || selection?.filePath || selection?.coverHash || null
+
+                return suggestedCovers.find((cover) => cover.suggestedId === selectedId)
+              })
+              .filter(Boolean)
+              .map((cover) => ({
+                suggestedId: cover.suggestedId,
+                filePath: cover.filePath,
+                coverHash: cover.coverHash
+              }))
+
+            if (selectedItems.length !== 4) {
+              return { success: false, error: 'No se pudieron resolver las 4 selecciones del collage' }
+            }
+
+            const collageBuffer = await generatePlaylistCoverFromSelectedImages(selectedItems)
+            updateData.customCoverSelection = JSON.stringify(selectedItems)
+            updateData.customCoverValue = bufferToDataUrl(collageBuffer, 'image/png')
+          } else {
+            return { success: false, error: 'Para collage sugerido se requieren exactamente 4 selecciones' }
+          }
+        } else if (coverMode === 'local-image' || coverMode === 'remote-image') {
+          if (!coverValue) {
+            return { success: false, error: `Se requiere un valor para el modo ${coverMode}` }
+          }
+          updateData.customCoverValue = coverValue
+          updateData.customCoverSelection = null
+        } else if (coverMode === 'auto' || coverMode === null || coverMode === '') {
+          updateData.customCoverMode = null
+          updateData.customCoverValue = null
+          updateData.customCoverSelection = null
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        updateData.customCoverUpdatedAt = new Date()
+      }
+
+      const updatedPlaylist = await prisma.playlist.update({
+        where: { path: filepath },
+        data: updateData
+      })
+
+      invalidatePlaylistCache(filepath)
+      const effectiveCover = await getEffectiveCover(updatedPlaylist)
+
+      return {
+        success: true,
+        playlist: buildPlaylistSummary(updatedPlaylist, effectiveCover),
+        coverConfig: buildCoverConfig(updatedPlaylist),
+        effectiveCover
+      }
+    } catch (error) {
+      console.error('Error updating playlist metadata:', error)
+      return { success: false, error: error.message }
+    }
   })
 
   ipcMain.handle('load-list-to-history', async (event, filePath) => {

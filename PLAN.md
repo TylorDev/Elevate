@@ -1,356 +1,511 @@
-# Plan: panel administrador de presets en `Music.jsx`
+# Plan: añadir formulario de edición de playlist con `Nombre` y `Cover`
 
 ## Resumen
-Hoy el sistema de visualizers ya hace tres cosas útiles:
-- activa/desactiva el visualizer desde [Music.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx)
-- renderiza un preset por nombre en [Render.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/Render.jsx)
-- rota presets automáticamente con una lista mezclada y un intervalo fijo de 6 segundos en [useVisualizerPresets.js](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/useVisualizerPresets.js)
 
-Pero le faltan justo las piezas que pides:
-- no hay botón para abrir panel administrador
-- no existe modelo de “favoritos”
-- no existe configuración de duración del ciclo
-- no existe modo de ciclo lineal
-- no existe filtro de source `[Todos, Favoritos]`
-- la UI manual actual (`RenderControls`) solo tiene prev/pause/next/select
+El sistema ya tiene una base útil:
 
-La forma más segura es **extender el hook de presets para volverlo la fuente de verdad**, y construir un panel nuevo encima.
+- [PlaylistPage.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/PlaylistPage/PlaylistPage.jsx) ya abre un modal de edición
+- [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx) ya edita `nombre`
+- el backend ya sabe generar un cover automático a partir de canciones de la playlist en [playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
 
-## Problemas actuales que el implementador debe entender
+Pero hoy faltan tres piezas clave:
 
-### 1. `Music.jsx` no tiene panel de administración
-En [Music.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx), hoy solo existe:
-- toggles de cover / visualizer / auto-mode
-- `RenderControls` para modo manual
+1. la playlist **no tiene un campo persistente de cover personalizado**
+2. no existe un endpoint para obtener **las 10 canciones con más `short_view_count` dentro de esa playlist**
+3. el formulario no tiene UI para elegir:
+   - collage de 4 imágenes entre 10 sugeridas
+   - imagen local
+   - imagen remota por URL
 
-No hay estado `isPresetManagerOpen`, ni botón, ni modal/panel lateral.
+La implementación correcta es:
 
-### 2. `useVisualizerPresets.js` está demasiado limitado
-En [useVisualizerPresets.js](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/useVisualizerPresets.js):
-- solo devuelve una lista mezclada `shuffledKeys`
-- siempre rota cada `6000ms`
-- solo sabe avanzar/retroceder dentro de esa lista
-- no conoce favoritos
-- no conoce source activo
-- no conoce modo lineal vs aleatorio
-- no expone objetos de preset con metadata, solo strings
+- mantener el nombre editable **solo en DB**
+- añadir soporte de **cover personalizado persistido**
+- seguir usando el cover automático actual como fallback
+- hacer que el formulario permita elegir entre:
+  - collage manual 4-de-10
+  - imagen local
+  - URL
 
-### 3. No existe almacenamiento persistente para configuración de presets
-No hay `localStorage` para:
-- favoritos
-- duración del ciclo
-- modo de ciclo
-- source actual
+## Problemas actuales que hay que resolver
 
-Si no se crea eso, todo se perderá al recargar.
+### 1. `Playlist` no guarda cover personalizado
 
-### 4. `RenderControls.jsx` no es el panel correcto para este requerimiento
-En [RenderControls.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/RenderControls.jsx):
-- solo hay navegación básica
-- el selector es un `<select>`
-- no muestra icono + nombre + favorito por preset
+En el backend, el cover de playlist se calcula en tiempo real con `generateCover(...)` y se cachea en memoria. No hay un campo tipo `customCover`.
 
-Conviene mantenerlo para control rápido manual, y crear un panel separado para administración.
+Eso significa que si el usuario edita un cover:
 
-## Cambios a realizar
+- hoy no hay dónde persistirlo
+- al recargar se perdería
 
-### [src/renderer/src/components/Render/useVisualizerPresets.js](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/useVisualizerPresets.js)
-**Objetivo:** convertir este hook en el núcleo real del sistema.
+### 2. `PlaylistForm.jsx` solo edita texto
 
-### Paso 1: introducir configuración persistida
-Agregar lectura/escritura en `localStorage` para:
-- `visualizerPresetFavorites` → array de nombres
-- `visualizerCycleDurationMs` → número
-- `visualizerCycleMode` → `'random' | 'linear'`
-- `visualizerPresetSource` → `'all' | 'favorites'`
+El formulario actual en [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx) solo maneja:
 
-**Autoverificación:**
-- recargar la app y comprobar que los valores elegidos se mantienen
+- `path`
+- `nombre`
+- métricas de solo lectura
 
-### Paso 2: modelar presets como objetos
-Derivar desde `ALL_PRESET_KEYS` una lista de objetos, por ejemplo:
-- `id` / `name`
-- `iconKey` o `iconType` simple
-- `isFavorite`
+No hay estados ni controles para cover.
 
-No hace falta icono real distinto por preset; basta un icono compartido para todos y un botón de favorito aparte.
+### 3. `get-list` devuelve solo el cover automático actual
 
-**Autoverificación:**
-- el hook ya no devuelve solo strings; devuelve una lista usable para UI
+En [playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs), `get-list`:
 
-### Paso 3: crear lista filtrada activa
-Agregar una lista derivada según `presetSource`:
-- `all` → todos los presets
-- `favorites` → solo favoritos
+- procesa canciones
+- genera `cover` automático
+- devuelve `processedData`, `playlistData`, `cover`
 
-Si `favorites` está vacío y source es `favorites`, el hook debe seguir funcionando sin romperse:
-- lista activa vacía
-- `currentPresetName` vacío
-- UI puede mostrar mensaje
+No devuelve:
 
-**Autoverificación:**
-- al cambiar source, cambia el total de presets disponibles
-- con favoritos vacíos no hay crash
+- top 10 sugeridas por shortviews
+- cover personalizado resuelto
+- tipo de cover activo
 
-### Paso 4: separar orden lineal de orden aleatorio
-Crear dos comportamientos:
-- `linear`: usar lista activa en orden natural
-- `random`: usar una cola mezclada derivada de la lista activa
+### 4. `change-list-name` es demasiado limitado
 
-No reutilizar el viejo `shuffledKeys` como única fuente de verdad.
+El handler `change-list-name` hoy en realidad llama `updatePlaylistByPath(filepath, newData)` pero:
 
-**Autoverificación:**
-- en `linear`, avanzar debe seguir el orden fijo
-- en `random`, avanzar debe usar orden mezclado
+- no devuelve una respuesta clara
+- no está pensado como “update playlist metadata”
+- el nombre sugiere que solo cambia el nombre
 
-### Paso 5: hacer configurable la duración del ciclo
-Reemplazar el `6000` fijo por `cycleDurationMs`.
-
-Valores iniciales recomendados:
-- 5000
-- 10000
-- 15000
-- 30000
-
-**Autoverificación:**
-- cambiar de 5s a 10s modifica claramente el tiempo entre cambios
-- recargar mantiene el valor
-
-### Paso 6: agregar favoritos
-Añadir funciones al hook:
-- `toggleFavorite(presetName)`
-- `isFavorite(presetName)`
-
-Asegurar que si el preset actual deja de pertenecer a la lista activa por cambiar source/favoritos:
-- se reubique a un preset válido
-- o quede vacío sin romper el render
-
-**Autoverificación:**
-- marcar/desmarcar favorito cambia la UI inmediatamente
-- source `favorites` refleja el cambio sin recargar
-
-### Paso 7: ampliar el retorno del hook
-El hook debe devolver además de lo actual:
-- `allPresetItems`
-- `activePresetItems`
-- `favoritePresetNames`
-- `cycleDurationMs`
-- `setCycleDurationMs`
-- `cycleMode`
-- `setCycleMode`
-- `presetSource`
-- `setPresetSource`
-- `toggleFavorite`
-
-**Autoverificación:**
-- `Music.jsx` puede leer toda la configuración desde una sola fuente
+Conviene reemplazarlo por un handler más explícito.
 
 ---
 
-### [src/renderer/src/Pages/Music/Music.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx)
-**Objetivo:** conectar el panel nuevo y el botón de apertura.
+## Fase 1: persistencia del cover personalizado
 
-### Paso 8: agregar estado para abrir/cerrar panel
-Crear:
-- `isPresetManagerOpen`
-- toggle/close handlers
+### Paso 1. Añadir almacenamiento persistente para cover personalizado
 
-**Autoverificación:**
-- botón abre y cierra el panel sin afectar reproducción
+**Archivo:** [prisma/schema.prisma](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/prisma/schema.prisma)
 
-### Paso 9: agregar botón “Administrador de Presets”
-Dentro de `.view-switcher`, agregar un botón nuevo visible cuando el visualizer esté activo o siempre si prefieres consistencia.
-Usar un icono tipo `LuSettings`, `LuSlidersHorizontal` o similar.
+Añadir a `Playlist` campos para guardar el cover personalizado sin tocar el archivo `.m3u`.
 
-**Autoverificación:**
-- aparece un botón nuevo en Music
-- al click abre el panel
+Campos recomendados:
 
-### Paso 10: montar el nuevo panel
-Importar y renderizar un componente nuevo, por ejemplo:
-- `VisualizerPresetManager`
-
-Pasarle props desde `presetControls`.
+- `customCoverMode String?`
+  - valores esperados: `'suggested-collage' | 'local-image' | 'remote-image'`
+- `customCoverValue String?`
+  - para local o URL remota: referencia persistida
+- `customCoverSelection String?`
+  - JSON con las 4 selecciones cuando sea collage manual
+- opcionalmente `customCoverUpdatedAt DateTime?`
 
 **Autoverificación:**
-- el panel se renderiza con datos reales del hook
-- cerrar el panel no desmonta el visualizer principal
 
-### Paso 11: mantener `RenderControls` como control rápido
-No quitar `RenderControls` todavía.
-Dejarlo como control rápido manual, y usar el panel nuevo para la administración más completa.
+- el schema compila sin errores
+- existe una migración nueva solo para estos campos
+
+### Paso 2. Crear migración Prisma
+
+**Archivo:** nueva migración en `prisma/migrations/...`
+
+Generar la migración que agrega esos campos.
 
 **Autoverificación:**
-- modo manual sigue funcionando como antes
-- el panel añade capacidades sin romper la navegación actual
+
+- la migración contiene solo los `ALTER TABLE` necesarios
+- no modifica datos existentes no relacionados
 
 ---
 
-### [src/renderer/src/components/Render/VisualizerPresetManager.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/VisualizerPresetManager.jsx)
-**Archivo nuevo recomendado.**
+## Fase 2: backend para covers sugeridos y actualización de metadata
 
-**Objetivo:** contener toda la UI de administración.
+### Paso 3. Crear helper para top 10 por shortviews dentro de una playlist
 
-### Paso 12: construir la estructura del panel
-Secciones mínimas:
-- encabezado con título + cerrar
-- configuración de ciclo
-- filtro de source
-- lista de presets
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
 
-**Autoverificación:**
-- el panel ya abre/cierra aunque la lista esté estática
+Añadir una función nueva que:
 
-### Paso 13: UI de configuración de ciclo
-Agregar controles para:
-- duración: botones o select con `5s`, `10s`, `15s`, `30s`
-- modo: segmented control o botones `Aleatorio` / `Lineal`
-- source: `Todos` / `Favoritos`
+1. lea las canciones de la playlist
+2. obtenga para cada canción:
+   - `filePath`
+   - `title`
+   - `artist`
+   - `coverHash` o cover disponible
+   - `short_view_count`
+3. ordene por `short_view_count` descendente
+4. devuelva las 10 primeras
 
-**Autoverificación:**
-- cada control refleja el valor actual del hook
-- cambiar un control actualiza el hook inmediatamente
-
-### Paso 14: lista de presets
-Renderizar cada preset con:
-- icono
-- nombre
-- botón de favorito
-
-No hace falta iconografía única por preset. Usa un icono común para el preset y un corazón/estrella para favorito.
+No basta con `processPlaylistCover(...)` actual, porque necesitas devolver datos utilizables en UI, no solo lo mínimo para collage automático.
 
 **Autoverificación:**
-- cada fila muestra icono + nombre + favorito
-- el botón de favorito responde visualmente
 
-### Paso 15: acciones de selección y favorito
-En cada fila:
-- click en la fila: seleccionar preset actual
-- click en favorito: alternar favorito sin disparar selección accidental
+- para una playlist con datos, la función devuelve máximo 10 canciones
+- el primer elemento tiene `short_view_count >=` el segundo
+- canciones sin cover no rompen la lista
+
+### Paso 4. Crear helper para construir collage manual de 4 imágenes
+
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs) o helper nuevo en `utils.mjs`
+
+Añadir una función que reciba exactamente 4 imágenes fuente y genere un cover 2x2.
+
+No modificar `generateCover(files)` existente para este caso si eso complica el comportamiento actual. Es mejor un helper nuevo, por ejemplo:
+
+- `generatePlaylistCoverFromSelectedImages(selectedItems)`
 
 **Autoverificación:**
-- seleccionar fila cambia el preset activo
-- marcar favorito no cambia de preset salvo que lo diseñes así
 
-### Paso 16: estado vacío para source favoritos
-Si `presetSource === 'favorites'` y no hay favoritos:
-- mostrar mensaje claro: “No hay presets favoritos todavía”
+- con 4 imágenes válidas devuelve un cover válido
+- con menos de 4 falla con error claro
+- no cambia el comportamiento del cover automático actual
+
+### Paso 5. Crear resolver de “cover efectivo”
+
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
+
+Crear una función única que devuelva el cover que realmente debe usar la playlist:
+
+1. si hay `customCoverMode` activo y válido, usar cover personalizado
+2. si no, usar `getCachedPlaylistCover(...)`
+
+Esto evita duplicar la lógica en:
+
+- `get-playlists`
+- `get-list`
+- búsqueda de playlists
 
 **Autoverificación:**
-- el panel no queda en blanco silencioso
-- el usuario entiende qué hacer
+
+- playlist sin custom cover sigue mostrando cover automático
+- playlist con custom cover muestra el personalizado
+
+### Paso 6. Ampliar `get-list`
+
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
+
+Modificar el handler `get-list` para que además de `processedData`, `playlistData` y `cover`, devuelva:
+
+- `suggestedCovers`
+- `effectiveCover`
+- `coverConfig` o metadata equivalente del cover personalizado
+
+**Autoverificación:**
+
+- el payload de `get-list` incluye esos campos nuevos
+- si no hay custom cover, `coverConfig` viene vacío pero `suggestedCovers` sí existe
+
+### Paso 7. Crear handler dedicado para actualizar metadata de playlist
+
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
+
+Crear un IPC nuevo, por ejemplo:
+
+- `update-playlist-metadata`
+
+Debe aceptar:
+
+- `path`
+- `nombre`
+- `coverMode`
+- `coverValue`
+- `coverSelection`
+
+Reglas:
+
+- `nombre` actualiza solo la DB
+- nunca renombra el archivo real `.m3u`
+- si cover es collage manual, validar 4 selecciones exactas
+- si cover es local/url, guardar referencia persistente
+- invalidar caché de cover de esa playlist
+
+**Autoverificación:**
+
+- actualizar nombre cambia la UI pero no el path del archivo
+- actualizar cover persiste tras recargar la página
+
+### Paso 8. Mantener o deprecar `change-list-name`
+
+**Archivo:** [src/main/ipc/playlistHandlers.mjs](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/playlistHandlers.mjs)
+
+No reutilizar `change-list-name` para todo.
+Déjalo temporalmente o reemplázalo internamente, pero el formulario nuevo debe usar el handler explícito nuevo.
+
+**Autoverificación:**
+
+- no queda ambigüedad entre “editar nombre” y “editar metadata completa”
 
 ---
 
-### [src/renderer/src/components/Render/VisualizerPresetManager.scss](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/VisualizerPresetManager.scss)
-**Archivo nuevo recomendado.**
+## Fase 3: contexto y consumo en renderer
 
-### Paso 17: estilo del panel
-Crear layout estable para:
-- panel flotante / modal lateral
-- lista scrolleable
-- filas de preset
-- estados activos/favoritos
+### Paso 9. Añadir método nuevo en `PlaylistsContex`
 
-Mantener densidad visual alta y clara; no usar tarjetas gigantes.
+**Archivo:** [src/renderer/src/Contexts/PlaylistsContex.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx)
+
+Agregar una función nueva, por ejemplo:
+
+- `updatePlaylistMetadata(path, payload)`
+
+Esta debe:
+
+1. invocar `update-playlist-metadata`
+2. refrescar playlists con `getSavedLists({ force: true })`
+3. devolver respuesta clara
+4. mostrar toast de error si falla
 
 **Autoverificación:**
-- el panel cabe bien sobre `Music`
-- la lista se puede recorrer sin romper el layout
-- el preset activo es visible
+
+- el contexto expone la nueva función
+- la llamada devuelve `success: true/false`
+- refresca la playlist editada tras guardar
+
+### Paso 10. Mantener compatibilidad con `PlaylistPage`
+
+**Archivo:** [src/renderer/src/Pages/PlaylistPage/PlaylistPage.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/PlaylistPage/PlaylistPage.jsx)
+
+Cambiar el modal para usar:
+
+- `onUpdate={updatePlaylistMetadata}`
+
+Asegurarse de que `current` use el `effectiveCover` nuevo en vez de depender solo de `current.cover`.
+
+**Autoverificación:**
+
+- al guardar desde el formulario, la portada mostrada en la página cambia
+- el modal sigue abriendo/cerrando igual
 
 ---
 
-### [src/renderer/src/components/Render/RenderControls.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/RenderControls.jsx)
-**Objetivo:** hacer una adaptación mínima para convivir con el nuevo sistema.
+## Fase 4: formulario de edición de playlist
 
-### Paso 18: asegurar que use la lista activa
-Cambiar `allPresets` por la lista activa correcta que venga del hook.
-Si decides mantener strings para este componente, pasarle solo nombres.
-Si decides migrarlo a objetos, mapear internamente.
+### Paso 11. Rediseñar el estado del formulario
+
+**Archivo:** [src/renderer/src/components/PlaylistForm/PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Reemplazar el `formData` plano actual por estado estructurado:
+
+- `nombre`
+- `coverMode`
+  - `'suggested-collage'`
+  - `'local-image'`
+  - `'remote-image'`
+- `selectedSuggestedCoverIds`
+- `localImageValue`
+- `remoteImageValue`
+- `previewUrl`
+- `errorMessage`
+- `isSubmitting`
+
+El `path` sigue existiendo, pero solo como identificador no editable.
 
 **Autoverificación:**
-- en source `favorites`, el select solo muestra favoritos
-- en source `all`, muestra todos
 
-### Paso 19: no mezclar administración con control rápido
-No meter duración/source/favoritos dentro de este archivo.
-Déjalo enfocado en:
-- prev
-- pause
-- next
-- select
+- el formulario sigue cargando valores iniciales al abrirse
+- no rompe si una playlist no tiene custom cover
+
+### Paso 12. Mostrar solo el campo editable de nombre
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Mantener editable:
+
+- `Nombre`
+
+Mantener el `path` solo como texto informativo o input deshabilitado.
+
+Quitar del foco de edición:
+
+- `duracion`
+- `numElementos`
+- `totalplays`
+
+Pueden mostrarse como metadata, pero no como inputs del formulario.
 
 **Autoverificación:**
-- el componente sigue simple
-- no duplicas UI entre dos paneles
+
+- el usuario solo puede editar nombre y cover
+- ya no parece un formulario genérico de DB
+
+### Paso 13. Añadir selector de modo de cover
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Agregar una UI para elegir uno de 3 modos:
+
+- `Sugeridos`
+- `Imagen local`
+- `URL`
+
+**Autoverificación:**
+
+- al cambiar modo, cambia el bloque visible correspondiente
+- no se mezclan inputs de distintos modos
+
+### Paso 14. Añadir bloque de covers sugeridos
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Mostrar las 10 sugerencias derivadas de `suggestedCovers`.
+
+Cada sugerencia debe mostrar:
+
+- cover
+- nombre o título breve
+- indicador de shortviews opcional si ayuda al usuario
+
+Permitir seleccionar exactamente 4.
+
+Reglas:
+
+- si selecciona una quinta, bloquear o reemplazar solo si decides una regla clara
+- preferible: bloquear con mensaje “Selecciona solo 4 imágenes”
+
+**Autoverificación:**
+
+- se pueden seleccionar 4
+- no se permiten 3 al guardar
+- la selección se refleja visualmente
+
+### Paso 15. Añadir preview del collage seleccionado
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Cuando haya 4 sugeridas seleccionadas:
+
+- mostrar preview del collage resultante
+- si no quieres generarlo en frontend, mostrar una preview simple 2x2 local de esas 4 imágenes
+
+**Autoverificación:**
+
+- seleccionar 4 imágenes muestra una preview coherente
+- cambiar una selección actualiza la preview
+
+### Paso 16. Añadir bloque para imagen local
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Añadir:
+
+- botón `Elegir imagen`
+- preview
+- estado de error
+
+Este paso asume que existe o se creará el flujo de selección local tipo `Settings`. Si aún no existe, el plan debe reutilizar el mismo mecanismo que vayas a introducir allí.
+
+**Autoverificación:**
+
+- elegir una imagen local llena el preview
+- cancelar selección no rompe el formulario
+
+### Paso 17. Añadir bloque para URL
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Añadir:
+
+- input de URL
+- botón de aplicar/cargar
+- preview
+- error claro
+
+Idealmente reutilizar la misma validación que `Settings` vaya a usar para URL de imagen.
+
+**Autoverificación:**
+
+- URL válida muestra preview
+- URL inválida muestra error claro y no pisa el cover actual
+
+### Paso 18. Validar antes de guardar
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Antes del submit:
+
+- `nombre` no vacío
+- si `coverMode === suggested-collage`, debe haber exactamente 4 imágenes
+- si `coverMode === local-image`, debe haber imagen local válida
+- si `coverMode === remote-image`, debe haber URL validada
+
+**Autoverificación:**
+
+- cada error bloquea el submit con mensaje claro
+- un formulario válido sí guarda
+
+### Paso 19. Enviar payload final al backend
+
+**Archivo:** [PlaylistForm.jsx](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.jsx)
+
+Al guardar:
+
+- enviar `path`
+- enviar `nombre`
+- enviar `coverMode`
+- enviar `coverValue`
+- enviar `coverSelection`
+
+Cerrar modal solo después de respuesta exitosa.
+
+**Autoverificación:**
+
+- si el backend falla, el modal permanece abierto
+- si guarda bien, se cierra y se refresca la playlist
 
 ---
 
-### [src/renderer/src/components/Render/RenderControls.scss](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/Render/RenderControls.scss)
-### Paso 20: ajustes menores si hace falta
-Solo tocar si el control rápido necesita:
-- mejor ancho
-- mejor contraste
-- estado más claro con listas filtradas
+## Fase 5: estilos del formulario
+
+### Paso 20. Rediseñar `PlaylistForm.scss`
+
+**Archivo:** [src/renderer/src/components/PlaylistForm/PlaylistForm.scss](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/PlaylistForm/PlaylistForm.scss)
+
+Añadir estilos para:
+
+- layout de secciones
+- selector de modo de cover
+- grid de 10 sugerencias
+- estado seleccionado
+- preview del collage
+- preview local/URL
+- errores inline
+
+Evitar un formulario largo y genérico; debe sentirse como editor de playlist.
 
 **Autoverificación:**
-- no rompe el diseño actual de Music
+
+- la grilla de 10 covers es navegable
+- las 4 selecciones se distinguen claramente
+- el formulario sigue usable en tamaños medianos
 
 ---
 
-### [src/renderer/src/Pages/Music/Music.scss](/abs/path/c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.scss)
-**Objetivo:** dar espacio al botón nuevo y al panel.
+## Orden recomendado de implementación
 
-### Paso 21: agregar espacio para el botón de administrador
-Actualizar `.view-switcher` si hace falta para soportar un botón adicional.
-
-**Autoverificación:**
-- los botones no se montan unos sobre otros
-
-### Paso 22: posicionar el panel
-Añadir estilos para que el panel:
-- no tape todo de forma torpe
-- no empuje el layout principal
-- quede usable sobre el visualizer/cover
-
-Una buena opción es panel flotante anclado al área de controles.
-
-**Autoverificación:**
-- abrir el panel no mueve la portada principal
-- el panel sigue visible y usable en resoluciones medianas
-
-## Orden de implementación recomendado
-1. Extender `useVisualizerPresets.js` con configuración persistida
-2. Añadir favoritos
-3. Añadir source `all/favorites`
-4. Añadir modo `random/linear`
-5. Añadir duración configurable
-6. Crear `VisualizerPresetManager.jsx`
-7. Crear `VisualizerPresetManager.scss`
-8. Conectar el panel en `Music.jsx`
-9. Ajustar `Music.scss`
-10. Adaptar `RenderControls.jsx` a la lista activa
+1. Añadir campos a `Playlist` en Prisma
+2. Crear migración
+3. Crear helper backend para top 10 por shortviews
+4. Crear resolver de cover efectivo
+5. Ampliar `get-list`
+6. Crear `update-playlist-metadata`
+7. Añadir `updatePlaylistMetadata` al contexto
+8. Conectar `PlaylistPage.jsx`
+9. Rediseñar `PlaylistForm.jsx` estado base
+10. Añadir edición de nombre
+11. Añadir modo `Sugeridos`
+12. Añadir selección exacta de 4 imágenes
+13. Añadir preview de collage
+14. Añadir modo `Imagen local`
+15. Añadir modo `URL`
+16. Añadir validación de submit
+17. Rediseñar `PlaylistForm.scss`
 
 ## Casos de prueba
-- Abrir `Music` y activar visualizer.
-- Abrir panel administrador desde el botón nuevo.
-- Cambiar ciclo a 5s y verificar rotación rápida.
-- Cambiar ciclo a 10s y verificar rotación más lenta.
-- Cambiar modo a `lineal` y comprobar orden estable.
-- Cambiar modo a `aleatorio` y comprobar orden mezclado.
-- Marcar 2-3 favoritos.
-- Cambiar source a `Favoritos` y comprobar que solo aparecen esos.
-- Quitar un favorito estando en source `Favoritos` y comprobar que desaparece de la lista.
-- Source `Favoritos` con lista vacía debe mostrar estado vacío sin errores.
-- Recargar la app y comprobar persistencia de:
-  - favoritos
-  - duración
-  - modo
-  - source
+
+- Editar solo `nombre` cambia el nombre en UI sin cambiar el archivo `.m3u`.
+- Seleccionar 4 de 10 covers sugeridos guarda y persiste.
+- Seleccionar menos de 4 en modo sugeridos bloquea el guardado.
+- Elegir imagen local válida guarda y persiste.
+- Introducir URL válida guarda y persiste.
+- Reabrir la playlist muestra el cover personalizado.
+- Quitar custom cover y volver a automático muestra el collage generado por shortviews como antes.
+- Playlist sin suficientes covers útiles no rompe el formulario; muestra las sugerencias disponibles y un estado claro si no alcanza para collage manual.
 
 ## Supuestos cerrados
-- El “icon” de cada preset será un icono genérico compartido, no un asset único por preset.
-- Los favoritos se guardarán en `localStorage`.
-- El panel de administración será un componente nuevo, separado de `RenderControls`.
-- El ciclo automático seguirá viviendo dentro de `useVisualizerPresets.js`, no en `Music.jsx`.
+
+- El nombre editable es solo `playlist.nombre` en DB; el archivo real `.m3u` no se renombra.
+- El cover personalizado debe persistir y sobrescribir visualmente el cover automático.
+- El cover automático actual sigue existiendo como fallback.
+- La selección “4 de 10 sugeridas” genera un collage manual, no solo guarda referencias visuales sin composición.
+- La carga de imagen local y por URL reutilizará, cuando sea posible, la misma estrategia de validación segura que se implemente para `Settings`.
