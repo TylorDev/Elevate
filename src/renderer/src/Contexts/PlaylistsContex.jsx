@@ -254,10 +254,10 @@ export const PlaylistsProvider = ({ children }) => {
               ? {
                   ...playlist,
                   ...response.playlist,
-                  cover: response.effectiveCover ?? response.playlist.cover ?? playlist.cover,
-                  effectiveCover:
-                    response.effectiveCover ?? response.playlist.effectiveCover ?? playlist.effectiveCover,
-                  coverConfig: response.coverConfig ?? response.playlist.coverConfig ?? playlist.coverConfig
+                  // When effectiveCover is null (name-only change), preserve existing cover
+                  cover: response.effectiveCover ?? playlist.cover,
+                  effectiveCover: response.effectiveCover ?? playlist.effectiveCover,
+                  coverConfig: response.coverConfig ?? playlist.coverConfig
                 }
               : playlist
           )
@@ -265,10 +265,6 @@ export const PlaylistsProvider = ({ children }) => {
         setPlaylistsLoaded(true)
         setPlaylistsLastLoadedAt(Date.now())
       }
-
-      void getSavedLists({ force: true }).catch((error) => {
-        console.error('Error refreshing playlists in background:', error)
-      })
     } else {
       console.error('Error updating playlist metadata:', response.error)
       toast.error(response.error || 'Error al actualizar la playlist', {
@@ -285,7 +281,7 @@ export const PlaylistsProvider = ({ children }) => {
     }
 
     return response
-  }, [getSavedLists])
+  }, [])
 
   const deletePlaylist = useCallback(async (filePath) => {
     await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')

@@ -205,9 +205,8 @@ async function generatePlaylistCoverFromSelectedImages(selectedItems) {
 async function getEffectiveCover(playlist, fallbackCover = null) {
   if (playlist?.customCoverMode && (playlist?.customCoverValue || playlist?.customCoverSelection)) {
     try {
-      const resolvedDataUrl = dataUrlToBuffer(playlist.customCoverValue)
-
-      if (resolvedDataUrl?.buffer) {
+      // Fast path: customCoverValue is already a data URL (most common after save)
+      if (typeof playlist.customCoverValue === 'string' && playlist.customCoverValue.startsWith('data:')) {
         return playlist.customCoverValue
       }
 
@@ -394,6 +393,40 @@ async function getPlays(filePath) {
     return 0
   }
 }
+async function processPlaylistsBatch(playlists, concurrency = 3) {
+  const results = new Array(playlists.length)
+  let nextIndex = 0
+
+  async function worker() {
+    while (nextIndex < playlists.length) {
+      const index = nextIndex++
+      const playlist = playlists[index]
+
+      try {
+        const effectiveCover = await getEffectiveCover(playlist)
+        results[index] = {
+          ...playlist,
+          cover: effectiveCover,
+          effectiveCover,
+          coverConfig: buildCoverConfig(playlist)
+        }
+      } catch (error) {
+        console.error(`Error processing cover for playlist ${playlist.path}:`, error)
+        results[index] = {
+          ...playlist,
+          cover: null,
+          effectiveCover: null,
+          coverConfig: buildCoverConfig(playlist)
+        }
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, playlists.length) }, () => worker())
+  await Promise.all(workers)
+  return results
+}
+
 async function getPlaylists({ take = null, skip = null } = {}) {
   const requestKey = JSON.stringify({ take, skip })
   const pendingRequest = pendingPlaylistRequests.get(requestKey)
@@ -413,19 +446,7 @@ async function getPlaylists({ take = null, skip = null } = {}) {
 
   const request = prisma.playlist
     .findMany(options)
-    .then(async (playlists) => {
-      return Promise.all(
-        playlists.map(async (playlist) => {
-          const effectiveCover = await getEffectiveCover(playlist)
-          return {
-            ...playlist,
-            cover: effectiveCover,
-            effectiveCover,
-            coverConfig: buildCoverConfig(playlist)
-          }
-        })
-      )
-    })
+    .then((playlists) => processPlaylistsBatch(playlists, 3))
     .finally(() => {
       pendingPlaylistRequests.delete(requestKey)
     })
@@ -837,12 +858,13 @@ ipcMain.handle('get-list', async (event, filepath) => {
       }
 
       const updateData = {}
+      const coverModeChanged = coverMode !== undefined
 
       if (nombre !== undefined && nombre !== null) {
         updateData.nombre = nombre.trim()
       }
 
-      if (coverMode !== undefined) {
+      if (coverModeChanged) {
         updateData.customCoverMode = coverMode
 
         if (coverMode === 'suggested-collage') {
@@ -896,14 +918,25 @@ ipcMain.handle('get-list', async (event, filepath) => {
         data: updateData
       })
 
-      invalidatePlaylistCache(filepath)
-      const effectiveCover = await getEffectiveCover(updatedPlaylist)
+      // Only invalidate cover cache and regenerate if the cover mode actually changed
+      if (coverModeChanged) {
+        invalidatePlaylistCache(filepath)
+        const effectiveCover = await getEffectiveCover(updatedPlaylist)
 
+        return {
+          success: true,
+          playlist: buildPlaylistSummary(updatedPlaylist, effectiveCover),
+          coverConfig: buildCoverConfig(updatedPlaylist),
+          effectiveCover
+        }
+      }
+
+      // Name-only change: return immediately without touching covers
       return {
         success: true,
-        playlist: buildPlaylistSummary(updatedPlaylist, effectiveCover),
+        playlist: buildPlaylistSummary(updatedPlaylist, null),
         coverConfig: buildCoverConfig(updatedPlaylist),
-        effectiveCover
+        effectiveCover: null
       }
     } catch (error) {
       console.error('Error updating playlist metadata:', error)
