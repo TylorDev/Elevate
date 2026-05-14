@@ -56,6 +56,16 @@ const electronAPI = {
   imageSources: {
     validateRemote: (url) => ipcRenderer.invoke('image-source:validate-remote', { url }),
     pickLocal: () => ipcRenderer.invoke('image-source:pick-local')
+  },
+  backgroundImages: {
+    list: () => ipcRenderer.invoke('background-images:list'),
+    getCurrent: () => ipcRenderer.invoke('background-images:get-current'),
+    applyRemote: (url) => ipcRenderer.invoke('background-images:apply-remote', { url }),
+    applyLocal: () => ipcRenderer.invoke('background-images:apply-local'),
+    select: (id) => ipcRenderer.invoke('background-images:select', { id }),
+    clearCurrent: () => ipcRenderer.invoke('background-images:clear-current'),
+    remove: (id) => ipcRenderer.invoke('background-images:remove', { id }),
+    migrateLegacy: (value) => ipcRenderer.invoke('background-images:migrate-legacy', { value })
   }
 }
 

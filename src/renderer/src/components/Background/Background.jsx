@@ -1,30 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useSuper } from '../../Contexts/SupeContext'
 import './Background.scss'
 
 function Background() {
-  const [imageUrl, setImageUrl] = useState(() => {
-    return localStorage.getItem('backgroundImageUrl') || ''
-  })
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const newValue = localStorage.getItem('backgroundImageUrl')
-      setImageUrl(newValue || '')
-    }
-
-    window.addEventListener('storage', handleStorageChange)
-    const interval = setInterval(() => {
-      const newValue = localStorage.getItem('backgroundImageUrl')
-      if (newValue !== imageUrl) {
-        setImageUrl(newValue || '')
-      }
-    }, 1000)
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      clearInterval(interval)
-    }
-  }, [imageUrl])
+  const { backgroundImageUrl: imageUrl } = useSuper()
 
   if (!imageUrl) return null
 
