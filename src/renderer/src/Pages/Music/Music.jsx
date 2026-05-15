@@ -1,14 +1,17 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { FixedSizeList } from 'react-window'
 import './Music.scss'
 
 import Render from '../../components/Render/Render'
 import RenderControls from '../../components/Render/RenderControls'
-import VisualizerPresetManager from '../../components/Render/VisualizerPresetManager'
-import { useVisualizerPresets } from '../../components/Render/useVisualizerPresets'
+import { normalizePlaybackSource, useVisualizerPresets } from '../../components/Render/useVisualizerPresets'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
+import { useNavigate } from 'react-router-dom'
 import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay, LuLayoutGrid } from 'react-icons/lu'
+
+const PRESET_PREVIEW_ROW_HEIGHT = 48
 
 function formatListeningHours(seconds) {
   const totalSeconds = Math.max(0, Number(seconds) || 0)
@@ -22,7 +25,8 @@ function formatListeningHours(seconds) {
 }
 
 function Music() {
-  const { mediaRef, currentFile, togglePlayPause } = useSuper()
+  const navigate = useNavigate()
+  const { mediaRef, currentFile, togglePlayPause, queueState } = useSuper()
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const [audioEl, setAudioEl] = useState(null)
@@ -33,10 +37,15 @@ function Music() {
   const [autoMode, setAutoMode] = useState(true)
 
   const [showControls, setShowControls] = useState(false)
-  const [isPresetManagerOpen, setIsPresetManagerOpen] = useState(false)
   const idleTimer = useRef(null)
+  const presetPreviewListRef = useRef(null)
 
-  const presetControls = useVisualizerPresets()
+  const activePlaybackSource = useMemo(
+    () => normalizePlaybackSource(queueState?.queueName),
+    [queueState?.queueName]
+  )
+
+  const presetControls = useVisualizerPresets({ activePlaybackSource })
 
   // [P6] Ref to track current showControls state without causing re-renders.
   // handleMouseMove only calls setState when transitioning from hidden → visible.
@@ -106,7 +115,7 @@ function Music() {
   const toggleCover = useCallback(() => setShowCover(prev => !prev), [])
   const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer(prev => !prev), [])
   const toggleAutoMode = useCallback(() => setAutoMode(prev => !prev), [])
-  const togglePresetManager = useCallback(() => setIsPresetManagerOpen(prev => !prev), [])
+  const openPresetManagerPage = useCallback(() => navigate('/visualizer-presets'), [navigate])
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
   const artist = currentFile?.artist || 'Unknown Artist'
@@ -139,6 +148,26 @@ function Music() {
     () => currentCover ? { backgroundImage: `url(${currentCover})` } : undefined,
     [currentCover]
   )
+
+  const visiblePresetQueue = useMemo(
+    () => (Array.isArray(presetControls.allPresets) ? presetControls.allPresets : []),
+    [presetControls.allPresets]
+  )
+
+  const activePresetListLabel = presetControls.activePresetList?.name || 'Presets aleatorios'
+
+  useEffect(() => {
+    if (!presetPreviewListRef.current || visiblePresetQueue.length === 0) {
+      return
+    }
+
+    const currentIndex =
+      Number.isInteger(presetControls.currentPresetIndex) && presetControls.currentPresetIndex >= 0
+        ? presetControls.currentPresetIndex
+        : 0
+
+    presetPreviewListRef.current.scrollToItem(currentIndex, 'smart')
+  }, [presetControls.currentPresetIndex, visiblePresetQueue.length])
 
   return (
     <div
@@ -176,6 +205,43 @@ function Music() {
 
       {/* Contenido Principal */}
       <div className="Player-main">
+        {visiblePresetQueue.length > 0 && (
+          <aside className="preset-preview-panel" aria-label="Presets cargados">
+            <div className="preset-preview-panel__header">
+              <div className="preset-preview-panel__heading">
+                <span>Presets cargados</span>
+                <strong>{activePresetListLabel}</strong>
+              </div>
+              <strong>{visiblePresetQueue.length}</strong>
+            </div>
+
+            <div className="preset-preview-panel__list">
+              <FixedSizeList
+                ref={presetPreviewListRef}
+                height={Math.min(visiblePresetQueue.length * PRESET_PREVIEW_ROW_HEIGHT, 360)}
+                itemCount={visiblePresetQueue.length}
+                itemSize={PRESET_PREVIEW_ROW_HEIGHT}
+                width="100%"
+              >
+                {({ index, style }) => {
+                  const presetName = visiblePresetQueue[index]
+                  const isCurrent = index === presetControls.currentPresetIndex
+
+                  return (
+                    <div
+                      style={style}
+                      className={`preset-preview-item ${isCurrent ? 'is-current' : ''}`}
+                    >
+                      <span className="preset-preview-item__index">{isCurrent ? 'Now' : index + 1}</span>
+                      <span className="preset-preview-item__name">{presetName}</span>
+                    </div>
+                  )
+                }}
+              </FixedSizeList>
+            </div>
+          </aside>
+        )}
+
         {showCover && (
           <div className="cover-wrapper">
             <div className="cover-container">
@@ -236,8 +302,8 @@ function Music() {
           </button>
 
           <button 
-            className={`switcher-btn ${isPresetManagerOpen ? 'active' : ''}`}
-            onClick={togglePresetManager}
+            className="switcher-btn"
+            onClick={openPresetManagerPage}
           >
             <LuLayoutGrid />
             Admin Presets
@@ -261,20 +327,6 @@ function Music() {
         )}
       </div>
 
-      <VisualizerPresetManager
-        isOpen={isPresetManagerOpen}
-        onClose={() => setIsPresetManagerOpen(false)}
-        activePresetItems={presetControls.activePresetItems}
-        currentPresetName={presetControls.currentPresetName}
-        cycleDurationMs={presetControls.cycleDurationMs}
-        setCycleDurationMs={presetControls.setCycleDurationMs}
-        cycleMode={presetControls.cycleMode}
-        setCycleMode={presetControls.setCycleMode}
-        presetSource={presetControls.presetSource}
-        setPresetSource={presetControls.setPresetSource}
-        toggleFavorite={presetControls.toggleFavorite}
-        onSelectPreset={presetControls.setPresetByName}
-      />
     </div>
   )
 }

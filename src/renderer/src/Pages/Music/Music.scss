@@ -61,7 +61,121 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    mix-blend-mode:overlay;
+   
+
+    .preset-preview-panel {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: min(320px, 28vw);
+      max-height: min(52vh, 480px);
+      display: flex;
+      flex-direction: column;
+      z-index: 3;
+      padding: 0.9rem;
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(10px);
+      mix-blend-mode: normal;
+      pointer-events: none;
+
+      &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: 0.7rem;
+        margin-bottom: 0.7rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+        strong {
+          font-size: 0.82rem;
+          color: #fff;
+        }
+      }
+
+      &__heading {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+
+        span {
+          font-size: 0.74rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: rgba(255, 255, 255, 0.58);
+        }
+
+        strong {
+          font-size: 0.8rem;
+          color: #fff;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      &__list {
+        overflow: hidden;
+        min-height: 0;
+        padding-right: 0.15rem;
+
+        &::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.16);
+          border-radius: 999px;
+        }
+      }
+    }
+
+    .preset-preview-item {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      align-items: center;
+      gap: 0.75rem;
+      height: 100%;
+      padding: 0.55rem 0.7rem;
+      box-sizing: border-box;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.8);
+
+      &.is-current {
+        background: rgba(110, 142, 251, 0.22);
+        border: 1px solid rgba(110, 142, 251, 0.35);
+        color: #fff;
+      }
+
+      &__index {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      &.is-current &__index {
+        color: #cfd9ff;
+      }
+
+      &__name {
+        min-width: 0;
+        font-size: 0.88rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    }
 
     .cover-wrapper {
       position: relative;
@@ -201,6 +315,14 @@
   }
 
   @media (max-width: 760px) {
+    .Player-main .preset-preview-panel {
+      top: 1rem;
+      right: 1rem;
+      left: 1rem;
+      width: auto;
+      max-height: 180px;
+    }
+
     .Player-main .cover-wrapper .track-info-overlay {
       .title {
         font-size: 1.7rem;
