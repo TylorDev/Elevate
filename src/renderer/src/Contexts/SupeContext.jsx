@@ -118,11 +118,25 @@ export const SuperProvider = ({ children }) => {
   const [waveformVariant, setWaveformVariant] = useState(
     () => localStorage.getItem('waveformVariant') || 'mirrored'
   )
+  const [discordRpcEnabled, setDiscordRpcEnabled] = useState(
+    () => readStoredBoolean('settings.discordRpc', true)
+  )
 
   const handleWaveformVariantChange = (variant) => {
     setWaveformVariant(variant)
     localStorage.setItem('waveformVariant', variant)
   }
+
+  const toggleDiscordRpc = useCallback(() => {
+    setDiscordRpcEnabled((prev) => {
+      const next = !prev
+      localStorage.setItem('settings.discordRpc', JSON.stringify(next))
+      if (!next) {
+        void window.electron?.discordPresence?.clear?.()
+      }
+      return next
+    })
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(AUDIO_STORAGE_KEYS.volume, JSON.stringify(volume))
@@ -537,6 +551,47 @@ export const SuperProvider = ({ children }) => {
     currentIndex,
     isPlaying,
     queueState.currentQueue.length
+  ])
+
+  // --- Discord Rich Presence ---
+  const playbackStartedAtRef = useRef(null)
+
+  useEffect(() => {
+    if (!discordRpcEnabled) {
+      playbackStartedAtRef.current = null
+      void window.electron?.discordPresence?.clear?.()
+      return
+    }
+
+    const hasFile = Boolean(currentFile?.filePath)
+
+    if (!hasFile) {
+      playbackStartedAtRef.current = null
+      void window.electron?.discordPresence?.clear?.()
+      return
+    }
+
+    if (isPlaying) {
+      playbackStartedAtRef.current = Date.now()
+    } else {
+      playbackStartedAtRef.current = null
+    }
+
+    void window.electron?.discordPresence?.update?.({
+      title: currentFile?.title || currentFile?.fileName || '',
+      artist: currentFile?.artist || '',
+      isPlaying,
+      startedAt: playbackStartedAtRef.current,
+      queueSourceLabel: queueState.queueName || ''
+    })
+  }, [
+    discordRpcEnabled,
+    currentFile?.filePath,
+    currentFile?.title,
+    currentFile?.fileName,
+    currentFile?.artist,
+    isPlaying,
+    queueState.queueName
   ])
 
   const togglePlayPause = useCallback(() => {
@@ -1058,7 +1113,9 @@ export const SuperProvider = ({ children }) => {
     clearBackground,
     refreshBackgroundHistory,
     waveformVariant,
-    handleWaveformVariantChange
+    handleWaveformVariantChange,
+    discordRpcEnabled,
+    toggleDiscordRpc
   }), [
     addhistory,
     addSong,
@@ -1103,7 +1160,9 @@ export const SuperProvider = ({ children }) => {
     toggleShuffle,
     toggleStep,
     volume,
-    waveformVariant
+    waveformVariant,
+    discordRpcEnabled,
+    toggleDiscordRpc
   ])
 
   return (

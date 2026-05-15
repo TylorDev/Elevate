@@ -10,7 +10,8 @@ import {
   LuFolderOpen,
   LuFolderPlus,
   LuLibrary,
-  LuListMusic
+  LuListMusic,
+  LuMessageSquare
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 import { useMini } from '../../Contexts/MiniContext'
@@ -59,7 +60,9 @@ function Settings() {
     removeBackgroundHistoryItem,
     clearBackground,
     waveformVariant,
-    handleWaveformVariantChange
+    handleWaveformVariantChange,
+    discordRpcEnabled,
+    toggleDiscordRpc
   } = useSuper()
 
   const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } = useMini()
@@ -320,6 +323,27 @@ function Settings() {
               >
                 <LuListMusic />
                 <span>Import M3U</span>
+              </button>
+            </div>
+
+            <div className="settings-card">
+              <div className="settings-card__icon">
+                <LuMessageSquare />
+              </div>
+              <div className="settings-card__content">
+                <h3>Discord Rich Presence</h3>
+                <p>
+                  Show what you're listening to on your Discord profile.
+                </p>
+              </div>
+              <button
+                className={`toggle-switch ${discordRpcEnabled ? 'active' : ''}`}
+                onClick={toggleDiscordRpc}
+                role="switch"
+                aria-checked={discordRpcEnabled}
+                aria-label="Toggle Discord Rich Presence"
+              >
+                <span className="toggle-switch__thumb" />
               </button>
             </div>
 

@@ -67,6 +67,11 @@ const electronAPI = {
     clearCurrent: () => ipcRenderer.invoke('background-images:clear-current'),
     remove: (id) => ipcRenderer.invoke('background-images:remove', { id }),
     migrateLegacy: (value) => ipcRenderer.invoke('background-images:migrate-legacy', { value })
+  },
+  discordPresence: {
+    update: (payload) => ipcRenderer.invoke('discord-presence:update', payload),
+    clear: () => ipcRenderer.invoke('discord-presence:clear'),
+    getStatus: () => ipcRenderer.invoke('discord-presence:get-status')
   }
 }
 

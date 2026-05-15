@@ -4,6 +4,13 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
+import {
+  initDiscordPresence,
+  setPresence,
+  clearPresence,
+  getStatus as getDiscordStatus,
+  shutdownDiscordPresence
+} from './discordPresence.mjs'
 
 let mainWin
 let prisma
@@ -326,6 +333,12 @@ async function shutdownApp() {
   }
 
   try {
+    await shutdownDiscordPresence()
+  } catch (err) {
+    log.error('Error shutting down Discord presence:', err)
+  }
+
+  try {
     if (prisma) {
       await prisma.$disconnect()
     }
@@ -633,6 +646,20 @@ if (!gotTheLock) {
   setupLikeSongHandlers()
   setupImageSourceHandlers()
 
+  // Discord Rich Presence IPC handlers
+  ipcMain.handle('discord-presence:update', (_, payload) => {
+    setPresence(payload)
+  })
+  ipcMain.handle('discord-presence:clear', () => {
+    clearPresence()
+  })
+  ipcMain.handle('discord-presence:get-status', () => {
+    return getDiscordStatus()
+  })
+
+  // Initialize Discord Rich Presence (non-blocking)
+  void initDiscordPresence()
+
   // Initialize directory watchers for all existing directories
   const { initializeWatchers } = await import('./ipc/utils/directoryWatcher.mjs')
   await initializeWatchers()
@@ -670,12 +697,13 @@ app.on('window-all-closed', async () => {
   }
 })
 
-app.on('will-quit', () => {
-  if (tray && !tray.isDestroyed()) {
-    tray.destroy()
-    tray = null
-  }
-  globalShortcut.unregisterAll()
-})
+app.on('will-quit', async () => {
+    await shutdownDiscordPresence().catch(() => {})
+    if (tray && !tray.isDestroyed()) {
+      tray.destroy()
+      tray = null
+    }
+    globalShortcut.unregisterAll()
+  })
 
 }
