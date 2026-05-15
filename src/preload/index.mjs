@@ -37,6 +37,7 @@ const electronAPI = {
     quit: () => ipcRenderer.invoke('window:quit'),
     getState: () => ipcRenderer.invoke('window:get-state'),
     toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),
+    applyGridPreset: (selection) => ipcRenderer.invoke('window:apply-grid-preset', selection),
     updateTaskbarPlayerState: (payload) => ipcRenderer.invoke('window:update-taskbar-player-state', payload),
     onStateChange: (callback) => {
       const listener = (_, payload) => callback(payload)

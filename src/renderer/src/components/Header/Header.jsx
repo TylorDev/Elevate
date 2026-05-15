@@ -5,7 +5,7 @@ import {
   LuAudioWaveform,
   LuChartColumnIncreasing,
   LuCalendarDays,
-  LuSettings
+  LuHeart
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 
@@ -36,8 +36,8 @@ const Header = memo(function Header() {
             <LuCalendarDays />
           </NavLink>
 
-          <NavLink to="/settings" className={getActiveClass} title="Settings">
-            <LuSettings />
+          <NavLink to="/favourites" className={getActiveClass} title="Favorites">
+            <LuHeart />
           </NavLink>
         </div>
       </div>

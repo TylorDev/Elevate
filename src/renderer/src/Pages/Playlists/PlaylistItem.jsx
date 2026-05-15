@@ -131,6 +131,7 @@ export const PlaylistItem = memo(function PlaylistItem({
         extraInfo={formatDuration(playlist.duracion)}
         onTitleClick={selectPlaylist}
         onPlayClick={handlePlayClick}
+        detailsTo={`/playlists/${playlist.path}`}
         menuOptions={menuOptions}
         onMenuSelect={handleMenuSelect}
         className="PlaylistItem-ui"

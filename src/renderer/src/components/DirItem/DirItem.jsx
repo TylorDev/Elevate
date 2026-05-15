@@ -66,6 +66,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
         extraInfo={formatDuration(directory.totalDuration)}
         onTitleClick={selectDirectory}
         onPlayClick={handlePlayClick}
+        detailsTo={`/directories/${encodeURIComponent(directory.path)}/false`}
         menuOptions={menuOptions}
         onMenuSelect={handleMenuSelect}
         className="dirItem-ui"

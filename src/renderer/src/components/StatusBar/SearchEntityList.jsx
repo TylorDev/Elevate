@@ -48,6 +48,18 @@ function resolveExtraInfo(item) {
   return item.meta || ''
 }
 
+function resolveDetailsRoute(item) {
+  if (item?.type === 'playlist' && item.path) {
+    return `/playlists/${item.path}`
+  }
+
+  if (item?.type === 'directory' && item.path) {
+    return `/directories/${encodeURIComponent(item.path)}/false`
+  }
+
+  return undefined
+}
+
 export function SearchEntityList({
   items = [],
   loading = false,
@@ -74,6 +86,7 @@ export function SearchEntityList({
               extraInfo={resolveExtraInfo(item)}
               onTitleClick={() => onSelect?.(item)}
               onPlayClick={() => onSelect?.(item)}
+              detailsTo={resolveDetailsRoute(item)}
               className="search-overlay__entity-item"
             />
           )
@@ -116,6 +129,7 @@ export function SearchEntityList({
             extraInfo={resolveExtraInfo(item)}
             onTitleClick={() => onSelect?.(item)}
             onPlayClick={() => onSelect?.(item)}
+            detailsTo={resolveDetailsRoute(item)}
             className="search-overlay__entity-item"
             style={style}
           />

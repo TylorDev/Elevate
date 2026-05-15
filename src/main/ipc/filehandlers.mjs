@@ -6,6 +6,10 @@ import {
   resizeCover,
   getCoverFromCache
 } from './utils/utils.mjs'
+import {
+  buildCollectionSummary,
+  generateCollectionCoverFromTracks
+} from './utils/collectionDetail.mjs'
 
 import {
   scanDirectoryAsync,
@@ -26,7 +30,7 @@ import { setBraveVolume } from './audio.mjs'
 import { addDirectoryToLibrary } from './utils/libraryIngestion.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, dialog, ipcMain } = electron
+const { app, dialog, ipcMain, shell } = electron
 const audioPathsCache = new Map()
 const audioCoverCache = new Map()
 const AUDIO_PATHS_TTL = 60 * 1000
@@ -108,6 +112,40 @@ function getPathLeaf(pathValue = '') {
   const normalizedPath = String(pathValue).replace(/\\/g, '/')
   const segments = normalizedPath.split('/').filter(Boolean)
   return segments[segments.length - 1] || normalizedPath
+}
+
+async function getDirectoryDetail(directoryPath) {
+  const directory = await prisma.directory.findUnique({
+    where: { path: directoryPath }
+  })
+
+  if (!directory) {
+    return { success: false, error: 'Directory not found' }
+  }
+
+  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const uniqueAudioFiles = Array.from(new Set(audioFiles))
+  const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  const summary = buildCollectionSummary(tracks, {
+    sourcePath: directoryPath,
+    cover
+  })
+
+  return {
+    success: true,
+    type: 'directory',
+    meta: {
+      title: getPathLeaf(directory.path),
+      sourcePath: directory.path,
+      createdAt: directory.createdAt || null,
+      lastScannedAt: directory.lastScannedAt || null,
+      editable: false,
+      directoryData: directory
+    },
+    tracks,
+    summary
+  }
 }
 
 async function getAudioFilesPage(request) {
@@ -406,6 +444,15 @@ export function setupFilehandlers() {
     }
   })
 
+  ipcMain.handle('get-directory-detail', async (_, directoryPath) => {
+    try {
+      return await getDirectoryDetail(directoryPath)
+    } catch (error) {
+      console.error('Error retrieving directory detail:', error)
+      return { success: false, error: error.message || 'No se pudo cargar el directorio.' }
+    }
+  })
+
   // ─── delete-directory ────────────────────────────────────────────
   ipcMain.handle('delete-directory', async (event, dirPath) => {
     try {
@@ -488,6 +535,20 @@ export function setupFilehandlers() {
 
   ipcMain.handle('search-directories-page', async (event, request) => {
     return searchDirectoriesPage(request)
+  })
+
+  ipcMain.handle('reveal-path-in-explorer', async (_, targetPath) => {
+    try {
+      if (!targetPath || typeof targetPath !== 'string') {
+        return { success: false, error: 'Path is required' }
+      }
+
+      shell.showItemInFolder(targetPath)
+      return { success: true }
+    } catch (error) {
+      console.error('Error revealing path in explorer:', error)
+      return { success: false, error: error.message || 'No se pudo abrir el explorador.' }
+    }
   })
 
   // ─── rescan-directory ────────────────────────────────────────────

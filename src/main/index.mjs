@@ -167,6 +167,84 @@ function sendAppCommand(command) {
   mainWin.webContents.send(appCommandChannel, command)
 }
 
+const GRID_PRESET_CELLS = {
+  'top-left': { row: 0, col: 0 },
+  'top-right': { row: 0, col: 1 },
+  'bottom-left': { row: 1, col: 0 },
+  'bottom-right': { row: 1, col: 1 }
+}
+
+function normalizeGridPresetCells(cells = []) {
+  const normalizedCells = Array.isArray(cells)
+    ? [...new Set(cells.filter((cell) => Object.hasOwn(GRID_PRESET_CELLS, cell)))]
+    : []
+
+  if (normalizedCells.length === 0) {
+    return { success: false, error: 'At least one valid grid cell is required.' }
+  }
+
+  const positions = normalizedCells.map((cell) => GRID_PRESET_CELLS[cell])
+  const rows = positions.map((position) => position.row)
+  const cols = positions.map((position) => position.col)
+  const minRow = Math.min(...rows)
+  const maxRow = Math.max(...rows)
+  const minCol = Math.min(...cols)
+  const maxCol = Math.max(...cols)
+  const expectedCount = (maxRow - minRow + 1) * (maxCol - minCol + 1)
+
+  if (expectedCount !== normalizedCells.length) {
+    return { success: false, error: 'Grid preset selection must form a continuous rectangle.' }
+  }
+
+  return {
+    success: true,
+    normalizedCells,
+    minRow,
+    maxRow,
+    minCol,
+    maxCol
+  }
+}
+
+function getBoundsForGridPreset(mainWindow, cells = []) {
+  const selection = normalizeGridPresetCells(cells)
+
+  if (!selection.success) {
+    return selection
+  }
+
+  const currentBounds = mainWindow.getBounds()
+  const display = screen.getDisplayMatching(currentBounds)
+  const workArea = display?.workArea
+
+  if (!workArea) {
+    return { success: false, error: 'Unable to resolve display work area.' }
+  }
+
+  const halfWidth = Math.floor(workArea.width / 2)
+  const halfHeight = Math.floor(workArea.height / 2)
+  const colWidths = [halfWidth, workArea.width - halfWidth]
+  const rowHeights = [halfHeight, workArea.height - halfHeight]
+  const colStarts = [workArea.x, workArea.x + colWidths[0]]
+  const rowStarts = [workArea.y, workArea.y + rowHeights[0]]
+
+  const x = colStarts[selection.minCol]
+  const y = rowStarts[selection.minRow]
+  const width = colWidths
+    .slice(selection.minCol, selection.maxCol + 1)
+    .reduce((total, value) => total + value, 0)
+  const height = rowHeights
+    .slice(selection.minRow, selection.maxRow + 1)
+    .reduce((total, value) => total + value, 0)
+
+  return {
+    success: true,
+    bounds: { x, y, width, height },
+    displayId: display.id,
+    workArea
+  }
+}
+
 function updateTaskbarControls() {
   if (process.platform !== 'win32' || !mainWin || mainWin.isDestroyed()) {
     return
@@ -352,6 +430,37 @@ function setupWindowControlHandlers() {
     const currentValue = mainWin.isAlwaysOnTop()
     mainWin.setAlwaysOnTop(!currentValue)
     sendWindowState()
+  })
+  ipcMain.handle('window:apply-grid-preset', (_, payload = {}) => {
+    if (!mainWin || mainWin.isDestroyed()) {
+      return { success: false, error: 'Main window is not available.' }
+    }
+
+    const result = getBoundsForGridPreset(mainWin, payload?.cells)
+
+    if (!result.success) {
+      return result
+    }
+
+    if (mainWin.isMaximized()) {
+      mainWin.unmaximize()
+    }
+
+    if (mainWin.isMinimized()) {
+      mainWin.restore()
+    }
+
+    mainWin.setBounds(result.bounds)
+    mainWin.show()
+    mainWin.focus()
+    saveWindowState()
+    sendWindowState()
+
+    return {
+      success: true,
+      bounds: result.bounds,
+      displayId: result.displayId
+    }
   })
   ipcMain.handle('window:update-taskbar-player-state', (_, payload = {}) => {
     taskbarPlayerState = {

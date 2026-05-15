@@ -11,6 +11,10 @@ import {
   getOrCreateSong,
   ensureCoverDir
 } from './utils/utils.mjs'
+import {
+  buildCollectionSummary,
+  generateCollectionCoverFromTracks
+} from './utils/collectionDetail.mjs'
 import { prisma } from '../prisma.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
@@ -128,6 +132,40 @@ function buildPlaylistSummary(playlist, effectiveCover = null) {
     cover: effectiveCover,
     effectiveCover,
     coverConfig: buildCoverConfig(playlist)
+  }
+}
+
+async function getPlaylistDetail(filepath) {
+  const baseDir = path.dirname(filepath)
+  const playlistSongs = await processPlaylist(filepath, baseDir)
+  const tracks = playlistSongs.map((song) => ({ ...song, picture: undefined }))
+  const playlistData = await getPlaylist(filepath)
+  const cover = playlistData ? await getCachedPlaylistCover(playlistData) : null
+  const suggestedCovers = await getTop10SuggestedCovers(filepath)
+  const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
+  const resolvedCover = effectiveCover ?? (await generateCollectionCoverFromTracks(tracks))
+  const summary = buildCollectionSummary(tracks, {
+    sourcePath: filepath,
+    cover: resolvedCover
+  })
+
+  return {
+    success: true,
+    type: 'playlist',
+    meta: {
+      title: playlistData?.nombre || extractPlaylistName(filepath),
+      sourcePath: filepath,
+      createdAt: playlistData?.createdAt || null,
+      totalplays: playlistData?.totalplays || 0,
+      editable: true
+    },
+    tracks,
+    summary,
+    playlistData,
+    cover,
+    suggestedCovers,
+    effectiveCover: resolvedCover,
+    coverConfig: buildCoverConfig(playlistData)
   }
 }
 
@@ -537,9 +575,13 @@ function extractPlaylistName(filePath) {
 }
 
 function normalizePlaylistFileName(nombre = '') {
-  return String(nombre)
-    .trim()
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '')
+  return Array.from(
+    String(nombre)
+      .trim()
+      .replace(/[<>:"/\\|?*]/g, '')
+  )
+    .filter((character) => character.charCodeAt(0) >= 32)
+    .join('')
 }
 
 function buildPlaylistTargetPath({ targetPath = null, targetDirectory = null, nombre = '' } = {}) {
@@ -778,7 +820,7 @@ export function setupPlaylistHandlers() {
     }
   })
 
-ipcMain.handle('get-list', async (event, filepath) => {
+  ipcMain.handle('get-list', async (event, filepath) => {
     if (!filepath || filepath === '') {
       log.error('get-list: filepath is empty or undefined')
       return { success: false, error: 'filepath is required' }
@@ -808,6 +850,19 @@ ipcMain.handle('get-list', async (event, filepath) => {
       log.error('get-list error:', err.message)
       log.error('Stack:', err.stack)
       return { success: false, error: err.message }
+    }
+  })
+
+  ipcMain.handle('get-playlist-detail', async (event, filepath) => {
+    if (!filepath || filepath === '') {
+      return { success: false, error: 'filepath is required' }
+    }
+
+    try {
+      return await getPlaylistDetail(filepath)
+    } catch (error) {
+      log.error('get-playlist-detail error:', error.message)
+      return { success: false, error: error.message }
     }
   })
 
@@ -1019,6 +1074,67 @@ ipcMain.handle('get-list', async (event, filepath) => {
     }
 
     return { ...removeTrack(playlistData.path, playlistData), songName: filename }
+  })
+
+  ipcMain.handle('append-tracks-to-playlist', async (event, { playlistPath, filePaths = [] }) => {
+    try {
+      if (!playlistPath) {
+        return { success: false, error: 'playlistPath is required' }
+      }
+
+      const existingPaths = await getM3ufilepaths(playlistPath)
+      const normalizedIncomingPaths = filePaths
+        .filter((item) => typeof item === 'string' && item.trim() !== '')
+        .map((item) => item.trim())
+
+      if (normalizedIncomingPaths.length === 0) {
+        return { success: false, error: 'No hay canciones para agregar.' }
+      }
+
+      const existingSet = new Set(existingPaths)
+      const pathsToAppend = []
+
+      for (const trackPath of normalizedIncomingPaths) {
+        if (!existingSet.has(trackPath)) {
+          existingSet.add(trackPath)
+          pathsToAppend.push(trackPath)
+          const filename = path.basename(trackPath)
+          await getOrCreateSong(trackPath, filename)
+        }
+      }
+
+      if (pathsToAppend.length === 0) {
+        return {
+          success: true,
+          addedCount: 0,
+          skippedCount: normalizedIncomingPaths.length,
+          playlist: await getPlaylist(playlistPath)
+        }
+      }
+
+      const nextFilePaths = existingPaths.concat(pathsToAppend)
+      const saveResult = await savePlaylist(playlistPath, nextFilePaths)
+      invalidatePlaylistCache(playlistPath)
+
+      if (!saveResult.success) {
+        return { success: false, error: saveResult.error }
+      }
+
+      const persistResult = await persistPlaylistRecord(playlistPath)
+      if (!persistResult.success) {
+        return persistResult
+      }
+
+      return {
+        success: true,
+        addedCount: pathsToAppend.length,
+        skippedCount: normalizedIncomingPaths.length - pathsToAppend.length,
+        playlist: persistResult.playlist
+      }
+    } catch (error) {
+      console.error('Error appending tracks to playlist:', error)
+      return { success: false, error: error.message || 'No se pudieron agregar las canciones.' }
+    }
   })
 
   ipcMain.handle('save-m3u', async (event, request = {}) => {

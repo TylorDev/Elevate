@@ -15,6 +15,7 @@ import {
 import { RxCross2 } from 'react-icons/rx'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
 import SearchOverlay from './SearchOverlay'
+import { WindowPresetPicker } from './WindowPresetPicker'
 import './StatusBar.scss'
 
 const developerLinks = [
@@ -47,6 +48,7 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
     isAlwaysOnTop: false,
     platform: 'unknown'
   })
+  const [isWindowPresetOpen, setIsWindowPresetOpen] = useState(false)
   const searchTriggerRef = useRef(null)
 
   useEffect(() => {
@@ -165,6 +167,11 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
             ))}
           </div>
         </div>
+        <WindowPresetPicker
+          isOpen={isWindowPresetOpen}
+          onToggle={() => setIsWindowPresetOpen((current) => !current)}
+          onClose={() => setIsWindowPresetOpen(false)}
+        />
 
         {isWindows ? (
           <div className="status-bar__window-controls" aria-label="Controles de ventana">

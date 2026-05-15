@@ -258,6 +258,43 @@ export const SuperProvider = ({ children }) => {
     [currentFile, isShuffled, setQueueState]
   )
 
+  const appendManyToCurrentQueue = useCallback(
+    (songs = []) => {
+      const normalizedSongs = Array.isArray(songs)
+        ? songs.filter((song) => song?.filePath)
+        : []
+
+      if (normalizedSongs.length === 0) {
+        return
+      }
+
+      setQueueState((previousState) => {
+        const currentQueue = Array.isArray(previousState?.currentQueue)
+          ? previousState.currentQueue
+          : []
+        const originalQueue = Array.isArray(previousState?.originalQueue)
+          ? previousState.originalQueue
+          : currentQueue
+        const existingPaths = new Set(originalQueue.map((file) => file?.filePath).filter(Boolean))
+        const songsToAppend = normalizedSongs.filter((song) => !existingPaths.has(song.filePath))
+
+        if (songsToAppend.length === 0) {
+          return previousState
+        }
+
+        const nextOriginalQueue = [...originalQueue, ...songsToAppend]
+        const nextQueue = createDisplayedQueue(nextOriginalQueue, isShuffled, currentFile)
+
+        return {
+          queueName: previousState?.queueName || 'search-results',
+          currentQueue: nextQueue,
+          originalQueue: nextOriginalQueue
+        }
+      })
+    },
+    [currentFile, isShuffled, setQueueState]
+  )
+
   const appendToQueueAndPlay = useCallback(
     (song) => {
       if (!song?.filePath) {
@@ -990,6 +1027,7 @@ export const SuperProvider = ({ children }) => {
     handleSongClick,
     reorderCurrentQueue,
     appendToCurrentQueue,
+    appendManyToCurrentQueue,
     appendToQueueAndPlay,
     removeFromCurrentQueue,
     addhistory,
@@ -1025,6 +1063,7 @@ export const SuperProvider = ({ children }) => {
     addhistory,
     addSong,
     appendToCurrentQueue,
+    appendManyToCurrentQueue,
     appendToQueueAndPlay,
     applyRemoteBackground,
     backgroundHistory,

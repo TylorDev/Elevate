@@ -303,6 +303,23 @@ export const PlaylistsProvider = ({ children }) => {
     await getSavedLists({ force: true })
   }, [addSong, getSavedLists])
 
+  const appendTracksToPlaylist = useCallback(async (playlistPath, tracks = []) => {
+    const filePaths = tracks
+      .map((track) => track?.filePath)
+      .filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+
+    const result = await dedupedInvoke('append-tracks-to-playlist', {
+      playlistPath,
+      filePaths
+    })
+
+    if (result?.success) {
+      await getSavedLists({ force: true })
+    }
+
+    return result
+  }, [getSavedLists])
+
   const resolvePlaylistSaveDirectory = useCallback(async (sourcePath = '') => {
     const result = await dedupedInvoke('get-playlist-save-directory', sourcePath)
     return result?.path || null
@@ -542,6 +559,7 @@ export const PlaylistsProvider = ({ children }) => {
       getRandomList,
       removeSongFromList,
       addSongToList,
+      appendTracksToPlaylist,
       deleteDirectoryList,
       exportPlaylistTracks,
       resolvePlaylistSaveDirectory,
@@ -551,6 +569,7 @@ export const PlaylistsProvider = ({ children }) => {
     [
       addPlaylisthistory,
       addSongToList,
+      appendTracksToPlaylist,
       allSongs,
       allSongsHasMore,
       allSongsLoading,

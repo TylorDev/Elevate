@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './UndefinedItem.scss'
 
@@ -12,13 +13,45 @@ export function UndefinedItem({
   menuOptions = [],
   onMenuSelect,
   to,
+  detailsTo,
+  onDetailsClick,
+  detailsLabel = 'Detalles',
   className = '',
   style,
   isLoading = false,
   loadingComponent
 }) {
+  const navigate = useNavigate()
+
   if (isLoading) {
     return loadingComponent || <div className="UndefinedItem loading">Loading...</div>
+  }
+
+  const mergedMenuOptions = useMemo(() => {
+    if (!detailsTo && !onDetailsClick) {
+      return menuOptions
+    }
+
+    return [
+      { id: '__details__', label: detailsLabel },
+      ...menuOptions
+    ]
+  }, [detailsLabel, detailsTo, menuOptions, onDetailsClick])
+
+  const handleMenuAction = (optionId) => {
+    if (optionId === '__details__') {
+      if (onDetailsClick) {
+        onDetailsClick()
+        return
+      }
+
+      if (detailsTo) {
+        navigate(detailsTo)
+      }
+      return
+    }
+
+    onMenuSelect?.(optionId)
   }
 
   const renderTitle = () => {
@@ -38,7 +71,7 @@ export function UndefinedItem({
 
   return (
     <li className={`UndefinedItem ${className}`} style={style}>
-      <div className="ui-cover-wrapper" onClick={onTitleClick || undefined}>
+      <div className="ui-cover-wrapper" onClick={onPlayClick || onTitleClick || undefined}>
         {typeof cover === 'string' ? (
           <img src={cover} alt={title} className="ui-cover-img" />
         ) : (
@@ -55,10 +88,10 @@ export function UndefinedItem({
       </div>
 
       <div className="ui-actions">
-        {menuOptions.length > 0 && (
+        {mergedMenuOptions.length > 0 && (
           <OverflowMenu
-            options={menuOptions}
-            onSelect={onMenuSelect}
+            options={mergedMenuOptions}
+            onSelect={handleMenuAction}
           />
         )}
       </div>
