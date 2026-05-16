@@ -86,7 +86,7 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
 
   return (
     <header className={statusBarClassName}>
-      <div className="status-bar__section status-bar__section--left">
+      <div className="left-buttons">
         <StatusIconButton title="Settings" onClick={() => navigate('/settings')}>
           <LuSlidersHorizontal />
         </StatusIconButton>
@@ -99,7 +99,7 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
         </StatusIconButton>
       </div>
 
-      <div className="status-bar__section status-bar__section--center">
+      <div className="Center">
         <button
           ref={(node) => {
             searchTriggerRef.current = node
@@ -112,15 +112,14 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
           onClick={toggleSearch}
         >
           <LuSearch />
-          <span className="status-bar__search-placeholder">Search songs, playlists, directories...</span>
+          <span className="status-bar__search-placeholder">
+            Search songs, playlists, directories...
+          </span>
         </button>
         <SearchOverlay triggerRef={searchTriggerRef} />
       </div>
 
-      <div className="status-bar__section status-bar__section--right">
-        <StatusIconButton title="Actualizar o buscar actualizacion">
-          <LuRefreshCw />
-        </StatusIconButton>
+      <div className="RightButtons">
         <StatusIconButton
           title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
           isActive={isHeaderHidden}
@@ -134,9 +133,6 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
           onClick={onToggleQueue}
         >
           <LuPanelRightClose />
-        </StatusIconButton>
-        <StatusIconButton title="Notificaciones y errores">
-          <LuBell />
         </StatusIconButton>
 
         <div className="status-bar__profile" aria-label="Redes del desarrollador">
@@ -159,7 +155,11 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
             <LuChevronDown />
           </button>
 
-          <div className="status-bar__profile-menu" role="menu" aria-label="Enlaces del desarrollador">
+          <div
+            className="status-bar__profile-menu"
+            role="menu"
+            aria-label="Enlaces del desarrollador"
+          >
             {developerLinks.map((link) => (
               <button key={link.id} className="status-bar__menu-item" type="button" role="menuitem">
                 {link.label}
@@ -167,14 +167,14 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
             ))}
           </div>
         </div>
-        <WindowPresetPicker
-          isOpen={isWindowPresetOpen}
-          onToggle={() => setIsWindowPresetOpen((current) => !current)}
-          onClose={() => setIsWindowPresetOpen(false)}
-        />
 
         {isWindows ? (
           <div className="status-bar__window-controls" aria-label="Controles de ventana">
+            <WindowPresetPicker
+              isOpen={isWindowPresetOpen}
+              onToggle={() => setIsWindowPresetOpen((current) => !current)}
+              onClose={() => setIsWindowPresetOpen(false)}
+            />
             <button
               className="status-bar__window-button"
               type="button"

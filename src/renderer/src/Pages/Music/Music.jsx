@@ -4,12 +4,23 @@ import './Music.scss'
 
 import Render from '../../components/Render/Render'
 import RenderControls from '../../components/Render/RenderControls'
-import { normalizePlaybackSource, useVisualizerPresets } from '../../components/Render/useVisualizerPresets'
+import {
+  normalizePlaybackSource,
+  useVisualizerPresets
+} from '../../components/Render/useVisualizerPresets'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useNavigate } from 'react-router-dom'
-import { LuHeart, LuHeartOff, LuImage, LuActivity, LuSettings, LuPlay, LuLayoutGrid } from 'react-icons/lu'
+import {
+  LuHeart,
+  LuHeartOff,
+  LuImage,
+  LuActivity,
+  LuSettings,
+  LuPlay,
+  LuLayoutGrid
+} from 'react-icons/lu'
 
 const PRESET_PREVIEW_ROW_HEIGHT = 48
 
@@ -30,7 +41,7 @@ function Music() {
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const [audioEl, setAudioEl] = useState(null)
-  
+
   // Toggles de la UI
   const [showCover, setShowCover] = useState(true)
   const [enableVisualizer, setEnableVisualizer] = useState(false)
@@ -95,26 +106,32 @@ function Music() {
   }, [])
 
   // [P9] Memoized like handler — avoids recreation on every render.
-  const handleLikeClick = useCallback((event) => {
-    event.stopPropagation()
-    if (currentFile) {
-      toggleLike(currentFile)
-    }
-  }, [currentFile, toggleLike])
+  const handleLikeClick = useCallback(
+    (event) => {
+      event.stopPropagation()
+      if (currentFile) {
+        toggleLike(currentFile)
+      }
+    },
+    [currentFile, toggleLike]
+  )
 
-  const handleBackgroundClick = useCallback((event) => {
-    if (event.target instanceof Element && event.target.closest('button')) {
-      return
-    }
+  const handleBackgroundClick = useCallback(
+    (event) => {
+      if (event.target instanceof Element && event.target.closest('button')) {
+        return
+      }
 
-    togglePlayPause()
-  }, [togglePlayPause])
+      togglePlayPause()
+    },
+    [togglePlayPause]
+  )
 
   // [P11] Stable toggle callbacks using functional setState.
   // No dependencies needed — prev => !prev is always current.
-  const toggleCover = useCallback(() => setShowCover(prev => !prev), [])
-  const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer(prev => !prev), [])
-  const toggleAutoMode = useCallback(() => setAutoMode(prev => !prev), [])
+  const toggleCover = useCallback(() => setShowCover((prev) => !prev), [])
+  const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer((prev) => !prev), [])
+  const toggleAutoMode = useCallback(() => setAutoMode((prev) => !prev), [])
   const openPresetManagerPage = useCallback(() => navigate('/visualizer-presets'), [navigate])
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
@@ -145,7 +162,7 @@ function Music() {
   // [P12] Memoized background style objects — avoids creating new objects per render
   // when currentCover hasn't changed.
   const coverBackgroundStyle = useMemo(
-    () => currentCover ? { backgroundImage: `url(${currentCover})` } : undefined,
+    () => (currentCover ? { backgroundImage: `url(${currentCover})` } : undefined),
     [currentCover]
   )
 
@@ -176,30 +193,20 @@ function Music() {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      
       {/* Cover como fondo cuando está oculto */}
       {!showCover && currentCover && (
-        <div 
-          className="cover-as-background" 
-          style={coverBackgroundStyle}
-        />
+        <div className="cover-as-background" style={coverBackgroundStyle} />
       )}
 
       {/* Cover borroso como fondo cuando está activo y el visualizador está apagado */}
       {showCover && currentCover && !enableVisualizer && (
-        <div 
-          className="blurred-cover-background" 
-          style={coverBackgroundStyle}
-        />
+        <div className="blurred-cover-background" style={coverBackgroundStyle} />
       )}
 
       {/* Fondo Visualizador */}
       {enableVisualizer && audioEl && (
         <div className="visualizer-background">
-          <Render 
-            audioElement={audioEl} 
-            presetName={presetControls.currentPresetName} 
-          />
+          <Render audioElement={audioEl} presetName={presetControls.currentPresetName} />
         </div>
       )}
 
@@ -232,7 +239,9 @@ function Music() {
                       style={style}
                       className={`preset-preview-item ${isCurrent ? 'is-current' : ''}`}
                     >
-                      <span className="preset-preview-item__index">{isCurrent ? 'Now' : index + 1}</span>
+                      <span className="preset-preview-item__index">
+                        {isCurrent ? 'Now' : index + 1}
+                      </span>
                       <span className="preset-preview-item__name">{presetName}</span>
                     </div>
                   )
@@ -279,32 +288,23 @@ function Music() {
       {/* Controles Flotantes */}
       <div className={`Player ${showControls ? 'visible' : ''}`}>
         <div className="view-switcher">
-          <button 
-            className={`switcher-btn ${showCover ? 'active' : ''}`}
-            onClick={toggleCover}
-          >
+          <button className={`switcher-btn ${showCover ? 'active' : ''}`} onClick={toggleCover}>
             <LuImage /> {showCover ? 'Ocultar Cover' : 'Mostrar Cover'}
           </button>
-          
-          <button 
+
+          <button
             className={`switcher-btn ${enableVisualizer ? 'active' : ''}`}
             onClick={toggleVisualizerEnabled}
           >
             <LuActivity /> {enableVisualizer ? 'Desactivar Visualizador' : 'Activar Visualizador'}
           </button>
 
-          <button 
-            className={`switcher-btn ${autoMode ? 'active' : ''}`}
-            onClick={toggleAutoMode}
-          >
-            {autoMode ? <LuPlay /> : <LuSettings />} 
+          <button className={`switcher-btn ${autoMode ? 'active' : ''}`} onClick={toggleAutoMode}>
+            {autoMode ? <LuPlay /> : <LuSettings />}
             {autoMode ? 'Modo Auto' : 'Modo Manual'}
           </button>
 
-          <button 
-            className="switcher-btn"
-            onClick={openPresetManagerPage}
-          >
+          <button className="switcher-btn" onClick={openPresetManagerPage}>
             <LuLayoutGrid />
             Admin Presets
           </button>
@@ -313,7 +313,7 @@ function Music() {
         {/* RenderControls visible en Modo Manual y si el visualizador está activo */}
         {!autoMode && enableVisualizer && (
           <div className="render-controls-wrapper">
-            <RenderControls 
+            <RenderControls
               currentPresetName={presetControls.currentPresetName}
               currentPresetIndex={presetControls.currentPresetIndex}
               allPresets={presetControls.allPresets}
@@ -326,7 +326,6 @@ function Music() {
           </div>
         )}
       </div>
-
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Main from './Layouts/Main/Main'
 import { useArgv } from './Contexts/ArgvContext'
+import DebugOverlay from './Components/DebugOverlay/DebugOverlay'
 
 // Lazy-loaded pages — each page loads as a separate chunk on demand
 const Feed = lazy(() => import('./Pages/Feed/Feed'))
@@ -290,7 +291,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-      {/* <DebugOverlay /> */}
+      <DebugOverlay></DebugOverlay>
     </div>
   )
 }

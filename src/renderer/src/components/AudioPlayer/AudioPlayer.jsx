@@ -1,4 +1,3 @@
-
 import './AudioPlayer.scss'
 
 import { MediaTimeDisplay } from '../MediaTimeDisplay/MediaTimeDisplay'
