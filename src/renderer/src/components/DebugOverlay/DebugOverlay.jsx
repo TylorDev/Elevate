@@ -3,7 +3,7 @@ import './DebugOverlay.scss'
 
 const CTRL_DOUBLE_PRESS_MS = 400
 
-const DebugOverlay = () => {
+const DebugOverlay = ({ isEnabled = true }) => {
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight
@@ -79,6 +79,10 @@ const DebugOverlay = () => {
       y: event.clientY
     })
     setIsMoveMode(false)
+  }
+
+  if (!isEnabled) {
+    return null
   }
 
   return (

@@ -87,15 +87,12 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
   return (
     <header className={statusBarClassName}>
       <div className="left-buttons">
-        <StatusIconButton title="Settings" onClick={() => navigate('/settings')}>
-          <LuSlidersHorizontal />
-        </StatusIconButton>
         <StatusIconButton
-          title={windowState.isAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
-          isActive={windowState.isAlwaysOnTop}
-          onClick={() => void window.electron.windowControls.toggleAlwaysOnTop()}
+          title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
+          isActive={isHeaderHidden}
+          onClick={onToggleHeader}
         >
-          <LuPin />
+          <LuPanelLeftClose />
         </StatusIconButton>
       </div>
 
@@ -121,11 +118,11 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
 
       <div className="RightButtons">
         <StatusIconButton
-          title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
-          isActive={isHeaderHidden}
-          onClick={onToggleHeader}
+          title={windowState.isAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+          isActive={windowState.isAlwaysOnTop}
+          onClick={() => void window.electron.windowControls.toggleAlwaysOnTop()}
         >
-          <LuPanelLeftClose />
+          <LuPin />
         </StatusIconButton>
         <StatusIconButton
           title={isQueueHidden ? 'Mostrar queue panel' : 'Ocultar queue panel'}
