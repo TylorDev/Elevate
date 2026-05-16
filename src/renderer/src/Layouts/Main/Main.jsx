@@ -18,7 +18,7 @@ function Main() {
   const mainClassName = [
     'Main',
     isHeaderHidden ? 'Main--header-hidden' : '',
-    isQueueHidden ? 'Main--queue-hidden' : ''
+    isQueueHidden ? 'Main--queue-hidden' : 'Main--queue-visible'
   ]
     .filter(Boolean)
     .join(' ')
@@ -45,11 +45,9 @@ function Main() {
       <div className="Main__player">
         <AudioPlayer />
       </div>
-      {!isQueueHidden ? (
-        <aside className="Main__queue">
-          <QueueTabsPanel />
-        </aside>
-      ) : null}
+      <aside className="Main__queue">
+        <QueueTabsPanel />
+      </aside>
       <ToastContainer />
     </div>
   )
