@@ -1,15 +1,15 @@
 .waveform {
-    grid-area: waveform;
+    grid-area: progress;
     position: relative;
     width: 100%;
     min-width: 7rem;
     height: 2.7rem;
-    border-radius: 0.5rem;
+    
     overflow: hidden;
     cursor: pointer;
 
 
-    background-color: transparent;
+
 
     canvas {
         display: block;
@@ -24,5 +24,5 @@
 }
 
 .waveform-oscilloscope {
-    height: 2.45rem;
+    height: 2rem;
 }

@@ -331,34 +331,3 @@
   }
 }
 
-@media (max-width: 760px) {
-  .statistics-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .statistics-hero__signal {
-    justify-self: start;
-    text-align: left;
-  }
-
-  .statistics-board__header,
-  .stat-row {
-    grid-template-columns: 3rem 3.2rem minmax(0, 1fr);
-  }
-
-  .statistics-board__header {
-    align-items: start;
-    flex-direction: column;
-  }
-
-  .stat-row__cover {
-    width: 3.2rem;
-    height: 3.2rem;
-    border-radius: 13px;
-  }
-
-  .stat-row__metric {
-    grid-column: 3;
-    font-size: 1rem;
-  }
-}

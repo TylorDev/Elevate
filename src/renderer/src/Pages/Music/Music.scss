@@ -70,7 +70,7 @@
       right: 1.5rem;
       width: min(320px, 28vw);
       max-height: min(52vh, 480px);
-      display: flex;
+      display: none; //AQUI
       flex-direction: column;
       z-index: 3;
       padding: 0.9rem;
@@ -316,25 +316,7 @@
     }
   }
 
-  @media (max-width: 760px) {
-    .Player-main .preset-preview-panel {
-      top: 1rem;
-      right: 1rem;
-      left: 1rem;
-      width: auto;
-      max-height: 180px;
-    }
-
-    .Player-main .cover-wrapper .track-info-overlay {
-      .title {
-        font-size: 1.7rem;
-      }
-
-      .stats .song-stat-grid {
-        grid-template-columns: repeat(2, minmax(86px, 1fr));
-      }
-    }
-  }
+ 
 
   .Player {
     position: absolute;

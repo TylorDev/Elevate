@@ -1,13 +1,14 @@
 .Main {
     --status-height: 1.75rem;
+    --player-height: 8.5rem;
 
     display: grid;
     grid-template-areas:
         "status status"
         "header outlet"
-        "header player";
+        "player player";
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: var(--status-height) 1fr 6.5rem;
+    grid-template-rows: var(--status-height) 1fr var(--player-height);
     height: 100%;
     width: 100%;
     overflow: hidden;
@@ -31,7 +32,7 @@
         position: absolute;
         top: var(--status-height, 1.75rem);
         right: 0;
-        bottom: 6.5rem;
+        bottom: var(--player-height);
         width: min(25vw, 25rem);
         z-index: 1000;
         background: var(--primary-color, #0a0a0a);
@@ -60,7 +61,7 @@
         "outlet"
         "player";
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--status-height) 1fr 6.5rem;
+    grid-template-rows: var(--status-height) 1fr var(--player-height);
 }
 
 .Main--queue-visible .Main__queue {

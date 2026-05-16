@@ -1,0 +1,80 @@
+.AudioPlayerButton {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, transform 0.1s;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+
+        &:hover {
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    }
+
+    &--default {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+
+        svg {
+            font-size: 1.25rem;
+        }
+    }
+
+    &--play {
+        background-color: $text-principal;
+        color: $principal;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 50%;
+
+        &:hover {
+            transform: scale(1.05);
+        }
+
+        &:active {
+            transform: scale(0.95);
+        }
+
+        svg {
+            font-size: 1.5rem;
+            fill: currentColor;
+        }
+    }
+
+    &--menu {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+
+        svg {
+            font-size: 1.25rem;
+        }
+    }
+
+    &--like {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+
+        svg {
+            font-size: 1.25rem;
+        }
+
+        &.liked {
+            color: $text-principal;
+        }
+    }
+}

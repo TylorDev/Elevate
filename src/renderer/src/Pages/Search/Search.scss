@@ -72,23 +72,3 @@
   }
 }
 
-@media (max-width: 600px) {
-  .SearchPage {
-    padding: 1rem;
-
-    .search-tabs {
-      width: 100%;
-      overflow-x: auto;
-
-      .search-tab {
-        padding: 8px 12px;
-
-        span {
-          display: none;
-        }
-
-        // Icon only on mobile
-      }
-    }
-  }
-}

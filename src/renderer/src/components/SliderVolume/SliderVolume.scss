@@ -1,6 +1,7 @@
 @use '../../styles/variables' as *;
 
 .SliderVolume {
+    grid-area: volume;
     position: relative;
     z-index: 1700;
     display: flex;
