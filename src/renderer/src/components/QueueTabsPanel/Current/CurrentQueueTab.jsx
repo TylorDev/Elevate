@@ -11,6 +11,7 @@ function CurrentQueueTab() {
     <div className="CurrentQueueTab">
       <Cola
         list={queueState.currentQueue}
+        height="100%"
         name="currentQueue"
         preserveOrder
         enablePinMove

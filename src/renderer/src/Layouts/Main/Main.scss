@@ -33,7 +33,7 @@
         top: var(--status-height, 1.75rem);
         right: 0;
         bottom: var(--player-height);
-        width: min(25vw, 25rem);
+        width: min(100vw, clamp(18rem, 55vw, 25rem));
         z-index: 1000;
         background: var(--primary-color, #0a0a0a);
         border-left: 1px solid rgba(255, 255, 255, 0.05);
@@ -76,12 +76,6 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-}
-
-@media (max-width: 768px) {
-    .Main__queue {
-        width: min(80vw, 20rem);
-    }
 }
 
 @media (max-width: 480px) {

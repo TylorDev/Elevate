@@ -6,11 +6,14 @@
   display: flex;
   flex-direction: column;
   background: transparent;
+  overflow: hidden;
+
 
   .PlaylistsQueueTab__list {
     flex: 1;
     min-height: 0;
-    padding: 1rem;
+    overflow: hidden;
+    padding: 0rem 1rem;
 
     .ReactVirtualized__List,
     [role='list'] {
@@ -35,8 +38,6 @@
     background: rgba(255, 255, 255, 0.03);
 
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    position: sticky;
-    top: 0;
     z-index: 10;
 
     .back-btn {

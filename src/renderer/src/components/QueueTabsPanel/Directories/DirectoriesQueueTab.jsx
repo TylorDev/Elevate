@@ -54,6 +54,7 @@ function DirectoriesQueueTab({ isActive }) {
           <span className="current-path">{getLastPart(selectedDirectory.path)}</span>
         </div>
         <Cola
+          height="100%"
           list={currentDir}
           name={`folder:${selectedDirectory.path}`}
           preserveOrder

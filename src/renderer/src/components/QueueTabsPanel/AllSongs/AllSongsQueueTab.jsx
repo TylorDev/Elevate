@@ -23,6 +23,7 @@ function AllSongsQueueTab({ isActive }) {
   return (
     <div className="AllSongsQueueTab">
       <VirtualizedCola
+        height="100%"
         list={allSongs}
         name="tracks"
         hasMore={allSongsHasMore}

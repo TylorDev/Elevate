@@ -2,14 +2,7 @@ import './AudioPlayer.scss'
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  LuHeart,
-  LuHeartOff,
-  LuPause,
-  LuPlay,
-  LuSkipBack,
-  LuSkipForward
-} from 'react-icons/lu'
+import { LuHeart, LuHeartOff, LuPause, LuPlay, LuSkipBack, LuSkipForward } from 'react-icons/lu'
 
 import { SliderVolume } from '../SliderVolume/SliderVolume'
 import { usePlaybackProgress, useSuper } from '../../Contexts/SupeContext'
@@ -38,7 +31,7 @@ export function AudioPlayer() {
     toggleStep,
     isStep
   } = useSuper()
-  
+
   const { progress, duration } = usePlaybackProgress()
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
@@ -81,14 +74,22 @@ export function AudioPlayer() {
       </div>
 
       <AudioPlayerMetadata title={title} artist={artist} />
-      
+
       <AudioPlayerStats shortViews={shortViews} skips={skips} />
 
       <div className="AudioPlayer__controls" id="controls">
-        <AudioPlayerButton onClick={handlePreviousClick} variant="default" ariaLabel="Previous song">
+        <AudioPlayerButton
+          onClick={handlePreviousClick}
+          variant="default"
+          ariaLabel="Previous song"
+        >
           <LuSkipBack />
         </AudioPlayerButton>
-        <AudioPlayerButton onClick={togglePlayPause} variant="play" ariaLabel={isPlaying ? 'Pause' : 'Play'}>
+        <AudioPlayerButton
+          onClick={togglePlayPause}
+          variant="play"
+          ariaLabel={isPlaying ? 'Pause' : 'Play'}
+        >
           {isPlaying ? <LuPause /> : <LuPlay />}
         </AudioPlayerButton>
         <AudioPlayerButton onClick={handleNextClick} variant="default" ariaLabel="Next song">
@@ -97,31 +98,33 @@ export function AudioPlayer() {
       </div>
 
       <div className="AudioPlayer__like-container">
-        <AudioPlayerButton
-          variant="like"
-          className={likeState.currentLike ? 'liked' : ''}
-          onClick={handleLikeClick}
-          ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
-          disabled={!currentFile}
-        >
-          {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
-        </AudioPlayerButton>
+        <div className="Secondary-Controls">
+          <PlayerMenu
+            isMenuOpen={isMenuOpen}
+            setIsMenuOpen={setIsMenuOpen}
+            muted={muted}
+            toggleMute={toggleMute}
+            isStep={isStep}
+            toggleStep={toggleStep}
+            isShuffled={isShuffled}
+            toggleShuffle={toggleShuffle}
+            loop={loop}
+            toggleRepeat={toggleRepeat}
+          />
+
+          <AudioPlayerButton
+            variant="like"
+            className={likeState.currentLike ? 'liked' : ''}
+            onClick={handleLikeClick}
+            ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
+            disabled={!currentFile}
+          >
+            {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
+          </AudioPlayerButton>
+
+          <SliderVolume />
+        </div>
       </div>
-
-      <SliderVolume />
-
-      <PlayerMenu
-        isMenuOpen={isMenuOpen}
-        setIsMenuOpen={setIsMenuOpen}
-        muted={muted}
-        toggleMute={toggleMute}
-        isStep={isStep}
-        toggleStep={toggleStep}
-        isShuffled={isShuffled}
-        toggleShuffle={toggleShuffle}
-        loop={loop}
-        toggleRepeat={toggleRepeat}
-      />
     </div>
   )
 }

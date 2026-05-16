@@ -35,7 +35,7 @@ export function VirtualizedQueueEntityList({
     if (!container) return
 
     const updateHeight = () => {
-      const nextHeight = Math.max(container.clientHeight || 0, DEFAULT_MIN_HEIGHT)
+      const nextHeight = container.clientHeight || DEFAULT_MIN_HEIGHT
       setHeight((currentHeight) => (currentHeight === nextHeight ? currentHeight : nextHeight))
     }
 

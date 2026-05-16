@@ -66,6 +66,7 @@ function PlaylistsQueueTab({ isActive }) {
           <span className="current-path">{selectedPlaylist.nombre}</span>
         </div>
         <Cola
+          height="100%"
           list={currentPlaylist?.processedData || []}
           name={selectedPlaylist.path}
           preserveOrder

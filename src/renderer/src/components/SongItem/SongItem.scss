@@ -7,23 +7,24 @@
 }
 
 .songItem {
-    height: 4.5rem;
+    min-height: 4.5rem;
     display: grid;
-    grid-template-columns: auto auto 1fr 1fr;
+    grid-template-columns: minmax(0, 1rem) clamp(3rem, 5vw, 4rem) minmax(0, 1fr) auto auto;
     grid-template-rows: 1fr 1fr 1fr;
     grid-template-areas:
-        "indicator cover title title duration"
-        "indicator cover title title duration"
-        "indicator cover artist artist duration";
+        "indicator cover title  actions duration"
+        "indicator cover title  actions duration"
+        "indicator cover artist actions duration";
     align-items: center;
-
-    padding: 0 1.2rem;
+    column-gap: clamp(0.45rem, 1vw, 0.9rem);
+    padding: 0 clamp(0.7rem, 1.4vw, 1.2rem);
     position: relative;
     cursor: pointer;
     background: transparent;
     border-radius: 8px;
     margin-bottom: 2px;
     overflow: hidden;
+    min-width: 0;
    
 
     .songItem__pinIndicator {
@@ -36,8 +37,7 @@
         color: rgba(255, 255, 255, 0.22);
         flex-shrink: 0;
         transition: color 120ms ease, transform 120ms ease;
-        
-        padding-right: 1rem;
+        min-width: 0;
 
         &.is-hidden {
             visibility: hidden;
@@ -91,15 +91,12 @@
     .cover {
         grid-area: cover;
         position: relative;
-        width: 100%;
-        height:100%;
+        width: clamp(3rem, 5vw, 4rem);
+        height: clamp(3rem, 5vw, 4rem);
         border-radius: 4px;
-      
         flex-shrink: 0;
-       
-       
+
         img {
-            padding: 0.5rem;
             width: 100%;
             height: 100%;
             object-fit: cover;
@@ -152,6 +149,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            min-width: 0;
 
             .song-views {
                 display: inline-flex;
@@ -166,15 +164,17 @@
     }
 
     .optiones {
-        position: absolute;
-        right: 3.85rem;
-        top: 50%;
-        transform: translateY(-50%);
+        grid-area: actions;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
         opacity: 0;
         z-index: 2;
+        min-width: 2.5rem;
+        justify-self: center;
+        align-self: center;
+        transition: opacity 120ms ease;
 
         &.liked {
             opacity: 1;
@@ -213,9 +213,10 @@
         font-size: 0.8rem;
         font-weight: 500;
         color: var(--text-secondary);
-        width: 45px;
+        width: clamp(2.5rem, 4.5vw, 3rem);
         text-align: right;
         font-variant-numeric: tabular-nums;
+        justify-self: end;
     }
 
     .song-progress {
@@ -240,3 +241,30 @@
     box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 186, 255, 0), 0.35);
 }
 
+@media (max-width: 640px) {
+    .songItem {
+        grid-template-columns: minmax(0, 0.8rem) 2.85rem minmax(0, 1fr) 2.3rem 2.5rem;
+        column-gap: 0.45rem;
+        padding: 0 0.65rem;
+
+        .song-tittle {
+            font-size: 0.92rem;
+        }
+
+        .song-artist {
+            font-size: 0.72rem;
+        }
+
+        .optiones .btnLike {
+            padding: 6px;
+
+            svg {
+                font-size: 1rem;
+            }
+        }
+
+        .stime {
+            font-size: 0.75rem;
+        }
+    }
+}

@@ -15,6 +15,7 @@ function LikesQueueTab({ isActive }) {
   return (
     <div className="LikesQueueTab">
       <Cola
+        height="100%"
         list={likes?.fileInfos || []}
         name="favourites"
         preserveOrder

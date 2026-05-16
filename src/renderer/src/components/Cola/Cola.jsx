@@ -43,6 +43,10 @@ function resolveListHeight(height) {
   return getDefaultHeight()
 }
 
+function shouldFillParentHeight(height) {
+  return typeof height === 'string' && height.trim() === '100%'
+}
+
 function areStylesEqual(prevStyle, nextStyle) {
   if (prevStyle === nextStyle) return true
   if (!prevStyle || !nextStyle) return !prevStyle && !nextStyle
@@ -297,10 +301,12 @@ export function Cola({
   const [pinnedSongPath, setPinnedSongPath] = useState(null)
   const [pinnedOriginalIndex, setPinnedOriginalIndex] = useState(null)
   const [pinnedSourceKey, setPinnedSourceKey] = useState(null)
+  const containerRef = useRef(null)
   const longPressTimerRef = useRef(null)
   const longPressStateRef = useRef(null)
   const suppressClickRef = useRef(null)
   const isDescending = true
+  const [measuredHeight, setMeasuredHeight] = useState(DEFAULT_MIN_HEIGHT)
 
   const baseList = useMemo(() => {
     const uniqueList = dedupeSongsByFilePath(list)
@@ -714,6 +720,39 @@ export function Cola({
     }
   }, [cancelPendingLongPress, clearPinnedSong, isPinMoveEnabled])
 
+  useEffect(() => {
+    if (!shouldFillParentHeight(height)) {
+      return undefined
+    }
+
+    const container = containerRef.current
+
+    if (!container) {
+      return undefined
+    }
+
+    const updateHeight = () => {
+      const nextHeight = container.clientHeight || DEFAULT_MIN_HEIGHT
+      setMeasuredHeight((currentHeight) => (currentHeight === nextHeight ? currentHeight : nextHeight))
+    }
+
+    updateHeight()
+
+    if (typeof window.ResizeObserver !== 'function') {
+      window.addEventListener('resize', updateHeight)
+      return () => {
+        window.removeEventListener('resize', updateHeight)
+      }
+    }
+
+    const resizeObserver = new window.ResizeObserver(updateHeight)
+    resizeObserver.observe(container)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [height])
+
   const itemData = useMemo(
       () => ({
         activeFilePath,
@@ -749,11 +788,13 @@ export function Cola({
     ]
   )
 
+  const fillsParentHeight = shouldFillParentHeight(height)
   const itemCount = displayedList.length + (hasMore ? 1 : 0)
-  const listHeight = resolveListHeight(height)
+  const listHeight = fillsParentHeight ? measuredHeight : resolveListHeight(height)
 
   return (
     <div
+      ref={containerRef}
       className={shouldVirtualize ? 'Cola VirtualizedCola' : 'Cola'}
       data-pin-active={Boolean(pinnedSongPath)}
       data-pinned-index={pinnedOriginalIndex ?? ''}
@@ -775,7 +816,10 @@ export function Cola({
             {VirtualSongRow}
           </FixedSizeList>
         ) : (
-          <ul className="Cola__list" style={typeof height === 'string' ? { minHeight: height } : undefined}>
+          <ul
+            className={fillsParentHeight ? 'Cola__list Cola__list--scrollable' : 'Cola__list'}
+            style={fillsParentHeight ? undefined : typeof height === 'string' ? { minHeight: height } : undefined}
+          >
             {displayedList.map((file, index) => {
               const isActive = file.filePath === activeFilePath
 
