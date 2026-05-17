@@ -1,0 +1,155 @@
+.preset-tab-view--controller {
+  // Add ControllerTab specific styles here
+  
+  .preset-grid--controller {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .manager-card--spotlight {
+    background:
+      linear-gradient(180deg, rgba(196, 255, 63, 0.12), rgba(255, 255, 255, 0.02)),
+      rgba(8, 12, 14, 0.64);
+  }
+  
+  .manager-card--temp-list {
+    grid-row: span 3;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .temp-list-container {
+      flex: 1;
+    }
+  }
+  
+  .current-preset-display {
+    display: grid;
+    gap: 10px;
+    padding: 18px;
+    border: 1px solid rgba(196, 255, 63, 0.18);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(196, 255, 63, 0.1), rgba(255, 255, 255, 0.02));
+  
+    strong {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: clamp(1.5rem, 2vw, 2.25rem);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      word-break: break-word;
+    }
+  
+    span {
+      color: var(--panel-muted);
+      font-size: 0.88rem;
+    }
+  }
+  
+  .toggle-pill {
+    min-height: 54px;
+    padding: 0 18px;
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--panel-text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    cursor: pointer;
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease,
+      background 0.18s ease;
+  
+    &:hover {
+      transform: translateY(-1px);
+      border-color: rgba(196, 255, 63, 0.24);
+    }
+  
+    &.active {
+      border-color: rgba(196, 255, 63, 0.34);
+      background: rgba(196, 255, 63, 0.08);
+    }
+  }
+  
+  .toggle-pill__track {
+    width: 58px;
+    height: 30px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .toggle-pill__thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #f4f5ed;
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+  
+  .toggle-pill.active .toggle-pill__track {
+    background: rgba(196, 255, 63, 0.24);
+  }
+  
+  .toggle-pill.active .toggle-pill__thumb {
+    transform: translateX(28px);
+    background: var(--panel-accent);
+  }
+  
+  .toggle-pill__label {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .temp-list-container {
+    overflow-y: auto;
+    background: var(--manager-bg-subtle, rgba(0,0,0,0.2));
+    border-radius: 8px;
+    margin-top: 0.5rem;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    }
+  }
+
+  .temp-list-scroll {
+    .preset-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .preset-index {
+      width: 24px;
+      opacity: 0.5;
+    }
+
+    .preset-icon {
+      margin-right: 8px;
+    }
+  }
+}
+
+@media (max-width: 1180px) {
+  .preset-tab-view--controller {
+    .preset-grid--controller {
+      grid-template-columns: 1fr;
+    }
+  }
+}

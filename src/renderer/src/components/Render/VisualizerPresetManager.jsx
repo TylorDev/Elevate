@@ -1,6 +1,7 @@
 import React, { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { FixedSizeList } from 'react-window';
 import {
+  LuCheck,
   LuClock,
   LuFolder,
   LuHeart,
@@ -15,14 +16,30 @@ import {
   LuUnlink,
   LuX
 } from 'react-icons/lu';
-import { createPresetByNameMap, getSourceLabel, mapPresetNamesToItems } from './useVisualizerPresets';
+import {
+  createPresetByNameMap,
+  getSourceLabel,
+  mapPresetNamesToItems
+} from './useVisualizerPresets';
+import ControllerTab from './ControllerTab/ControllerTab';
 import './VisualizerPresetManager.scss';
-
 const DURATION_OPTIONS = [
   { value: 5000, label: '5s' },
   { value: 10000, label: '10s' },
   { value: 15000, label: '15s' },
   { value: 30000, label: '30s' }
+];
+
+const TAB_OPTIONS = [
+  { id: 'controller', label: 'Controller' },
+  { id: 'list-manager', label: 'List Manager' },
+  { id: 'preset-library', label: 'Preset Library' }
+];
+
+const PRESET_SOURCE_OPTIONS = [
+  { value: 'all', label: 'All presets' },
+  { value: 'list', label: 'Specific List' },
+  { value: 'favorites', label: 'Favourites' }
 ];
 
 const PRESET_ROW_HEIGHT = 58;
@@ -39,12 +56,7 @@ const VirtualizedPresetRow = memo(function VirtualizedPresetRow({ index, style, 
   return data.renderRow(preset, index, style);
 });
 
-function VirtualizedPresetPane({
-  className,
-  items,
-  renderRow,
-  itemKey
-}) {
+function VirtualizedPresetPane({ className, items, renderRow, itemKey }) {
   const containerRef = useRef(null);
   const [height, setHeight] = useState(DEFAULT_LIST_HEIGHT);
 
@@ -105,8 +117,11 @@ const VisualizerPresetManager = ({
   currentPresetName,
   cycleDurationMs,
   setCycleDurationMs,
-  cycleMode,
-  setCycleMode,
+  isShuffled,
+  toggleShuffle,
+  allPresets = [],
+  presetSource,
+  setPresetSource,
   toggleFavorite,
   presetLists = [],
   activePresetList,
@@ -123,6 +138,7 @@ const VisualizerPresetManager = ({
   availableAssociationSources = [],
   onSelectPreset
 }) => {
+  const [activeTab, setActiveTab] = useState('controller');
   const [newListName, setNewListName] = useState('');
   const [selectedListId, setSelectedListId] = useState('');
   const [renameValue, setRenameValue] = useState('');
@@ -136,13 +152,20 @@ const VisualizerPresetManager = ({
         return currentId;
       }
 
+      if (presetSource?.mode === 'list' && presetSource?.listId) {
+        const sourceListExists = presetLists.some((list) => list.id === presetSource.listId);
+        if (sourceListExists) {
+          return presetSource.listId;
+        }
+      }
+
       if (activePresetList?.id && presetLists.some((list) => list.id === activePresetList.id)) {
         return activePresetList.id;
       }
 
       return presetLists[0]?.id || '';
     });
-  }, [activePresetList?.id, presetLists]);
+  }, [activePresetList?.id, presetLists, presetSource?.listId, presetSource?.mode]);
 
   const selectedList = useMemo(
     () => presetLists.find((list) => list.id === selectedListId) || null,
@@ -173,7 +196,9 @@ const VisualizerPresetManager = ({
       return allPresetItems;
     }
 
-    return allPresetItems.filter((preset) => preset.name.toLowerCase().includes(normalizedCatalogQuery));
+    return allPresetItems.filter((preset) =>
+      preset.name.toLowerCase().includes(normalizedCatalogQuery)
+    );
   }, [allPresetItems, normalizedCatalogQuery]);
 
   const sourceLabel = getSourceLabel(activePlaybackSource);
@@ -182,6 +207,7 @@ const VisualizerPresetManager = ({
   const activeAssociationName = activePresetList?.name || 'Sin vinculacion';
   const totalAssociations = Object.keys(sourceAssociations).length;
   const selectedListDisplayName = selectedList?.name || 'Ninguna lista seleccionada';
+  const currentSourceMode = presetSource?.mode || 'all';
 
   const normalizedAssociationSources = useMemo(
     () =>
@@ -193,7 +219,8 @@ const VisualizerPresetManager = ({
   );
 
   const manualSource = useMemo(
-    () => normalizedAssociationSources.find((source) => source.sourceKey === manualSourceKey) || null,
+    () =>
+      normalizedAssociationSources.find((source) => source.sourceKey === manualSourceKey) || null,
     [manualSourceKey, normalizedAssociationSources]
   );
 
@@ -215,6 +242,7 @@ const VisualizerPresetManager = ({
       return normalizedAssociationSources[0]?.sourceKey || '';
     });
   }, [activePlaybackSource?.id, activePlaybackSource?.type, normalizedAssociationSources]);
+
 
   const handleCreateList = () => {
     const createdList = createPresetList?.(newListName);
@@ -264,6 +292,29 @@ const VisualizerPresetManager = ({
     }
 
     deletePresetList?.(selectedList.id);
+  };
+
+  const handlePresetSourceModeChange = (nextMode) => {
+    if (nextMode === 'list') {
+      setPresetSource?.({
+        mode: 'list',
+        listId: selectedList?.id || presetLists[0]?.id || null
+      });
+      return;
+    }
+
+    setPresetSource?.({
+      mode: nextMode,
+      listId: null
+    });
+  };
+
+  const handlePresetSourceListChange = (listId) => {
+    setSelectedListId(listId);
+    setPresetSource?.({
+      mode: 'list',
+      listId: listId || null
+    });
   };
 
   const renderSelectedPresetRow = useMemo(
@@ -351,107 +402,53 @@ const VisualizerPresetManager = ({
         </div>
       );
     },
-    [currentPresetName, onSelectPreset, selectedList?.id, selectedPresetNamesSet, toggleFavorite, togglePresetInList]
+    [
+      currentPresetName,
+      onSelectPreset,
+      selectedList?.id,
+      selectedPresetNamesSet,
+      toggleFavorite,
+      togglePresetInList
+    ]
   );
 
-  return (
-    <div
-      className={isPage ? 'preset-manager-page' : 'preset-manager-overlay'}
-      onClick={isPage ? undefined : onClose}
-    >
-      <div className={`preset-manager-panel ${isPage ? 'preset-manager-panel--page' : ''}`} onClick={(e) => e.stopPropagation()}>
-        <div className="preset-manager-header">
-          <h2>Administrador de Presets</h2>
-          <button className="close-btn" onClick={onClose}>
-            <LuX />
-          </button>
-        </div>
 
-        <div className="preset-manager-config">
-          <div className="config-section">
-            <label className="config-label">
-              <LuClock /> Duracion
-            </label>
-            <div className="duration-buttons">
-              {DURATION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`duration-btn ${cycleDurationMs === opt.value ? 'active' : ''}`}
-                  onClick={() => setCycleDurationMs(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+  const renderListManagerTab = () => (
+    <section className="preset-tab-view">
+      <div className="preset-grid preset-grid--list-manager">
+        <article className="manager-card">
+          <div className="manager-card__header">
+            <span className="config-label">
+              <LuPlus /> Crear list
+            </span>
+            <small>Genera una nueva preset list para curar un flujo visual propio.</small>
           </div>
+          <div className="list-create-row">
+            <input
+              className="manager-input"
+              type="text"
+              value={newListName}
+              placeholder="Nombre de la nueva lista"
+              onChange={(event) => setNewListName(event.target.value)}
+            />
+            <button className="action-btn primary" onClick={handleCreateList} type="button">
+              Crear
+            </button>
+          </div>
+        </article>
 
-          <div className="config-section">
-            <label className="config-label">
-              <LuShuffle /> Modo
-            </label>
-            <div className="mode-buttons">
-              <button
-                className={`mode-btn ${cycleMode === 'random' ? 'active' : ''}`}
-                onClick={() => setCycleMode('random')}
-              >
-                Aleatorio
-              </button>
-              <button
-                className={`mode-btn ${cycleMode === 'linear' ? 'active' : ''}`}
-                onClick={() => setCycleMode('linear')}
-              >
-                Lineal
-              </button>
-            </div>
+        <article className="manager-card">
+          <div className="manager-card__header">
+            <span className="config-label">
+              <LuPencil /> Gestion de list
+            </span>
+            <small>Selecciona la preset list que editaras, renombraras o eliminaras.</small>
           </div>
-        </div>
-
-        <div className="preset-manager-association">
-          <div className="association-card">
-            <span className="association-label">Fuente activa</span>
-            <strong>{sourceLabel}</strong>
-          </div>
-          <div className="association-card">
-            <span className="association-label">Lista seleccionada</span>
-            <strong>{selectedListDisplayName}</strong>
-          </div>
-          <div className="association-card">
-            <span className="association-label">Lista vinculada</span>
-            <strong>{activeAssociationName}</strong>
-          </div>
-          <div className="association-card">
-            <span className="association-label">Asociaciones</span>
-            <strong>{totalAssociations}</strong>
-          </div>
-        </div>
-
-        <div className="preset-manager-lists">
-          <div className="config-section">
-            <label className="config-label">
-              <LuPlus /> Crear lista
-            </label>
-            <div className="list-create-row">
-              <input
-                className="manager-input"
-                type="text"
-                value={newListName}
-                placeholder="Nueva lista"
-                onChange={(e) => setNewListName(e.target.value)}
-              />
-              <button className="action-btn primary" onClick={handleCreateList}>
-                Crear
-              </button>
-            </div>
-          </div>
-
-          <div className="config-section">
-            <label className="config-label">
-              <LuList /> Lista seleccionada
-            </label>
+          <div className="manager-stack">
             <select
               className="manager-select"
               value={selectedListId}
-              onChange={(e) => setSelectedListId(e.target.value)}
+              onChange={(event) => setSelectedListId(event.target.value)}
             >
               <option value="">Selecciona una lista</option>
               {presetLists.map((list) => (
@@ -460,51 +457,91 @@ const VisualizerPresetManager = ({
                 </option>
               ))}
             </select>
-          </div>
 
-          <div className="config-section">
-            <label className="config-label">
-              <LuPencil /> Renombrar lista
-            </label>
             <div className="list-create-row">
               <input
                 className="manager-input"
                 type="text"
                 value={renameValue}
-                placeholder="Nombre de la lista"
-                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Renombra la lista"
+                onChange={(event) => setRenameValue(event.target.value)}
                 disabled={!hasSelectedList}
               />
-              <button className="action-btn" onClick={handleRenameList} disabled={!hasSelectedList}>
-                Guardar
+              <button
+                className="action-btn"
+                onClick={handleRenameList}
+                disabled={!hasSelectedList}
+                type="button"
+              >
+                <LuPencil /> Guardar
               </button>
             </div>
-          </div>
 
+            <button
+              className="action-btn danger action-btn--full"
+              onClick={handleDeleteList}
+              disabled={!hasSelectedList}
+              type="button"
+            >
+              <LuTrash2 /> Eliminar Playlist
+            </button>
+          </div>
+        </article>
+
+        <article className="manager-card">
+          <div className="manager-card__header">
+            <span className="config-label">
+              <LuFolder /> Fuente Activa
+            </span>
+            <small>Referencia rapida de lo que esta sonando y de la lista asociada actualmente.</small>
+          </div>
+          <div className="source-summary">
+            <div className="source-summary__item">
+              <span>Fuente activa</span>
+              <strong>{sourceLabel}</strong>
+            </div>
+            <div className="source-summary__item">
+              <span>Vinculo activo</span>
+              <strong>{activeAssociationName}</strong>
+            </div>
+          </div>
+        </article>
+
+        <article className="manager-card">
+          <div className="manager-card__header">
+            <span className="config-label">
+              <LuLink /> Vinculo Automatico
+            </span>
+            <small>Asigna la preset list elegida a la fuente que esta reproduciendo ahora mismo.</small>
+          </div>
           <div className="list-actions-row">
             <button
               className="action-btn primary"
               onClick={() => associateActiveSource?.(selectedList?.id)}
               disabled={!hasSelectedList || !hasActiveSource}
+              type="button"
             >
-              <LuLink /> Vinculo automatico
+              <LuLink /> Vinculo Automatico
             </button>
             <button
               className="action-btn"
               onClick={() => removeActiveSourceAssociation?.()}
               disabled={!hasActiveSource}
+              type="button"
             >
-              <LuUnlink /> Quitar automatico
-            </button>
-            <button className="action-btn danger" onClick={handleDeleteList} disabled={!hasSelectedList}>
-              <LuTrash2 /> Eliminar lista
+              <LuUnlink /> Quitar vinculo activo
             </button>
           </div>
+        </article>
 
-          <div className="config-section">
-            <label className="config-label">
-              <LuFolder /> Vinculo manual
-            </label>
+        <article className="manager-card manager-card--full">
+          <div className="manager-card__header">
+            <span className="config-label">
+              <LuList /> Asignar relacion
+            </span>
+            <small>Escoge una fuente concreta de directorio, playlist o favoritos y vinculala manualmente.</small>
+          </div>
+          <div className="manager-stack">
             <select
               className="manager-select"
               value={manualSourceKey}
@@ -517,96 +554,189 @@ const VisualizerPresetManager = ({
                 </option>
               ))}
             </select>
+
             <div className="manager-note">
-              Vinculada ahora a: {manualAssociationListName}
+              Vinculada ahora a: <strong>{manualAssociationListName}</strong>
+            </div>
+
+            <div className="list-actions-row">
+              <button
+                className="action-btn"
+                onClick={handleManualAssociate}
+                disabled={!hasSelectedList || !manualSource}
+                type="button"
+              >
+                <LuLink /> Vincular manualmente
+              </button>
+              <button
+                className="action-btn"
+                onClick={handleManualRemoveAssociation}
+                disabled={!manualSource}
+                type="button"
+              >
+                <LuUnlink /> Quitar vinculo
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+
+  const renderPresetLibraryTab = () => (
+    <section className="preset-tab-view preset-tab-view--library">
+      <div className="preset-library-toolbar">
+        <label className="catalog-search catalog-search--full">
+          <LuSearch />
+          <input
+            type="text"
+            value={catalogQuery}
+            placeholder="Search Preset"
+            onChange={(event) => setCatalogQuery(event.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="preset-manager-columns preset-manager-columns--library">
+        <section className="preset-column">
+          <div className="preset-column__header">
+            <div>
+              <span className="preset-column__eyebrow">Selected List</span>
+              <h3>{selectedList?.name || 'Sin lista'}</h3>
+              <span>{selectedPresetItems.length} presets guardados</span>
+            </div>
+            <div className="preset-column__meta">
+              {hasSelectedList ? <LuCheck /> : <LuList />}
+              <span>{hasSelectedList ? 'Lista activa' : 'Selecciona una preset list'}</span>
             </div>
           </div>
 
-          <div className="list-actions-row">
-            <button
-              className="action-btn"
-              onClick={handleManualAssociate}
-              disabled={!hasSelectedList || !manualSource}
-            >
-              <LuLink /> Vincular manualmente
-            </button>
-            <button
-              className="action-btn"
-              onClick={handleManualRemoveAssociation}
-              disabled={!manualSource}
-            >
-              <LuUnlink /> Quitar vinculo manual
-            </button>
-          </div>
-        </div>
-
-        {!hasSelectedList ? (
-          <div className="preset-manager-empty-shell">
-            <div className="empty-state">
+          {!hasSelectedList ? (
+            <div className="empty-state empty-state--compact">
               <LuList className="empty-icon" />
-              <p>Crea o selecciona una lista para editar sus presets.</p>
-              <small>El catalogo y la lista guardada aparecen cuando hay una lista activa.</small>
+              <p>No hay preset list seleccionada.</p>
+              <small>Elige una lista en List Manager para empezar a curar presets aqui.</small>
+            </div>
+          ) : selectedPresetItems.length === 0 ? (
+            <div className="empty-state empty-state--compact">
+              <LuMusic className="empty-icon" />
+              <p>Esta lista todavia no tiene presets.</p>
+              <small>Agrega presets desde la biblioteca para poblarla.</small>
+            </div>
+          ) : (
+            <VirtualizedPresetPane
+              className="preset-virtual-list"
+              items={selectedPresetItems}
+              itemKey={(preset) => preset.id}
+              renderRow={renderSelectedPresetRow}
+            />
+          )}
+        </section>
+
+        <section className="preset-column">
+          <div className="preset-column__header">
+            <div>
+              <span className="preset-column__eyebrow">All preset list</span>
+              <h3>Preset Library</h3>
+              <span>{availableCatalogItems.length} presets disponibles</span>
             </div>
           </div>
-        ) : (
-          <div className="preset-manager-columns">
-            <section className="preset-column">
-              <div className="preset-column__header">
-                <div>
-                  <h3>Mi lista</h3>
-                  <span>{selectedPresetItems.length} presets guardados</span>
-                </div>
-              </div>
 
-              {selectedPresetItems.length === 0 ? (
-                <div className="empty-state empty-state--compact">
-                  <LuMusic className="empty-icon" />
-                  <p>Esta lista todavia no tiene presets.</p>
-                  <small>Agrega presets desde el catalogo de la derecha.</small>
-                </div>
-              ) : (
-                <VirtualizedPresetPane
-                  className="preset-virtual-list"
-                  items={selectedPresetItems}
-                  itemKey={(preset) => preset.id}
-                  renderRow={renderSelectedPresetRow}
-                />
-              )}
-            </section>
+          {availableCatalogItems.length === 0 ? (
+            <div className="empty-state empty-state--compact">
+              <LuSearch className="empty-icon" />
+              <p>No hay presets para esa busqueda.</p>
+            </div>
+          ) : (
+            <VirtualizedPresetPane
+              className="preset-virtual-list"
+              items={availableCatalogItems}
+              itemKey={(preset) => `catalog-${preset.id}`}
+              renderRow={renderCatalogPresetRow}
+            />
+          )}
+        </section>
+      </div>
+    </section>
+  );
 
-            <section className="preset-column">
-              <div className="preset-column__header">
-                <div>
-                  <h3>Catalogo</h3>
-                  <span>{availableCatalogItems.length} presets disponibles</span>
-                </div>
-                <label className="catalog-search">
-                  <LuSearch />
-                  <input
-                    type="text"
-                    value={catalogQuery}
-                    placeholder="Buscar preset"
-                    onChange={(e) => setCatalogQuery(e.target.value)}
-                  />
-                </label>
-              </div>
+  const renderActiveTab = () => {
+    if (activeTab === 'list-manager') {
+      return renderListManagerTab();
+    }
 
-              {availableCatalogItems.length === 0 ? (
-                <div className="empty-state empty-state--compact">
-                  <LuSearch className="empty-icon" />
-                  <p>No hay presets para esa busqueda.</p>
-                </div>
-              ) : (
-                <VirtualizedPresetPane
-                  className="preset-virtual-list"
-                  items={availableCatalogItems}
-                  itemKey={(preset) => `catalog-${preset.id}`}
-                  renderRow={renderCatalogPresetRow}
-                />
-              )}
-            </section>
+    if (activeTab === 'preset-library') {
+      return renderPresetLibraryTab();
+    }
+
+    return (
+      <ControllerTab
+        currentPresetName={currentPresetName}
+        currentSourceMode={currentSourceMode}
+        presetSource={presetSource}
+        handlePresetSourceModeChange={handlePresetSourceModeChange}
+        handlePresetSourceListChange={handlePresetSourceListChange}
+        sourceLabel={sourceLabel}
+        cycleDurationMs={cycleDurationMs}
+        setCycleDurationMs={setCycleDurationMs}
+        isShuffled={isShuffled}
+        toggleShuffle={toggleShuffle}
+        DURATION_OPTIONS={DURATION_OPTIONS}
+        PRESET_SOURCE_OPTIONS={PRESET_SOURCE_OPTIONS}
+        presetLists={presetLists}
+        allPresets={allPresets}
+      />
+    );
+  };
+
+  return (
+    <div
+      className={isPage ? 'preset-manager-page' : 'preset-manager-overlay'}
+      onClick={isPage ? undefined : onClose}
+    >
+      <div
+        className={`preset-manager-panel ${isPage ? 'preset-manager-panel--page' : ''}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <header className="preset-manager-header">
+          <div className="preset-manager-header__copy">
+            <span className="preset-manager-header__eyebrow">Preset Control Room</span>
+            <h2>Administrador de Presets</h2>
+            <p>
+              Construye listas visuales, cambia el ritmo del loop y vincula cada fuente con una
+              identidad propia.
+            </p>
           </div>
-        )}
+
+          <div className="preset-manager-header__status">
+            <div className="preset-manager-header__status-card">
+              <span>Preset activo</span>
+              <strong>{currentPresetName || 'Sin seleccion'}</strong>
+            </div>
+            <button className="close-btn" onClick={onClose} aria-label="Cerrar administrador">
+              <LuX />
+            </button>
+          </div>
+        </header>
+
+
+
+        <section className="preset-manager-tabs" aria-label="Preset manager tabs">
+          {TAB_OPTIONS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`preset-tab-trigger ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </section>
+
+        <section className="preset-manager-workbench preset-manager-workbench--tabs">
+          {renderActiveTab()}
+        </section>
       </div>
     </div>
   );

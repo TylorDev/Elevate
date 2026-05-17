@@ -7,15 +7,47 @@ const ALL_PRESET_KEYS = Object.keys(PRESET_CATALOG);
 const STORAGE_KEYS = {
   favorites: 'visualizerPresetFavorites',
   cycleDuration: 'visualizerCycleDurationMs',
-  cycleMode: 'visualizerCycleMode',
   source: 'visualizerPresetSource',
   presetLists: 'visualizerPresetLists',
   sourceAssociations: 'visualizerPresetSourceAssociations'
 };
 
 const DEFAULT_CYCLE_DURATION = 6000;
-const DEFAULT_CYCLE_MODE = 'random';
-const DEFAULT_SOURCE = 'all';
+const DEFAULT_SOURCE = Object.freeze({
+  mode: 'all',
+  listId: null
+});
+
+function normalizePresetSource(rawValue) {
+  if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
+    const mode = rawValue.mode === 'favorites' || rawValue.mode === 'list' ? rawValue.mode : 'all';
+    const listId = typeof rawValue.listId === 'string' && rawValue.listId.trim() ? rawValue.listId : null;
+
+    if (mode === 'list') {
+      return {
+        mode,
+        listId
+      };
+    }
+
+    return {
+      mode,
+      listId: null
+    };
+  }
+
+  if (rawValue === 'favorites') {
+    return {
+      mode: 'favorites',
+      listId: null
+    };
+  }
+
+  return {
+    mode: 'all',
+    listId: null
+  };
+}
 
 const shuffleArray = (array) => {
   const shuffled = [...array];
@@ -120,11 +152,9 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
   const [cycleDurationMs, setCycleDurationMs] = useState(() => 
     loadFromStorage(STORAGE_KEYS.cycleDuration, DEFAULT_CYCLE_DURATION)
   );
-  const [cycleMode, setCycleMode] = useState(() => 
-    loadFromStorage(STORAGE_KEYS.cycleMode, DEFAULT_CYCLE_MODE)
-  );
+
   const [presetSource, setPresetSource] = useState(() => 
-    loadFromStorage(STORAGE_KEYS.source, DEFAULT_SOURCE)
+    normalizePresetSource(loadFromStorage(STORAGE_KEYS.source, DEFAULT_SOURCE))
   );
   const [presetLists, setPresetLists] = useState(() =>
     loadFromStorage(STORAGE_KEYS.presetLists, [])
@@ -133,14 +163,13 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     loadFromStorage(STORAGE_KEYS.sourceAssociations, {})
   );
 
-  const [shuffledKeys, setShuffledKeys] = useState([]);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [shuffledOrder, setShuffledOrder] = useState([]);
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0);
   const [isPresetPaused, setIsPresetPaused] = useState(false);
   const presetIntervalRef = useRef(null);
 
-  useEffect(() => {
-    setShuffledKeys(shuffleArray(ALL_PRESET_KEYS));
-  }, []);
+
 
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.favorites, favorites);
@@ -150,9 +179,7 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     saveToStorage(STORAGE_KEYS.cycleDuration, cycleDurationMs);
   }, [cycleDurationMs]);
 
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.cycleMode, cycleMode);
-  }, [cycleMode]);
+
 
   useEffect(() => {
     saveToStorage(STORAGE_KEYS.source, presetSource);
@@ -193,31 +220,67 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     return presetLists.find((list) => list.id === activeListId) || null;
   }, [activeSourceKey, presetLists, sourceAssociations]);
 
+  const selectedPresetSourceList = useMemo(() => {
+    if (presetSource.mode !== 'list' || !presetSource.listId) {
+      return null;
+    }
+
+    return presetLists.find((list) => list.id === presetSource.listId) || null;
+  }, [presetLists, presetSource.listId, presetSource.mode]);
+
+  const favoritePresetItems = useMemo(
+    () => allPresetItems.filter((preset) => preset.isFavorite),
+    [allPresetItems]
+  );
+
+  const favoritePresetNames = useMemo(
+    () => favoritePresetItems.map((preset) => preset.name),
+    [favoritePresetItems]
+  );
+
   const activePresetNames = useMemo(() => {
-    if (activePresetList && Array.isArray(activePresetList.presetNames)) {
-      const validPresetItems = mapPresetNamesToItems(activePresetList.presetNames, presetByName);
+    if (presetSource.mode === 'favorites') {
+      return favoritePresetNames.length > 0 ? favoritePresetNames : ALL_PRESET_KEYS;
+    }
+
+    if (presetSource.mode === 'list') {
+      const validPresetItems = mapPresetNamesToItems(
+        selectedPresetSourceList?.presetNames || [],
+        presetByName
+      );
       return validPresetItems.length > 0 ? validPresetItems.map((preset) => preset.name) : ALL_PRESET_KEYS;
     }
 
     return ALL_PRESET_KEYS;
-  }, [activePresetList, presetByName]);
+  }, [favoritePresetNames, presetByName, presetSource.mode, selectedPresetSourceList?.presetNames]);
 
   const activePresetItems = useMemo(() => {
     return mapPresetNamesToItems(activePresetNames, presetByName);
   }, [activePresetNames, presetByName]);
 
-  const hasBoundPresetList = Boolean(activePresetList && activePresetNames.length > 0);
+  const toggleShuffle = useCallback(() => {
+    setIsShuffled((prev) => {
+      const next = !prev;
+      if (next) {
+        setShuffledOrder(shuffleArray(activePresetNames));
+      } else {
+        setShuffledOrder([]);
+      }
+      return next;
+    });
+  }, [activePresetNames]);
+
+  useEffect(() => {
+    setIsShuffled(false);
+    setShuffledOrder([]);
+  }, [activePresetNames]);
 
   const getCurrentOrder = useCallback(() => {
-    if (!hasBoundPresetList) {
-      return shuffledKeys.filter((key) => activePresetNames.includes(key));
+    if (isShuffled) {
+      return shuffledOrder;
     }
-
-    if (cycleMode === 'linear') {
-      return activePresetNames;
-    }
-    return shuffledKeys.filter(key => activePresetNames.includes(key));
-  }, [activePresetNames, cycleMode, hasBoundPresetList, shuffledKeys]);
+    return activePresetNames;
+  }, [activePresetNames, isShuffled, shuffledOrder]);
 
   const currentOrder = useMemo(() => getCurrentOrder(), [getCurrentOrder]);
 
@@ -227,7 +290,7 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     if (currentOrder.length > 0 && !currentOrder.includes(currentPresetName)) {
       setCurrentPresetIndex(0);
     }
-  }, [presetSource, cycleMode, currentOrder, currentPresetName]);
+  }, [presetSource, isShuffled, currentOrder, currentPresetName]);
 
   const nextPreset = useCallback(() => {
     if (currentOrder.length === 0) return;
@@ -340,6 +403,22 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
       return nextAssociations;
     });
   }, []);
+
+  useEffect(() => {
+    setPresetSource((currentSource) => {
+      const normalizedCurrentSource = normalizePresetSource(currentSource);
+
+      if (
+        normalizedCurrentSource.mode === 'list' &&
+        normalizedCurrentSource.listId &&
+        !presetLists.some((list) => list.id === normalizedCurrentSource.listId)
+      ) {
+        return DEFAULT_SOURCE;
+      }
+
+      return normalizedCurrentSource;
+    });
+  }, [presetLists]);
 
   const togglePresetInList = useCallback((listId, presetName) => {
     if (!listId || !ALL_PRESET_KEYS.includes(presetName)) {
@@ -458,11 +537,12 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     setPresetByName,
     allPresetItems,
     activePresetItems,
-    favoritePresetNames: favorites,
+    favoritePresetNames,
+    favoritePresetItems,
     cycleDurationMs,
     setCycleDurationMs,
-    cycleMode,
-    setCycleMode,
+    isShuffled,
+    toggleShuffle,
     presetSource,
     setPresetSource,
     toggleFavorite,
@@ -474,6 +554,7 @@ export function useVisualizerPresets({ activePlaybackSource = null } = {}) {
     activePlaybackSource,
     activeSourceKey,
     activePresetList,
+    selectedPresetSourceList,
     createPresetList,
     renamePresetList,
     deletePresetList,
