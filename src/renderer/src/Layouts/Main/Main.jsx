@@ -2,6 +2,7 @@ import { ToastContainer } from 'react-toastify'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import Background from '../../Components/Background/Background'
+import { VisualizerProvider } from '../../Contexts/VisualizerContext'
 import StatusBar from '../../components/StatusBar/StatusBar'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
@@ -39,9 +40,11 @@ function Main() {
           <Header />
         </aside>
       ) : null}
-      <main className="outlet" ref={scrollRef}>
-        <Outlet />
-      </main>
+      <VisualizerProvider>
+        <main className="outlet" ref={scrollRef}>
+          <Outlet />
+        </main>
+      </VisualizerProvider>
       <div className="Main__player">
         <AudioPlayer />
       </div>

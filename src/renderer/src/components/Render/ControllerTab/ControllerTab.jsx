@@ -1,27 +1,63 @@
-import React from 'react';
-import { LuMusic, LuList, LuClock, LuShuffle } from 'react-icons/lu';
-import './ControllerTab.scss';
+import React from 'react'
+import { LuMusic, LuList, LuClock, LuShuffle } from 'react-icons/lu'
+import { getSourceLabel, UseViz } from '../../../Contexts/VisualizerContext'
+import './ControllerTab.scss'
 
-const ControllerTab = ({
-  currentPresetName, // Still needed for the active item highlight in the temp list
-  currentSourceMode,
-  presetSource,
-  handlePresetSourceModeChange,
-  handlePresetSourceListChange,
-  sourceLabel,
-  cycleDurationMs,
-  setCycleDurationMs,
-  isShuffled,
-  toggleShuffle,
-  DURATION_OPTIONS,
-  PRESET_SOURCE_OPTIONS,
-  presetLists,
-  allPresets
-}) => {
+const DURATION_OPTIONS = [
+  { value: 5000, label: '5s' },
+  { value: 10000, label: '10s' },
+  { value: 15000, label: '15s' },
+  { value: 30000, label: '30s' }
+]
+
+const PRESET_SOURCE_OPTIONS = [
+  { value: 'all', label: 'All presets' },
+  { value: 'list', label: 'Specific List' },
+  { value: 'favorites', label: 'Favourites' }
+]
+
+const ControllerTab = () => {
+  const {
+    allPresets,
+    currentPresetName,
+    cycleDurationMs,
+    isShuffled,
+    presetLists,
+    presetSource,
+    activePlaybackSource,
+    setCycleDurationMs,
+    setPresetSource,
+    toggleShuffle
+  } = UseViz()
+
+  const currentSourceMode = presetSource?.mode || 'all'
+  const sourceLabel = getSourceLabel(activePlaybackSource)
+
+  const handlePresetSourceModeChange = (nextMode) => {
+    if (nextMode === 'list') {
+      setPresetSource({
+        mode: 'list',
+        listId: presetSource?.listId || presetLists[0]?.id || null
+      })
+      return
+    }
+
+    setPresetSource({
+      mode: nextMode,
+      listId: null
+    })
+  }
+
+  const handlePresetSourceListChange = (listId) => {
+    setPresetSource({
+      mode: 'list',
+      listId: listId || null
+    })
+  }
+
   return (
     <section className="preset-tab-view preset-tab-view--controller">
       <div className="preset-grid preset-grid--controller">
-        
         {/* Row 1: Col 1 */}
         <article className="manager-card">
           <div className="manager-card__header">
@@ -56,10 +92,6 @@ const ControllerTab = ({
                 ))}
               </select>
             )}
-
-            <div className="manager-note">
-              Reproduciendo desde: <strong>{sourceLabel}</strong>
-            </div>
           </div>
         </article>
 
@@ -70,7 +102,7 @@ const ControllerTab = ({
               <LuList /> Current List (Temp)
             </span>
           </div>
-          
+
           <div className="temp-list-container">
             {allPresets.length === 0 ? (
               <div className="empty-state empty-state--compact">
@@ -79,10 +111,10 @@ const ControllerTab = ({
             ) : (
               <div className="temp-list-scroll">
                 {allPresets.map((presetName, index) => {
-                  const isActive = currentPresetName === presetName;
+                  const isActive = currentPresetName === presetName
                   return (
-                    <div 
-                      key={`${presetName}-${index}`} 
+                    <div
+                      key={`${presetName}-${index}`}
                       className={`preset-item ${isActive ? 'active' : ''}`}
                     >
                       <div className="preset-info">
@@ -91,7 +123,7 @@ const ControllerTab = ({
                         <span className="preset-name">{presetName}</span>
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
@@ -133,15 +165,12 @@ const ControllerTab = ({
             <span className="toggle-pill__track">
               <span className="toggle-pill__thumb" />
             </span>
-            <span className="toggle-pill__label">
-              {isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}
-            </span>
+            <span className="toggle-pill__label">{isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}</span>
           </button>
         </article>
-
       </div>
     </section>
-  );
-};
+  )
+}
 
-export default ControllerTab;
+export default ControllerTab

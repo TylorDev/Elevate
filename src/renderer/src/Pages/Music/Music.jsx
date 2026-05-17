@@ -3,11 +3,8 @@ import { FixedSizeList } from 'react-window'
 import './Music.scss'
 
 import Render from '../../components/Render/Render'
-import {
-  normalizePlaybackSource,
-  useVisualizerPresets
-} from '../../components/Render/useVisualizerPresets'
 import { OverflowMenu } from '../../components/OverflowMenu/OverflowMenu'
+import { UseViz } from '../../Contexts/VisualizerContext'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
@@ -74,12 +71,7 @@ function Music() {
   const menuRef = useRef(null)
   const presetPreviewListRef = useRef(null)
 
-  const activePlaybackSource = useMemo(
-    () => normalizePlaybackSource(queueState?.queueName),
-    [queueState?.queueName]
-  )
-
-  const presetControls = useVisualizerPresets({ activePlaybackSource })
+  const presetControls = UseViz()
   const {
     currentPresetIndex,
     currentPresetName: rawCurrentPresetName,
