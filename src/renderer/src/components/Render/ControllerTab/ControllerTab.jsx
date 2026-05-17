@@ -1,6 +1,9 @@
 import React from 'react'
-import { LuMusic, LuList, LuClock, LuShuffle } from 'react-icons/lu'
-import { getSourceLabel, UseViz } from '../../../Contexts/VisualizerContext'
+import { LuList, LuClock, LuShuffle } from 'react-icons/lu'
+import EmptyState from '../InternalComponents/EmptyState'
+import PresetRow from '../InternalComponents/PresetRow'
+import TabCard from '../InternalComponents/TabCard'
+import { UseViz } from '../../../Contexts/VisualizerContext'
 import './ControllerTab.scss'
 
 const DURATION_OPTIONS = [
@@ -24,14 +27,12 @@ const ControllerTab = () => {
     isShuffled,
     presetLists,
     presetSource,
-    activePlaybackSource,
     setCycleDurationMs,
     setPresetSource,
     toggleShuffle
   } = UseViz()
 
   const currentSourceMode = presetSource?.mode || 'all'
-  const sourceLabel = getSourceLabel(activePlaybackSource)
 
   const handlePresetSourceModeChange = (nextMode) => {
     if (nextMode === 'list') {
@@ -56,18 +57,11 @@ const ControllerTab = () => {
   }
 
   return (
-    <section className="preset-tab-view preset-tab-view--controller">
-      <div className="preset-grid preset-grid--controller">
-        {/* Row 1: Col 1 */}
-        <article className="manager-card">
-          <div className="manager-card__header">
-            <span className="config-label">
-              <LuList /> Current List
-            </span>
-          </div>
-          <div className="manager-stack">
+    <section>
+      <div>
+        <TabCard eyebrow="Current List" icon={LuList}>
+          <div>
             <select
-              className="manager-select"
               value={currentSourceMode}
               onChange={(event) => handlePresetSourceModeChange(event.target.value)}
             >
@@ -80,7 +74,6 @@ const ControllerTab = () => {
 
             {currentSourceMode === 'list' && (
               <select
-                className="manager-select"
                 value={presetSource?.listId || ''}
                 onChange={(event) => handlePresetSourceListChange(event.target.value)}
               >
@@ -93,52 +86,33 @@ const ControllerTab = () => {
               </select>
             )}
           </div>
-        </article>
+        </TabCard>
 
-        {/* Row 1, 2, 3: Col 2 (Spans 3 Rows) */}
-        <article className="manager-card manager-card--temp-list">
-          <div className="manager-card__header">
-            <span className="config-label">
-              <LuList /> Current List (Temp)
-            </span>
-          </div>
-
-          <div className="temp-list-container">
+        <TabCard eyebrow="Current List (Temp)" icon={LuList}>
+          <div>
             {allPresets.length === 0 ? (
-              <div className="empty-state empty-state--compact">
-                <p>No hay presets activos.</p>
-              </div>
+              <EmptyState title="No hay presets activos." icon={null} />
             ) : (
-              <div className="temp-list-scroll">
+              <div>
                 {allPresets.map((presetName, index) => {
                   const isActive = currentPresetName === presetName
                   return (
-                    <div
+                    <PresetRow
+                      active={isActive}
+                      index={index}
+                      isStatic
                       key={`${presetName}-${index}`}
-                      className={`preset-item ${isActive ? 'active' : ''}`}
-                    >
-                      <div className="preset-info">
-                        <span className="preset-index">{index + 1}</span>
-                        <LuMusic className="preset-icon" />
-                        <span className="preset-name">{presetName}</span>
-                      </div>
-                    </div>
+                      name={presetName}
+                    />
                   )
                 })}
               </div>
             )}
           </div>
-        </article>
+        </TabCard>
 
-        {/* Row 2: Col 1 */}
-        <article className="manager-card">
-          <div className="manager-card__header">
-            <span className="config-label">
-              <LuClock /> Selector de ciclo
-            </span>
-          </div>
+        <TabCard eyebrow="Selector de ciclo" icon={LuClock}>
           <select
-            className="manager-select"
             value={String(cycleDurationMs)}
             onChange={(event) => setCycleDurationMs(Number(event.target.value))}
           >
@@ -148,26 +122,19 @@ const ControllerTab = () => {
               </option>
             ))}
           </select>
-        </article>
+        </TabCard>
 
-        {/* Row 3: Col 1 */}
-        <article className="manager-card">
-          <div className="manager-card__header">
-            <span className="config-label">
-              <LuShuffle /> Shuffle
-            </span>
-          </div>
+        <TabCard eyebrow="Shuffle" icon={LuShuffle}>
           <button
-            className={`toggle-pill ${isShuffled ? 'active' : ''}`}
             onClick={toggleShuffle}
             type="button"
           >
-            <span className="toggle-pill__track">
-              <span className="toggle-pill__thumb" />
+            <span>
+              <span />
             </span>
-            <span className="toggle-pill__label">{isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}</span>
+            <span>{isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}</span>
           </button>
-        </article>
+        </TabCard>
       </div>
     </section>
   )

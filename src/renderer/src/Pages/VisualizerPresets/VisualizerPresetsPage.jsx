@@ -5,13 +5,7 @@ import './VisualizerPresetsPage.scss'
 function VisualizerPresetsPage() {
   const navigate = useNavigate()
 
-  return (
-    <div className="visualizer-presets-page">
-      <div className="visualizer-presets-page__manager-shell">
-        <VisualizerPresetManager isPage onClose={() => navigate('/music')} />
-      </div>
-    </div>
-  )
+  return <VisualizerPresetManager isPage onClose={() => navigate('/music')} />
 }
 
 export default VisualizerPresetsPage
