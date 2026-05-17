@@ -1,11 +1,15 @@
+import { LuEye, LuSkipForward } from 'react-icons/lu'
+
 export function AudioPlayerStats({ shortViews, skips }) {
   return (
     <div className="AudioPlayer__Stats">
       <span className="AudioPlayer__cortas">
-        <strong>{shortViews}</strong> Cortas
+        <LuEye />
+        <strong>{shortViews}</strong>
       </span>
       <span className="AudioPlayer__skips">
-        <strong>{skips}</strong> Skips
+        <LuSkipForward />
+        <strong>{skips}</strong>
       </span>
     </div>
   )

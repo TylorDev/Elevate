@@ -73,9 +73,9 @@ export function AudioPlayer() {
         <img src={currentCover || undefined} alt="Cover" />
       </div>
 
-      <AudioPlayerMetadata title={title} artist={artist} />
-
-      <AudioPlayerStats shortViews={shortViews} skips={skips} />
+      <AudioPlayerMetadata title={title} artist={artist}>
+        <AudioPlayerStats shortViews={shortViews} skips={skips} />
+      </AudioPlayerMetadata>
 
       <div className="AudioPlayer__controls" id="controls">
         <AudioPlayerButton
@@ -99,6 +99,18 @@ export function AudioPlayer() {
 
       <div className="AudioPlayer__like-container">
         <div className="Secondary-Controls">
+          <AudioPlayerButton
+            variant="like"
+            className={likeState.currentLike ? 'liked' : ''}
+            onClick={handleLikeClick}
+            ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
+            disabled={!currentFile}
+          >
+            {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
+          </AudioPlayerButton>
+
+          <SliderVolume />
+
           <PlayerMenu
             isMenuOpen={isMenuOpen}
             setIsMenuOpen={setIsMenuOpen}
@@ -111,18 +123,6 @@ export function AudioPlayer() {
             loop={loop}
             toggleRepeat={toggleRepeat}
           />
-
-          <AudioPlayerButton
-            variant="like"
-            className={likeState.currentLike ? 'liked' : ''}
-            onClick={handleLikeClick}
-            ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
-            disabled={!currentFile}
-          >
-            {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
-          </AudioPlayerButton>
-
-          <SliderVolume />
         </div>
       </div>
     </div>

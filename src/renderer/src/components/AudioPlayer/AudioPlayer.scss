@@ -6,13 +6,12 @@
     background-color: $principal;
     color: white;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-    grid-template-rows: auto auto auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
     grid-template-areas:
         "progressRow progressRow progressRow progressRow"
-        "cover       Metadata    controls    secondaryControls"
-        "cover       Metadata    controls    secondaryControls"
-        "cover       Stats       controls    secondaryControls";
+        "cover Metadata    controls secondaryControls"
+        "cover Metadata    controls secondaryControls";
     align-items: center;
     gap: 0.25rem 0.75rem;
     padding: 0.0rem 0.75rem;
@@ -59,6 +58,7 @@
         overflow: hidden;
         cursor: pointer;
         transition: filter 0.2s;
+        margin-top: 0.5rem;
 
         &:hover {
             filter: brightness(0.8);
@@ -98,10 +98,12 @@
     }
 
     &__Stats {
-        grid-area: Stats;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        margin-top: 0.35rem;
+        min-width: 0;
+        flex-wrap: wrap;
     }
 
     &__cortas {
@@ -144,6 +146,7 @@
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
+        align-self: stretch;
     }
 
     &__like-container {
@@ -210,16 +213,20 @@
     gap: 0.12rem;
 }
 
+.AudioPlayer__menu-inline {
+    display: none;
+}
+
 
 
 @media (min-width: 950px) and (max-width: 1360px) {
     .AudioPlayer {
-        grid-template-columns: auto minmax(8rem, 1fr) auto auto;
+        grid-template-columns: 7rem minmax(8rem, 1fr) auto auto;
         grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
         grid-template-areas:
             "cover Metadata progressRow        progressRow"
             "cover Metadata controls           secondaryControls"
-            "cover Stats    .                  .";
+            "cover Metadata controls           secondaryControls";
 
        
         align-items: center;
@@ -255,23 +262,8 @@
             justify-self: stretch;
         }
 
-        &__current-time,
-        &__duration {
-            font-size: 0.7rem;
-        }
-
-        &__Stats {
-            align-self: start;
-            gap: 0.35rem;
-            flex-wrap: wrap;
-            min-width: 0;
-        }
-
-        &__cortas,
-        &__skips {
-            font-size: 0.65rem;
-            padding: 0.1rem 0.42rem;
-        }
+    
+     
 
         &__controls {
             justify-self: center;
@@ -288,9 +280,177 @@
             margin-inline: -0.08rem;
         }
 
-        .SliderVolume,
-        &__menu {
+        .SliderVolume {
             margin-inline: -0.08rem;
+        }
+
+        &__menu {
+            width: 100%;
+            justify-content: flex-start;
+            margin-inline: -0.08rem;
+        }
+
+        .AudioPlayer__menu-trigger,
+        .AudioPlayer__menu-panel {
+            display: none;
+        }
+
+        .AudioPlayer__menu-inline {
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.14rem;
+            width: 100%;
+
+            button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.32rem;
+                min-height: 2.1rem;
+                padding: 0.28rem 0.54rem;
+                border: none;
+                border-radius: 999px;
+                background: transparent;
+                color: rgba(255, 255, 255, 0.7);
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s, transform 0.1s;
+
+                &:hover {
+                    background: rgba(255, 255, 255, 0.08);
+                    color: white;
+                }
+
+                &.is-active {
+                    color: $text-principal;
+                    background: rgba(255, 255, 255, 0.08);
+                }
+
+                svg {
+                    font-size: 0.95rem;
+                    flex-shrink: 0;
+                }
+
+                span {
+                    font-size: 0.72rem;
+                    font-weight: 600;
+                    line-height: 1;
+                    white-space: nowrap;
+                }
+            }
+        }
+    }
+}
+
+@media (min-width: 1360px) {
+    .AudioPlayer {
+        grid-template-columns: auto 15rem auto minmax(14rem, 1fr);
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas:
+            "cover Metadata progressRow progressRow"
+            "cover Metadata controls secondaryControls"
+            "cover Metadata controls secondaryControls";
+
+            gap: 0rem 1rem;
+        &__cover {
+            height: 100%;
+            max-height: 7.4rem;
+            align-self: stretch;
+        }
+
+        &__Metadata {
+            align-self: stretch;
+            justify-content: flex-start;
+            min-width: 0;
+            padding-top: 0.35rem;
+        
+        }
+
+        &__progress-row {
+            min-width: 0;
+        
+            
+    
+        }
+
+        &__controls {
+          
+           
+              align-self: center;
+          
+              height: 100%;
+        }
+
+        &__like-container {
+            justify-self: start;
+            align-self: center;
+            min-width: 0;
+            
+            
+        }
+    }
+
+    .Secondary-Controls {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 0.12rem;
+    }
+
+    .AudioPlayer__menu-trigger,
+    .AudioPlayerButton.AudioPlayerButton--menu.AudioPlayer__menu-trigger,
+    .AudioPlayer__menu-panel {
+        display: none !important;
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .AudioPlayer__menu {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .AudioPlayer__menu-inline {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.18rem;
+        width: 100%;
+
+        button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 2.3rem;
+            padding: 0.32rem 0.68rem;
+            border: none;
+            border-radius: 999px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, transform 0.1s;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.08);
+                color: white;
+            }
+
+            &.is-active {
+                color: $text-principal;
+                background: rgba(255, 255, 255, 0.08);
+            }
+
+            svg {
+                font-size: 1rem;
+                flex-shrink: 0;
+            }
+
+            span {
+                font-size: 0.78rem;
+                font-weight: 600;
+                line-height: 1;
+                white-space: nowrap;
+            }
         }
     }
 }

@@ -51,6 +51,7 @@ export function PlayerMenu({
     <div className="AudioPlayer__menu" ref={menuRef}>
       <AudioPlayerButton
         variant="menu"
+        className="AudioPlayer__menu-trigger"
         ariaLabel="Open player actions"
         aria-expanded={isMenuOpen}
         onClick={() => setIsMenuOpen((current) => !current)}
@@ -82,6 +83,40 @@ export function PlayerMenu({
           </button>
         </div>
       )}
+
+      <div className="AudioPlayer__menu-inline" role="group" aria-label="Secondary player actions">
+        <button
+          type="button"
+          className={isShuffled ? 'is-active' : ''}
+          onClick={toggleShuffle}
+          title="Shuffle"
+        >
+          <LuShuffle />
+          <span>Shuffle</span>
+        </button>
+        <button
+          type="button"
+          className={isStep ? 'is-active' : ''}
+          onClick={toggleStep}
+          title="Step"
+        >
+          <LuFootprints />
+          <span>Step</span>
+        </button>
+        <button
+          type="button"
+          className={loop ? 'is-active' : ''}
+          onClick={toggleRepeat}
+          title="Repeat"
+        >
+          {loop ? <LuRepeat /> : <LuRepeat1 />}
+          <span>Repeat</span>
+        </button>
+        <button type="button" onClick={() => navigate('/music')} title="Queue">
+          <LuListVideo />
+          <span>Queue</span>
+        </button>
+      </div>
     </div>
   )
 }

@@ -5,11 +5,11 @@ import MINI from 'butterchurn-presets/lib/elevate.min.js'
 import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 import './Render.scss'
 
-// [P2] Cache presets at module level — getPresets() returns a large object
+// [P2] Cache presets at module level â€” getPresets() returns a large object
 // that never changes at runtime. Avoids re-creating it every 6 seconds.
 const CACHED_PRESETS = MINI
 
-// [P5] Hoisted static style object — avoids creating a new object per render.
+// [P5] Hoisted static style object â€” avoids creating a new object per render.
 const CANVAS_STYLE = { display: 'block' }
 
 const Render = ({ audioElement, presetName }) => {
@@ -50,7 +50,7 @@ const Render = ({ audioElement, presetName }) => {
     }
   }, [])
 
-  // [P1] ResizeObserver — updates canvas + visualizer size imperatively.
+  // [P1] ResizeObserver â€” updates canvas + visualizer size imperatively.
   // No state updates, no re-renders, no visualizer teardown.
   useEffect(() => {
     const container = containerRef.current
@@ -84,7 +84,7 @@ const Render = ({ audioElement, presetName }) => {
     return () => observer.disconnect()
   }, [])
 
-  // Main initialization effect — only depends on audioElement.
+  // Main initialization effect â€” only depends on audioElement.
   // [P1] No longer depends on dimensions, so resize won't destroy the visualizer.
   useEffect(() => {
     if (!audioElement || !canvasRef.current) return
@@ -113,13 +113,6 @@ const Render = ({ audioElement, presetName }) => {
 
     // Load initial preset if available
     if (presetName && CACHED_PRESETS[presetName]) {
-      visualizer.loadExtraImages({
-        mi_logo: {
-          data: 'https://i.pinimg.com/1200x/14/28/e3/1428e3f6d372ac4480052b263fece18b.jpg', // o una URL
-          width: 512,
-          height: 512
-        }
-      })
       visualizer.loadPreset(CACHED_PRESETS[presetName], 0)
     }
 
@@ -159,7 +152,7 @@ const Render = ({ audioElement, presetName }) => {
     }
   }, [audioElement, hasDimensions, startRenderLoop, stopRenderLoop])
 
-  // [P3] Load preset dynamically — depends ONLY on presetName.
+  // [P3] Load preset dynamically â€” depends ONLY on presetName.
   // Previously had dimensions.width/height as deps which caused
   // duplicate preset loads on every resize.
   useEffect(() => {
