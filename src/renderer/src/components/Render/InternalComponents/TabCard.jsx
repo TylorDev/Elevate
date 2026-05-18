@@ -24,11 +24,11 @@ function TabCard({
               {title ? <h3 className="tab-card__title">{title}</h3> : null}
               {description ? <small className="tab-card__description">{description}</small> : null}
             </div>
-            {actions}
+            {actions ? <div className="tab-card__actions">{actions}</div> : null}
           </div>
         </div>
       )}
-      {children}
+      <div className="manager-card__body">{children}</div>
     </article>
   )
 }

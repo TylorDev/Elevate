@@ -7,7 +7,7 @@
     justify-content: center;
     height: 100%;
     width: 3.5rem;
-    background: var(--primary-color, #0a0a0a);
+    background: $card;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
     padding: 1.5rem 0;
 
@@ -32,7 +32,7 @@
         height: 2.4rem;
         width: 2.4rem;
         padding: 0;
-        border-radius: 6px;
+        border-radius: $border-radius;
         color: var(--text-secondary);
 
         display: flex;
@@ -40,31 +40,24 @@
         justify-content: center;
         position: relative;
         overflow: hidden;
+      
 
         svg {
             font-size: 1.1rem;
             min-width: 1.1rem;
+            
         }
 
         &:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
+            color:$primary-color;
+            background: $hover;
         }
 
         &.activo {
-            color: var(--text-principal);
-            background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
+            color: black;
+            background: $primary-color;
 
-            &::before {
-                content: '';
-                position: absolute;
-                left: 0;
-                top: 25%;
-                height: 50%;
-                width: 3px;
-                background: var(--text-principal);
-                border-radius: 0 4px 4px 0;
-            }
+          
         }
     }
 }

@@ -11,7 +11,7 @@
     border: 1px solid $secondary;
 
     a {
-        color: white;
+        color: $text-primary;
         text-decoration: none;
         font-weight: bold;
 
@@ -21,14 +21,14 @@
     }
 
     &:hover {
-        background-color: $secondary;
+        background-color: $hover;
     }
 }
 
 #loaddirItem {
     background-color: $secondary;
     margin-top: 0.5rem;
-    border-radius: 0.5rem;
+    border-radius: $border-radius;
 
 }
 
@@ -41,3 +41,4 @@
 .d-icon {
     font-size: 4rem;
 }
+

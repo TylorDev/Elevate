@@ -4,11 +4,16 @@ import './Music.scss'
 
 import Render from '../../components/Render/Render'
 import { OverflowMenu } from '../../components/OverflowMenu/OverflowMenu'
-import { UseViz } from '../../Contexts/VisualizerContext'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useNavigate } from 'react-router-dom'
+import {
+  useVisualizerCatalog,
+  useVisualizerFavoriteActions,
+  useVisualizerPlayback,
+  useVisualizerSources
+} from '../../components/Render/useVisualizerPresets'
 import {
   LuActivity,
   LuHeart,
@@ -71,19 +76,18 @@ function Music() {
   const menuRef = useRef(null)
   const presetPreviewListRef = useRef(null)
 
-  const presetControls = UseViz()
   const {
     currentPresetIndex,
     currentPresetName: rawCurrentPresetName,
     isPresetPaused,
     allPresets,
-    activePresetList,
     togglePresetPause,
     prevPreset,
-    nextPreset,
-    toggleFavorite,
-    isFavorite
-  } = presetControls
+    nextPreset
+  } = useVisualizerPlayback()
+  const { activePresetList } = useVisualizerSources()
+  const { isFavorite } = useVisualizerCatalog()
+  const { toggleFavorite } = useVisualizerFavoriteActions()
 
   useEffect(() => {
     if (mediaRef?.current) {

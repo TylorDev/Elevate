@@ -9,7 +9,7 @@
 
 
     padding: 0;
-    border-radius: 0.5rem;
+    border-radius: $border-radius;
 
     outline: 1px solid $text-secondary;
     width: 100%;
@@ -34,3 +34,4 @@
 .Cola__list--sortable {
     touch-action: none;
 }
+

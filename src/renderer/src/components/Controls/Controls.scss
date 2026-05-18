@@ -10,25 +10,25 @@
     gap: 0.4rem;
 
     svg {
-        color: white;
+        color: $text-primary;
         font-size: 1.35rem;
     }
 
     .btnPlay {
-        background-color: $text-principal !important;
+        background-color: $primary-color !important;
         width: 3rem !important;
         height: 3rem !important;
-        color: $principal !important;
-        border: 1px solid $text-principal !important;
+        color: $card !important;
+        border: 1px solid $primary-color !important;
 
         &:hover {
-            background-color: red;
+            background-color: $hover;
             filter: brightness(1.08);
         }
 
         svg {
-            color: $principal;
-            fill: $principal;
+            color: $card;
+            fill: $card;
             font-size: 1.35rem;
         }
     }
@@ -47,7 +47,7 @@
         z-index: 1800;
         min-width: 9.5rem;
         padding: 0.35rem;
-        border-radius: 0.5rem;
+        border-radius: $border-radius;
         background-color: $secondary;
 
         display: grid;
@@ -56,9 +56,9 @@
         button {
             width: 100%;
             border: 0;
-            border-radius: 0.35rem;
+            border-radius: $border-radius;
             background: transparent;
-            color: white;
+            color: $text-primary;
             cursor: pointer;
             display: grid;
             grid-template-columns: 1.5rem 1fr;
@@ -68,7 +68,7 @@
             text-align: left;
 
             &:hover {
-                background-color: $principal;
+                background-color: $hover;
             }
 
             span {
@@ -80,7 +80,8 @@
     .btnStep,
     .controls-overflow {
         .Step {
-            fill: $text-principal;
+            fill: $primary-color;
         }
     }
 }
+

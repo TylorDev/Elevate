@@ -1,6 +1,10 @@
 import React, { useState } from 'react'
 import { LuX } from 'react-icons/lu'
-import { getSourceLabel, UseViz } from '../../Contexts/VisualizerContext'
+import {
+  getSourceLabel,
+  useVisualizerPlayback,
+  useVisualizerSources
+} from './useVisualizerPresets'
 import ControllerTab from './ControllerTab/ControllerTab'
 import ListManagerTab from './ListManagerTab/ListManagerTab'
 import PresetLibraryTab from './PresetLibraryTab/PresetLibraryTab'
@@ -13,7 +17,8 @@ const TAB_OPTIONS = [
 ]
 
 const VisualizerPresetManager = ({ isPage = false, onClose }) => {
-  const { currentPresetName, activePlaybackSource } = UseViz()
+  const { currentPresetName } = useVisualizerPlayback()
+  const { activePlaybackSource } = useVisualizerSources()
 
   const [activeTab, setActiveTab] = useState('controller')
 

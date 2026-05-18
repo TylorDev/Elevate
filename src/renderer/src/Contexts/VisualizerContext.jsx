@@ -11,242 +11,143 @@ import MINI from 'butterchurn-presets/lib/elevate.min.js'
 import { useMini } from './MiniContext'
 import { usePlaylists } from './PlaylistsContex'
 import { useSuper } from './SupeContext'
+import { visualizerService } from './visualizerService'
+import {
+  DEFAULT_CYCLE_DURATION,
+  DEFAULT_SOURCE,
+  buildAssociationSources,
+  createPresetByNameMap,
+  createStableId,
+  getSourceKey,
+  getSourceLabel,
+  mapPresetNamesToItems,
+  normalizePlaybackSource,
+  normalizePresetSource,
+  normalizeVisualizerState,
+  shuffleArray
+} from './visualizerUtils'
 
-const VisualizerContext = createContext(null)
+export {
+  createPresetByNameMap,
+  createStableId,
+  getSourceKey,
+  getSourceLabel,
+  mapPresetNamesToItems,
+  normalizePlaybackSource,
+  normalizePresetSource
+}
 
 const PRESET_CATALOG = MINI.default || MINI
 const ALL_PRESET_KEYS = Object.keys(PRESET_CATALOG)
 
-const STORAGE_KEYS = {
-  favorites: 'visualizerPresetFavorites',
-  cycleDuration: 'visualizerCycleDurationMs',
-  source: 'visualizerPresetSource',
-  presetLists: 'visualizerPresetLists',
-  sourceAssociations: 'visualizerPresetSourceAssociations'
-}
+const VisualizerStoreContext = createContext(null)
+const VisualizerStoreApiContext = createContext(null)
+const VisualizerCatalogContext = createContext(null)
+const VisualizerSourcesContext = createContext(null)
+const VisualizerSettingsActionsContext = createContext(null)
+const VisualizerListActionsContext = createContext(null)
+const VisualizerFavoriteActionsContext = createContext(null)
+const VisualizerPlaybackContext = createContext(null)
 
-const DEFAULT_CYCLE_DURATION = 6000
-const DEFAULT_SOURCE = Object.freeze({
-  mode: 'all',
-  listId: null
-})
+function useRequiredContext(context, name) {
+  const value = useContext(context)
 
-function shuffleArray(array) {
-  const shuffled = [...array]
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1))
-    ;[shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]]
+  if (!value) {
+    throw new Error(`${name} must be used within a VisualizerProvider`)
   }
-  return shuffled
+
+  return value
 }
 
-function loadFromStorage(key, defaultValue) {
-  try {
-    const stored = localStorage.getItem(key)
-    if (stored !== null) {
-      return JSON.parse(stored)
+function useLatestRef(value) {
+  const ref = useRef(value)
+
+  useEffect(() => {
+    ref.current = value
+  }, [value])
+
+  return ref
+}
+
+function VisualizerStoreProvider({ children }) {
+  const [favorites, setFavorites] = useState([])
+  const [cycleDurationMs, setCycleDurationMsState] = useState(DEFAULT_CYCLE_DURATION)
+  const [presetSource, setPresetSourceState] = useState(DEFAULT_SOURCE)
+  const [presetLists, setPresetLists] = useState([])
+  const [sourceAssociations, setSourceAssociations] = useState({})
+  const [visualizerLoaded, setVisualizerLoaded] = useState(false)
+
+  const applyPersistedState = useCallback((rawState) => {
+    const nextState = normalizeVisualizerState(rawState)
+
+    setFavorites(nextState.favorites)
+    setCycleDurationMsState(nextState.cycleDurationMs)
+    setPresetSourceState(nextState.presetSource)
+    setPresetLists(nextState.presetLists)
+    setSourceAssociations(nextState.sourceAssociations)
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    visualizerService
+      .loadVisualizerState()
+      .then((response) => {
+        if (!isMounted) {
+          return
+        }
+
+        applyPersistedState(response.state)
+        setVisualizerLoaded(true)
+      })
+      .catch((error) => {
+        console.warn('Failed to load visualizer state from Prisma:', error)
+        if (isMounted) {
+          setVisualizerLoaded(true)
+        }
+      })
+
+    return () => {
+      isMounted = false
     }
-  } catch (error) {
-    console.warn(`Failed to load ${key} from localStorage:`, error)
-  }
-  return defaultValue
-}
+  }, [applyPersistedState])
 
-function saveToStorage(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch (error) {
-    console.warn(`Failed to save ${key} to localStorage:`, error)
-  }
-}
-
-export function createStableId(prefix) {
-  if (globalThis?.crypto?.randomUUID) {
-    return `${prefix}-${globalThis.crypto.randomUUID()}`
-  }
-
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
-export function normalizePresetSource(rawValue) {
-  if (rawValue && typeof rawValue === 'object' && !Array.isArray(rawValue)) {
-    const mode = rawValue.mode === 'favorites' || rawValue.mode === 'list' ? rawValue.mode : 'all'
-    const listId = typeof rawValue.listId === 'string' && rawValue.listId.trim() ? rawValue.listId : null
-
-    if (mode === 'list') {
-      return {
-        mode,
-        listId
-      }
-    }
-
-    return {
-      mode,
-      listId: null
-    }
-  }
-
-  if (rawValue === 'favorites') {
-    return {
-      mode: 'favorites',
-      listId: null
-    }
-  }
-
-  return {
-    mode: 'all',
-    listId: null
-  }
-}
-
-export function normalizePlaybackSource(queueName) {
-  if (typeof queueName !== 'string' || !queueName.trim()) {
-    return null
-  }
-
-  if (queueName.startsWith('folder:')) {
-    return {
-      type: 'directory',
-      id: queueName.slice('folder:'.length)
-    }
-  }
-
-  if (queueName === 'favourites' || queueName === 'favorites') {
-    return {
-      type: 'favorites',
-      id: 'favorites'
-    }
-  }
-
-  return {
-    type: 'playlist',
-    id: queueName
-  }
-}
-
-export function getSourceKey(source) {
-  if (!source?.type || !source?.id) {
-    return ''
-  }
-
-  return `${source.type}:${source.id}`
-}
-
-export function getSourceLabel(source) {
-  if (!source?.type || !source?.id) {
-    return 'Sin fuente activa'
-  }
-
-  if (source.type === 'favorites') {
-    return 'Favoritos'
-  }
-
-  if (source.type === 'directory') {
-    return `Directorio: ${source.id}`
-  }
-
-  return `Playlist: ${source.id}`
-}
-
-export function createPresetByNameMap(presetItems = []) {
-  return new Map(presetItems.map((preset) => [preset.name, preset]))
-}
-
-export function mapPresetNamesToItems(presetNames = [], presetByName = new Map()) {
-  return presetNames.map((presetName) => presetByName.get(presetName)).filter(Boolean)
-}
-
-function buildAssociationSources(playlists = [], directories = []) {
-  const playlistSources = playlists.map((playlist) => ({
-    type: 'playlist',
-    id: playlist.path,
-    label: playlist.nombre || playlist.path,
-    sourceKey: `playlist:${playlist.path}`
-  }))
-
-  const directorySources = directories.map((directory) => ({
-    type: 'directory',
-    id: directory.path,
-    label: directory.name || directory.path.split('\\').pop() || directory.path,
-    sourceKey: `directory:${directory.path}`
-  }))
-
-  return [
-    {
-      type: 'favorites',
-      id: 'favorites',
-      label: 'Favoritos',
-      sourceKey: 'favorites:favorites'
-    },
-    ...playlistSources,
-    ...directorySources
-  ]
-}
-
-export function VisualizerProvider({ children }) {
-  const { queueState } = useSuper()
-  const { playlists, playlistsLoaded, playlistsLoading, getSavedLists } = usePlaylists()
-  const { directories, directoriesLoaded, directoriesLoading, getDirectories } = useMini()
-
-  const activePlaybackSource = useMemo(
-    () => normalizePlaybackSource(queueState?.queueName),
-    [queueState?.queueName]
+  const storeValue = useMemo(
+    () => ({
+      favorites,
+      cycleDurationMs,
+      presetSource,
+      presetLists,
+      sourceAssociations,
+      visualizerLoaded
+    }),
+    [cycleDurationMs, favorites, presetLists, presetSource, sourceAssociations, visualizerLoaded]
   )
 
-  const [favorites, setFavorites] = useState(() => loadFromStorage(STORAGE_KEYS.favorites, []))
-  const [cycleDurationMs, setCycleDurationMs] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.cycleDuration, DEFAULT_CYCLE_DURATION)
+  const storeApi = useMemo(
+    () => ({
+      applyPersistedState,
+      setFavorites,
+      setCycleDurationMsState,
+      setPresetSourceState,
+      setPresetLists,
+      setSourceAssociations
+    }),
+    [applyPersistedState]
   )
-  const [presetSource, setPresetSource] = useState(() =>
-    normalizePresetSource(loadFromStorage(STORAGE_KEYS.source, DEFAULT_SOURCE))
+
+  return (
+    <VisualizerStoreContext.Provider value={storeValue}>
+      <VisualizerStoreApiContext.Provider value={storeApi}>
+        {children}
+      </VisualizerStoreApiContext.Provider>
+    </VisualizerStoreContext.Provider>
   )
-  const [presetLists, setPresetLists] = useState(() => loadFromStorage(STORAGE_KEYS.presetLists, []))
-  const [sourceAssociations, setSourceAssociations] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.sourceAssociations, {})
-  )
-  const [isShuffled, setIsShuffled] = useState(false)
-  const [shuffledOrder, setShuffledOrder] = useState([])
-  const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
-  const [isPresetPaused, setIsPresetPaused] = useState(false)
+}
 
-  const presetIntervalRef = useRef(null)
-
-  useEffect(() => {
-    if (!playlistsLoaded && !playlistsLoading) {
-      void getSavedLists()
-    }
-
-    if (!directoriesLoaded && !directoriesLoading) {
-      void getDirectories()
-    }
-  }, [
-    directoriesLoaded,
-    directoriesLoading,
-    getDirectories,
-    getSavedLists,
-    playlistsLoaded,
-    playlistsLoading
-  ])
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.favorites, favorites)
-  }, [favorites])
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.cycleDuration, cycleDurationMs)
-  }, [cycleDurationMs])
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.source, presetSource)
-  }, [presetSource])
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.presetLists, presetLists)
-  }, [presetLists])
-
-  useEffect(() => {
-    saveToStorage(STORAGE_KEYS.sourceAssociations, sourceAssociations)
-  }, [sourceAssociations])
+function VisualizerCatalogProvider({ children }) {
+  const { favorites } = useRequiredContext(VisualizerStoreContext, 'VisualizerCatalogProvider')
+  const { presetSource, selectedPresetSourceList } = useVisualizerSources()
 
   const favoritePresetNamesSet = useMemo(() => new Set(favorites), [favorites])
 
@@ -261,26 +162,6 @@ export function VisualizerProvider({ children }) {
   )
 
   const presetByName = useMemo(() => createPresetByNameMap(allPresetItems), [allPresetItems])
-
-  const activeSourceKey = useMemo(() => getSourceKey(activePlaybackSource), [activePlaybackSource])
-
-  const activePresetList = useMemo(() => {
-    const activeListId = sourceAssociations[activeSourceKey]
-
-    if (!activeListId) {
-      return null
-    }
-
-    return presetLists.find((list) => list.id === activeListId) || null
-  }, [activeSourceKey, presetLists, sourceAssociations])
-
-  const selectedPresetSourceList = useMemo(() => {
-    if (presetSource.mode !== 'list' || !presetSource.listId) {
-      return null
-    }
-
-    return presetLists.find((list) => list.id === presetSource.listId) || null
-  }, [presetLists, presetSource.listId, presetSource.mode])
 
   const favoritePresetItems = useMemo(
     () => allPresetItems.filter((preset) => preset.isFavorite),
@@ -315,14 +196,150 @@ export function VisualizerProvider({ children }) {
     [activePresetNames, presetByName]
   )
 
+  const isFavorite = useCallback(
+    (presetName) => favoritePresetNamesSet.has(presetName),
+    [favoritePresetNamesSet]
+  )
+
+  const catalogValue = useMemo(
+    () => ({
+      allPresetItems,
+      activePresetItems,
+      activePresetNames,
+      favoritePresetItems,
+      favoritePresetNames,
+      favoritePresetNamesSet,
+      presetByName,
+      isFavorite
+    }),
+    [
+      activePresetItems,
+      activePresetNames,
+      allPresetItems,
+      favoritePresetItems,
+      favoritePresetNames,
+      favoritePresetNamesSet,
+      isFavorite,
+      presetByName
+    ]
+  )
+
+  return (
+    <VisualizerCatalogContext.Provider value={catalogValue}>
+      {children}
+    </VisualizerCatalogContext.Provider>
+  )
+}
+
+function VisualizerSourcesProvider({ children }) {
+  const { queueState } = useSuper()
+  const { playlists, playlistsLoaded, playlistsLoading, getSavedLists } = usePlaylists()
+  const { directories, directoriesLoaded, directoriesLoading, getDirectories } = useMini()
+  const {
+    cycleDurationMs,
+    presetSource,
+    presetLists,
+    sourceAssociations,
+    visualizerLoaded
+  } = useRequiredContext(VisualizerStoreContext, 'VisualizerSourcesProvider')
+
+  useEffect(() => {
+    if (!playlistsLoaded && !playlistsLoading) {
+      void getSavedLists()
+    }
+
+    if (!directoriesLoaded && !directoriesLoading) {
+      void getDirectories()
+    }
+  }, [
+    directoriesLoaded,
+    directoriesLoading,
+    getDirectories,
+    getSavedLists,
+    playlistsLoaded,
+    playlistsLoading
+  ])
+
+  const activePlaybackSource = useMemo(
+    () => normalizePlaybackSource(queueState?.queueName),
+    [queueState?.queueName]
+  )
+
+  const activeSourceKey = useMemo(() => getSourceKey(activePlaybackSource), [activePlaybackSource])
+
+  const activePresetList = useMemo(() => {
+    const activeListId = sourceAssociations[activeSourceKey]
+
+    if (!activeListId) {
+      return null
+    }
+
+    return presetLists.find((list) => list.id === activeListId) || null
+  }, [activeSourceKey, presetLists, sourceAssociations])
+
+  const selectedPresetSourceList = useMemo(() => {
+    if (presetSource.mode !== 'list' || !presetSource.listId) {
+      return null
+    }
+
+    return presetLists.find((list) => list.id === presetSource.listId) || null
+  }, [presetLists, presetSource.listId, presetSource.mode])
+
+  const availableAssociationSources = useMemo(
+    () => buildAssociationSources(playlists, directories),
+    [directories, playlists]
+  )
+
+  const sourcesValue = useMemo(
+    () => ({
+      cycleDurationMs,
+      presetSource,
+      presetLists,
+      sourceAssociations,
+      activePlaybackSource,
+      activeSourceKey,
+      activePresetList,
+      selectedPresetSourceList,
+      availableAssociationSources,
+      visualizerLoaded
+    }),
+    [
+      activePlaybackSource,
+      activePresetList,
+      activeSourceKey,
+      availableAssociationSources,
+      cycleDurationMs,
+      presetLists,
+      presetSource,
+      selectedPresetSourceList,
+      sourceAssociations,
+      visualizerLoaded
+    ]
+  )
+
+  return (
+    <VisualizerSourcesContext.Provider value={sourcesValue}>
+      {children}
+    </VisualizerSourcesContext.Provider>
+  )
+}
+
+function VisualizerPlaybackProvider({ children }) {
+  const { cycleDurationMs, presetSource } = useRequiredContext(
+    VisualizerStoreContext,
+    'VisualizerPlaybackProvider'
+  )
+  const { activePresetItems, activePresetNames } = useVisualizerCatalog()
+  const [isShuffled, setIsShuffled] = useState(false)
+  const [shuffledOrder, setShuffledOrder] = useState([])
+  const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
+  const [isPresetPaused, setIsPresetPaused] = useState(false)
+  const presetIntervalRef = useRef(null)
+
   const toggleShuffle = useCallback(() => {
     setIsShuffled((previousValue) => {
       const nextValue = !previousValue
-      if (nextValue) {
-        setShuffledOrder(shuffleArray(activePresetNames))
-      } else {
-        setShuffledOrder([])
-      }
+      setShuffledOrder(nextValue ? shuffleArray(activePresetNames) : [])
       return nextValue
     })
   }, [activePresetNames])
@@ -342,7 +359,7 @@ export function VisualizerProvider({ children }) {
   const currentPresetName = currentOrder[currentPresetIndex] || ''
 
   useEffect(() => {
-    if (currentOrder.length > 0 && !currentOrder.includes(currentPresetName)) {
+    if (currentOrder.length > 0 && (!currentPresetName || !currentOrder.includes(currentPresetName))) {
       setCurrentPresetIndex(0)
     }
   }, [currentOrder, currentPresetName, isShuffled, presetSource])
@@ -401,276 +418,451 @@ export function VisualizerProvider({ children }) {
     [currentOrder]
   )
 
-  const toggleFavorite = useCallback((presetName) => {
-    setFavorites((previousFavorites) => {
-      const isFavoritePreset = previousFavorites.includes(presetName)
-      if (isFavoritePreset) {
-        return previousFavorites.filter((name) => name !== presetName)
-      }
-      return [...previousFavorites, presetName]
-    })
-  }, [])
-
-  const isFavorite = useCallback(
-    (presetName) => favorites.includes(presetName),
-    [favorites]
+  const playbackValue = useMemo(
+    () => ({
+      currentPresetName,
+      currentPresetIndex,
+      allPresets: currentOrder,
+      activePresetItems,
+      isPresetPaused,
+      isShuffled,
+      nextPreset,
+      prevPreset,
+      togglePresetPause,
+      toggleShuffle,
+      setPresetIndex,
+      setPresetByName
+    }),
+    [
+      activePresetItems,
+      currentOrder,
+      currentPresetIndex,
+      currentPresetName,
+      isPresetPaused,
+      isShuffled,
+      nextPreset,
+      prevPreset,
+      setPresetByName,
+      setPresetIndex,
+      togglePresetPause,
+      toggleShuffle
+    ]
   )
 
-  const createPresetList = useCallback((name) => {
-    const trimmedName = String(name || '').trim() || 'Nueva lista'
-    const timestamp = Date.now()
-    const nextList = {
-      id: createStableId('preset-list'),
-      name: trimmedName,
-      presetNames: [],
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }
+  return (
+    <VisualizerPlaybackContext.Provider value={playbackValue}>
+      {children}
+    </VisualizerPlaybackContext.Provider>
+  )
+}
 
-    setPresetLists((previousLists) => [...previousLists, nextList])
-    return nextList
-  }, [])
+function VisualizerActionsProvider({ children }) {
+  const store = useRequiredContext(VisualizerStoreContext, 'VisualizerActionsProvider')
+  const storeApi = useRequiredContext(VisualizerStoreApiContext, 'VisualizerActionsProvider')
+  const { activePlaybackSource, activeSourceKey } = useVisualizerSources()
+  const storeRef = useLatestRef(store)
+  const sourceRef = useLatestRef({ activePlaybackSource, activeSourceKey })
+  const {
+    applyPersistedState,
+    setFavorites,
+    setCycleDurationMsState,
+    setPresetSourceState,
+    setPresetLists,
+    setSourceAssociations
+  } = storeApi
 
-  const renamePresetList = useCallback((listId, name) => {
-    const trimmedName = String(name || '').trim()
+  const setCycleDurationMs = useCallback(
+    async (nextValue) => {
+      const nextDuration = Number(nextValue)
+      if (!Number.isFinite(nextDuration)) {
+        return
+      }
 
-    if (!listId || !trimmedName) {
-      return
-    }
+      const previousDuration = storeRef.current.cycleDurationMs
+      setCycleDurationMsState(nextDuration)
 
-    setPresetLists((previousLists) =>
-      previousLists.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              name: trimmedName,
-              updatedAt: Date.now()
-            }
-          : list
-      )
-    )
-  }, [])
+      try {
+        const response = await visualizerService.updateVisualizerSettings({
+          cycleDurationMs: nextDuration
+        })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to save visualizer cycle duration:', error)
+        setCycleDurationMsState(previousDuration)
+      }
+    },
+    [applyPersistedState, setCycleDurationMsState, storeRef]
+  )
 
-  const deletePresetList = useCallback((listId) => {
-    if (!listId) {
-      return
-    }
+  const setPresetSource = useCallback(
+    async (nextSource) => {
+      const normalizedSource = normalizePresetSource(nextSource)
+      const previousSource = storeRef.current.presetSource
+      setPresetSourceState(normalizedSource)
 
-    setPresetLists((previousLists) => previousLists.filter((list) => list.id !== listId))
-    setSourceAssociations((previousAssociations) => {
-      const nextAssociations = {}
+      try {
+        const response = await visualizerService.updateVisualizerSettings({
+          presetSource: normalizedSource
+        })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to save visualizer preset source:', error)
+        setPresetSourceState(previousSource)
+      }
+    },
+    [applyPersistedState, setPresetSourceState, storeRef]
+  )
 
-      Object.entries(previousAssociations).forEach(([sourceKey, associatedListId]) => {
-        if (associatedListId !== listId) {
-          nextAssociations[sourceKey] = associatedListId
-        }
+  const toggleFavorite = useCallback(
+    async (presetName) => {
+      if (!ALL_PRESET_KEYS.includes(presetName)) {
+        return
+      }
+
+      const previousFavorites = storeRef.current.favorites
+
+      setFavorites((currentFavorites) => {
+        const isFavoritePreset = currentFavorites.includes(presetName)
+        return isFavoritePreset
+          ? currentFavorites.filter((name) => name !== presetName)
+          : [...currentFavorites, presetName]
       })
 
-      return nextAssociations
-    })
-  }, [])
+      try {
+        const response = await visualizerService.toggleFavorite(presetName)
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to toggle visualizer favorite:', error)
+        setFavorites(previousFavorites)
+      }
+    },
+    [applyPersistedState, setFavorites, storeRef]
+  )
+
+  const createPresetList = useCallback(
+    async (name) => {
+      const trimmedName = String(name || '').trim() || 'Nueva lista'
+      const timestamp = Date.now()
+      const optimisticList = {
+        id: createStableId('preset-list'),
+        name: trimmedName,
+        presetNames: [],
+        createdAt: timestamp,
+        updatedAt: timestamp
+      }
+
+      setPresetLists((currentLists) => [...currentLists, optimisticList])
+
+      try {
+        const response = await visualizerService.createList(trimmedName)
+        applyPersistedState(response.state)
+        return response.list
+      } catch (error) {
+        console.warn('Failed to create visualizer preset list:', error)
+        setPresetLists((currentLists) => currentLists.filter((list) => list.id !== optimisticList.id))
+        return null
+      }
+    },
+    [applyPersistedState, setPresetLists]
+  )
+
+  const renamePresetList = useCallback(
+    async (listId, name) => {
+      const trimmedName = String(name || '').trim()
+
+      if (!listId || !trimmedName) {
+        return
+      }
+
+      const previousLists = storeRef.current.presetLists
+
+      setPresetLists((currentLists) =>
+        currentLists.map((list) =>
+          list.id === listId
+            ? {
+                ...list,
+                name: trimmedName,
+                updatedAt: Date.now()
+              }
+            : list
+        )
+      )
+
+      try {
+        const response = await visualizerService.renameList({ listId, name: trimmedName })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to rename visualizer preset list:', error)
+        setPresetLists(previousLists)
+      }
+    },
+    [applyPersistedState, setPresetLists, storeRef]
+  )
+
+  const deletePresetList = useCallback(
+    async (listId) => {
+      if (!listId) {
+        return
+      }
+
+      const previousLists = storeRef.current.presetLists
+      const previousAssociations = storeRef.current.sourceAssociations
+      const previousSource = storeRef.current.presetSource
+
+      setPresetLists((currentLists) => currentLists.filter((list) => list.id !== listId))
+      setSourceAssociations((currentAssociations) => {
+        const nextAssociations = {}
+
+        Object.entries(currentAssociations).forEach(([sourceKey, associatedListId]) => {
+          if (associatedListId !== listId) {
+            nextAssociations[sourceKey] = associatedListId
+          }
+        })
+
+        return nextAssociations
+      })
+
+      if (previousSource.mode === 'list' && previousSource.listId === listId) {
+        setPresetSourceState(DEFAULT_SOURCE)
+      }
+
+      try {
+        const response = await visualizerService.deleteList(listId)
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to delete visualizer preset list:', error)
+        setPresetLists(previousLists)
+        setSourceAssociations(previousAssociations)
+        setPresetSourceState(previousSource)
+      }
+    },
+    [
+      applyPersistedState,
+      setPresetLists,
+      setPresetSourceState,
+      setSourceAssociations,
+      storeRef
+    ]
+  )
 
   useEffect(() => {
-    setPresetSource((currentSource) => {
+    setPresetSourceState((currentSource) => {
       const normalizedCurrentSource = normalizePresetSource(currentSource)
 
       if (
         normalizedCurrentSource.mode === 'list' &&
         normalizedCurrentSource.listId &&
-        !presetLists.some((list) => list.id === normalizedCurrentSource.listId)
+        !storeRef.current.presetLists.some((list) => list.id === normalizedCurrentSource.listId)
       ) {
         return DEFAULT_SOURCE
       }
 
       return normalizedCurrentSource
     })
-  }, [presetLists])
+  }, [setPresetSourceState, store.presetLists, storeRef])
 
-  const togglePresetInList = useCallback((listId, presetName) => {
-    if (!listId || !ALL_PRESET_KEYS.includes(presetName)) {
-      return
-    }
-
-    setPresetLists((previousLists) =>
-      previousLists.map((list) => {
-        if (list.id !== listId) {
-          return list
-        }
-
-        const hasPreset = list.presetNames.includes(presetName)
-        return {
-          ...list,
-          presetNames: hasPreset
-            ? list.presetNames.filter((name) => name !== presetName)
-            : [...list.presetNames, presetName],
-          updatedAt: Date.now()
-        }
-      })
-    )
-  }, [])
-
-  const associateActiveSource = useCallback(
-    (listId) => {
-      if (!activePlaybackSource?.type || !activePlaybackSource?.id || !listId) {
+  const togglePresetInList = useCallback(
+    async (listId, presetName) => {
+      if (!listId || !ALL_PRESET_KEYS.includes(presetName)) {
         return
       }
 
-      const sourceKey = getSourceKey(activePlaybackSource)
+      const previousLists = storeRef.current.presetLists
 
-      setSourceAssociations((previousAssociations) => ({
-        ...previousAssociations,
+      setPresetLists((currentLists) =>
+        currentLists.map((list) => {
+          if (list.id !== listId) {
+            return list
+          }
+
+          const hasPreset = list.presetNames.includes(presetName)
+          return {
+            ...list,
+            presetNames: hasPreset
+              ? list.presetNames.filter((name) => name !== presetName)
+              : [...list.presetNames, presetName],
+            updatedAt: Date.now()
+          }
+        })
+      )
+
+      try {
+        const response = await visualizerService.togglePresetInList({ listId, presetName })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to toggle preset in visualizer list:', error)
+        setPresetLists(previousLists)
+      }
+    },
+    [applyPersistedState, setPresetLists, storeRef]
+  )
+
+  const associateActiveSource = useCallback(
+    async (listId) => {
+      const { activePlaybackSource: currentSource } = sourceRef.current
+      if (!currentSource?.type || !currentSource?.id || !listId) {
+        return
+      }
+
+      const sourceKey = getSourceKey(currentSource)
+      const previousAssociations = storeRef.current.sourceAssociations
+
+      setSourceAssociations((currentAssociations) => ({
+        ...currentAssociations,
         [sourceKey]: listId
       }))
+
+      try {
+        const response = await visualizerService.associateSource({
+          source: currentSource,
+          listId
+        })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to associate active visualizer source:', error)
+        setSourceAssociations(previousAssociations)
+      }
     },
-    [activePlaybackSource]
+    [applyPersistedState, setSourceAssociations, sourceRef, storeRef]
   )
 
-  const associateSourceToList = useCallback((source, listId) => {
-    if (!source?.type || !source?.id || !listId) {
-      return
-    }
-
-    const sourceKey = getSourceKey(source)
-
-    if (!sourceKey) {
-      return
-    }
-
-    setSourceAssociations((previousAssociations) => ({
-      ...previousAssociations,
-      [sourceKey]: listId
-    }))
-  }, [])
-
-  const removeActiveSourceAssociation = useCallback(() => {
-    if (!activeSourceKey) {
-      return
-    }
-
-    setSourceAssociations((previousAssociations) => {
-      if (!Object.prototype.hasOwnProperty.call(previousAssociations, activeSourceKey)) {
-        return previousAssociations
+  const associateSourceToList = useCallback(
+    async (source, listId) => {
+      if (!source?.type || !source?.id || !listId) {
+        return
       }
 
-      const nextAssociations = { ...previousAssociations }
-      delete nextAssociations[activeSourceKey]
-      return nextAssociations
-    })
-  }, [activeSourceKey])
+      const sourceKey = getSourceKey(source)
 
-  const removeSourceAssociation = useCallback((source) => {
-    const sourceKey = getSourceKey(source)
-
-    if (!sourceKey) {
-      return
-    }
-
-    setSourceAssociations((previousAssociations) => {
-      if (!Object.prototype.hasOwnProperty.call(previousAssociations, sourceKey)) {
-        return previousAssociations
+      if (!sourceKey) {
+        return
       }
 
-      const nextAssociations = { ...previousAssociations }
-      delete nextAssociations[sourceKey]
-      return nextAssociations
-    })
-  }, [])
+      const previousAssociations = storeRef.current.sourceAssociations
 
-  const pruneMissingSourceAssociations = useCallback((existingSources) => {
-    if (!(existingSources instanceof Set)) {
+      setSourceAssociations((currentAssociations) => ({
+        ...currentAssociations,
+        [sourceKey]: listId
+      }))
+
+      try {
+        const response = await visualizerService.associateSource({ source, listId })
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to associate visualizer source:', error)
+        setSourceAssociations(previousAssociations)
+      }
+    },
+    [applyPersistedState, setSourceAssociations, storeRef]
+  )
+
+  const removeActiveSourceAssociation = useCallback(async () => {
+    const { activePlaybackSource: currentSource, activeSourceKey: currentSourceKey } = sourceRef.current
+
+    if (!currentSourceKey || !currentSource?.type || !currentSource?.id) {
       return
     }
 
-    setSourceAssociations((previousAssociations) => {
-      const nextAssociations = {}
+    const previousAssociations = storeRef.current.sourceAssociations
 
-      Object.entries(previousAssociations).forEach(([sourceKey, listId]) => {
-        if (sourceKey === 'favorites:favorites' || existingSources.has(sourceKey)) {
-          nextAssociations[sourceKey] = listId
+    setSourceAssociations((currentAssociations) => {
+      if (!Object.prototype.hasOwnProperty.call(currentAssociations, currentSourceKey)) {
+        return currentAssociations
+      }
+
+      const nextAssociations = { ...currentAssociations }
+      delete nextAssociations[currentSourceKey]
+      return nextAssociations
+    })
+
+    try {
+      const response = await visualizerService.removeSourceAssociation(currentSource)
+      applyPersistedState(response.state)
+    } catch (error) {
+      console.warn('Failed to remove active visualizer source association:', error)
+      setSourceAssociations(previousAssociations)
+    }
+  }, [applyPersistedState, setSourceAssociations, sourceRef, storeRef])
+
+  const removeSourceAssociation = useCallback(
+    async (source) => {
+      const sourceKey = getSourceKey(source)
+
+      if (!sourceKey) {
+        return
+      }
+
+      const previousAssociations = storeRef.current.sourceAssociations
+
+      setSourceAssociations((currentAssociations) => {
+        if (!Object.prototype.hasOwnProperty.call(currentAssociations, sourceKey)) {
+          return currentAssociations
         }
+
+        const nextAssociations = { ...currentAssociations }
+        delete nextAssociations[sourceKey]
+        return nextAssociations
       })
 
-      return nextAssociations
-    })
-  }, [])
-
-  const availableAssociationSources = useMemo(
-    () => buildAssociationSources(playlists, directories),
-    [directories, playlists]
+      try {
+        const response = await visualizerService.removeSourceAssociation(source)
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to remove visualizer source association:', error)
+        setSourceAssociations(previousAssociations)
+      }
+    },
+    [applyPersistedState, setSourceAssociations, storeRef]
   )
 
-  const playback = useMemo(
-    () => ({
-      currentPresetName,
-      currentPresetIndex,
-      allPresets: currentOrder,
-      isPresetPaused,
-      isShuffled,
-      cycleDurationMs
-    }),
-    [
-      currentOrder,
-      currentPresetIndex,
-      currentPresetName,
-      cycleDurationMs,
-      isPresetPaused,
-      isShuffled
-    ]
+  const pruneMissingSourceAssociations = useCallback(
+    async (existingSources) => {
+      if (!(existingSources instanceof Set)) {
+        return
+      }
+
+      const previousAssociations = storeRef.current.sourceAssociations
+
+      setSourceAssociations((currentAssociations) => {
+        const nextAssociations = {}
+
+        Object.entries(currentAssociations).forEach(([sourceKey, listId]) => {
+          if (sourceKey === 'favorites:favorites' || existingSources.has(sourceKey)) {
+            nextAssociations[sourceKey] = listId
+          }
+        })
+
+        return nextAssociations
+      })
+
+      try {
+        const response = await visualizerService.pruneSourceAssociations(Array.from(existingSources))
+        applyPersistedState(response.state)
+      } catch (error) {
+        console.warn('Failed to prune visualizer source associations:', error)
+        setSourceAssociations(previousAssociations)
+      }
+    },
+    [applyPersistedState, setSourceAssociations, storeRef]
   )
 
-  const catalog = useMemo(
+  const settingsActionsValue = useMemo(
     () => ({
-      allPresetItems,
-      activePresetItems,
-      favoritePresetItems,
-      favoritePresetNames,
-      favoritePresetNamesSet,
-      presetByName
-    }),
-    [
-      activePresetItems,
-      allPresetItems,
-      favoritePresetItems,
-      favoritePresetNames,
-      favoritePresetNamesSet,
-      presetByName
-    ]
-  )
-
-  const sources = useMemo(
-    () => ({
-      presetSource,
-      presetLists,
-      sourceAssociations,
-      activePlaybackSource,
-      activeSourceKey,
-      activePresetList,
-      selectedPresetSourceList,
-      availableAssociationSources
-    }),
-    [
-      activePlaybackSource,
-      activePresetList,
-      activeSourceKey,
-      availableAssociationSources,
-      presetLists,
-      presetSource,
-      selectedPresetSourceList,
-      sourceAssociations
-    ]
-  )
-
-  const actions = useMemo(
-    () => ({
-      nextPreset,
-      prevPreset,
-      togglePresetPause,
-      setPresetIndex,
-      setPresetByName,
       setCycleDurationMs,
-      toggleShuffle,
-      setPresetSource,
-      toggleFavorite,
+      setPresetSource
+    }),
+    [setCycleDurationMs, setPresetSource]
+  )
+
+  const favoriteActionsValue = useMemo(
+    () => ({
+      toggleFavorite
+    }),
+    [toggleFavorite]
+  )
+
+  const listActionsValue = useMemo(
+    () => ({
       createPresetList,
       renamePresetList,
       deletePresetList,
@@ -686,47 +878,59 @@ export function VisualizerProvider({ children }) {
       associateSourceToList,
       createPresetList,
       deletePresetList,
-      nextPreset,
-      prevPreset,
       pruneMissingSourceAssociations,
       removeActiveSourceAssociation,
       removeSourceAssociation,
       renamePresetList,
-      setCycleDurationMs,
-      setPresetByName,
-      setPresetIndex,
-      setPresetSource,
-      toggleFavorite,
-      togglePresetInList,
-      togglePresetPause,
-      toggleShuffle
+      togglePresetInList
     ]
   )
 
-  const value = useMemo(
-    () => ({
-      ...playback,
-      ...catalog,
-      ...sources,
-      ...actions,
-      playback,
-      catalog,
-      sources,
-      actions,
-      isFavorite
-    }),
-    [actions, catalog, isFavorite, playback, sources]
+  return (
+    <VisualizerSettingsActionsContext.Provider value={settingsActionsValue}>
+      <VisualizerFavoriteActionsContext.Provider value={favoriteActionsValue}>
+        <VisualizerListActionsContext.Provider value={listActionsValue}>
+          {children}
+        </VisualizerListActionsContext.Provider>
+      </VisualizerFavoriteActionsContext.Provider>
+    </VisualizerSettingsActionsContext.Provider>
   )
-
-  return <VisualizerContext.Provider value={value}>{children}</VisualizerContext.Provider>
 }
 
-export function UseViz() {
-  const context = useContext(VisualizerContext)
+export function VisualizerProvider({ children }) {
+  return (
+    <VisualizerStoreProvider>
+      <VisualizerSourcesProvider>
+        <VisualizerCatalogProvider>
+          <VisualizerPlaybackProvider>
+            <VisualizerActionsProvider>{children}</VisualizerActionsProvider>
+          </VisualizerPlaybackProvider>
+        </VisualizerCatalogProvider>
+      </VisualizerSourcesProvider>
+    </VisualizerStoreProvider>
+  )
+}
 
-  if (!context) {
-    throw new Error('UseViz must be used within a VisualizerProvider')
-  }
+export function useVisualizerPlayback() {
+  return useRequiredContext(VisualizerPlaybackContext, 'useVisualizerPlayback')
+}
 
-  return context
+export function useVisualizerCatalog() {
+  return useRequiredContext(VisualizerCatalogContext, 'useVisualizerCatalog')
+}
+
+export function useVisualizerSources() {
+  return useRequiredContext(VisualizerSourcesContext, 'useVisualizerSources')
+}
+
+export function useVisualizerSettingsActions() {
+  return useRequiredContext(VisualizerSettingsActionsContext, 'useVisualizerSettingsActions')
+}
+
+export function useVisualizerListActions() {
+  return useRequiredContext(VisualizerListActionsContext, 'useVisualizerListActions')
+}
+
+export function useVisualizerFavoriteActions() {
+  return useRequiredContext(VisualizerFavoriteActionsContext, 'useVisualizerFavoriteActions')
 }

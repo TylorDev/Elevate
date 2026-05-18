@@ -65,7 +65,8 @@ function Settings() {
     toggleDiscordRpc
   } = useSuper()
 
-  const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } = useMini()
+  const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } =
+    useMini()
   const { openM3U } = usePlaylists()
 
   const [activeTab, setActiveTab] = useState('library')
@@ -93,7 +94,8 @@ function Settings() {
         setBannerDraft(savedImageUrl)
       }
     } else {
-      const defaultUrl = 'https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif'
+      const defaultUrl =
+        'https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif'
       setImageUrl(defaultUrl)
       setBannerDraft(defaultUrl)
     }
@@ -313,14 +315,9 @@ function Settings() {
               </div>
               <div className="settings-card__content">
                 <h3>Import Playlist</h3>
-                <p>
-                  Import an existing `.m3u` file and add it to your playlists library.
-                </p>
+                <p>Import an existing `.m3u` file and add it to your playlists library.</p>
               </div>
-              <button
-                className="settings-action-btn"
-                onClick={() => openM3U()}
-              >
+              <button className="settings-action-btn" onClick={() => openM3U()}>
                 <LuListMusic />
                 <span>Import M3U</span>
               </button>
@@ -332,9 +329,7 @@ function Settings() {
               </div>
               <div className="settings-card__content">
                 <h3>Discord Rich Presence</h3>
-                <p>
-                  Show what you're listening to on your Discord profile.
-                </p>
+                <p>Show what you're listening to on your Discord profile.</p>
               </div>
               <button
                 className={`toggle-switch ${discordRpcEnabled ? 'active' : ''}`}
@@ -383,7 +378,7 @@ function Settings() {
           <section className="settings-section">
             <div className="section-header">
               <h2>Accent Color</h2>
-              <span className="color-badge" style={{ background: color || 'var(--text-principal)' }}>
+              <span className="color-badge" style={{ background: color || 'var(--Dynamic-color)' }}>
                 {color || 'Auto'}
               </span>
             </div>
@@ -392,10 +387,7 @@ function Settings() {
               <HexColorPicker color={color || '#baff00'} onChange={handleColorChange} />
             </div>
 
-            <button
-              className="settings-action-btn"
-              onClick={() => handleColorChange('')}
-            >
+            <button className="settings-action-btn" onClick={() => handleColorChange('')}>
               <LuSparkles />
               <span>Auto cover color</span>
             </button>
@@ -501,7 +493,8 @@ function Settings() {
 
               {backgroundHistory.length === 0 ? (
                 <div className="background-history__empty">
-                  No recent backgrounds yet. Apply a local image or URL to start your reusable history.
+                  No recent backgrounds yet. Apply a local image or URL to start your reusable
+                  history.
                 </div>
               ) : (
                 <div className="background-history__grid">
@@ -515,7 +508,10 @@ function Settings() {
                       >
                         <div className="background-history__preview">
                           {item.resolvedUrl ? (
-                            <img src={item.resolvedUrl} alt={item.displaySource || 'Background history'} />
+                            <img
+                              src={item.resolvedUrl}
+                              alt={item.displaySource || 'Background history'}
+                            />
                           ) : (
                             <div className="background-history__placeholder">No preview</div>
                           )}
@@ -530,7 +526,9 @@ function Settings() {
                         </div>
 
                         <div className="background-history__meta">
-                          <strong title={item.sourceValue}>{item.displaySource || item.sourceValue}</strong>
+                          <strong title={item.sourceValue}>
+                            {item.displaySource || item.sourceValue}
+                          </strong>
                           <span title={item.sourceValue}>{item.sourceValue}</span>
                         </div>
 
@@ -580,33 +578,35 @@ function Settings() {
                     <div className="waveform-option-header">
                       <span className="waveform-option-label">{option.label}</span>
                       {waveformVariant === option.value && (
-                        <span className="waveform-check"><LuCheck /></span>
+                        <span className="waveform-check">
+                          <LuCheck />
+                        </span>
                       )}
                     </div>
                     <span className="waveform-option-desc">{option.description}</span>
                   </div>
                   <div className={`waveform-visual waveform-visual--${option.value}`}>
-                    {option.value === 'mirrored'
-                      ? [...Array(12)].map((_, index) => (
-                          <div
-                            key={index}
-                            className="bar"
-                            style={{
-                              height: `${20 + Math.sin(index * 0.8) * 60}%`,
-                              animationDelay: `${index * 0.05}s`
-                            }}
-                          />
-                        ))
-                      : (
-                        <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-                          <path
-                            d="M0,20 Q10,5 20,20 T40,20 T60,20 T80,20 T100,20"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          />
-                        </svg>
-                      )}
+                    {option.value === 'mirrored' ? (
+                      [...Array(12)].map((_, index) => (
+                        <div
+                          key={index}
+                          className="bar"
+                          style={{
+                            height: `${20 + Math.sin(index * 0.8) * 60}%`,
+                            animationDelay: `${index * 0.05}s`
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <svg viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <path
+                          d="M0,20 Q10,5 20,20 T40,20 T60,20 T80,20 T100,20"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    )}
                   </div>
                 </button>
               ))}

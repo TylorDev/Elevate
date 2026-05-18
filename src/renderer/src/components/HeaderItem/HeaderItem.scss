@@ -3,7 +3,7 @@
   padding: 0.8rem;
 
   outline: none;
-  color: white;
+  color: $text-primary;
   display: flex;
   align-items: center;
   justify-content: start;
@@ -12,13 +12,13 @@
   width: 100%;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: $hover;
   }
 
   &.active {
-    background: linear-gradient(to right, var(--text-principal) 0%, transparent 10%);
-    border-left: 1px solid var(--text-principal);
-    color: var(--text-principal);
+    background: linear-gradient(to right, $primary-color 0%, transparent 10%);
+    border-left: 1px solid $primary-color;
+    color: $primary-color;
   }
 
   .header-item-icon {

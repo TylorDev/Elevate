@@ -9,11 +9,11 @@
   .overflow-menu-btn {
     background: transparent;
     border: none;
-    color: var(--text-secondary);
+    color:$text-primary;
     cursor: pointer;
     width: 32px;
     height: 32px;
-    border-radius: 4px;
+    border-radius: $border-radius;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -22,8 +22,8 @@
     padding: 0;
 
     &:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.05);
+      color: $text-primary;
+      background:$hover;
     }
 
     &:active {
@@ -34,9 +34,9 @@
 
 .overflow-dropdown {
   width: 200px;
-  background: #1a1a1a;
+  background:$card;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: $border-radius;
   padding: 6px;
 
   z-index: 10000;
@@ -51,7 +51,7 @@
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-secondary);
-    border-radius: 4px;
+    border-radius: $border-radius;
     cursor: pointer;
 
     margin-bottom: 2px;
@@ -61,11 +61,11 @@
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
-      color: white;
+      background: $hover;
+      color: $text-primary;
 
       .overflow-icon {
-        color: var(--text-principal);
+        color: $primary-color;
       }
     }
 
@@ -92,7 +92,7 @@
     }
 
     &:hover {
-      background: transparent;
+      background: $hover;
       color: rgba(255, 255, 255, 0.35);
 
       .overflow-icon {
@@ -113,3 +113,4 @@
     transform: translateY(0);
   }
 }
+

@@ -2,24 +2,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { LuLink, LuList, LuPencil, LuPlus, LuSparkles, LuTrash2, LuUnlink } from 'react-icons/lu'
 import ConfirmActionModal from '../../ConfirmActionModal/ConfirmActionModal'
 import Modal from '../../Modal/Modal'
-import { UseViz } from '../../../Contexts/VisualizerContext'
+import { useVisualizerListActions, useVisualizerSources } from '../useVisualizerPresets'
 import EmptyMessage from './EmptyMessage'
 import ListItem from './ListItem'
 import ModalHeader from './ModalHeader'
 import ModalSection from './ModalSection'
+import './ListManagerTab.scss'
 
 function ListManagerTab() {
   const {
     presetLists,
     sourceAssociations,
     activePresetList,
-    availableAssociationSources,
+    availableAssociationSources
+  } = useVisualizerSources()
+  const {
     createPresetList,
     renamePresetList,
     deletePresetList,
     associateSourceToList,
     removeSourceAssociation
-  } = UseViz()
+  } = useVisualizerListActions()
 
   const [selectedListId, setSelectedListId] = useState('')
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false)
@@ -148,8 +151,8 @@ function ListManagerTab() {
     setEditSourceKey('')
   }
 
-  const handleCreateList = () => {
-    const createdList = createPresetList(newListName)
+  const handleCreateList = async () => {
+    const createdList = await createPresetList(newListName)
 
     if (createdList?.id) {
       setSelectedListId(createdList.id)
@@ -219,6 +222,8 @@ function ListManagerTab() {
   const trimmedEditRenameValue = editRenameValue.trim()
   const hasPresetLists = presetLists.length > 0
   const hasEditingLinkedSources = editingLinkedSources.length > 0
+  const selectedListPresetCount = selectedList?.presetNames?.length || 0
+  const selectedListAssociationCount = selectedList ? listAssociationCounts.get(selectedList.id) || 0 : 0
 
   const renderPresetLists = () =>
     presetLists.map((list) => {
@@ -240,44 +245,79 @@ function ListManagerTab() {
 
   return (
     <>
-      <section>
-        <article>
-          <div>
-            <div>
-              <span>
+      <section className="list-manager-tab">
+        <article className="list-manager-tab__panel">
+          <div className="list-manager-tab__header">
+            <div className="list-manager-tab__header-copy">
+              <span className="list-manager-tab__eyebrow">
                 <LuList /> Lists
               </span>
-              <small>Each ListItem shows its preset count and whether it is unrelated.</small>
+              <h3 className="list-manager-tab__title">Manage preset collections</h3>
+              <small className="list-manager-tab__description">
+                Create, rename and connect lists to your available sources from one place.
+              </small>
             </div>
-            <button onClick={handleOpenCreateModal} type="button">
-              <LuPlus /> Create ListItem
+            <button className="list-manager-tab__primary-action" onClick={handleOpenCreateModal} type="button">
+              <LuPlus /> Create list
             </button>
           </div>
 
-          {hasPresetLists ? (
-            <div>{renderPresetLists()}</div>
-          ) : (
-            <EmptyMessage
-              icon={LuSparkles}
-              title="No hay preset lists todavia."
-              description="Crea tu primer ListItem para empezar a organizar presets."
-            />
-          )}
+          <div className="list-manager-tab__content">
+            <div className="list-manager-tab__list-column">
+              {hasPresetLists ? (
+                <div className="list-manager-tab__list">{renderPresetLists()}</div>
+              ) : (
+                <EmptyMessage
+                  icon={LuSparkles}
+                  title="No hay preset lists todavia."
+                  description="Crea tu primera lista para empezar a organizar presets y vincular fuentes."
+                />
+              )}
+            </div>
+
+            <aside className="list-manager-tab__detail">
+              <span className="list-manager-tab__detail-label">Selected list</span>
+              <h4 className="list-manager-tab__detail-title">
+                {selectedList?.name || 'Selecciona una lista'}
+              </h4>
+              <p className="list-manager-tab__detail-description">
+                {selectedList
+                  ? 'Revisa rapidamente cuantos presets y enlaces de fuente tiene esta lista.'
+                  : 'Elige una lista para ver su resumen y luego editarla desde el panel principal.'}
+              </p>
+
+              <div className="list-manager-tab__stats">
+                <div className="list-manager-tab__stat">
+                  <strong>{selectedListPresetCount}</strong>
+                  <span>Presets</span>
+                </div>
+                <div className="list-manager-tab__stat">
+                  <strong>{selectedListAssociationCount}</strong>
+                  <span>Source links</span>
+                </div>
+              </div>
+            </aside>
+          </div>
         </article>
       </section>
 
-      <Modal isVisible={isCreateModalVisible} closeModal={handleCloseCreateModal}>
-        <div>
+      <Modal
+        isVisible={isCreateModalVisible}
+        closeModal={handleCloseCreateModal}
+        contentClassName="list-manager-modal"
+      >
+        <div className="list-manager-modal__body">
           <ModalHeader
             icon={LuPlus}
-            label="Create ListItem"
+            label="Create List"
             title="Nueva preset list"
             description="Solo necesitas un nombre para crear una nueva lista de presets."
           />
 
-          <label>
+          <label className="list-manager-modal__field">
             <span>Nombre</span>
             <input
+              className="list-manager-modal__input"
               type="text"
               value={newListName}
               placeholder="Ej. Late Night Visuals"
@@ -286,29 +326,39 @@ function ListManagerTab() {
             />
           </label>
 
-          <div>
-            <button type="button" onClick={handleCloseCreateModal}>
+          <div className="list-manager-modal__actions">
+            <button className="list-manager-modal__button" type="button" onClick={handleCloseCreateModal}>
               Cancelar
             </button>
-            <button type="button" onClick={handleCreateList} disabled={!trimmedNewListName}>
+            <button
+              className="list-manager-modal__button is-primary"
+              type="button"
+              onClick={handleCreateList}
+              disabled={!trimmedNewListName}
+            >
               Crear
             </button>
           </div>
         </div>
       </Modal>
 
-      <Modal isVisible={isEditModalVisible} closeModal={handleCloseEditModal}>
-        <div>
+      <Modal
+        isVisible={isEditModalVisible}
+        closeModal={handleCloseEditModal}
+        contentClassName="list-manager-modal"
+      >
+        <div className="list-manager-modal__body">
           <ModalHeader
             icon={LuPencil}
-            label="Edit List Item"
-            title={editingList?.name || 'Editar ListItem'}
+            label="Edit List"
+            title={editingList?.name || 'Editar lista'}
             description="Renombra la lista y administra sus source links desde un solo lugar."
           />
 
-          <ModalSection title="Rename List Item">
-            <div>
+          <ModalSection title="Rename list">
+            <div className="list-manager-modal__inline-form">
               <input
+                className="list-manager-modal__input"
                 type="text"
                 value={editRenameValue}
                 placeholder="Renombra la lista"
@@ -316,6 +366,7 @@ function ListManagerTab() {
                 disabled={!editingList}
               />
               <button
+                className="list-manager-modal__button is-primary"
                 type="button"
                 onClick={handleRenameList}
                 disabled={!editingList || !trimmedEditRenameValue}
@@ -327,24 +378,31 @@ function ListManagerTab() {
 
           <ModalSection title="Remove Source Links" meta={`${editingLinkedSources.length} linked`}>
             {hasEditingLinkedSources ? (
-              <div>
+              <div className="list-manager-modal__linked-list">
                 {editingLinkedSources.map((source) => (
-                  <div key={source.sourceKey}>
+                  <div className="list-manager-modal__linked-item" key={source.sourceKey}>
                     <span>{source.label}</span>
-                    <button type="button" onClick={() => handleManualRemoveAssociation(source)}>
+                    <button
+                      className="list-manager-modal__button is-muted"
+                      type="button"
+                      onClick={() => handleManualRemoveAssociation(source)}
+                    >
                       <LuUnlink /> Remove
                     </button>
                   </div>
                 ))}
               </div>
             ) : (
-              <div>No source links connected to this ListItem yet.</div>
+              <div className="list-manager-modal__empty-note">
+                No source links connected to this list yet.
+              </div>
             )}
           </ModalSection>
 
           <ModalSection title="Add Source Links" meta={`${availableSourcesForEdit.length} available`}>
-            <div>
+            <div className="list-manager-modal__inline-form">
               <select
+                className="list-manager-modal__select"
                 value={editSourceKey}
                 onChange={(event) => setEditSourceKey(event.target.value)}
                 disabled={!editingList || availableSourcesForEdit.length === 0}
@@ -358,6 +416,7 @@ function ListManagerTab() {
               </select>
 
               <button
+                className="list-manager-modal__button is-primary"
                 type="button"
                 onClick={handleManualAssociate}
                 disabled={!editingList || !editSourceKey}

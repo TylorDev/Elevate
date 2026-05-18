@@ -1,0 +1,201 @@
+@use '../../../styles/variables' as *;
+
+.manager-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.025);
+  color: $text-primary;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+}
+
+.manager-card__header,
+.tab-card__header-top,
+.tab-card__copy,
+.manager-card__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tab-card__header-top {
+  gap: 12px;
+}
+
+.tab-card__copy {
+  gap: 8px;
+}
+
+.config-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: $primary-color;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tab-card__title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: $text-primary;
+}
+
+.tab-card__description {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.tab-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.manager-card__body {
+  gap: 14px;
+  min-width: 0;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.92);
+
+  &.active {
+    border-color: rgba(186, 255, 0, 0.38);
+    background: rgba(186, 255, 0, 0.08);
+  }
+
+  &.is-static {
+    cursor: default;
+  }
+}
+
+.preset-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.preset-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.78rem;
+  font-weight: 700;
+
+  &.muted {
+    color: rgba(255, 255, 255, 0.42);
+  }
+}
+
+.preset-icon {
+  flex: 0 0 auto;
+  color: $primary-color;
+  font-size: 0.95rem;
+}
+
+.preset-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.preset-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.018);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.empty-state--compact {
+  padding: 16px;
+}
+
+.empty-state__icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: $border-radius;
+  background: rgba(186, 255, 0, 0.08);
+  color: $primary-color;
+}
+
+.empty-state__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.empty-state p,
+.empty-state small {
+  margin: 0;
+}
+
+.empty-state p {
+  color: $text-primary;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.empty-state small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 720px) {
+  .preset-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .preset-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+

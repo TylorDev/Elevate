@@ -13,7 +13,7 @@
     // Modern Minimalist Aesthetics (Solid)
     background: #0a0a0a;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 20px;
+    border-radius: $border-radius;
     box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
 
     display: flex;
@@ -64,7 +64,7 @@
 }
 
 .search-overlay__search-icon {
-    color: var(--text-principal); // Accent color for the icon
+    color: $primary-color; // Accent color for the icon
     font-size: 1.2rem;
     opacity: 0.8;
 }
@@ -78,7 +78,7 @@
 
 .search-overlay__filter {
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
+    border-radius: $border-radius;
     background: rgba(255, 255, 255, 0.02);
     color: rgba(255, 255, 255, 0.6);
     display: inline-flex;
@@ -99,18 +99,18 @@
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.05);
+        background: $hover;
         color: rgba(255, 255, 255, 0.9);
         border-color: rgba(255, 255, 255, 0.1);
     }
 
     &.is-active {
-        border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.2);
-        background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
-        color: var(--text-principal);
+        border-color: color-mix(in srgb, $primary-color 20%, transparent);
+        background: color-mix(in srgb, $primary-color 10%, transparent);
+        color: $primary-color;
 
         &:hover {
-            background: rgba(var(--accent-rgb, 186, 255, 0), 0.15);
+            background: $hover;
         }
     }
 }
@@ -133,10 +133,10 @@
 
     &::-webkit-scrollbar-thumb {
         background: rgba(255, 255, 255, 0.1);
-        border-radius: 3px;
+        border-radius: $border-radius;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background: $hover;
         }
     }
 }
@@ -145,7 +145,7 @@
     padding: 2rem;
     text-align: center;
     background: rgba(255, 255, 255, 0.01);
-    border-radius: 16px;
+    border-radius: $border-radius;
     border: 1px solid rgba(255, 255, 255, 0.02);
 
     p {
@@ -173,7 +173,7 @@
 
 .search-overlay__section {
     border: none;
-    border-radius: 0;
+    border-radius: $border-radius;
     background: transparent;
     overflow: visible;
 }
@@ -216,17 +216,17 @@
 }
 
 .search-overlay__entity-item {
-    border-radius: 12px;
+    border-radius: $border-radius;
     transition: all 0.2s ease;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.03);
+        background: $hover;
     }
 
     .ui-cover-icon {
-        color: var(--text-principal);
-        background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
-        border-radius: 8px;
+        color: $primary-color;
+        background: color-mix(in srgb, $primary-color 10%, transparent);
+        border-radius: $border-radius;
     }
 
     .ui-extra {
@@ -239,7 +239,7 @@
 @media (max-width: 600px) {
     .search-overlay {
         width: 96vw;
-        border-radius: 16px;
+        border-radius: $border-radius;
     }
 
     .search-overlay__searchbox {
@@ -264,3 +264,4 @@
         padding: 0.25rem 1.25rem 1.25rem;
     }
 }
+

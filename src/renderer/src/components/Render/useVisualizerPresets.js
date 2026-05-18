@@ -5,6 +5,14 @@ export {
   getSourceLabel,
   mapPresetNamesToItems,
   normalizePlaybackSource,
-  normalizePresetSource,
-  UseViz as useVisualizerPresets
+  normalizePresetSource
+} from '../../Contexts/visualizerUtils'
+
+export {
+  useVisualizerCatalog,
+  useVisualizerFavoriteActions,
+  useVisualizerListActions,
+  useVisualizerPlayback,
+  useVisualizerSettingsActions,
+  useVisualizerSources
 } from '../../Contexts/VisualizerContext'

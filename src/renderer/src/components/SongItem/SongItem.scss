@@ -21,7 +21,7 @@
     position: relative;
     cursor: pointer;
     background: transparent;
-    border-radius: 8px;
+    border-radius: $border-radius;
     margin-bottom: 2px;
     overflow: hidden;
     min-width: 0;
@@ -44,7 +44,7 @@
         }
 
         &.is-active {
-            color: var(--text-principal);
+            color: $primary-color;
             transform: scale(1.05);
         }
 
@@ -54,7 +54,7 @@
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.04);
+        background: $hover;
 
         .ico {
             opacity: 1;
@@ -66,16 +66,16 @@
     }
 
     &.active {
-        background: color-mix(in srgb, var(--text-principal), transparent 80%);
-        border-bottom-color: rgba(var(--accent-rgb), 0.1);
+        background: color-mix(in srgb, $primary-color, transparent 80%);
+        border-bottom-color: color-mix(in srgb, $primary-color 10%, transparent);
 
         .songIndex {
-            color: var(--text-principal);
+            color: $primary-color;
             font-weight: 700;
         }
 
         .song-tittle {
-            color: var(--text-principal);
+            color: $primary-color;
         }
     }
 
@@ -93,14 +93,14 @@
         position: relative;
         width: clamp(3rem, 5vw, 4rem);
         height: clamp(3rem, 5vw, 4rem);
-        border-radius: 4px;
+        border-radius: $border-radius;
         flex-shrink: 0;
 
         img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 0.8rem;
+            border-radius: $border-radius;
         }
 
         .ico {
@@ -114,7 +114,7 @@
             align-items: center;
             justify-content: center;
             opacity: 0;
-            color: white;
+            color: $text-primary;
             font-size: 0.9rem;
         }
     }
@@ -128,7 +128,7 @@
             align-self: end;
             font-size: 1rem;
             font-weight: 600;
-            color: white;
+            color: $text-primary;
             display: block;
             line-height: 1.2;
             margin-bottom: 2px;
@@ -190,7 +190,7 @@
             align-items: center;
 
             &:hover {
-                color: white;
+                color: $text-primary;
             }
 
             svg {
@@ -199,10 +199,10 @@
         }
 
         &.liked .btnLike {
-            color: var(--text-principal);
+            color: $primary-color;
 
             svg {
-                fill: var(--text-principal);
+                fill: $primary-color;
             }
         }
     }
@@ -232,13 +232,13 @@
 
     .song-progress-fill {
         height: 100%;
-        background: var(--text-principal);
+        background: $primary-color;
     }
 }
 
 .visible.is-pinned .songItem {
-    background: rgba(var(--accent-rgb, 186, 255, 0), 0.14);
-    box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb, 186, 255, 0), 0.35);
+    background: color-mix(in srgb, $primary-color 14%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, $primary-color 35%, transparent);
 }
 
 @media (max-width: 640px) {
@@ -268,3 +268,4 @@
         }
     }
 }
+

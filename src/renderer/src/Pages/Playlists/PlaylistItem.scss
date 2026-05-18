@@ -3,11 +3,11 @@
     grid-template-columns: auto 1fr 1fr 1fr auto auto;
     align-items: center;
     justify-items: start;
-    border-radius: 0.5rem;
+    border-radius: $border-radius;
     height: 6rem;
 
     &:hover {
-        background-color: $secondary;
+        background-color: $hover;
 
     }
 
@@ -24,7 +24,7 @@
     border-top: 1px solid $text-secondary;
 
     .MuiCircularProgress-svg {
-        color: $text-principal;
+        color: $primary-color;
     }
 
 
@@ -39,7 +39,7 @@
     cursor: pointer;
 
     img {
-        border-radius: 1rem;
+        border-radius: $border-radius;
         height: 100%;
 
     }
@@ -48,7 +48,7 @@
 .pi-name {
     font-size: 1.1rem;
     font-weight: 600;
-    color: white;
+    color: $text-primary;
     text-decoration: none;
 
     &:hover {
@@ -69,3 +69,4 @@
     font-size: 1rem;
     color: $text-secondary;
 }
+

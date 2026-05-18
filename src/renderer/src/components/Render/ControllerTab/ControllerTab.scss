@@ -1,0 +1,159 @@
+@use '../../../styles/variables' as *;
+
+.controller-tab {
+  width: 100%;
+  color: $text-primary;
+}
+
+.controller-tab__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.controller-tab__card {
+  min-height: 0;
+}
+
+.controller-tab__card--active-list {
+  grid-column: span 2;
+}
+
+.controller-tab__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.controller-tab__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controller-tab__label {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.controller-tab__select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: $border-radius;
+  background: $card;
+  color: $text-primary;
+  outline: none;
+  font: inherit;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  &:focus-visible,
+  &[data-popup-open] {
+    border-color: rgba(255, 255, 255, 0.26);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 0 0 3px rgba(186, 255, 0, 0.18);
+  }
+}
+
+.controller-tab__hint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.controller-tab__preset-list,
+.controller-tab__preset-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.controller-tab__preset-rows {
+  max-height: 320px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.controller-tab__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.03);
+  color: $text-primary;
+  cursor: pointer;
+  text-align: left;
+
+  &.is-active {
+    border-color: rgba(186, 255, 0, 0.36);
+    background: rgba(186, 255, 0, 0.08);
+  }
+}
+
+.controller-tab__toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  strong,
+  small {
+    margin: 0;
+  }
+
+  strong {
+    font-size: 0.96rem;
+  }
+
+  small {
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+  }
+}
+
+.controller-tab__toggle-track {
+  display: inline-flex;
+  align-items: center;
+  width: 52px;
+  height: 30px;
+  flex: 0 0 52px;
+  padding: 4px;
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.controller-tab__toggle.is-active .controller-tab__toggle-track {
+  background: rgba(186, 255, 0, 0.26);
+}
+
+.controller-tab__toggle-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: $border-radius;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.controller-tab__toggle.is-active .controller-tab__toggle-thumb {
+  margin-left: auto;
+  background: $primary-color;
+}
+
+@media (max-width: 900px) {
+  .controller-tab__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .controller-tab__card--active-list {
+    grid-column: auto;
+  }
+}
+

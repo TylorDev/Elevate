@@ -9,8 +9,8 @@
     transition: background 0.2s, color 0.2s, transform 0.1s;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
+        background: $hover;
+        color: $text-primary;
     }
 
     &:disabled {
@@ -18,7 +18,7 @@
         cursor: default;
 
         &:hover {
-            background: transparent;
+            background: $hover;
             color: rgba(255, 255, 255, 0.7);
         }
     }
@@ -34,8 +34,8 @@
     }
 
     &--play {
-        background-color: $text-principal;
-        color: $principal;
+        background-color: $primary-color;
+        color: $card;
         width: 2.75rem;
         height: 2.75rem;
         border-radius: 50%;
@@ -74,7 +74,8 @@
         }
 
         &.liked {
-            color: $text-principal;
+            color: $primary-color;
         }
     }
 }
+

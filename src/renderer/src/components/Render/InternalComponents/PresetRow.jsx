@@ -22,7 +22,23 @@ function PresetRow({
     .join(' ')
 
   return (
-    <div className={classNames} onClick={onClick} style={style}>
+    <div
+      className={classNames}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onClick(event)
+              }
+            }
+          : undefined
+      }
+      onClick={onClick}
+      style={style}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className="preset-info">
         {typeof index === 'number' ? (
           <span className={`preset-index ${indexMuted ? 'muted' : ''}`.trim()}>{index + 1}</span>

@@ -1,8 +1,15 @@
 :root {
-    --primary-color: rgba(0, 0, 0, 0.911);
-    --text-principal: #baff00;
-    --text-secondary: #7a7a7a;
-    --secondary: #1A1A1A;
+    --Card: #171717;
+    --Dynamic-color: #baff00;
+    --text-secondary: #646464;
+    --secondary: #363636;
+    --background:#0A0A0A;
+ 
+
+    /* ── States ── */
+    --hover: #272727;
+    --selected:#505050;
+    --primary-text:oklch(98.511% 0.00011 271.152);
 
     /* ── Typography ── */
     --font-main: 'Geist Sans', 'Inter', system-ui, -apple-system, sans-serif;
@@ -29,10 +36,16 @@
     --fw-semibold: 600;
     --fw-bold: 700;
     --fw-extrabold: 800;
+    
 }
 
-$principal: var(--primary-color);
+$card: var(--Card);
 $secondary: var(--secondary);
-$text-principal: var(--text-principal);
-;
+$primary-color: var(--Dynamic-color);
+$text-primary: var(--primary-text);
 $text-secondary: var(--text-secondary);
+$background: var(--background);
+$hover: var(--hover);
+$selected: var(--selected);
+$highlight: var(--highlight);
+$border-radius: 3px;

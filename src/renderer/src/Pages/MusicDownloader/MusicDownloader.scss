@@ -8,7 +8,7 @@
   .tool-placeholder-page__content {
     width: min(100%, 40rem);
     padding: 2rem;
-    border-radius: 1.5rem;
+    border-radius: $border-radius;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.03);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
@@ -18,9 +18,9 @@
     display: inline-flex;
     margin-bottom: 0.8rem;
     padding: 0.3rem 0.75rem;
-    border-radius: 999px;
-    background: rgba(var(--accent-rgb, 186, 255, 0), 0.14);
-    color: var(--text-principal);
+    border-radius: $border-radius;
+    background: color-mix(in srgb, $primary-color 14%, transparent);
+    color: $primary-color;
     font-size: 0.78rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -29,7 +29,7 @@
 
   h1 {
     margin: 0 0 0.75rem;
-    color: white;
+    color: $text-primary;
     font-size: clamp(2rem, 4vw, 3rem);
     line-height: 1;
   }
@@ -41,3 +41,4 @@
     line-height: 1.6;
   }
 }
+

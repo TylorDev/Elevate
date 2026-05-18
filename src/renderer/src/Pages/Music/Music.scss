@@ -6,9 +6,9 @@
   width: 100%;
   overflow: hidden;
   font-family: 'Inter', sans-serif;
-  color: #fff;
+  color: red;
   background: #000;
-  border-radius: 1rem;
+  border-radius: $border-radius;
   transform: scale(0.95);
 
   &.no-visualizer {}
@@ -29,7 +29,7 @@
     right: 0;
     bottom: 0;
     z-index: 0;
-    background-color: $text-principal;
+    background-color: $primary-color;
     background-size: contain;
     background-position: center;
     background-repeat: no-repeat;
@@ -68,7 +68,7 @@
       flex-direction: column;
       z-index: 3;
       padding: 0.9rem;
-      border-radius: 16px;
+      border-radius: $border-radius;
       background: rgba(0, 0, 0, 0.62);
       border: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
@@ -87,7 +87,7 @@
 
         strong {
           font-size: 0.82rem;
-          color: #fff;
+          color: $text-primary;
         }
       }
 
@@ -106,7 +106,7 @@
 
         strong {
           font-size: 0.8rem;
-          color: #fff;
+          color: $text-primary;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -128,7 +128,7 @@
 
         &::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.16);
-          border-radius: 999px;
+          border-radius: $border-radius;
         }
       }
     }
@@ -141,14 +141,14 @@
       height: 100%;
       padding: 0.55rem 0.7rem;
       box-sizing: border-box;
-      border-radius: 12px;
+      border-radius: $border-radius;
       background: rgba(255, 255, 255, 0.04);
       color: rgba(255, 255, 255, 0.8);
 
       &.is-current {
         background: rgba(110, 142, 251, 0.22);
         border: 1px solid rgba(110, 142, 251, 0.35);
-        color: #fff;
+        color: $text-primary;
       }
 
       &__index {
@@ -178,7 +178,7 @@
       max-width: 60vh;
       transform: scale(0.8);
       aspect-ratio: 1 / 1;
-      border-radius: 2rem;
+      border-radius: $border-radius;
       overflow: hidden;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
 
@@ -220,7 +220,7 @@
           font-size: 2.5rem;
           font-weight: 800;
           margin: 0;
-          color: #fff;
+          color: $text-primary;
         }
 
         .artist {
@@ -251,7 +251,7 @@
             gap: 0.15rem;
             padding: 0.62rem 0.7rem;
             border: 1px solid rgba(186, 255, 0, 0.22);
-            border-radius: 18px;
+            border-radius: 50%;
             background: rgba(255, 255, 255, 0.08);
             color: #ddd;
             backdrop-filter: blur(10px);
@@ -274,10 +274,10 @@
           .like-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #fff;
+            color: $text-primary;
             width: 50px;
             height: 50px;
-            border-radius: 50%;
+            border-radius: $border-radius;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -285,7 +285,7 @@
             cursor: pointer;
 
             &:hover {
-              background: rgba(255, 255, 255, 0.2);
+              background: $hover;
             }
 
             &.liked {
@@ -312,12 +312,12 @@
     z-index: 4;
     max-width: min(48vw, 720px);
     padding: 0.6rem 0.85rem;
-    border-radius: 12px;
+    border-radius: $border-radius;
     background: rgba(0, 0, 0, 0.62);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
     backdrop-filter: blur(10px);
-    color: #fff;
+    color: $text-primary;
     font-size: 0.9rem;
     font-weight: 600;
     line-height: 1.2;
@@ -327,3 +327,4 @@
     pointer-events: none;
   }
 }
+

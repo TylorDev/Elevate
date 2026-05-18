@@ -620,14 +620,16 @@ if (!gotTheLock) {
     { setupPlaylistHandlers },
     { setupFilehandlers },
     { setupPlaylistSaveExplorerHandlers },
-    { setupImageSourceHandlers }
+    { setupImageSourceHandlers },
+    { setupVisualizerHandlers }
   ] =
     await Promise.all([
       import('./ipc/likehandlers.mjs'),
       import('./ipc/playlistHandlers.mjs'),
       import('./ipc/filehandlers.mjs'),
       import('./ipc/playlistSaveExplorerHandlers.mjs'),
-      import('./ipc/imageSourceHandlers.mjs')
+      import('./ipc/imageSourceHandlers.mjs'),
+      import('./ipc/visualizerHandlers.mjs')
     ])
 
   prisma = prismaModule.prisma
@@ -645,6 +647,7 @@ if (!gotTheLock) {
   setupPlaylistSaveExplorerHandlers()
   setupLikeSongHandlers()
   setupImageSourceHandlers()
+  setupVisualizerHandlers()
 
   // Discord Rich Presence IPC handlers
   ipcMain.handle('discord-presence:update', (_, payload) => {

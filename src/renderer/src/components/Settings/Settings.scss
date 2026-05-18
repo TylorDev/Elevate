@@ -12,7 +12,7 @@
     h1 {
       font-size: 2rem;
       font-weight: 800;
-      color: white;
+      color: $text-primary;
       letter-spacing: -0.02em;
     }
   }
@@ -22,7 +22,7 @@
     gap: 6px;
     background: rgba(255, 255, 255, 0.04);
     padding: 5px;
-    border-radius: 14px;
+    border-radius: $border-radius;
     border: 1px solid rgba(255, 255, 255, 0.06);
 
     .settings-tab {
@@ -33,7 +33,7 @@
       gap: 8px;
       padding: 10px 16px;
       border: none;
-      border-radius: 10px;
+      border-radius: $border-radius;
       background: transparent;
       color: rgba(255, 255, 255, 0.4);
       font-size: 0.85rem;
@@ -47,12 +47,12 @@
 
       &:hover {
         color: rgba(255, 255, 255, 0.7);
-        background: rgba(255, 255, 255, 0.05);
+        background: $hover;
       }
 
       &.active {
         background: rgba(255, 255, 255, 0.1);
-        color: white;
+        color: $text-primary;
 
       }
     }
@@ -80,7 +80,7 @@
         font-size: 0.75rem;
         font-weight: 600;
         padding: 4px 12px;
-        border-radius: 20px;
+        border-radius: $border-radius;
         color: #000;
         letter-spacing: 0.02em;
       }
@@ -100,7 +100,7 @@
     padding: 16px 18px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 14px;
+    border-radius: $border-radius;
 
     .settings-card__icon {
       display: flex;
@@ -108,9 +108,9 @@
       justify-content: center;
       width: 44px;
       height: 44px;
-      border-radius: 12px;
-      background: rgba(var(--accent-rgb, 186, 255, 0), 0.08);
-      color: var(--text-principal);
+      border-radius: 50%;
+      background: color-mix(in srgb, $primary-color 8%, transparent);
+      color: $primary-color;
       flex-shrink: 0;
 
       svg {
@@ -143,7 +143,7 @@
     width: 48px;
     height: 26px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 999px;
+    border-radius: $border-radius;
     background: rgba(255, 255, 255, 0.08);
     cursor: pointer;
     flex-shrink: 0;
@@ -156,18 +156,18 @@
       left: 3px;
       width: 18px;
       height: 18px;
-      border-radius: 50%;
+      border-radius: $border-radius;
       background: rgba(255, 255, 255, 0.45);
       transition: transform 0.2s ease, background 0.2s ease;
     }
 
     &.active {
-      background: rgba(var(--accent-rgb, 186, 255, 0), 0.25);
-      border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.4);
+      background: color-mix(in srgb, $primary-color 25%, transparent);
+      border-color: color-mix(in srgb, $primary-color 40%, transparent);
 
       .toggle-switch__thumb {
         transform: translateX(22px);
-        background: var(--text-principal);
+        background: $primary-color;
       }
     }
 
@@ -181,17 +181,17 @@
     .react-colorful {
       width: 100% !important;
       height: 180px !important;
-      border-radius: 14px !important;
+      border-radius: $border-radius;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.08);
 
       .react-colorful__saturation {
-        border-radius: 14px 14px 0 0 !important;
+        border-radius: $border-radius;
       }
 
       .react-colorful__hue {
         height: 18px !important;
-        border-radius: 0 0 14px 14px !important;
+        border-radius: $border-radius;
       }
 
       .react-colorful__pointer {
@@ -210,7 +210,7 @@
     gap: 8px;
     padding: 10px 18px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
+    border-radius: $border-radius;
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.7);
     font-size: 0.85rem;
@@ -221,13 +221,13 @@
 
     svg {
       font-size: 1rem;
-      color: var(--text-principal);
+      color: $primary-color;
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: $hover;
       border-color: rgba(255, 255, 255, 0.15);
-      color: white;
+      color: $text-primary;
       transform: translateY(-1px);
     }
 
@@ -275,7 +275,7 @@
 
     .settings-success {
       font-size: 0.8rem;
-      color: var(--text-principal);
+      color: $primary-color;
       margin-top: 2px;
     }
   }
@@ -286,8 +286,8 @@
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 10px 14px;
-    border-radius: 10px;
-    color: white;
+    border-radius: $border-radius;
+    color: $text-primary;
     font-size: 0.85rem;
 
 
@@ -296,7 +296,7 @@
     }
 
     &:focus {
-      border-color: var(--text-principal);
+      border-color: $primary-color;
       background: rgba(255, 255, 255, 0.07);
 
     }
@@ -309,7 +309,7 @@
     width: 40px;
     height: 40px;
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
+    border-radius: $border-radius;
     background: rgba(255, 255, 255, 0.04);
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
@@ -322,7 +322,7 @@
     }
 
     &.danger:hover {
-      background: rgba(255, 80, 80, 0.15);
+      background: $hover;
       border-color: rgba(255, 80, 80, 0.3);
       color: #ff5050;
     }
@@ -330,7 +330,7 @@
 
   // Image Preview
   .image-preview {
-    border-radius: 14px;
+    border-radius: $border-radius;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.08);
     max-height: 200px;
@@ -350,7 +350,7 @@
 
     &__empty {
       padding: 18px;
-      border-radius: 14px;
+      border-radius: $border-radius;
       border: 1px dashed rgba(255, 255, 255, 0.1);
       color: rgba(255, 255, 255, 0.35);
       font-size: 0.82rem;
@@ -369,20 +369,20 @@
       flex-direction: column;
       gap: 10px;
       padding: 12px;
-      border-radius: 14px;
+      border-radius: $border-radius;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.03);
 
       &.is-active {
-        border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.45);
-        background: rgba(var(--accent-rgb, 186, 255, 0), 0.08);
+        border-color: color-mix(in srgb, $primary-color 45%, transparent);
+        background: color-mix(in srgb, $primary-color 8%, transparent);
       }
     }
 
     &__preview {
       position: relative;
       height: 120px;
-      border-radius: 12px;
+      border-radius: $border-radius;
       overflow: hidden;
       background: rgba(255, 255, 255, 0.04);
 
@@ -409,13 +409,13 @@
       top: 8px;
       left: 8px;
       padding: 4px 8px;
-      border-radius: 999px;
+      border-radius: $border-radius;
       font-size: 0.7rem;
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       background: rgba(0, 0, 0, 0.7);
-      color: white;
+      color: $text-primary;
 
       &.type-remote {
         background: rgba(62, 118, 255, 0.78);
@@ -482,20 +482,20 @@
       gap: 16px;
       padding: 16px;
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
+      border-radius: $border-radius;
       background: rgba(255, 255, 255, 0.03);
       cursor: pointer;
 
       text-align: left;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: $hover;
         border-color: rgba(255, 255, 255, 0.1);
       }
 
       &.active {
-        background: rgba(var(--accent-rgb, 186, 255, 0), 0.06);
-        border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.25);
+        background: color-mix(in srgb, $primary-color 6%, transparent);
+        border-color: color-mix(in srgb, $primary-color 25%, transparent);
       }
 
       .waveform-option-content {
@@ -513,12 +513,12 @@
         .waveform-option-label {
           font-size: 0.95rem;
           font-weight: 600;
-          color: white;
+          color: $text-primary;
         }
 
         .waveform-check {
           display: flex;
-          color: var(--text-principal);
+          color: $primary-color;
           font-size: 1rem;
         }
 
@@ -536,15 +536,15 @@
         align-items: center;
         justify-content: center;
         gap: 2px;
-        color: var(--text-principal);
+        color: $primary-color;
         opacity: 0.6;
 
 
         &--mirrored {
           .bar {
             width: 4px;
-            background: var(--text-principal);
-            border-radius: 2px;
+            background: $primary-color;
+            border-radius: $border-radius;
 
           }
         }
@@ -594,11 +594,11 @@
     padding: 12px 16px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 12px;
+    border-radius: $border-radius;
 
 
     &:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: $hover;
       border-color: rgba(255, 255, 255, 0.1);
     }
 
@@ -611,7 +611,7 @@
 
       .directory-icon {
         font-size: 1.3rem;
-        color: var(--text-principal);
+        color: $primary-color;
         flex-shrink: 0;
       }
     }
@@ -690,3 +690,4 @@
     transform: scaleY(1);
   }
 }
+

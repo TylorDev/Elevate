@@ -118,8 +118,8 @@ export const SuperProvider = ({ children }) => {
   const [waveformVariant, setWaveformVariant] = useState(
     () => localStorage.getItem('waveformVariant') || 'mirrored'
   )
-  const [discordRpcEnabled, setDiscordRpcEnabled] = useState(
-    () => readStoredBoolean('settings.discordRpc', true)
+  const [discordRpcEnabled, setDiscordRpcEnabled] = useState(() =>
+    readStoredBoolean('settings.discordRpc', true)
   )
 
   const handleWaveformVariantChange = (variant) => {
@@ -194,7 +194,11 @@ export const SuperProvider = ({ children }) => {
     (list, name, index = null) => {
       const baseQueue = Array.isArray(list) ? [...list] : []
       const hasExplicitIndex =
-        index !== null && index !== undefined && Number.isInteger(index) && index >= 0 && baseQueue[index]
+        index !== null &&
+        index !== undefined &&
+        Number.isInteger(index) &&
+        index >= 0 &&
+        baseQueue[index]
       const nextIndex = hasExplicitIndex ? index : 0
       const nextFile = baseQueue[nextIndex] || ''
 
@@ -239,7 +243,14 @@ export const SuperProvider = ({ children }) => {
       setCurrentFile(displayedQueue[fallbackIndex])
       setCurrentIndex(fallbackIndex)
     },
-    [currentFile?.filePath, currentIndex, isShuffled, setCurrentFile, setCurrentIndex, setQueueState]
+    [
+      currentFile?.filePath,
+      currentIndex,
+      isShuffled,
+      setCurrentFile,
+      setCurrentIndex,
+      setQueueState
+    ]
   )
 
   const PlayQueue = (list, name, index = null) => {
@@ -274,9 +285,7 @@ export const SuperProvider = ({ children }) => {
 
   const appendManyToCurrentQueue = useCallback(
     (songs = []) => {
-      const normalizedSongs = Array.isArray(songs)
-        ? songs.filter((song) => song?.filePath)
-        : []
+      const normalizedSongs = Array.isArray(songs) ? songs.filter((song) => song?.filePath) : []
 
       if (normalizedSongs.length === 0) {
         return
@@ -414,7 +423,10 @@ export const SuperProvider = ({ children }) => {
         return []
       }
 
-      const nextQueue = await window.electron.ipcRenderer.invoke('get-audio-in-directory', directoryPath)
+      const nextQueue = await window.electron.ipcRenderer.invoke(
+        'get-audio-in-directory',
+        directoryPath
+      )
 
       if (!Array.isArray(nextQueue) || nextQueue.length === 0) {
         return []
@@ -431,7 +443,12 @@ export const SuperProvider = ({ children }) => {
     [applyBaseQueue, navigate]
   )
 
-  const handleQueueAndPlay = async (song = undefined, index = undefined, filePath, shouldNavigate = true) => {
+  const handleQueueAndPlay = async (
+    song = undefined,
+    index = undefined,
+    filePath,
+    shouldNavigate = true
+  ) => {
     if (filePath.startsWith('folder:')) {
       const newFilePath = filePath.replace(/^folder:/, '')
       await openDirectoryQueue(newFilePath, { shouldNavigate })
@@ -750,20 +767,52 @@ export const SuperProvider = ({ children }) => {
     }
   }, [queueState.currentQueue])
 
-  const removeTrack = useCallback(async (playlistPath, index) => {
-    const result = await electronInvoke('update-list', {
-      filePath: playlistPath,
-      index
-    })
+  const removeTrack = useCallback(
+    async (playlistPath, index) => {
+      const result = await electronInvoke('update-list', {
+        filePath: playlistPath,
+        index
+      })
 
-    if (result && result.success) {
-      setQueueState((prevState) => ({
-        ...prevState,
-        currentQueue: prevState.currentQueue.filter((_, itemIndex) => itemIndex !== index)
-      }))
+      if (result && result.success) {
+        setQueueState((prevState) => ({
+          ...prevState,
+          currentQueue: prevState.currentQueue.filter((_, itemIndex) => itemIndex !== index)
+        }))
 
-      setTimeout(() => {
-        toast.success('Eliminada correctamente!', {
+        setTimeout(() => {
+          toast.success('Eliminada correctamente!', {
+            position: 'bottom-right',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: 'dark',
+            transition: Bounce
+          })
+        }, 1000)
+      }
+    },
+    [setQueueState]
+  )
+
+  const addSong = useCallback(
+    async (playlistPath, newTrack) => {
+      const result = await electronInvoke('add-new-song', {
+        filePath: playlistPath,
+        song: newTrack.filePath
+      })
+
+      if (result && result.success) {
+        console.log('M3U file updated successfully at', result.path)
+        console.log('New name in db:', result.songName)
+        setQueueState((prevState) => ({
+          ...prevState,
+          currentQueue: [...prevState.currentQueue, newTrack]
+        }))
+        toast.success(`Agregada: ${result.songName}`, {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -774,36 +823,10 @@ export const SuperProvider = ({ children }) => {
           theme: 'dark',
           transition: Bounce
         })
-      }, 1000)
-    }
-  }, [setQueueState])
-
-  const addSong = useCallback(async (playlistPath, newTrack) => {
-    const result = await electronInvoke('add-new-song', {
-      filePath: playlistPath,
-      song: newTrack.filePath
-    })
-
-    if (result && result.success) {
-      console.log('M3U file updated successfully at', result.path)
-      console.log('New name in db:', result.songName)
-      setQueueState((prevState) => ({
-        ...prevState,
-        currentQueue: [...prevState.currentQueue, newTrack]
-      }))
-      toast.success(`Agregada: ${result.songName}`, {
-        position: 'bottom-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'dark',
-        transition: Bounce
-      })
-    }
-  }, [setQueueState])
+      }
+    },
+    [setQueueState]
+  )
 
   const addhistory = useCallback((common) => ElectronSetter('add-history', common), [])
 
@@ -826,20 +849,24 @@ export const SuperProvider = ({ children }) => {
 
   useEffect(() => {
     if (color) {
-      document.documentElement.style.setProperty('--text-principal', color)
+      document.documentElement.style.setProperty('--Dynamic-color', color)
       localStorage.setItem('colorManual', color)
       return
     }
 
     localStorage.removeItem('colorManual')
 
-    if (currentCoverUrl && currentCoverUrl !== previousCoverUrl.current && !currentCoverUrl.includes('svg')) {
+    if (
+      currentCoverUrl &&
+      currentCoverUrl !== previousCoverUrl.current &&
+      !currentCoverUrl.includes('svg')
+    ) {
       let alive = true
       previousCoverUrl.current = currentCoverUrl
       extractDominantColor(currentCoverUrl)
         .then((dominantColor) => {
           if (alive) {
-            document.documentElement.style.setProperty('--text-principal', dominantColor.hex)
+            document.documentElement.style.setProperty('--Dynamic-color', dominantColor.hex)
           }
         })
         .catch((error) => {
@@ -897,7 +924,8 @@ export const SuperProvider = ({ children }) => {
         let state = null
 
         if (legacyBackground) {
-          const migrationResult = await window.electron.backgroundImages.migrateLegacy(legacyBackground)
+          const migrationResult =
+            await window.electron.backgroundImages.migrateLegacy(legacyBackground)
           if (migrationResult?.success !== false) {
             localStorage.removeItem('backgroundImageUrl')
             state = migrationResult
@@ -927,27 +955,30 @@ export const SuperProvider = ({ children }) => {
     }
   }, [applyBackgroundState])
 
-  const applyRemoteBackground = useCallback(async (url) => {
-    setBackgroundLoading(true)
+  const applyRemoteBackground = useCallback(
+    async (url) => {
+      setBackgroundLoading(true)
 
-    try {
-      const result = await window.electron.backgroundImages.applyRemote(url)
-      if (result?.success) {
-        applyBackgroundState(result)
-      }
+      try {
+        const result = await window.electron.backgroundImages.applyRemote(url)
+        if (result?.success) {
+          applyBackgroundState(result)
+        }
 
-      return result
-    } catch (error) {
-      console.error('Error applying remote background:', error)
-      return {
-        success: false,
-        errorCode: 'unknown_error',
-        errorMessage: 'Error al aplicar la imagen remota.'
+        return result
+      } catch (error) {
+        console.error('Error applying remote background:', error)
+        return {
+          success: false,
+          errorCode: 'unknown_error',
+          errorMessage: 'Error al aplicar la imagen remota.'
+        }
+      } finally {
+        setBackgroundLoading(false)
       }
-    } finally {
-      setBackgroundLoading(false)
-    }
-  }, [applyBackgroundState])
+    },
+    [applyBackgroundState]
+  )
 
   const pickLocalBackground = useCallback(async () => {
     setBackgroundLoading(true)
@@ -971,49 +1002,55 @@ export const SuperProvider = ({ children }) => {
     }
   }, [applyBackgroundState])
 
-  const selectBackgroundFromHistory = useCallback(async (id) => {
-    setBackgroundLoading(true)
+  const selectBackgroundFromHistory = useCallback(
+    async (id) => {
+      setBackgroundLoading(true)
 
-    try {
-      const result = await window.electron.backgroundImages.select(id)
-      if (result?.success) {
-        applyBackgroundState(result)
+      try {
+        const result = await window.electron.backgroundImages.select(id)
+        if (result?.success) {
+          applyBackgroundState(result)
+        }
+
+        return result
+      } catch (error) {
+        console.error('Error selecting background history item:', error)
+        return {
+          success: false,
+          errorCode: 'unknown_error',
+          errorMessage: 'Error al reutilizar la imagen del historial.'
+        }
+      } finally {
+        setBackgroundLoading(false)
       }
+    },
+    [applyBackgroundState]
+  )
 
-      return result
-    } catch (error) {
-      console.error('Error selecting background history item:', error)
-      return {
-        success: false,
-        errorCode: 'unknown_error',
-        errorMessage: 'Error al reutilizar la imagen del historial.'
+  const removeBackgroundHistoryItem = useCallback(
+    async (id) => {
+      setBackgroundLoading(true)
+
+      try {
+        const result = await window.electron.backgroundImages.remove(id)
+        if (result?.success) {
+          applyBackgroundState(result)
+        }
+
+        return result
+      } catch (error) {
+        console.error('Error removing background history item:', error)
+        return {
+          success: false,
+          errorCode: 'unknown_error',
+          errorMessage: 'Error al eliminar la imagen del historial.'
+        }
+      } finally {
+        setBackgroundLoading(false)
       }
-    } finally {
-      setBackgroundLoading(false)
-    }
-  }, [applyBackgroundState])
-
-  const removeBackgroundHistoryItem = useCallback(async (id) => {
-    setBackgroundLoading(true)
-
-    try {
-      const result = await window.electron.backgroundImages.remove(id)
-      if (result?.success) {
-        applyBackgroundState(result)
-      }
-
-      return result
-    } catch (error) {
-      console.error('Error removing background history item:', error)
-      return {
-        success: false,
-        errorCode: 'unknown_error',
-        errorMessage: 'Error al eliminar la imagen del historial.'
-      }
-    } finally {
-      setBackgroundLoading(false)
-    }
-  }, [applyBackgroundState])
+    },
+    [applyBackgroundState]
+  )
 
   const clearBackground = useCallback(async () => {
     setBackgroundLoading(true)
@@ -1060,110 +1097,113 @@ export const SuperProvider = ({ children }) => {
     [duration, progress]
   )
 
-  const contextValue = useMemo(() => ({
-    mediaRef,
-    currentFile,
-    setCurrentFile,
-    currentIndex,
-    setCurrentIndex,
-    isShuffled,
-    muted,
-    volume,
-    setVolume,
-    setMediaVolume,
-    isPlaying,
-    loop,
-    togglePlayPause,
-    toggleMute,
-    toggleRepeat,
-    toggleShuffle,
-    handlePreviousClick,
-    handleNextClick,
-    handleSongClick,
-    reorderCurrentQueue,
-    appendToCurrentQueue,
-    appendManyToCurrentQueue,
-    appendToQueueAndPlay,
-    removeFromCurrentQueue,
-    addhistory,
-    queueState,
-    handleSaveClick,
-    handleQueueAndPlay,
-    openDirectoryQueue,
-    PlayQueue,
-    removeTrack,
-    addSong,
-    handleTimelineClick,
-    scrollRef,
-    getImage,
-    handleColorChange,
-    color,
-    isAwaken,
-    handleAwaken,
-    toggleStep,
-    isStep,
-    currentBackground,
-    backgroundImageUrl,
-    backgroundHistory,
-    backgroundLoading,
-    applyRemoteBackground,
-    pickLocalBackground,
-    selectBackgroundFromHistory,
-    removeBackgroundHistoryItem,
-    clearBackground,
-    refreshBackgroundHistory,
-    waveformVariant,
-    handleWaveformVariantChange,
-    discordRpcEnabled,
-    toggleDiscordRpc
-  }), [
-    addhistory,
-    addSong,
-    appendToCurrentQueue,
-    appendManyToCurrentQueue,
-    appendToQueueAndPlay,
-    applyRemoteBackground,
-    backgroundHistory,
-    backgroundImageUrl,
-    backgroundLoading,
-    clearBackground,
-    color,
-    currentFile,
-    currentBackground,
-    currentIndex,
-    getImage,
-    handleNextClick,
-    handlePreviousClick,
-    handleQueueAndPlay,
-    handleSongClick,
-    isAwaken,
-    isPlaying,
-    isShuffled,
-    isStep,
-    loop,
-    muted,
-    openDirectoryQueue,
-    pickLocalBackground,
-    queueState,
-    refreshBackgroundHistory,
-    reorderCurrentQueue,
-    removeBackgroundHistoryItem,
-    removeFromCurrentQueue,
-    removeTrack,
-    selectBackgroundFromHistory,
-    setCurrentFile,
-    setCurrentIndex,
-    setMediaVolume,
-    toggleMute,
-    togglePlayPause,
-    toggleRepeat,
-    toggleShuffle,
-    toggleStep,
-    volume,
-    waveformVariant,
-    discordRpcEnabled,
-    toggleDiscordRpc
-  ])
+  const contextValue = useMemo(
+    () => ({
+      mediaRef,
+      currentFile,
+      setCurrentFile,
+      currentIndex,
+      setCurrentIndex,
+      isShuffled,
+      muted,
+      volume,
+      setVolume,
+      setMediaVolume,
+      isPlaying,
+      loop,
+      togglePlayPause,
+      toggleMute,
+      toggleRepeat,
+      toggleShuffle,
+      handlePreviousClick,
+      handleNextClick,
+      handleSongClick,
+      reorderCurrentQueue,
+      appendToCurrentQueue,
+      appendManyToCurrentQueue,
+      appendToQueueAndPlay,
+      removeFromCurrentQueue,
+      addhistory,
+      queueState,
+      handleSaveClick,
+      handleQueueAndPlay,
+      openDirectoryQueue,
+      PlayQueue,
+      removeTrack,
+      addSong,
+      handleTimelineClick,
+      scrollRef,
+      getImage,
+      handleColorChange,
+      color,
+      isAwaken,
+      handleAwaken,
+      toggleStep,
+      isStep,
+      currentBackground,
+      backgroundImageUrl,
+      backgroundHistory,
+      backgroundLoading,
+      applyRemoteBackground,
+      pickLocalBackground,
+      selectBackgroundFromHistory,
+      removeBackgroundHistoryItem,
+      clearBackground,
+      refreshBackgroundHistory,
+      waveformVariant,
+      handleWaveformVariantChange,
+      discordRpcEnabled,
+      toggleDiscordRpc
+    }),
+    [
+      addhistory,
+      addSong,
+      appendToCurrentQueue,
+      appendManyToCurrentQueue,
+      appendToQueueAndPlay,
+      applyRemoteBackground,
+      backgroundHistory,
+      backgroundImageUrl,
+      backgroundLoading,
+      clearBackground,
+      color,
+      currentFile,
+      currentBackground,
+      currentIndex,
+      getImage,
+      handleNextClick,
+      handlePreviousClick,
+      handleQueueAndPlay,
+      handleSongClick,
+      isAwaken,
+      isPlaying,
+      isShuffled,
+      isStep,
+      loop,
+      muted,
+      openDirectoryQueue,
+      pickLocalBackground,
+      queueState,
+      refreshBackgroundHistory,
+      reorderCurrentQueue,
+      removeBackgroundHistoryItem,
+      removeFromCurrentQueue,
+      removeTrack,
+      selectBackgroundFromHistory,
+      setCurrentFile,
+      setCurrentIndex,
+      setMediaVolume,
+      toggleMute,
+      togglePlayPause,
+      toggleRepeat,
+      toggleShuffle,
+      toggleStep,
+      volume,
+      waveformVariant,
+      discordRpcEnabled,
+      toggleDiscordRpc
+    ]
+  )
 
   return (
     <PlaybackProgressContext.Provider value={playbackProgressValue}>

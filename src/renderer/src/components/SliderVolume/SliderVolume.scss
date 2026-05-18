@@ -22,8 +22,8 @@
 
         &:hover,
         &.active {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: $hover;
+            color: $text-primary;
             transform: scale(1.1);
         }
 
@@ -31,7 +31,7 @@
             color: rgba(255, 255, 255, 0.3);
 
             &:hover {
-                color: var(--text-principal);
+                color: $primary-color;
             }
         }
 
@@ -48,7 +48,7 @@
         background: rgba(20, 20, 20, 0.85);
 
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
+        border-radius: $border-radius;
         padding: 15px 12px;
         display: flex;
         flex-direction: column;
@@ -61,10 +61,10 @@
         .volume-value {
             font-size: 0.8rem;
             font-weight: 700;
-            color: var(--text-principal);
-            background: rgba(var(--accent-rgb, 186, 255, 0), 0.1);
+            color: $primary-color;
+            background: color-mix(in srgb, $primary-color 10%, transparent);
             padding: 4px 8px;
-            border-radius: 8px;
+            border-radius: $border-radius;
             min-width: 2.8rem;
             text-align: center;
         }
@@ -83,7 +83,7 @@
                 width: 6px;
                 height: 120px;
                 background: rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
+                border-radius: $border-radius;
                 outline: none;
                 cursor: pointer;
                 position: relative;
@@ -98,11 +98,11 @@
                     cursor: pointer;
 
 
-                    border: 3px solid var(--text-principal);
+                    border: 3px solid $primary-color;
 
                     &:hover {
                         transform: scale(1.1);
-                        background: var(--text-principal);
+                        background: $hover;
                     }
                 }
             }
@@ -112,8 +112,8 @@
                 bottom: 0;
                 left: 12px; // Centrado con el track de 6px
                 width: 6px;
-                background: var(--text-principal);
-                border-radius: 10px;
+                background: $primary-color;
+                border-radius: $border-radius;
                 pointer-events: none;
                 z-index: 1;
 
@@ -134,14 +134,14 @@
 
 
             &:hover {
-                background: rgba(255, 255, 255, 0.05);
-                color: white;
+                background: $hover;
+                color: $text-primary;
                 transform: scale(1.1);
             }
         }
 
         .close-panel-btn:hover {
-            color: var(--text-principal);
+            color: $primary-color;
             transform: translateY(2px);
         }
     }
@@ -158,3 +158,4 @@
         transform: translateX(-50%) translateY(0) scale(1);
     }
 }
+

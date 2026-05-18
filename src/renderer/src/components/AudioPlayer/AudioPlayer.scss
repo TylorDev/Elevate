@@ -3,8 +3,8 @@
     z-index: 1500;
     width: 100%;
     min-width: 0;
-    background-color: $principal;
-    color: white;
+    background-color: $card;
+    color: $text-primary;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
     grid-template-rows: auto auto auto;
@@ -54,11 +54,12 @@
         grid-area: cover;
         height: 4.5rem;
         aspect-ratio: 1/1;
-        border-radius: 0.5rem;
+        border-radius: $border-radius;
         overflow: hidden;
         cursor: pointer;
         transition: filter 0.2s;
         margin-top: 0.5rem;
+        
 
         &:hover {
             filter: brightness(0.8);
@@ -111,14 +112,14 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.1rem 0.5rem;
-        border-radius: 1rem;
+        border-radius: $border-radius;
         background: rgba(255, 255, 255, 0.08);
         color: $text-secondary;
         font-size: 0.7rem;
         white-space: nowrap;
 
         strong {
-            color: $text-principal;
+            color: $primary-color;
             font-weight: 600;
         }
     }
@@ -128,14 +129,14 @@
         align-items: center;
         gap: 0.25rem;
         padding: 0.1rem 0.5rem;
-        border-radius: 1rem;
+        border-radius: $border-radius;
         background: rgba(255, 255, 255, 0.08);
         color: $text-secondary;
         font-size: 0.7rem;
         white-space: nowrap;
 
         strong {
-            color: $text-principal;
+            color: $primary-color;
             font-weight: 600;
         }
     }
@@ -169,7 +170,7 @@
         bottom: calc(100% + 0.5rem);
         right: 0;
         background-color: $secondary;
-        border-radius: 0.5rem;
+        border-radius: $border-radius;
         padding: 0.5rem;
         display: flex;
         flex-direction: column;
@@ -184,15 +185,15 @@
             gap: 0.75rem;
             background: transparent;
             border: none;
-            color: white;
+            color: $text-primary;
             padding: 0.5rem 0.75rem;
-            border-radius: 0.25rem;
+            border-radius: $border-radius;
             cursor: pointer;
             text-align: left;
             transition: background 0.2s;
 
             &:hover {
-                background-color: rgba(255, 255, 255, 0.1);
+                background-color: $hover;
             }
 
             svg {
@@ -310,19 +311,19 @@
                 min-height: 2.1rem;
                 padding: 0.28rem 0.54rem;
                 border: none;
-                border-radius: 999px;
+                border-radius: $border-radius;
                 background: transparent;
                 color: rgba(255, 255, 255, 0.7);
                 cursor: pointer;
                 transition: background 0.2s, color 0.2s, transform 0.1s;
 
                 &:hover {
-                    background: rgba(255, 255, 255, 0.08);
-                    color: white;
+                    background: $hover;
+                    color: $text-primary;
                 }
 
                 &.is-active {
-                    color: $text-principal;
+                    color: $primary-color;
                     background: rgba(255, 255, 255, 0.08);
                 }
 
@@ -424,19 +425,19 @@
             min-height: 2.3rem;
             padding: 0.32rem 0.68rem;
             border: none;
-            border-radius: 999px;
+            border-radius: $border-radius;
             background: transparent;
             color: rgba(255, 255, 255, 0.7);
             cursor: pointer;
             transition: background 0.2s, color 0.2s, transform 0.1s;
 
             &:hover {
-                background: rgba(255, 255, 255, 0.08);
-                color: white;
+                background: $hover;
+                color: $text-primary;
             }
 
             &.is-active {
-                color: $text-principal;
+                color: $primary-color;
                 background: rgba(255, 255, 255, 0.08);
             }
 
@@ -457,10 +458,11 @@
 
 #btnShuffle-true,
 .AudioPlayer__menu-panel .Step {
-    color: $text-principal;
-    fill: $text-principal;
+    color: $primary-color;
+    fill: $primary-color;
 }
 
 #btnShuffle-false {
-    color: white;
+    color: $text-primary;
 }
+

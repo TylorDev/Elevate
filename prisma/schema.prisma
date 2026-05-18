@@ -26,6 +26,18 @@ enum HistoryEntityKind {
   DIRECTORY
 }
 
+enum VisualizerPresetSourceMode {
+  ALL
+  FAVORITES
+  LIST
+}
+
+enum VisualizerPlaybackSourceType {
+  FAVORITES
+  PLAYLIST
+  DIRECTORY
+}
+
 model Songs {
   song_id           Int               @id @default(autoincrement())
   filepath          String            @unique
@@ -159,4 +171,55 @@ model PlayerSession {
   queue_source      String?
   queue_song_ids    String  @default("[]")
   queue_index       Int     @default(0)
+}
+
+model VisualizerSettings {
+  id                 Int                        @id @default(1)
+  cycleDurationMs    Int                        @default(6000)
+  presetSourceMode   VisualizerPresetSourceMode @default(ALL)
+  presetSourceListId String?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  presetSourceList   VisualizerPresetList?      @relation(fields: [presetSourceListId], references: [id], onDelete: SetNull)
+}
+
+model VisualizerPresetFavorite {
+  id         Int      @id @default(autoincrement())
+  presetName String   @unique
+  createdAt  DateTime @default(now())
+}
+
+model VisualizerPresetList {
+  id               String                         @id
+  name             String
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+  items            VisualizerPresetListItem[]
+  associations     VisualizerSourceAssociation[]
+  settingsAsSource VisualizerSettings[]
+}
+
+model VisualizerPresetListItem {
+  id         Int                  @id @default(autoincrement())
+  listId     String
+  presetName String
+  position   Int
+  createdAt  DateTime             @default(now())
+  list       VisualizerPresetList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, presetName])
+  @@index([listId, position])
+}
+
+model VisualizerSourceAssociation {
+  id         Int                          @id @default(autoincrement())
+  sourceType VisualizerPlaybackSourceType
+  sourceId   String
+  listId     String
+  createdAt  DateTime                     @default(now())
+  updatedAt  DateTime                     @updatedAt
+  list       VisualizerPresetList         @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceType, sourceId])
+  @@index([listId])
 }

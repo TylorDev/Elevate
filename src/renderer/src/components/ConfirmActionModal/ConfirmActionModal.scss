@@ -22,7 +22,7 @@
 
   h3 {
     margin: 0;
-    color: white;
+    color: $text-primary;
     font-size: 1.05rem;
     font-weight: 700;
   }
@@ -46,7 +46,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.86);
-  border-radius: 10px;
+  border-radius: $border-radius;
   padding: 10px 14px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -59,8 +59,9 @@
   }
 
   &.is-primary {
-    background: rgba(var(--accent-rgb, 186, 255, 0), 0.12);
-    border-color: rgba(var(--accent-rgb, 186, 255, 0), 0.26);
-    color: var(--text-principal);
+    background: color-mix(in srgb, $primary-color 12%, transparent);
+    border-color: color-mix(in srgb, $primary-color 26%, transparent);
+    color: $primary-color;
   }
 }
+

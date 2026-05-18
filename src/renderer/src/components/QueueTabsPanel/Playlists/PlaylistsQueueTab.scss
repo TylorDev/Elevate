@@ -26,7 +26,7 @@
 
     ::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
+      border-radius: $border-radius;
     }
   }
 
@@ -46,7 +46,7 @@
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      color: white;
+      color: $text-primary;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -55,9 +55,9 @@
       font-size: 1.2rem;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.1);
+        background: $hover;
         transform: scale(1.1);
-        color: var(--text-principal);
+        color: $primary-color;
       }
     }
 
@@ -80,8 +80,9 @@
     margin-bottom: 4px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: $hover;
       transform: none;
     }
   }
 }
+

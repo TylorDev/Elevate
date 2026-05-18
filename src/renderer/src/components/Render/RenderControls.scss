@@ -23,7 +23,7 @@
       justify-content: center;
 
       &:hover {
-        color: #fff;
+        color: $text-primary;
       }
 
       &.icon-btn {
@@ -36,10 +36,10 @@
         height: 50px;
         background: linear-gradient(135deg, #6e8efb, #a777e3);
         border-radius: 50%;
-        color: white;
+        color: $text-primary;
 
         &:hover {
-          background: linear-gradient(135deg, #8ba5fc, #b78eee);
+          background: $hover;
         }
       }
     }
@@ -53,8 +53,8 @@
       padding: 12px 16px;
       background: rgba(0, 0, 0, 0.4);
       border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      color: #fff;
+      border-radius: $border-radius;
+      color: $text-primary;
       font-size: 0.9rem;
       outline: none;
       appearance: none;
@@ -67,9 +67,10 @@
 
       option {
         background: #1a1a24;
-        color: #fff;
+        color: $text-primary;
         padding: 10px;
       }
     }
   }
 }
+

@@ -16,7 +16,7 @@
   overflow: hidden;
   padding: clamp(1.4rem, 4vw, 3rem);
   border: 1px solid var(--stats-line);
-  border-radius: 32px;
+  border-radius: $border-radius;
   background:
     radial-gradient(circle at 12% 10%, rgba(186, 255, 0, 0.24), transparent 28%),
     radial-gradient(circle at 90% 18%, rgba(255, 180, 70, 0.22), transparent 25%),
@@ -70,7 +70,7 @@
   min-width: 150px;
   padding: 1rem;
   border: 1px solid rgba(186, 255, 0, 0.32);
-  border-radius: 24px;
+  border-radius: 50%;
   background: rgba(0, 0, 0, 0.28);
   text-align: right;
 }
@@ -105,7 +105,7 @@
   min-height: 46px;
   padding: 0 1rem;
   border: 1px solid var(--stats-line);
-  border-radius: 999px;
+  border-radius: $border-radius;
   background: rgba(5, 6, 6, 0.64);
   color: var(--stats-muted);
   font-weight: 800;
@@ -136,7 +136,7 @@
 .statistics-tab:hover,
 .statistics-tab.is-active {
   border-color: color-mix(in srgb, var(--tab-color), transparent 36%);
-  background: color-mix(in srgb, var(--tab-color), transparent 88%);
+  background: $hover;
   color: var(--stats-ink);
   transform: translateY(-2px);
 }
@@ -149,7 +149,7 @@
   --board-color: #baff00;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--board-color), transparent 74%);
-  border-radius: 30px;
+  border-radius: $border-radius;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--board-color), transparent 92%), transparent 34%),
     var(--stats-bg);
@@ -213,7 +213,7 @@
   width: 100%;
   padding: 0.75rem;
   border: 1px solid transparent;
-  border-radius: 22px;
+  border-radius: $border-radius;
   background: rgba(255, 255, 255, 0.045);
   color: inherit;
   text-align: left;
@@ -229,7 +229,7 @@
 
 .stat-row:hover {
   border-color: color-mix(in srgb, var(--board-color), transparent 55%);
-  background: rgba(255, 255, 255, 0.075);
+  background: $hover;
   transform: translateX(6px);
 }
 
@@ -243,7 +243,7 @@
 .stat-row__cover {
   width: 4rem;
   height: 4rem;
-  border-radius: 16px;
+  border-radius: $border-radius;
   object-fit: cover;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
 }
@@ -306,7 +306,7 @@
   width: 86px;
   height: 86px;
   border: 1px solid color-mix(in srgb, var(--board-color), transparent 45%);
-  border-radius: 50%;
+  border-radius: $border-radius;
   background:
     radial-gradient(circle, color-mix(in srgb, var(--board-color), transparent 30%), transparent 56%),
     rgba(255, 255, 255, 0.06);

@@ -6,14 +6,14 @@
   gap: 16px;
   background: rgba(15, 15, 15, 0.4);
   padding: 8px 18px;
-  border-radius: 100px;
+  border-radius: $border-radius;
   border: 1px solid rgba(255, 255, 255, 0.05);
 
 
 
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: $hover;
     border-color: rgba(255, 255, 255, 0.1);
   }
 
@@ -32,8 +32,8 @@
 
 
     &:hover {
-      color: white;
-      background: rgba(255, 255, 255, 0.08);
+      color: $text-primary;
+      background: $hover;
       transform: scale(1.1);
     }
 
@@ -78,7 +78,7 @@
     }
 
     &.dragging {
-      border-color: var(--text-principal);
+      border-color: $primary-color;
 
       transform: scale(0.98);
     }
@@ -96,7 +96,7 @@
         width: 1.5px;
         height: 8px;
         background: rgba(255, 255, 255, 0.15);
-        border-radius: 1px;
+        border-radius: $border-radius;
         margin-left: -0.75px;
 
       }
@@ -105,7 +105,7 @@
     .wheel-center {
       width: 14px;
       height: 14px;
-      background: var(--text-principal);
+      background: $primary-color;
       border-radius: 50%;
 
       z-index: 2;
@@ -114,3 +114,4 @@
     }
   }
 }
+

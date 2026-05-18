@@ -1,0 +1,119 @@
+.ui-select__trigger {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.ui-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ui-select__trigger[data-popup-open] .ui-select__icon {
+  transform: rotate(180deg);
+}
+
+.ui-select__icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: rgb(255, 255, 255);
+  transition: transform 160ms ease;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.ui-select__positioner {
+  z-index: 1200;
+}
+
+.ui-select__content {
+  min-width: var(--anchor-width);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: $border-radius;
+  background:$card ;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  color: $text-primary;
+  transform-origin: var(--transform-origin);
+
+  &[data-starting-style],
+  &[data-ending-style] {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+
+  &[data-side='top'][data-starting-style],
+  &[data-side='top'][data-ending-style] {
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+.ui-select__list,
+.ui-select__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-select__list {
+  gap: 4px;
+  padding: 8px;
+}
+
+.ui-select__item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: $border-radius;
+  color: $text-primary;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+
+  &[data-highlighted] {
+    background: $hover;
+  }
+
+  &[data-selected] {
+    background: $selected;
+  }
+
+
+}
+
+.ui-select__item-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.ui-select__item-indicator {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  color: rgba(186, 255, 0, 0.92);
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+

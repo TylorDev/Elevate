@@ -6,8 +6,12 @@ import PresetRow from '../InternalComponents/PresetRow'
 import {
   createPresetByNameMap,
   mapPresetNamesToItems,
-  UseViz
-} from '../../../Contexts/VisualizerContext'
+  useVisualizerCatalog,
+  useVisualizerFavoriteActions,
+  useVisualizerListActions,
+  useVisualizerPlayback,
+  useVisualizerSources
+} from '../useVisualizerPresets'
 import './PresetLibraryTab.scss'
 
 const PRESET_ROW_HEIGHT = 58
@@ -16,16 +20,11 @@ const VISIBLE_PRESET_ROWS = 5
 const VIRTUAL_LIST_HEIGHT = PRESET_ROW_HEIGHT * VISIBLE_PRESET_ROWS
 
 function PresetLibraryTab() {
-  const {
-    allPresetItems,
-    currentPresetName,
-    activePresetList,
-    presetLists,
-    presetSource,
-    toggleFavorite,
-    setPresetByName,
-    togglePresetInList
-  } = UseViz()
+  const { allPresetItems } = useVisualizerCatalog()
+  const { toggleFavorite } = useVisualizerFavoriteActions()
+  const { togglePresetInList } = useVisualizerListActions()
+  const { currentPresetName, setPresetByName } = useVisualizerPlayback()
+  const { activePresetList, presetLists, presetSource } = useVisualizerSources()
 
   const [selectedListId, setSelectedListId] = useState('')
   const [catalogQuery, setCatalogQuery] = useState('')
@@ -87,9 +86,9 @@ function PresetLibraryTab() {
   const hasSelectedList = Boolean(selectedList?.id)
 
   return (
-    <section>
-      <div>
-        <label>
+    <section className="preset-library-tab">
+      <div className="preset-library-tab__toolbar">
+        <label className="preset-library-tab__search">
           <LuSearch />
           <input
             type="text"
@@ -100,15 +99,17 @@ function PresetLibraryTab() {
         </label>
       </div>
 
-      <div>
-        <section>
-          <div>
-            <div>
-              <span>Selected List</span>
+      <div className="preset-library-tab__grid">
+        <section className="preset-library-tab__panel">
+          <div className="preset-library-tab__panel-header">
+            <div className="preset-library-tab__panel-copy">
+              <span className="preset-library-tab__eyebrow">Selected List</span>
               <h3>{selectedList?.name || 'Sin lista'}</h3>
-              <span>{selectedPresetItems.length} presets guardados</span>
+              <span className="preset-library-tab__meta">
+                {selectedPresetItems.length} presets guardados
+              </span>
             </div>
-            <div>
+            <div className={`preset-library-tab__status ${hasSelectedList ? 'is-active' : ''}`.trim()}>
               {hasSelectedList ? <LuCheck /> : <LuList />}
               <span>{hasSelectedList ? 'Lista activa' : 'Selecciona una preset list'}</span>
             </div>
@@ -134,6 +135,7 @@ function PresetLibraryTab() {
               itemKey={(index) => selectedPresetItems[index]?.id || index}
               overscanCount={PRESET_OVERSCAN}
               width="100%"
+              className="preset-library-tab__virtual-list"
             >
               {({ index, style }) => {
                 const preset = selectedPresetItems[index]
@@ -148,6 +150,7 @@ function PresetLibraryTab() {
                     actions={
                       <>
                         <button
+                          className="preset-library-tab__action"
                           onClick={(event) => {
                             event.stopPropagation()
                             togglePresetInList(selectedList.id, preset.name)
@@ -157,6 +160,7 @@ function PresetLibraryTab() {
                           Quitar
                         </button>
                         <button
+                          className={`preset-library-tab__icon-action ${preset.isFavorite ? 'is-active' : ''}`.trim()}
                           onClick={(event) => {
                             event.stopPropagation()
                             toggleFavorite(preset.name)
@@ -178,12 +182,14 @@ function PresetLibraryTab() {
           )}
         </section>
 
-        <section>
-          <div>
-            <div>
-              <span>All preset list</span>
+        <section className="preset-library-tab__panel">
+          <div className="preset-library-tab__panel-header">
+            <div className="preset-library-tab__panel-copy">
+              <span className="preset-library-tab__eyebrow">Library</span>
               <h3>Preset Library</h3>
-              <span>{availableCatalogItems.length} presets disponibles</span>
+              <span className="preset-library-tab__meta">
+                {availableCatalogItems.length} presets disponibles
+              </span>
             </div>
           </div>
 
@@ -197,6 +203,7 @@ function PresetLibraryTab() {
               itemKey={(index) => `catalog-${availableCatalogItems[index]?.id || index}`}
               overscanCount={PRESET_OVERSCAN}
               width="100%"
+              className="preset-library-tab__virtual-list"
             >
               {({ index, style }) => {
                 const preset = availableCatalogItems[index]
@@ -213,6 +220,7 @@ function PresetLibraryTab() {
                     actions={
                       <>
                         <button
+                          className="preset-library-tab__action"
                           onClick={(event) => {
                             event.stopPropagation()
 
@@ -228,6 +236,7 @@ function PresetLibraryTab() {
                           {isIncluded ? 'Agregado' : 'Agregar'}
                         </button>
                         <button
+                          className={`preset-library-tab__icon-action ${preset.isFavorite ? 'is-active' : ''}`.trim()}
                           onClick={(event) => {
                             event.stopPropagation()
                             toggleFavorite(preset.name)

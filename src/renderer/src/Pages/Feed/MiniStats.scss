@@ -1,0 +1,39 @@
+.Feed {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  position: relative;
+
+  .feed-spacer {
+    flex: 1;
+    min-height: 100px;
+  }
+
+  .feed-bottom-content {
+    width: 100%;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  }
+
+  .feed-loading,
+  .feed-error-message {
+    padding: 40px;
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+  }
+
+  &--error {
+    justify-content: center;
+    align-items: center;
+  }
+}
+
+main {
+  padding: 0 !important;
+}

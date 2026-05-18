@@ -1,14 +1,14 @@
 .playlist-form {
-  background-color: $principal;
+  background-color: $card;
   padding: 24px;
-  border-radius: 12px;
+  border-radius: $border-radius;
   width: min(100%, 760px);
   max-width: 760px;
   max-height: min(82vh, 920px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: white;
+  color: $text-primary;
 
   &__header {
     margin-bottom: 20px;
@@ -46,9 +46,9 @@
     padding: 10px 12px;
     margin-top: 4px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    border-radius: $border-radius;
     background-color: rgba(255, 255, 255, 0.05);
-    color: white;
+    color: $text-primary;
     font-size: 14px;
     transition: border-color 0.2s, background-color 0.2s;
 
@@ -93,7 +93,7 @@
   &__mode-btn {
     padding: 8px 16px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
+    border-radius: 50%;
     background-color: transparent;
     color: rgba(255, 255, 255, 0.7);
     font-size: 13px;
@@ -101,17 +101,17 @@
     transition: all 0.2s;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: white;
+      background-color: $hover;
+      color: $text-primary;
     }
 
     &--active {
       background-color: $secondary;
       border-color: $secondary;
-      color: white;
+      color: $text-primary;
 
       &:hover {
-        background-color: $secondary;
+        background-color: $hover;
       }
     }
   }
@@ -120,7 +120,7 @@
     text-align: center;
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
+    border-radius: $border-radius;
   }
 
   &__cover-info {
@@ -134,7 +134,7 @@
     width: 120px;
     height: 120px;
     margin: 0 auto;
-    border-radius: 8px;
+    border-radius: $border-radius;
     overflow: hidden;
 
     img {
@@ -168,7 +168,7 @@
   &__suggested-item {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 8px;
+    border-radius: $border-radius;
     overflow: hidden;
     background-color: rgba(255, 255, 255, 0.05);
     border: 2px solid transparent;
@@ -215,7 +215,7 @@
     font-size: 10px;
 
     .playlist-form__suggested-title {
-      color: white;
+      color: $text-primary;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -236,12 +236,12 @@
     width: 20px;
     height: 20px;
     background-color: $secondary;
-    border-radius: 50%;
+    border-radius: $border-radius;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    color: white;
+    color: $text-primary;
   }
 
   &__selected-info {
@@ -251,7 +251,7 @@
     margin-top: 12px;
     padding: 10px;
     background-color: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: $border-radius;
     font-size: 13px;
 
     p {
@@ -264,15 +264,15 @@
     padding: 6px 12px;
     background-color: transparent;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
+    border-radius: $border-radius;
     color: rgba(255, 255, 255, 0.7);
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: white;
+      background-color: $hover;
+      color: $text-primary;
     }
   }
 
@@ -280,7 +280,7 @@
     margin-top: 16px;
     padding: 16px;
     background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
+    border-radius: $border-radius;
     text-align: center;
 
     h4 {
@@ -297,7 +297,7 @@
     gap: 4px;
     width: 160px;
     margin: 0 auto;
-    border-radius: 8px;
+    border-radius: $border-radius;
     overflow: hidden;
 
     img {
@@ -314,21 +314,21 @@
     gap: 16px;
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
+    border-radius: $border-radius;
   }
 
   &__select-btn {
     padding: 12px 24px;
     background-color: $secondary;
     border: none;
-    border-radius: 8px;
-    color: white;
+    border-radius: $border-radius;
+    color: $text-primary;
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: color-mix(in srgb, #ffffff 10%, $secondary);
+      background-color: $hover;
     }
   }
 
@@ -342,14 +342,14 @@
       width: 150px;
       height: 150px;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: $border-radius;
     }
   }
 
   &__remote {
     padding: 20px;
     background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
+    border-radius: $border-radius;
   }
 
   &__remote-input-group {
@@ -367,15 +367,15 @@
     padding: 10px 20px;
     background-color: $secondary;
     border: none;
-    border-radius: 8px;
-    color: white;
+    border-radius: $border-radius;
+    color: $text-primary;
     font-size: 14px;
     cursor: pointer;
     transition: background-color 0.2s;
     white-space: nowrap;
 
     &:hover {
-      background-color: color-mix(in srgb, #ffffff 10%, $secondary);
+      background-color: $hover;
     }
   }
 
@@ -389,7 +389,7 @@
       width: 150px;
       height: 150px;
       object-fit: cover;
-      border-radius: 8px;
+      border-radius: $border-radius;
     }
   }
 
@@ -397,7 +397,7 @@
     margin-top: 16px;
     padding: 16px;
     background-color: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
+    border-radius: $border-radius;
     text-align: center;
   }
 
@@ -406,7 +406,7 @@
     padding: 12px;
     background-color: rgba(255, 82, 82, 0.15);
     border: 1px solid rgba(255, 82, 82, 0.3);
-    border-radius: 8px;
+    border-radius: $border-radius;
     color: #ff5252;
     font-size: 13px;
     text-align: center;
@@ -426,15 +426,15 @@
     padding: 12px 24px;
     background-color: transparent;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 8px;
+    border-radius: $border-radius;
     color: rgba(255, 255, 255, 0.7);
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: white;
+      background-color: $hover;
+      color: $text-primary;
     }
   }
 
@@ -442,15 +442,15 @@
     padding: 12px 32px;
     background-color: $secondary;
     border: none;
-    border-radius: 8px;
-    color: white;
+    border-radius: $border-radius;
+    color: $text-primary;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: background-color 0.2s;
 
     &:hover:not(:disabled) {
-      background-color: color-mix(in srgb, #ffffff 10%, $secondary);
+      background-color: $hover;
     }
 
     &:disabled {
@@ -459,3 +459,4 @@
     }
   }
 }
+

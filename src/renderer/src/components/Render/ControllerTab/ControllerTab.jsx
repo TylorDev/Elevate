@@ -1,9 +1,21 @@
 import React from 'react'
 import { LuList, LuClock, LuShuffle } from 'react-icons/lu'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import EmptyState from '../InternalComponents/EmptyState'
 import PresetRow from '../InternalComponents/PresetRow'
 import TabCard from '../InternalComponents/TabCard'
-import { UseViz } from '../../../Contexts/VisualizerContext'
+import {
+  useVisualizerPlayback,
+  useVisualizerSettingsActions,
+  useVisualizerSources
+} from '../useVisualizerPresets'
 import './ControllerTab.scss'
 
 const DURATION_OPTIONS = [
@@ -20,19 +32,18 @@ const PRESET_SOURCE_OPTIONS = [
 ]
 
 const ControllerTab = () => {
-  const {
-    allPresets,
-    currentPresetName,
-    cycleDurationMs,
-    isShuffled,
-    presetLists,
-    presetSource,
-    setCycleDurationMs,
-    setPresetSource,
-    toggleShuffle
-  } = UseViz()
+  const { allPresets, currentPresetName, isShuffled, toggleShuffle } = useVisualizerPlayback()
+  const { cycleDurationMs, presetLists, presetSource } = useVisualizerSources()
+  const { setCycleDurationMs, setPresetSource } = useVisualizerSettingsActions()
 
   const currentSourceMode = presetSource?.mode || 'all'
+  const presetListOptions = [
+    { value: '', label: 'Selecciona una lista' },
+    ...presetLists.map((list) => ({
+      value: list.id,
+      label: list.name
+    }))
+  ]
 
   const handlePresetSourceModeChange = (nextMode) => {
     if (nextMode === 'list') {
@@ -57,43 +68,76 @@ const ControllerTab = () => {
   }
 
   return (
-    <section>
-      <div>
-        <TabCard eyebrow="Current List" icon={LuList}>
-          <div>
-            <select
-              value={currentSourceMode}
-              onChange={(event) => handlePresetSourceModeChange(event.target.value)}
-            >
-              {PRESET_SOURCE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+    <section className="controller-tab">
+      <div className="controller-tab__grid">
+        <TabCard
+          className="controller-tab__card controller-tab__card--source"
+          eyebrow="Source"
+          icon={LuList}
+          title="Preset source"
+          description="Choose where the cycle pulls presets from."
+        >
+          <div className="controller-tab__stack">
+            <label className="controller-tab__field">
+              <span className="controller-tab__label">Mode</span>
+              <Select
+                items={PRESET_SOURCE_OPTIONS}
+                onValueChange={handlePresetSourceModeChange}
+                value={currentSourceMode}
+              >
+                <SelectTrigger aria-label="Preset source mode" className="controller-tab__select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PRESET_SOURCE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </label>
 
             {currentSourceMode === 'list' && (
-              <select
-                value={presetSource?.listId || ''}
-                onChange={(event) => handlePresetSourceListChange(event.target.value)}
-              >
-                <option value="">Selecciona una lista</option>
-                {presetLists.map((list) => (
-                  <option key={list.id} value={list.id}>
-                    {list.name}
-                  </option>
-                ))}
-              </select>
+              <label className="controller-tab__field">
+                <span className="controller-tab__label">List</span>
+                <Select
+                  items={presetListOptions}
+                  onValueChange={handlePresetSourceListChange}
+                  value={presetSource?.listId || ''}
+                >
+                  <SelectTrigger aria-label="Preset source list" className="controller-tab__select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {presetListOptions.map((option) => (
+                        <SelectItem key={option.value || 'empty'} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
             )}
           </div>
         </TabCard>
 
-        <TabCard eyebrow="Current List (Temp)" icon={LuList}>
-          <div>
+        <TabCard
+          className="controller-tab__card controller-tab__card--active-list"
+          eyebrow="Current Queue"
+          icon={LuList}
+          title="Active presets"
+          description={`${allPresets.length} preset${allPresets.length === 1 ? '' : 's'} available in the current cycle.`}
+        >
+          <div className="controller-tab__preset-list">
             {allPresets.length === 0 ? (
               <EmptyState title="No hay presets activos." icon={null} />
             ) : (
-              <div>
+              <div className="controller-tab__preset-rows">
                 {allPresets.map((presetName, index) => {
                   const isActive = currentPresetName === presetName
                   return (
@@ -111,28 +155,61 @@ const ControllerTab = () => {
           </div>
         </TabCard>
 
-        <TabCard eyebrow="Selector de ciclo" icon={LuClock}>
-          <select
-            value={String(cycleDurationMs)}
-            onChange={(event) => setCycleDurationMs(Number(event.target.value))}
-          >
-            {DURATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        <TabCard
+          className="controller-tab__card controller-tab__card--timing"
+          eyebrow="Cycle"
+          icon={LuClock}
+          title="Cycle interval"
+          description="Control how long each preset stays on screen."
+        >
+          <div className="controller-tab__stack">
+            <label className="controller-tab__field">
+              <span className="controller-tab__label">Duration</span>
+              <Select
+                items={DURATION_OPTIONS}
+                onValueChange={(value) => setCycleDurationMs(Number(value))}
+                value={cycleDurationMs}
+              >
+                <SelectTrigger aria-label="Cycle duration" className="controller-tab__select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {DURATION_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </label>
+            <p className="controller-tab__hint">
+              Current rotation updates every {Math.round(cycleDurationMs / 1000)} seconds.
+            </p>
+          </div>
         </TabCard>
 
-        <TabCard eyebrow="Shuffle" icon={LuShuffle}>
+        <TabCard
+          className="controller-tab__card controller-tab__card--shuffle"
+          eyebrow="Playback"
+          icon={LuShuffle}
+          title="Shuffle"
+          description="Randomize the order of the presets in the active cycle."
+        >
           <button
+            aria-pressed={isShuffled}
+            className={`controller-tab__toggle ${isShuffled ? 'is-active' : ''}`.trim()}
             onClick={toggleShuffle}
             type="button"
           >
-            <span>
-              <span />
+            <span className="controller-tab__toggle-copy">
+              <strong>{isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}</strong>
+              <small>{isShuffled ? 'Random order enabled' : 'Playing in listed order'}</small>
             </span>
-            <span>{isShuffled ? 'Shuffle ON' : 'Shuffle OFF'}</span>
+            <span className="controller-tab__toggle-track" aria-hidden="true">
+              <span className="controller-tab__toggle-thumb" />
+            </span>
           </button>
         </TabCard>
       </div>

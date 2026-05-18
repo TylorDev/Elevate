@@ -24,7 +24,11 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
   const variantRef = useRef(normalizeVariant(variant))
   // Cached dimensions includes pre-calculated bar sizes
   const dimensionsRef = useRef({ width: 0, height: 0, barWidth: 0, barStep: 0 })
-  const cachedStylesRef = useRef({ baseColor: '#1a1a1a', progressColor: '#baff00', mutedColor: '#6f6f6f' })
+  const cachedStylesRef = useRef({
+    baseColor: '#1a1a1a',
+    progressColor: '#baff00',
+    mutedColor: '#6f6f6f'
+  })
   const progressRatio = duration ? Math.min(progress / duration, 1) : 0
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       const styles = getComputedStyle(document.documentElement)
       cachedStylesRef.current = {
         baseColor: styles.getPropertyValue('--text-secondary').trim() || '#1a1a1a',
-        progressColor: styles.getPropertyValue('--text-principal').trim() || '#baff00',
+        progressColor: styles.getPropertyValue('--Dynamic-color').trim() || '#baff00',
         mutedColor: styles.getPropertyValue('--text-secondary').trim() || '#6f6f6f'
       }
     }
@@ -246,21 +250,21 @@ function drawWaveform({
       ? Math.min(BARS_COUNT - 1, Math.max(0, Math.round((seekPreviewX - barWidth / 2) / barStep)))
       : null
 
-  let currentData = data;
+  let currentData = data
 
   if (analyser && data) {
-    let isSilent = false;
+    let isSilent = false
     if (frozenData) {
-      isSilent = true;
+      isSilent = true
       for (let i = 0; i < frozenData.length; i++) {
         if (frozenData[i] !== 0) {
-          isSilent = false;
-          break;
+          isSilent = false
+          break
         }
       }
     }
 
-    const shouldCaptureFrame = isPlaying || !isSilent;
+    const shouldCaptureFrame = isPlaying || !isSilent
 
     if (shouldCaptureFrame) {
       if (variant === 'oscilloscope') {
@@ -280,14 +284,14 @@ function drawWaveform({
     [baseColor]: [],
     [progressColor]: [],
     [SEEK_COLOR]: []
-  };
+  }
 
-  const center = height / 2;
-  const isOscilloscope = variant === 'oscilloscope';
-  const dataLength = currentData ? currentData.length - 1 : 0;
+  const center = height / 2
+  const isOscilloscope = variant === 'oscilloscope'
+  const dataLength = currentData ? currentData.length - 1 : 0
 
   // Cache current sample to use as previous in the next iteration
-  let currentSample = currentData?.[0] || (isOscilloscope ? 128 : 0);
+  let currentSample = currentData?.[0] || (isOscilloscope ? 128 : 0)
 
   for (let index = 0; index < BARS_COUNT; index++) {
     const x = index * barStep
@@ -319,10 +323,10 @@ function drawWaveform({
         y2: nextWaveY
       })
 
-      currentSample = nextSample;
+      currentSample = nextSample
     } else {
-      const fallback = 0;
-      const sample = currentData ? currentSample : fallback;
+      const fallback = 0
+      const sample = currentData ? currentSample : fallback
       const level = sample / 255
       const barHeight = Math.max(4, level * height * 0.86)
       const y = (height - barHeight) / 2
