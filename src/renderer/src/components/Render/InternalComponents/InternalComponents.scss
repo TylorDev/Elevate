@@ -1,69 +1,6 @@
 @use '../../../styles/variables' as *;
 
-.manager-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: $border-radius;
-  background: rgba(255, 255, 255, 0.025);
-  color: $text-primary;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
-}
 
-.manager-card__header,
-.tab-card__header-top,
-.tab-card__copy,
-.manager-card__body {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.tab-card__header-top {
-  gap: 12px;
-}
-
-.tab-card__copy {
-  gap: 8px;
-}
-
-.config-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: $primary-color;
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.tab-card__title {
-  margin: 0;
-  font-size: 1.08rem;
-  font-weight: 700;
-  color: $text-primary;
-}
-
-.tab-card__description {
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 0.88rem;
-  line-height: 1.45;
-}
-
-.tab-card__actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.manager-card__body {
-  gap: 14px;
-  min-width: 0;
-}
 
 .preset-item {
   display: flex;
@@ -72,15 +9,15 @@
   gap: 12px;
   width: 100%;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 0.3rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: $border-radius;
   background: rgba(255, 255, 255, 0.02);
   color: rgba(255, 255, 255, 0.92);
 
   &.active {
-    border-color: rgba(186, 255, 0, 0.38);
-    background: rgba(186, 255, 0, 0.08);
+    border-color: $primary-color;
+    background:  color-mix(in srgb, $primary-color 12%, transparent);;
   }
 
   &.is-static {
@@ -118,6 +55,15 @@
   flex: 0 0 auto;
   color: $primary-color;
   font-size: 0.95rem;
+}
+
+.preset-cover {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: $border-radius;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .preset-name {
@@ -186,16 +132,3 @@
   font-size: 0.84rem;
   line-height: 1.45;
 }
-
-@media (max-width: 720px) {
-  .preset-item {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .preset-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-

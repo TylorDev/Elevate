@@ -1,13 +1,15 @@
 .Main {
     --status-height: 1.75rem;
     --player-height: 8.5rem;
+    --header-width: auto;
+    --queue-width: min(100vw, clamp(18rem, 55vw, 25rem));
 
     display: grid;
     grid-template-areas:
-        "status status"
-        "header outlet"
-        "player player";
-    grid-template-columns: auto minmax(0, 1fr);
+        "status status status"
+        "header outlet queue"
+        "player player player";
+    grid-template-columns: var(--header-width) minmax(0, 1fr) var(--queue-width);
     grid-template-rows: var(--status-height) 1fr var(--player-height);
     height: 100%;
     width: 100%;
@@ -29,21 +31,14 @@
     }
 
     &__queue {
-        position: absolute;
-        top: var(--status-height, 1.75rem);
-        right: 0;
-        bottom: var(--player-height);
-        width: min(100vw, clamp(18rem, 55vw, 25rem));
-        z-index: 1000;
+        grid-area: queue;
+        min-width: 0;
+        min-height: 0;
         background: var(--primary-color, #0a0a0a);
         border-left: 1px solid rgba(255, 255, 255, 0.05);
         overflow: hidden;
-        transition: transform 200ms ease, opacity 200ms ease;
-        transform: translateX(100%);
-        opacity: 0;
-        pointer-events: none;
-
-
+        transition: width 200ms ease, opacity 200ms ease;
+        opacity: 1;
     }
 
     &__player {
@@ -56,18 +51,22 @@
 }
 
 .Main--header-hidden {
-    grid-template-areas:
-        "status"
-        "outlet"
-        "player";
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: var(--status-height) 1fr var(--player-height);
+    --header-width: 0px;
+
+    .Main__header {
+        border-right: none;
+        overflow: hidden;
+    }
 }
 
-.Main--queue-visible .Main__queue {
-    transform: translateX(0);
-    opacity: 1;
-    pointer-events: auto;
+.Main--queue-hidden {
+    --queue-width: 0px;
+
+    .Main__queue {
+        border-left: none;
+        opacity: 0;
+        pointer-events: none;
+    }
 }
 
 .outlet {
@@ -79,8 +78,8 @@
 }
 
 @media (max-width: 480px) {
-    .Main__queue {
-        width: 100vw;
+    .Main {
+        --queue-width: min(100vw, 22rem);
     }
 }
 

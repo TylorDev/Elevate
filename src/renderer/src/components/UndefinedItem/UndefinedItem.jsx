@@ -8,6 +8,7 @@ export function UndefinedItem({
   title,
   subtitle,
   extraInfo,
+  metaBadge,
   onTitleClick,
   onPlayClick,
   menuOptions = [],
@@ -83,7 +84,12 @@ export function UndefinedItem({
         {renderTitle()}
         <div className="ui-metadata">
           <span className="ui-subtitle">{subtitle}</span>
-          {extraInfo && <span className="ui-extra">{extraInfo}</span>}
+          {(extraInfo || metaBadge) && (
+            <span className="ui-extra">
+              {extraInfo ? <span className="ui-extra-text">{extraInfo}</span> : null}
+              {metaBadge ? <span className="ui-badge">{metaBadge}</span> : null}
+            </span>
+          )}
         </div>
       </div>
 

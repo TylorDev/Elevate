@@ -119,7 +119,7 @@ function PresetLibraryTab() {
             <EmptyState
               icon={LuList}
               title="No hay preset list seleccionada."
-              description="Elige una lista en List Manager para empezar a curar presets aqui."
+              description="Carga o crea una preset list activa para empezar a curar presets aqui."
             />
           ) : selectedPresetItems.length === 0 ? (
             <EmptyState
@@ -171,6 +171,7 @@ function PresetLibraryTab() {
                         </button>
                       </>
                     }
+                    cover={preset.Cover}
                     index={index}
                     name={preset.name}
                     onClick={() => setPresetByName(preset.name)}
@@ -247,6 +248,7 @@ function PresetLibraryTab() {
                         </button>
                       </>
                     }
+                    cover={preset.Cover}
                     index={index}
                     indexMuted
                     name={preset.name}

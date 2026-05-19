@@ -71,6 +71,7 @@ function useLatestRef(value) {
 
 function VisualizerStoreProvider({ children }) {
   const [favorites, setFavorites] = useState([])
+  const [presetCovers, setPresetCovers] = useState({})
   const [cycleDurationMs, setCycleDurationMsState] = useState(DEFAULT_CYCLE_DURATION)
   const [presetSource, setPresetSourceState] = useState(DEFAULT_SOURCE)
   const [presetLists, setPresetLists] = useState([])
@@ -115,19 +116,29 @@ function VisualizerStoreProvider({ children }) {
   const storeValue = useMemo(
     () => ({
       favorites,
+      presetCovers,
       cycleDurationMs,
       presetSource,
       presetLists,
       sourceAssociations,
       visualizerLoaded
     }),
-    [cycleDurationMs, favorites, presetLists, presetSource, sourceAssociations, visualizerLoaded]
+    [
+      cycleDurationMs,
+      favorites,
+      presetCovers,
+      presetLists,
+      presetSource,
+      sourceAssociations,
+      visualizerLoaded
+    ]
   )
 
   const storeApi = useMemo(
     () => ({
       applyPersistedState,
       setFavorites,
+      setPresetCovers,
       setCycleDurationMsState,
       setPresetSourceState,
       setPresetLists,
@@ -146,8 +157,12 @@ function VisualizerStoreProvider({ children }) {
 }
 
 function VisualizerCatalogProvider({ children }) {
-  const { favorites } = useRequiredContext(VisualizerStoreContext, 'VisualizerCatalogProvider')
-  const { presetSource, selectedPresetSourceList } = useVisualizerSources()
+  const { favorites, presetCovers } = useRequiredContext(
+    VisualizerStoreContext,
+    'VisualizerCatalogProvider'
+  )
+  const { effectivePresetSource, effectivePresetList, selectedPresetSourceList } =
+    useVisualizerSources()
 
   const favoritePresetNamesSet = useMemo(() => new Set(favorites), [favorites])
 
@@ -156,9 +171,10 @@ function VisualizerCatalogProvider({ children }) {
       ALL_PRESET_KEYS.map((name) => ({
         id: name,
         name,
-        isFavorite: favoritePresetNamesSet.has(name)
+        isFavorite: favoritePresetNamesSet.has(name),
+        Cover: presetCovers[name] || null
       })),
-    [favoritePresetNamesSet]
+    [favoritePresetNamesSet, presetCovers]
   )
 
   const presetByName = useMemo(() => createPresetByNameMap(allPresetItems), [allPresetItems])
@@ -174,13 +190,17 @@ function VisualizerCatalogProvider({ children }) {
   )
 
   const activePresetNames = useMemo(() => {
-    if (presetSource.mode === 'favorites') {
+    if (effectivePresetSource.mode === 'favorites') {
       return favoritePresetNames.length > 0 ? favoritePresetNames : ALL_PRESET_KEYS
     }
 
-    if (presetSource.mode === 'list') {
+    if (effectivePresetSource.mode === 'list') {
+      const sourceList =
+        effectivePresetSource.listId === selectedPresetSourceList?.id
+          ? selectedPresetSourceList
+          : effectivePresetList
       const validPresetItems = mapPresetNamesToItems(
-        selectedPresetSourceList?.presetNames || [],
+        sourceList?.presetNames || [],
         presetByName
       )
       return validPresetItems.length > 0
@@ -189,7 +209,14 @@ function VisualizerCatalogProvider({ children }) {
     }
 
     return ALL_PRESET_KEYS
-  }, [favoritePresetNames, presetByName, presetSource.mode, selectedPresetSourceList?.presetNames])
+  }, [
+    effectivePresetList,
+    effectivePresetSource.listId,
+    effectivePresetSource.mode,
+    favoritePresetNames,
+    presetByName,
+    selectedPresetSourceList
+  ])
 
   const activePresetItems = useMemo(
     () => mapPresetNamesToItems(activePresetNames, presetByName),
@@ -277,6 +304,17 @@ function VisualizerSourcesProvider({ children }) {
     return presetLists.find((list) => list.id === activeListId) || null
   }, [activeSourceKey, presetLists, sourceAssociations])
 
+  const effectivePresetSource = useMemo(() => {
+    if (activePresetList?.id) {
+      return {
+        mode: 'list',
+        listId: activePresetList.id
+      }
+    }
+
+    return presetSource
+  }, [activePresetList?.id, presetSource])
+
   const selectedPresetSourceList = useMemo(() => {
     if (presetSource.mode !== 'list' || !presetSource.listId) {
       return null
@@ -284,6 +322,28 @@ function VisualizerSourcesProvider({ children }) {
 
     return presetLists.find((list) => list.id === presetSource.listId) || null
   }, [presetLists, presetSource.listId, presetSource.mode])
+
+  const effectivePresetList = useMemo(() => {
+    if (effectivePresetSource.mode !== 'list' || !effectivePresetSource.listId) {
+      return null
+    }
+
+    if (activePresetList?.id === effectivePresetSource.listId) {
+      return activePresetList
+    }
+
+    if (selectedPresetSourceList?.id === effectivePresetSource.listId) {
+      return selectedPresetSourceList
+    }
+
+    return presetLists.find((list) => list.id === effectivePresetSource.listId) || null
+  }, [
+    activePresetList,
+    effectivePresetSource.listId,
+    effectivePresetSource.mode,
+    presetLists,
+    selectedPresetSourceList
+  ])
 
   const availableAssociationSources = useMemo(
     () => buildAssociationSources(playlists, directories),
@@ -299,6 +359,8 @@ function VisualizerSourcesProvider({ children }) {
       activePlaybackSource,
       activeSourceKey,
       activePresetList,
+      effectivePresetSource,
+      effectivePresetList,
       selectedPresetSourceList,
       availableAssociationSources,
       visualizerLoaded
@@ -312,6 +374,8 @@ function VisualizerSourcesProvider({ children }) {
       presetLists,
       presetSource,
       selectedPresetSourceList,
+      effectivePresetList,
+      effectivePresetSource,
       sourceAssociations,
       visualizerLoaded
     ]
@@ -380,6 +444,10 @@ function VisualizerPlaybackProvider({ children }) {
     setIsPresetPaused((previousValue) => !previousValue)
   }, [])
 
+  const setPresetPaused = useCallback((nextValue) => {
+    setIsPresetPaused(Boolean(nextValue))
+  }, [])
+
   useEffect(() => {
     if (!isPresetPaused && currentOrder.length > 0) {
       if (presetIntervalRef.current) {
@@ -428,6 +496,7 @@ function VisualizerPlaybackProvider({ children }) {
       isShuffled,
       nextPreset,
       prevPreset,
+      setPresetPaused,
       togglePresetPause,
       toggleShuffle,
       setPresetIndex,
@@ -442,6 +511,7 @@ function VisualizerPlaybackProvider({ children }) {
       isShuffled,
       nextPreset,
       prevPreset,
+      setPresetPaused,
       setPresetByName,
       setPresetIndex,
       togglePresetPause,
@@ -465,6 +535,7 @@ function VisualizerActionsProvider({ children }) {
   const {
     applyPersistedState,
     setFavorites,
+    setPresetCovers,
     setCycleDurationMsState,
     setPresetSourceState,
     setPresetLists,
@@ -537,6 +608,24 @@ function VisualizerActionsProvider({ children }) {
       }
     },
     [applyPersistedState, setFavorites, storeRef]
+  )
+
+  const setPresetCover = useCallback(
+    (presetName, coverData) => {
+      if (!ALL_PRESET_KEYS.includes(presetName)) {
+        return
+      }
+
+      if (typeof coverData !== 'string' || !coverData.trim()) {
+        return
+      }
+
+      setPresetCovers((currentCovers) => ({
+        ...currentCovers,
+        [presetName]: coverData
+      }))
+    },
+    [setPresetCovers]
   )
 
   const createPresetList = useCallback(
@@ -849,9 +938,10 @@ function VisualizerActionsProvider({ children }) {
   const settingsActionsValue = useMemo(
     () => ({
       setCycleDurationMs,
-      setPresetSource
+      setPresetSource,
+      setPresetCover
     }),
-    [setCycleDurationMs, setPresetSource]
+    [setCycleDurationMs, setPresetCover, setPresetSource]
   )
 
   const favoriteActionsValue = useMemo(

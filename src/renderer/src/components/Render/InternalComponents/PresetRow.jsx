@@ -5,6 +5,7 @@ function PresetRow({
   active = false,
   actions = null,
   className = '',
+  cover = null,
   index,
   indexMuted = false,
   isStatic = false,
@@ -43,7 +44,11 @@ function PresetRow({
         {typeof index === 'number' ? (
           <span className={`preset-index ${indexMuted ? 'muted' : ''}`.trim()}>{index + 1}</span>
         ) : null}
-        <LuMusic className="preset-icon" />
+        {cover ? (
+          <img className="preset-cover" src={cover} alt="" aria-hidden="true" />
+        ) : (
+          <LuMusic className="preset-icon" />
+        )}
         <span className="preset-name">{name}</span>
       </div>
       {actions ? <div className="preset-actions">{actions}</div> : null}

@@ -33,7 +33,7 @@
 }
 
 .overflow-dropdown {
-  width: 200px;
+  width: 240px;
   background:$card;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: $border-radius;
@@ -41,6 +41,66 @@
 
   z-index: 10000;
   overflow: hidden;
+  max-height: min(70vh, 520px);
+  overflow-y: auto;
+
+  .overflow-submenu-header {
+    margin-bottom: 4px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .overflow-input-row {
+    margin-bottom: 6px;
+    padding: 2px 0 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .overflow-input {
+    width: 100%;
+    min-height: 38px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius;
+    background: rgba(255, 255, 255, 0.04);
+    color: $text-primary;
+    outline: none;
+
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    &:focus {
+      border-color: color-mix(in srgb, $primary-color 45%, transparent);
+      background: rgba(255, 255, 255, 0.06);
+    }
+  }
+
+  .overflow-back-btn {
+    width: 100%;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    border: none;
+    border-radius: $border-radius;
+    background: transparent;
+    color: $text-primary;
+    cursor: pointer;
+
+    &:hover {
+      background: $hover;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+  }
 
 
   .overflow-item {
@@ -80,6 +140,15 @@
     .overflow-label {
       flex: 1;
       text-align: left;
+    }
+
+    .overflow-trailing {
+      min-width: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      color: $text-primary;
+      font-size: 0.95rem;
     }
   }
 

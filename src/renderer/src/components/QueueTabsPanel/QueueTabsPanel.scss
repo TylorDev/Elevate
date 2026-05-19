@@ -66,8 +66,8 @@
     }
 
     &.is-active {
-      background: color-mix(in srgb, $primary-color 10%, transparent);
-      color: $primary-color;
+      background: $primary-color;
+      color: $text-primary;
 
       &::after {
         content: '';

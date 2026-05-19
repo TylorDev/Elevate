@@ -12,7 +12,7 @@ const CACHED_PRESETS = MINI
 // [P5] Hoisted static style object â€” avoids creating a new object per render.
 const CANVAS_STYLE = { display: 'block' }
 
-const Render = ({ audioElement, presetName }) => {
+const Render = ({ audioElement, presetName, canvasRefExternal = null }) => {
   const containerRef = useRef(null)
   const canvasRef = useRef(null)
   const visualizerRef = useRef(null)
@@ -52,6 +52,22 @@ const Render = ({ audioElement, presetName }) => {
 
   // [P1] ResizeObserver â€” updates canvas + visualizer size imperatively.
   // No state updates, no re-renders, no visualizer teardown.
+  useEffect(() => {
+    if (!canvasRefExternal) {
+      return undefined
+    }
+
+    if (typeof canvasRefExternal === 'function') {
+      canvasRefExternal(canvasRef.current)
+      return () => canvasRefExternal(null)
+    }
+
+    canvasRefExternal.current = canvasRef.current
+    return () => {
+      canvasRefExternal.current = null
+    }
+  }, [canvasRefExternal])
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) return

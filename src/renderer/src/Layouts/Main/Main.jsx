@@ -26,31 +26,31 @@ function Main() {
 
   return (
     <div className={mainClassName}>
-      <Background />
-      <div className="Main__status">
-        <StatusBar
-          isHeaderHidden={isHeaderHidden}
-          isQueueHidden={isQueueHidden}
-          onToggleHeader={() => setIsHeaderHidden((current) => !current)}
-          onToggleQueue={() => setIsQueueHidden((current) => !current)}
-        />
-      </div>
-      {!isHeaderHidden ? (
-        <aside className="Main__header">
-          <Header />
-        </aside>
-      ) : null}
       <VisualizerProvider>
+        <Background />
+        <div className="Main__status">
+          <StatusBar
+            isHeaderHidden={isHeaderHidden}
+            isQueueHidden={isQueueHidden}
+            onToggleHeader={() => setIsHeaderHidden((current) => !current)}
+            onToggleQueue={() => setIsQueueHidden((current) => !current)}
+          />
+        </div>
+        {!isHeaderHidden ? (
+          <aside className="Main__header">
+            <Header />
+          </aside>
+        ) : null}
         <main className="outlet" ref={scrollRef}>
           <Outlet />
         </main>
+        <div className="Main__player">
+          <AudioPlayer />
+        </div>
+        <aside className="Main__queue">
+          <QueueTabsPanel />
+        </aside>
       </VisualizerProvider>
-      <div className="Main__player">
-        <AudioPlayer />
-      </div>
-      <aside className="Main__queue">
-        <QueueTabsPanel />
-      </aside>
       <ToastContainer />
     </div>
   )
