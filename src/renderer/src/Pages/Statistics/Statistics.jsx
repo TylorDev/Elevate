@@ -8,7 +8,7 @@ import {
   LuTrophy
 } from 'react-icons/lu'
 
-import { useCoverUrl } from '../../hooks/useCoverUrl'
+import { useSongCover } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import './Statistics.scss'
 
@@ -70,7 +70,7 @@ function formatMetric(song, metric) {
 }
 
 function StatRow({ song, index, metric, tabTone, list }) {
-  const coverUrl = useCoverUrl(song.filePath, 'thumb')
+  const coverUrl = useSongCover(song.filePath, 'thumb')
   const { handleSongClick } = useQueue()
   const title = song.title || song.fileName || 'Untitled'
   const artist = song.artist || 'Unknown Artist'

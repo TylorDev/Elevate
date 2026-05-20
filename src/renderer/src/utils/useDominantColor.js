@@ -11,10 +11,12 @@ const MAX_NEUTRAL_CHANNEL_DELTA = 18
 const MIN_ACCEPTABLE_LIGHTNESS = 0.08
 const MAX_ACCEPTABLE_LIGHTNESS = 0.92
 
-export async function extractDominantColor(src) {
+export async function extractDominantColor(src, cacheKey = src) {
   if (!src || src === PLACEHOLDER_SVG) return FALLBACK
 
-  if (CACHE.has(src)) return CACHE.get(src)
+  const normalizedCacheKey = cacheKey || src
+
+  if (CACHE.has(normalizedCacheKey)) return CACHE.get(normalizedCacheKey)
 
   try {
     const img = new Image()
@@ -40,7 +42,7 @@ export async function extractDominantColor(src) {
     const chosenColor = pickBestCandidate(candidates)
     const result = chosenColor ? formatColorResult(chosenColor) : FALLBACK
 
-    CACHE.set(src, result)
+    CACHE.set(normalizedCacheKey, result)
     return result
   } catch {
     return FALLBACK

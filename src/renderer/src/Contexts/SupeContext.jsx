@@ -242,7 +242,10 @@ export const SuperProvider = ({ children }) => {
     ) {
       let alive = true
       previousCoverUrl.current = currentCoverUrl
-      extractDominantColor(currentCoverUrl)
+      extractDominantColor(
+        currentCoverUrl,
+        currentFile?.coverHash || currentFile?.filePath || currentCoverUrl
+      )
         .then((dominantColor) => {
           if (alive) {
             document.documentElement.style.setProperty('--Dynamic-color', dominantColor.hex)
@@ -256,7 +259,7 @@ export const SuperProvider = ({ children }) => {
         alive = false
       }
     }
-  }, [color, currentCoverUrl])
+  }, [color, currentCoverUrl, currentFile?.coverHash, currentFile?.filePath])
 
   const handleColorChange = (value) => {
     const hexColorRegex = /^#([0-9A-Fa-f]{3}){1,2}$/

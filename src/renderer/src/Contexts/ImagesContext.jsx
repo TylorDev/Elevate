@@ -34,18 +34,37 @@ const pendingSongLoads = {
   full: new Map()
 }
 
-let cacheRevision = 0
+const VALID_CACHE_SCOPES = new Set(['thumb', 'full', 'collection'])
+
+const cacheRevisions = {
+  thumb: 0,
+  full: 0,
+  collection: 0
+}
 
 function normalizeSongVariant(variant = 'thumb') {
   return variant === 'full' ? 'full' : 'thumb'
 }
 
 function getCache(scope = 'collection') {
-  return imageCaches[scope] || imageCaches.collection
+  return imageCaches[scope]
 }
 
 function getPendingLoads(variant = 'thumb') {
   return pendingSongLoads[normalizeSongVariant(variant)]
+}
+
+function normalizeCacheScope(scope = 'collection') {
+  if (scope === 'all') {
+    return 'all'
+  }
+
+  if (VALID_CACHE_SCOPES.has(scope)) {
+    return scope
+  }
+
+  console.warn(`Invalid image cache scope: ${scope}`)
+  return null
 }
 
 function revokeUrl(url) {
@@ -126,6 +145,8 @@ function pruneCache(scope) {
   const cache = getCache(scope)
   const limit = CACHE_LIMITS[scope] || CACHE_LIMITS.collection
 
+  if (!cache) return
+
   while (cache.size > limit) {
     const [oldestKey, oldestEntry] = cache.entries().next().value
     cache.delete(oldestKey)
@@ -169,12 +190,12 @@ export function preloadSongCover(filePath, variant = 'thumb') {
   }
 
   const config = SONG_COVER_CONFIG[normalizedVariant]
-  const loadRevision = cacheRevision
+  const loadRevision = cacheRevisions[normalizedVariant]
   const loadPromise = dedupedInvoke(config.action, filePath)
     .then((cover) => {
       const url = toObjectUrl(cover) || DEFAULT_COVER
 
-      if (loadRevision !== cacheRevision) {
+      if (loadRevision !== cacheRevisions[normalizedVariant]) {
         revokeUrl(url)
         return DEFAULT_COVER
       }
@@ -238,18 +259,24 @@ export function preloadVisibleSongCovers(songs = [], options = {}) {
 export function revokeImage(key, scope = 'collection') {
   if (!key) return
 
-  const cache = getCache(scope)
+  const normalizedScope = normalizeCacheScope(scope)
+  if (!normalizedScope || normalizedScope === 'all') return
+
+  const cache = getCache(normalizedScope)
   const entry = cache.get(key)
   cache.delete(key)
   revokeUrl(entry?.url)
 }
 
 export function clearImageCache(scope = 'all') {
-  cacheRevision += 1
-  const scopes = scope === 'all' ? Object.keys(imageCaches) : [scope]
+  const normalizedScope = normalizeCacheScope(scope)
+  if (!normalizedScope) return
+
+  const scopes = normalizedScope === 'all' ? Object.keys(imageCaches) : [normalizedScope]
 
   for (const currentScope of scopes) {
     const cache = getCache(currentScope)
+    cacheRevisions[currentScope] += 1
 
     for (const entry of cache.values()) {
       revokeUrl(entry?.url)
@@ -258,11 +285,11 @@ export function clearImageCache(scope = 'all') {
     cache.clear()
   }
 
-  if (scope === 'all' || scope === 'thumb') {
+  if (normalizedScope === 'all' || normalizedScope === 'thumb') {
     pendingSongLoads.thumb.clear()
   }
 
-  if (scope === 'all' || scope === 'full') {
+  if (normalizedScope === 'all' || normalizedScope === 'full') {
     pendingSongLoads.full.clear()
   }
 }

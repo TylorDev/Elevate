@@ -16,42 +16,6 @@ export const shuffleArray = (array, currentIndex) => {
   return newArray
 }
 
-export const dataToImageUrl = (input, mimeType = 'image/png') => {
-  // Validar si el input es null o undefined
-
-  if (input == null) {
-    return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
-  }
-
-  if (typeof input === 'string') {
-    if (
-      input.startsWith('data:') ||
-      input.startsWith('blob:') ||
-      input.startsWith('http://') ||
-      input.startsWith('https://')
-    ) {
-      return input
-    }
-  }
-
-  // Verifica si el input es un Uint8Array
-  if (input instanceof Uint8Array) {
-    const blob = new Blob([input], { type: mimeType })
-    const imageUrl = URL.createObjectURL(blob)
-    return imageUrl
-  }
-
-  // Verifica si el input es un objeto con una propiedad 'data'
-  if (input && input.data && input.type !== 'Other') {
-    const blob = new Blob([input.data], { type: mimeType })
-    const imageUrl = URL.createObjectURL(blob)
-    return imageUrl
-  }
-
-  // Si ninguna de las condiciones anteriores se cumple, devuelve una imagen por defecto
-  return 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg'
-}
-
 const pendingInvokes = new Map()
 
 function getInvokeKey(action, args) {

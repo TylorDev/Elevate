@@ -1,257 +1,281 @@
-# Results: Comparacion De `ImagesContext.jsx` Vs `report.md`
+# Reporte de Rendimiento: Análisis de `MiniContext` y `PlaylistsContext`
+
+Este reporte presenta un análisis técnico profundo sobre el comportamiento de renderizado, caídas de rendimiento, riesgos arquitectónicos y propuestas de optimización para dos contextos neurálgicos de la aplicación Elevate:
+1. `src/renderer/src/Contexts/MiniContext.jsx` (consumido vía `useMini`)
+2. `src/renderer/src/Contexts/PlaylistsContex.jsx` (consumido vía `usePlaylists`)
+
+---
+
+## 📊 1. Resumen Ejecutivo
+
+La arquitectura actual de React Context en Elevate presenta **problemas críticos de acoplamiento y propagación de estados**. Debido a que React propaga re-renders a todos los consumidores de un contexto cuando cualquier parte de su valor cambia, la mezcla de flujos de datos de alta frecuencia (como el progreso del escáner de archivos) con flujos estáticos (como configuraciones o metadatos de playlists) provoca una **degradación de rendimiento en cascada en toda la aplicación**.
+
+### Hallazgos Principales:
+* **Efecto Cascada en Escaneo**: Durante el escaneo de directorios, la interfaz de usuario se inunda de eventos IPC de progreso (`scanProgress`). Esto actualiza `MiniContext` decenas de veces por segundo, obligando a re-renderizar prácticamente toda la aplicación (incluyendo la vista de Playlists, Reproductor, Cola e Historial) de forma ininterrumpida.
+* **Polución de Dominios y Dependencias Cruzadas**: `PlaylistsProvider` está acoplado con `useQueue` y `useMini`. Cambios en la canción actual o actualizaciones menores en el estado de directorios obligan a recrear los valores del contexto de playlists, forzando re-renders en componentes que solo necesitan interactuar con listas guardadas.
+* **Código Muerto y Bucles de Renderizado**: Se identificaron estados huérfanos (`arrayAlbums` y `arrayCovers`) que consumen memoria y generan ciclos de **doble renderizado innecesarios** al actualizar las playlists.
+
+---
+
+## 🔄 2. Arquitectura de Contextos y Cascada de Re-renders
+
+El siguiente diagrama visualiza cómo fluyen las actualizaciones de estado en la implementación actual y por qué un evento menor en un contexto desencadena una reacción en cadena que afecta a toda la UI:
+
+```mermaid
+graph TD
+    A[IPC Notification: scan-progress / directory-changed] -->|Actualiza estado scanProgress| B(MiniProvider)
+    B -->|Genera nuevo contextValue| C{Consumidores de useMini}
+    C -->|Re-render forzado| D[Pages/Search]
+    C -->|Re-render forzado| E[Pages/ListenLater]
+    C -->|Re-render forzado| F[Pages/History]
+    C -->|Re-render forzado| G[Pages/Feed/MiniStats]
+    C -->|Re-render forzado| H(PlaylistsProvider)
+    
+    H -->|Consume useMini y recrea getDirectories| I{Consumidores de usePlaylists}
+    I -->|Re-render forzado| J[Pages/Music]
+    I -->|Re-render forzado| K[Pages/Playlists]
+    I -->|Re-render forzado| L[components/SongItem/FormAddTo]
+    I -->|Re-render forzado| M[components/QueueTabsPanel]
+```
+
+---
+
+## 🚨 3. Análisis Detallado de `MiniContext.jsx`
+
+`MiniContext` actúa como un **monolito de estado** que mezcla 5 responsabilidades de negocio diferentes.
+
+### A. La Bomba de Rendimiento: `scanProgress`
+El escáner de archivos emite notificaciones de progreso de forma muy rápida y frecuente. En `MiniContext.jsx` (líneas 151-178), este progreso se captura e inyecta en el estado local:
+```javascript
+setScanProgress({
+  dirPath: parsed.dirPath,
+  processed: parsed.processed,
+  total: parsed.total
+})
+```
+* **Problema**: Dado que `scanProgress` se incluye en el `contextValue` (línea 219) y es un estado reactivo del `MiniProvider`, cada incremento (por ejemplo, "procesando 120/1200", "121/1200", etc.) recrea el objeto `contextValue`.
+* **Impacto**: **Todos** los componentes que llamen a `useMini()` se re-renderizan en cada tick de progreso del escáner, aunque no muestren ninguna barra de progreso (ej. la barra lateral, el historial, el feed, etc.). Esto colapsa el hilo principal (UI thread) de Electron y provoca micro-stuttering o congelamiento visual del reproductor de música.
+
+### B. Dependencia Inestable y Recreación de `getDirectories`
+La función `getDirectories` está definida con dependencias inestables (línea 113):
+```javascript
+const getDirectories = useCallback(async ({ force = false } = {}) => {
+  if (!force && directoriesLoaded) {
+    return directories
+  }
+  // ...
+}, [directories, directoriesLoaded])
+```
+* **Problema**: Dado que depende de `directories` y `directoriesLoaded`, cada vez que los directorios terminan de cargarse, se añaden o se eliminan, **la referencia de la función `getDirectories` cambia**.
+* **Efecto Dominó**: 
+  1. `addDirectory` se vuelve a crear porque depende de `getDirectories` (línea 142).
+  2. El `contextValue` cambia completamente de referencia.
+  3. En `PlaylistsContex.jsx` (líneas 501-534), el `useEffect` que gestiona notificaciones IPC tiene a `getDirectories` como dependencia. Al cambiar su referencia, **el listener de IPC se destruye y se vuelve a crear**, lo que introduce overhead y riesgo de fugas de memoria o condiciones de carrera durante escaneos masivos.
+
+```mermaid
+graph TD
+    A[Cambio en directories / directoriesLoaded] -->|Recrea referencia| B(getDirectories)
+    B -->|Recrea referencia| C(addDirectory)
+    B -->|Provoca efecto limpieza en useEffect| D(PlaylistsProvider IPC Notification)
+    D -->|Tears down & Re-registers| E(window.electron.ipcRenderer)
+```
+
+---
+
+## 🚨 4. Análisis Detallado de `PlaylistsContex.jsx`
+
+El contexto de playlists sufre de sobre-responsabilidad y dependencias inestables que destruyen la memoización del `contextValue`.
+
+### A. Polución de Dominios: Dependencia de `useQueue` y `currentCover`
+`PlaylistsProvider` consume directamente la cola de reproducción y calcula el cover de la canción actual en pantalla (líneas 19-20):
+```javascript
+const { currentFile, removeTrack, addSong } = useQueue()
+const currentCover = useSongCover(currentFile?.filePath, 'full')
+```
+* **Problema**: `currentCover` se añade como dependencia directa en el `useMemo` del `contextValue` (línea 580) y se expone a los consumidores (línea 559).
+* **Impacto**: Cada vez que cambia la canción activa (o incluso si hay micro-actualizaciones del estado de la cola que modifiquen la referencia de `currentFile`), `currentCover` se recalcula y cambia el valor del contexto de playlists. **Esto obliga a re-renderizar todas las listas, modales de guardar playlist y menús de añadir canción**, un flujo completamente ajeno al reproductor activo.
+
+### B. Código Muerto y Bucles de Doble Renderizado
+El proveedor define dos estados que no son expuestos en el contexto y que no tienen consumidores de lectura en el código de la UI:
+```javascript
+const [, setArrayCovers] = useState([])
+const [, setArrayAlbums] = useState([])
+```
+A pesar de ser código muerto, se ejecuta un efecto reactivo cada vez que cambia la lista de playlists (líneas 91-93):
+```javascript
+useEffect(() => {
+  updateArrayAlbums(playlists)
+}, [playlists, updateArrayAlbums])
+```
+* **Problema**: `updateArrayAlbums` ejecuta un `setArrayAlbums((currentAlbums) => ...)` que añade elementos concatenados tras resolver URLs de imagen por cada playlist.
+* **Impacto de Rendimiento**: Cuando la lista de playlists se carga, la aplicación realiza un renderizado. Inmediatamente después, el `useEffect` se dispara, ejecuta `updateArrayAlbums`, y actualiza el estado local `arrayAlbums`, **provocando un segundo ciclo de renderizado completo e innecesario** de `PlaylistsProvider`. Dado que `arrayAlbums` nunca se lee en ninguna vista, todo este trabajo y la doble fase de renderizado en React son desperdicio de CPU y memoria.
+
+### C. Mezcla de Paginación Pesada (`allSongs`) con Playlists
+El contexto gestiona la paginación y carga de la biblioteca completa de música (`allSongs`, `allSongsLoading`, `allSongsPage` de las líneas 131-206).
+* **Problema**: La biblioteca completa de canciones y las playlists son dominios que deberían estar separados. Mezclarlos hace que la navegación paginada (hacer scroll infinito en "Todas las Canciones" y cargar páginas consecutivas de 100 canciones) dispare actualizaciones de estado en el proveedor de playlists, forzando renders continuos en componentes que solo necesitan ver las listas de reproducción guardadas del usuario.
+
+---
+
+## ⚠️ 5. Matriz de Riesgos de Rendimiento
+
+A continuación se detallan los riesgos identificados, clasificados por su impacto técnico en la aplicación:
+
+| Componente afectado | Tipo de Riesgo | Impacto | Efecto en la Experiencia de Usuario |
+| :--- | :--- | :--- | :--- |
+| **Toda la UI de Elevate** | Re-renders de alta frecuencia por `scanProgress` | **CRÍTICO** | Caída severa de FPS (micro-congelamiento) durante el escaneo de carpetas de música. La interfaz responde con retraso al click o arrastre. |
+| **Reproductor e IPC** | Churn (alta rotación) de listeners IPC en `useEffect` | **ALTO** | Riesgo de race conditions en las notificaciones del backend. Si el canal IPC se satura con bajas y altas de listeners, se pueden perder eventos de escaneo completado. |
+| **Vistas de Playlists y Modales** | Doble Renderizado por Estado Muerto (`arrayAlbums`) | **MEDIO** | Latencia innecesaria al abrir o cargar playlists creadas por el usuario. Desperdicio de CPU en hilos del renderer. |
+| **Sidebar / Controles Globales** | Re-render del reproductor acoplado a Playlists (`currentCover`) | **MEDIO** | Cada cambio de canción fuerza a que las sidebars y vistas estáticas de playlists se vuelvan a calcular. |
+| **Consumo de Memoria** | Paginación masiva en Contexto Global | **BAJO** | Elevado uso de Heap de JavaScript al propagar y retener arrays muy grandes (`allSongs`) en un contexto con múltiples consumidores vivos simultáneamente. |
 
-Este documento compara el reporte original de covers/images/blobs con la app actual despues de crear `src/renderer/src/Contexts/ImagesContext.jsx`.
+---
 
-## Resumen
+## 🛠️ 6. Plan de Acción y Propuestas de Mejora
 
-`ImagesContext.jsx` resolvio el problema central del reporte: ya no hay dos caches principales separadas para canciones y colecciones en renderer. Los covers de canciones, playlists, directories, favourites, search y previews ahora pasan por una coordinacion comun con LRU y revocacion de `blob:`.
+Para solucionar estos cuellos de botella de manera elegante y limpia, se recomiendan los siguientes patrones de refactorización:
 
-Aun asi, siguen vigentes algunos riesgos: el main process todavia transfiere bytes por IPC, los covers de coleccion/directorio siguen generandose como buffers completos, `dataToImageUrl()` sigue existiendo como helper peligroso si alguien lo reutiliza, y hay detalles de invalidacion/cache que conviene ajustar antes de considerar el sistema cerrado.
+### 1. Separación de Contextos (Context Splitting Pattern)
 
-## Problemas Del Reporte Que Quedaron Resueltos
+En lugar de mantener un único monolito `MiniProvider`, debemos dividir la funcionalidad en contextos especializados con menor frecuencia de actualización. 
 
-### 1. Dos Sistemas Paralelos En Renderer
+#### Paso A: Separar el Escáner (`LibraryScannerContext`)
+Creamos un proveedor exclusivo para el progreso de escaneo y el manejo de directorios:
 
-Estado actual: mayormente resuelto.
+```jsx
+// src/renderer/src/Contexts/LibraryScannerContext.jsx
+import { createContext, useContext, useState, useEffect } from 'react'
 
-Antes:
+const LibraryScannerContext = createContext()
 
-- `useCoverUrl()` manejaba covers de canciones.
-- `SupeContext#getImage()` manejaba covers de colecciones.
+export const LibraryScannerProvider = ({ children }) => {
+  const [scanProgress, setScanProgress] = useState(null)
+  const [directoriesLoading, setDirectoriesLoading] = useState(false)
 
-Ahora:
+  useEffect(() => {
+    const handleProgress = (message) => {
+      // Manejar progreso aquí de forma aislada
+    }
+    window.electron.ipcRenderer.on('notification', handleProgress)
+    return () => window.electron.ipcRenderer.off('notification', handleProgress)
+  }, [])
 
-- `useCoverUrl.js` es un wrapper de compatibilidad hacia `ImagesContext`.
-- Los consumidores de `getImage()` migraron a `useImages().getCollectionCoverUrl`.
-- `SupeContext.jsx` ya no mantiene `imagesRef` ni expone `getImage`.
+  return (
+    <LibraryScannerContext.Provider value={{ scanProgress, directoriesLoading }}>
+      {children}
+    </LibraryScannerContext.Provider>
+  )
+}
 
-Resultado: la app tiene una API central para URLs de imagen en renderer.
+export const useLibraryScanner = () => useContext(LibraryScannerContext)
+```
+> [!TIP]
+> Al realizar esta división, los componentes comunes de navegación e historial ya no se re-renderizarán cuando el escáner esté enviando datos de progreso. Solo el componente visual del progreso del escáner (ej. barra de progreso en la UI) consumirá `useLibraryScanner` y sufrirá re-renders intencionados.
 
-### 2. `getImage()` Sin LRU Ni Cleanup Global
+---
 
-Estado actual: resuelto.
+### 2. Estabilización de `getDirectories` con Referencias Estables
 
-`getImage()` fue removido de `SupeContext.jsx`. La cache de colecciones ahora vive en `ImagesContext.jsx` con:
+Para evitar que `getDirectories` cambie su identidad de función cada vez que cambien los directorios, podemos usar un **React Ref** para almacenar el estado actual de los directorios sin listarlo en las dependencias de `useCallback`:
 
-- limite `collection: 150`
-- `pruneCache('collection')`
-- `revokeUrl()` al reemplazar o expulsar entradas
-- cleanup global en `ImagesProvider` al desmontar
+```javascript
+// Dentro de MiniProvider
+const directoriesRef = useRef([])
+const directoriesLoadedRef = useRef(false)
 
-Esto elimina el crecimiento indefinido del viejo `Map` de `SupeContext`.
+// Mantener la referencia actualizada silenciosamente
+useEffect(() => {
+  directoriesRef.current = directories
+  directoriesLoadedRef.current = directoriesLoaded
+}, [directories, directoriesLoaded])
 
-### 3. Cache De Blobs Dispersa
+const getDirectories = useCallback(async ({ force = false } = {}) => {
+  // Leemos desde los refs, lo que hace que esta función tenga dependencia estable []
+  if (!force && directoriesLoadedRef.current) {
+    return directoriesRef.current
+  }
+  
+  setDirectoriesLoading(true)
+  // ... lógica de llamada
+}, []) // Dependencias vacías: getDirectories tiene una referencia 100% estable
+```
+> [!IMPORTANT]
+> Esto previene por completo la destrucción y recreación constante del listener IPC en `PlaylistsContex.jsx` (línea 529), eliminando el churn de suscripciones del sistema.
 
-Estado actual: mayormente resuelto.
+---
 
-`ImagesContext.jsx` centraliza:
+### 3. Eliminación de Código Muerto en `PlaylistsContex.jsx`
 
-- `thumb`: 300 entradas
-- `full`: 20 entradas
-- `collection`: 150 entradas
+Debemos eliminar los estados no leídos y sus cálculos reactivos para quitar de inmediato el doble renderizado en cada carga de playlists.
 
-Tambien centraliza:
+#### Código a Eliminar:
+```diff
+- const [, setArrayCovers] = useState([])
+- const [, setArrayAlbums] = useState([])
 
-- `Blob`
-- `URL.createObjectURL`
-- `URL.revokeObjectURL`
-- preloads pendientes de songs
-- placeholders
+- const updateArrayCovers = useCallback((someArray) => { ... }, [getCollectionCoverUrl])
+- const updateArrayAlbums = useCallback((someArray) => { ... }, [getCollectionCoverUrl])
 
-La cache sigue siendo modular global, pero ahora esta en un solo modulo especializado.
+- useEffect(() => {
+-   updateArrayAlbums(playlists)
+- }, [playlists, updateArrayAlbums])
+```
 
-### 4. Responsabilidad De Imagenes En `SupeContext`
+Esto simplifica el archivo en más de 60 líneas de código inútil y mejora la legibilidad para futuros desarrolladores.
 
-Estado actual: parcialmente resuelto.
+---
 
-`SupeContext` ya no contiene cache de imagenes de coleccion ni conversion de blobs. Sigue usando el cover full actual via `useSongCover(currentFile?.filePath, 'full')` para MediaSession, color dominante y taskbar.
+### 4. Desacoplamiento de `currentCover`
 
-Lo que todavia vive en `SupeContext`:
+La variable `currentCover` pertenece al flujo de reproducción de audio actual (Player/Queue) y no al catálogo de playlists.
 
-- MediaSession / Windows player
-- Discord Rich Presence
-- color dominante
-- waveform preference
-- `isAwaken`
-- `toggleStep`
+* **Solución**: Remover `currentCover` de `PlaylistsContex.jsx`.
+* **Implementación**: Las páginas que necesiten pintar el cover gigante en el reproductor (como `Music.jsx` o `CurrentPlaying.jsx`) deben consumir directamente `useSongCover(currentFile?.filePath, 'full')` o importarlo desde un nuevo `PlayerContext` en lugar de acoplarse a `usePlaylists`. Esto rompe la dependencia que forzaba a re-renderizar todas las listas guardadas cuando cambiaba la pista en reproducción.
 
-La parte de imagenes fue removida, pero `SupeContext` sigue mezclando varias responsabilidades no relacionadas con imagenes.
+---
 
-### 5. Placeholder Consistente
+### 5. Extra: Implementar un Patrón de Publicación-Suscripción (Pub/Sub) para el Escáner
 
-Estado actual: mejorado.
+Si se desea llevar la optimización al máximo nivel para bibliotecas musicales inmensas (más de 10,000 archivos), podemos evitar completamente que React gestione el estado del progreso del escáner en ticks de milisegundos.
 
-`ImagesContext.jsx` centraliza `DEFAULT_COVER` y `useCoverUrl.js` lo reexporta. El viejo fallback remoto de `dataToImageUrl()` ya no aparece en los consumidores migrados.
+En su lugar, creamos un emisor de eventos simple:
 
-## Problemas Que Siguen Vigentes
+```javascript
+// src/renderer/src/utils/scanEmitter.js
+import mitt from 'mitt' // O un emisor de eventos simple de JS
+export const scanEmitter = mitt()
 
-### 1. Transferencia De Bytes Por IPC
+// En el listener IPC global (fuera de los componentes de React):
+window.electron.ipcRenderer.on('notification', (message) => {
+  try {
+    const parsed = JSON.parse(message)
+    if (parsed?.type === 'scan-progress') {
+      scanEmitter.emit('progress', parsed)
+    }
+  } catch {
+    // ignorar
+  }
+})
+```
 
-Estado actual: sigue vigente.
+Y en el componente visual que muestra el porcentaje en pantalla, nos suscribimos al montar y nos desuscribimos al desmontar:
 
-El main process sigue devolviendo covers como `{ data, mimeType }` por IPC en:
+```jsx
+// src/renderer/src/components/ScanProgressBar.jsx
+import { useEffect, useState } from 'react'
+import { scanEmitter } from '../utils/scanEmitter'
 
-- `get-audio-cover-thumbnail`
-- `get-audio-cover-full`
+export const ScanProgressBar = () => {
+  const [progress, setProgress] = useState(null)
 
-El renderer sigue creando blobs a partir de esos bytes. Esto no es incorrecto, pero mantiene los costes descritos en el reporte:
+  useEffect(() => {
+    const handleProgress = (data) => setProgress(data)
+    scanEmitter.on('progress', handleProgress)
+    return () => scanEmitter.off('progress', handleProgress)
+  }, [])
 
-- serializacion por IPC
-- memoria duplicada temporalmente
-- creacion de blobs en renderer
+  if (!progress) return null
 
-El riesgo es aceptable para thumbnails. Para `full` covers y collages grandes, sigue siendo un punto de vigilancia.
-
-### 2. Covers De Coleccion Siguen Viajando Como Buffers Completos
-
-Estado actual: sigue vigente.
-
-Playlists, favourites y collection pages pueden recibir covers generados por `sharp` como buffers/data URLs completos. `ImagesContext` controla mejor la vida del blob en renderer, pero no reduce el coste de generar, transportar o retener temporalmente esos buffers.
-
-Esto afecta especialmente:
-
-- collages de playlists
-- favourites/likes
-- directory detail
-- suggested collage previews
-
-### 3. Directories No Tienen Cover Persistente
-
-Estado actual: sigue vigente.
-
-El reporte indicaba que directories no guardan cover propio en Prisma. Eso sigue igual. Cuando se pide detalle de directorio, el main puede generar un cover de coleccion desde tracks.
-
-Problema restante:
-
-- el cover de directorio puede recalcularse en vez de reutilizar una entidad persistida
-- no hay `coverHash`/cache durable especifica para directory covers
-- search de directories sigue siendo ligero y no trae cover
-
-Esto puede estar bien por ahora, pero sigue siendo una diferencia funcional respecto a playlists.
-
-### 4. `dataToImageUrl()` Sigue Existiendo Y Puede Crear Blobs Sin Control
-
-Estado actual: sigue vigente como riesgo latente.
-
-`src/renderer/src/Contexts/utils.jsx` todavia exporta `dataToImageUrl()`, y esa funcion todavia llama a `URL.createObjectURL()` sin LRU ni cleanup.
-
-Actualmente no quedan usos activos fuera del propio helper, pero si alguien lo reutiliza en una nueva pantalla, puede reintroducir el problema que `ImagesContext` acaba de resolver.
-
-Recomendacion:
-
-- marcarlo como deprecated
-- mover cualquier conversion futura a `ImagesContext`
-- idealmente eliminarlo cuando no haya compatibilidad pendiente
-
-### 5. Color Dominante Sigue Corriendo En Renderer
-
-Estado actual: sigue vigente.
-
-`SupeContext.jsx` sigue llamando a `extractDominantColor(currentCoverUrl)`. El reporte mencionaba que esta operacion usa canvas y `getImageData()` en renderer.
-
-`ImagesContext` no cambia ese flujo. Aunque ahora el cover full viene de `useSongCover`, el calculo de color sigue siendo trabajo del hilo UI.
-
-Riesgo:
-
-- cambios frecuentes de cancion con covers pesados pueden generar trabajo extra en renderer
-- no hay cache explicita por `coverHash` o `filePath` para el color dominante
-
-### 6. `useCoverUrl.js` Sigue Existiendo Como Wrapper
-
-Estado actual: vigente por compatibilidad.
-
-Esto fue intencional: `TrackCard`, `Statistics` y `PlaylistsContex` siguen importando `useCoverUrl`. Ya no es una cache separada, pero el nombre puede ocultar que la fuente real es `ImagesContext`.
-
-No es un bug, pero a mediano plazo conviene migrar esos consumidores a `useSongCover` para que el API publica sea mas clara.
-
-### 7. No Hay Verificacion Runtime De Memoria/Blobs
-
-Estado actual: sigue vigente.
-
-El build valida que compila, pero no demuestra que:
-
-- el numero de blobs vivos se mantiene estable
-- el LRU expulsa como se espera en navegacion real
-- las URLs revocadas no siguen siendo usadas por alguna vista
-
-Sigue pendiente una prueba manual o instrumentacion de memoria navegando muchas playlists, search results y colas largas.
-
-## Problemas Nuevos O Detalles Detectados En `ImagesContext.jsx`
-
-### 1. `clearImageCache('collection')` Invalida Cargas Pendientes De Songs
-
-`clearImageCache(scope)` incrementa `cacheRevision` siempre. Esa revision se usa para descartar resultados tardios de `preloadSongCover()`.
-
-Efecto secundario:
-
-- si se llama `clearImageCache('collection')` mientras un thumb/full esta cargando, esa carga de song se descarta y devuelve `DEFAULT_COVER`
-- el hook que esperaba esa carga puede quedarse con placeholder hasta que cambien sus dependencias o se vuelva a pedir
-
-No es grave si `clearImageCache` se usa poco, pero es una inconsistencia de scope.
-
-Recomendacion:
-
-- usar revision por scope o solo invalidar revision de songs cuando se limpie `thumb`, `full` o `all`
-
-### 2. Firmas De Coleccion Basadas En Identidad De Objeto
-
-`getCollectionSignature(data)` devuelve el objeto original cuando `data` no es string.
-
-Eso funciona si el mismo objeto se mantiene estable en estado. Pero si una pantalla reconstruye un objeto `{ data }` equivalente en cada render, `ImagesContext` lo interpretara como imagen nueva:
-
-- revoca la URL anterior
-- crea un nuevo blob
-- actualiza el LRU
-
-Recomendacion:
-
-- cuando exista `coverHash`, `suggestedId`, `filePath` o algun id estable, usarlo como parte de la firma
-- considerar una firma barata para buffers si aparecen recreaciones frecuentes
-
-### 3. `useSongCover` En El Context Value Puede Confundir
-
-`ImagesContext` exporta `useSongCover` como hook normal y tambien lo incluye en el objeto de contexto.
-
-Usar hooks desde objetos de contexto puede confundir a futuros contributors, porque el nombre empieza con `use` y debe respetar reglas de hooks.
-
-No es un fallo actual porque los consumidores usan el export directo o funciones no-hook. Pero conviene decidir una convencion:
-
-- exportar `useSongCover` solo como named export
-- dejar en `useImages()` solo funciones imperativas (`preloadSongCover`, `getCollectionCoverUrl`, etc.)
-
-### 4. `revokeImage(key, scope)` Puede Apuntar A Collection Si Scope Es Invalido
-
-`getCache(scope)` cae a `collection` si el scope no existe. Eso es comodo, pero puede borrar una entrada de collection por error si se llama con un scope mal escrito.
-
-Recomendacion:
-
-- validar scopes permitidos
-- no hacer fallback silencioso en operaciones destructivas como `revokeImage` y `clearImageCache`
-
-## Estado De Los Criterios Del Reporte
-
-| Criterio | Estado actual |
-| --- | --- |
-| Un solo lugar para cache y revocacion de blobs | Cumplido para consumidores migrados |
-| Menos responsabilidad en `SupeContext` | Cumplido para imagenes, parcial para el resto |
-| API clara para songs/playlists/directories/results/colas | Mayormente cumplido |
-| Control de `thumb` vs `full` | Cumplido en renderer |
-| Base para medir memoria y rendimiento | Mejorada, pero falta instrumentacion |
-| Main process como motor pesado de imagenes | Se mantiene |
-| No cambiar Prisma ni IPC | Se mantiene |
-
-## Prioridades Recomendadas
-
-1. Ajustar `clearImageCache` para que la invalidacion sea por scope y no afecte cargas de songs cuando solo se limpia `collection`.
-2. Deprecar o eliminar `dataToImageUrl()` para evitar que vuelva el flujo sin cleanup.
-3. Migrar los imports restantes de `useCoverUrl` a `useSongCover` cuando se quiera retirar el wrapper.
-4. Cachear color dominante por `filePath`, `coverHash` o URL para reducir trabajo de canvas.
-5. Evaluar persistencia/cache de covers de directory si el detalle de directorios se vuelve costoso.
-6. Hacer una prueba manual de memoria con navegacion intensiva por playlists, search y colas virtualizadas.
-
-## Conclusion
-
-La migracion a `ImagesContext.jsx` resolvio los problemas mas importantes del reporte en el renderer: duplicacion de caches, ausencia de LRU para colecciones y blobs sin cleanup global.
-
-Los problemas que siguen vigentes ya no son principalmente de organizacion en renderer, sino de coste de datos y procesamiento: bytes por IPC, collages/buffers completos, directorios sin cover persistente y color dominante calculado en UI. El nuevo contexto deja la app en una posicion mucho mejor para medir y atacar esos puntos sin volver a dispersar la logica de imagenes.
-
+  return <div>Progreso: {progress.processed} de {progress.total}</div>
+}
+```
+**Ventaja**: Ningún contexto de React cambia durante el escaneo. La actualización de estado es puramente local a la barra de progreso. La UI se mantendrá a **60 FPS constantes** sin importar la velocidad de procesamiento de archivos en el backend de Electron.

@@ -3,7 +3,7 @@ import { LuPlay, LuPause, LuHeart } from 'react-icons/lu'
 import { FaPlusCircle, FaClock, FaListUl, FaEye } from 'react-icons/fa'
 import { extractDominantColor } from '../../utils/useDominantColor'
 import { formatDuration } from '../../../timeUtils'
-import { useCoverUrl } from '../../hooks/useCoverUrl'
+import { useSongCover } from '../../Contexts/ImagesContext'
 
 import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
@@ -15,7 +15,7 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
   const { handleSongClick, currentFile, appendToCurrentQueue } = useQueue()
   const { isPlaying, togglePlayPause } = usePlayback()
   const { toggleLike, isLiked: checkLikeStatus } = useLikes()
-  const coverUrl = useCoverUrl(song.filePath, 'thumb')
+  const coverUrl = useSongCover(song.filePath, 'thumb')
   const [dominantColor, setDominantColor] = useState({ hex: '#baff00', rgb: '186, 255, 0' })
   const [isLiked, setIsLiked] = useState(false)
 
@@ -53,13 +53,13 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
   useEffect(() => {
     if (coverUrl && !coverUrl.includes('svg')) {
       const id = requestIdleCallback(() => {
-        extractDominantColor(coverUrl).then((color) => {
+        extractDominantColor(coverUrl, song.coverHash || song.filePath || coverUrl).then((color) => {
           setDominantColor(color)
         })
       })
       return () => cancelIdleCallback(id)
     }
-  }, [coverUrl])
+  }, [coverUrl, song.coverHash, song.filePath])
 
   const menuOptions = useMemo(
     () => [
