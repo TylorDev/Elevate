@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
-  LuClock3,
-  LuEye,
   LuFolderOpen,
   LuHeart,
   LuListMusic,
@@ -10,8 +8,6 @@ import {
   LuPencil,
   LuPlay,
   LuRefreshCw,
-  LuRepeat2,
-  LuSkipForward,
   LuTrash2
 } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
@@ -22,28 +18,13 @@ import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useMini } from '../../Contexts/MiniContext'
 import { Button } from '../../components/Button/Button'
-import { Cola } from '../../components/Cola/Cola'
+import { CollectionInsightsPanel } from '../../components/CollectionInsights/CollectionInsightsPanel'
 import ConfirmActionModal from '../../components/ConfirmActionModal/ConfirmActionModal'
 import { CollectionAddToPlaylistModal } from '../../components/CollectionAddToPlaylistModal/CollectionAddToPlaylistModal'
 import Modal from '../../components/Modal/Modal'
 import { OverflowMenu } from '../../components/OverflowMenu/OverflowMenu'
 import PlaylistForm from '../../components/PlaylistForm/PlaylistForm'
 import './CollectionPage.scss'
-
-function formatMetricValue(value) {
-  return new Intl.NumberFormat('es').format(Number(value) || 0)
-}
-
-function formatAccumulatedDuration(seconds) {
-  const totalSeconds = Math.max(0, Number(seconds) || 0)
-  const hours = totalSeconds / 3600
-
-  if (hours >= 1) {
-    return `${hours.toFixed(1)} h`
-  }
-
-  return `${Math.round(totalSeconds / 60)} min`
-}
 
 function getCollectionKind(pathname = '') {
   if (pathname.startsWith('/playlists/')) {
@@ -68,30 +49,30 @@ const COLLECTION_MENU_IDS = {
 function buildCollectionMenuOptions(type) {
   if (type === 'likes') {
     return [
-      { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Añadir a la Cola', icon: <LuListPlus /> },
+      { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'AÃ±adir a la Cola', icon: <LuListPlus /> },
       {
         id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-        label: 'Añadir a Playlist Nueva',
+        label: 'AÃ±adir a Playlist Nueva',
         icon: <LuListMusic />
       },
       {
         id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-        label: 'Añadir a Playlist Existente',
+        label: 'AÃ±adir a Playlist Existente',
         icon: <LuListPlus />
       }
     ]
   }
 
   return [
-    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Añadir a la Cola', icon: <LuListPlus /> },
+    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'AÃ±adir a la Cola', icon: <LuListPlus /> },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-      label: 'Añadir a Playlist Nueva',
+      label: 'AÃ±adir a Playlist Nueva',
       icon: <LuListMusic />
     },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-      label: 'Añadir a Playlist Existente',
+      label: 'AÃ±adir a Playlist Existente',
       icon: <LuListPlus />
     },
     {
@@ -107,20 +88,10 @@ function buildCollectionMenuOptions(type) {
   ]
 }
 
-function SummaryCard({ icon, label, value, tone = 'default' }) {
-  return (
-    <article className={`collection-summary-card tone-${tone}`}>
-      <span className="collection-summary-card__icon">{icon}</span>
-      <span className="collection-summary-card__label">{label}</span>
-      <strong className="collection-summary-card__value">{value}</strong>
-    </article>
-  )
-}
-
 function EmptyCollectionState({ type }) {
   const title =
     type === 'playlist'
-      ? 'Playlist vacía'
+      ? 'Playlist vacÃ­a'
       : type === 'likes'
         ? 'No hay canciones con like'
         : 'Directorio sin canciones'
@@ -128,7 +99,7 @@ function EmptyCollectionState({ type }) {
   return (
     <div className="collection-empty">
       <h2>{title}</h2>
-      <p>Esta colección no tiene canciones disponibles para mostrarse todavía.</p>
+      <p>Esta colecciÃ³n no tiene canciones disponibles para mostrarse todavÃ­a.</p>
     </div>
   )
 }
@@ -136,7 +107,7 @@ function EmptyCollectionState({ type }) {
 function ErrorState({ message, onRetry }) {
   return (
     <div className="collection-error">
-      <strong>No se pudo cargar la colección.</strong>
+      <strong>No se pudo cargar la colecciÃ³n.</strong>
       <p>{message}</p>
       <button type="button" onClick={onRetry}>
         Reintentar
@@ -197,13 +168,12 @@ function CollectionPage() {
   const [isEditVisible, setIsEditVisible] = useState(false)
   const [isAddToPlaylistVisible, setIsAddToPlaylistVisible] = useState(false)
   const [isDeleteVisible, setIsDeleteVisible] = useState(false)
-  const [listHeight, setListHeight] = useState(() => Math.max(window.innerHeight - 390, 320))
   const autoPlayedRef = useRef('')
   const likesHydratedRef = useRef(false)
 
   const loadDetail = useCallback(async () => {
     if (type !== 'likes' && !sourcePath) {
-      setError('No se encontró la ruta de la colección.')
+      setError('No se encontrÃ³ la ruta de la colecciÃ³n.')
       setLoading(false)
       return
     }
@@ -223,7 +193,7 @@ function CollectionPage() {
       const response = await window.electron.ipcRenderer.invoke(channel, sourcePath)
 
       if (!response?.success) {
-        setError(response?.error || 'No se pudo cargar la colección.')
+        setError(response?.error || 'No se pudo cargar la colecciÃ³n.')
         setDetail(null)
         return
       }
@@ -231,7 +201,7 @@ function CollectionPage() {
       setDetail(response)
     } catch (loadError) {
       console.error('Error loading collection detail:', loadError)
-      setError(loadError?.message || 'No se pudo cargar la colección.')
+      setError(loadError?.message || 'No se pudo cargar la colecciÃ³n.')
       setDetail(null)
     } finally {
       setLoading(false)
@@ -293,7 +263,7 @@ function CollectionPage() {
         }
 
         console.error('Error loading likes detail:', loadError)
-        setError(loadError?.message || 'No se pudo cargar la colecciÃ³n.')
+        setError(loadError?.message || 'No se pudo cargar la colecciÃƒÂ³n.')
         setDetail(null)
       })
       .finally(() => {
@@ -306,17 +276,6 @@ function CollectionPage() {
       isCancelled = true
     }
   }, [getLikes, likes, type])
-
-  useEffect(() => {
-    const handleResize = () => {
-      setListHeight(Math.max(window.innerHeight - 390, 320))
-    }
-
-    window.addEventListener('resize', handleResize)
-    return () => {
-      window.removeEventListener('resize', handleResize)
-    }
-  }, [])
 
   useEffect(() => {
     if (!shouldAutoPlay || !detail?.tracks?.length || autoPlayedRef.current === sourcePath) {
@@ -461,7 +420,7 @@ function CollectionPage() {
       <section className="collection-page collection-page--loading">
         <div className="collection-loading">
           <LuRefreshCw />
-          Cargando colección...
+          Cargando colecciÃ³n...
         </div>
       </section>
     )
@@ -478,7 +437,7 @@ function CollectionPage() {
   if (!detail) {
     return (
       <section className="collection-page">
-        <ErrorState message="No se encontró la colección solicitada." onRetry={() => navigate(routeBack)} />
+        <ErrorState message="No se encontrÃ³ la colecciÃ³n solicitada." onRetry={() => navigate(routeBack)} />
       </section>
     )
   }
@@ -531,68 +490,25 @@ function CollectionPage() {
         </div>
       </header>
 
-      <section className="collection-summary">
-        <SummaryCard
-          icon={<LuClock3 />}
-          label="Duración Total"
-          value={formatDuration(summary?.totalDuration || 0)}
-          tone="acid"
-        />
-        <SummaryCard
-          icon={<LuEye />}
-          label="Short Views"
-          value={formatMetricValue(summary?.totalShortViews)}
-          tone="gold"
-        />
-        <SummaryCard
-          icon={<LuListMusic />}
-          label="Long Views"
-          value={formatMetricValue(summary?.totalLongViews)}
-          tone="blue"
-        />
-        <SummaryCard
-          icon={<LuClock3 />}
-          label="Duración acumulada"
-          value={formatAccumulatedDuration(summary?.totalAccumulatedDuration)}
-          tone="violet"
-        />
-        <SummaryCard
-          icon={<LuRepeat2 />}
-          label="Repeticiones acumuladas"
-          value={formatMetricValue(summary?.totalRepeats)}
-          tone="rose"
-        />
-        <SummaryCard
-          icon={<LuSkipForward />}
-          label="Skips acumulados"
-          value={formatMetricValue(summary?.totalSkips)}
-          tone="ash"
-        />
-      </section>
-
-      <section className="collection-tracklist">
-        <div className="collection-tracklist__header">
-          <div>
-            <span>Track manifest</span>
-            <h2>Todas las canciones</h2>
+      {tracks.length === 0 ? (
+        <section className="collection-tracklist">
+          <div className="collection-tracklist__header">
+            <div>
+              <span>Track manifest</span>
+              <h2>Todas las canciones</h2>
+            </div>
+            <strong>{tracks.length}</strong>
           </div>
-          <strong>{tracks.length}</strong>
-        </div>
-
-        {tracks.length === 0 ? (
           <EmptyCollectionState type={type} />
-        ) : (
-          <Cola
-            list={tracks}
-            name={collectionSourceName}
-            preserveOrder
-            virtualized
-            virtualizationThreshold={20}
-            rowHeight={72}
-            height={listHeight}
-          />
-        )}
-      </section>
+        </section>
+      ) : (
+        <CollectionInsightsPanel
+          tracks={tracks}
+          sourceName={collectionSourceName}
+          mode="collection"
+          showAllSongsTab={false}
+        />
+      )}
 
       <Modal isVisible={isEditVisible} closeModal={() => setIsEditVisible(false)}>
         {type === 'playlist' && detail?.playlistData ? (
@@ -622,8 +538,8 @@ function CollectionPage() {
           title={type === 'playlist' ? 'Eliminar playlist?' : 'Eliminar directorio?'}
           message={
             type === 'playlist'
-              ? 'Se eliminará esta playlist de Elevate.'
-              : 'Se eliminará este directorio de la biblioteca de Elevate.'
+              ? 'Se eliminarÃ¡ esta playlist de Elevate.'
+              : 'Se eliminarÃ¡ este directorio de la biblioteca de Elevate.'
           }
           confirmLabel={type === 'playlist' ? 'Eliminar playlist' : 'Eliminar directorio'}
           onCancel={() => setIsDeleteVisible(false)}

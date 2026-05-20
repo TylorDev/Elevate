@@ -33,6 +33,8 @@ export const SongItemView = memo(function SongItemView({
   artist,
   shortViewCount,
   durationText,
+  insightValueLabel = '',
+  showInsightValue = false,
   coverUrl,
   isActive = false,
   isPinned = false,
@@ -67,7 +69,13 @@ export const SongItemView = memo(function SongItemView({
       onPointerLeave={onPointerLeave}
       onPointerCancel={onPointerCancel}
     >
-      <div className={isActive ? 'songItem active' : 'songItem'}>
+      <div
+        className={[
+          'songItem',
+          isActive ? 'active' : '',
+          showInsightValue ? 'songItem--insight' : ''
+        ].filter(Boolean).join(' ')}
+      >
         <div
           className={[
             'songItem__pinIndicator',
@@ -81,6 +89,7 @@ export const SongItemView = memo(function SongItemView({
         <div className="song-progress">
           {isActive ? <ActiveSongProgress /> : <div className="song-progress-fill" style={INACTIVE_PROGRESS_STYLE} />}
         </div>
+
         <div className="cover">
           <div className="ico">
             <FaPlay />
@@ -91,12 +100,16 @@ export const SongItemView = memo(function SongItemView({
         <div className="songdata">
           <span className="song-tittle">{title}</span>
           <span className="song-artist">
-            {artist || 'Unknow'} •{' '}
+            {artist || 'Unknow'} -{' '}
             <span className="song-views">
               <FaEye /> {shortViewCount}
             </span>
           </span>
         </div>
+
+        {showInsightValue ? (
+          <div className="songItem__insightValue">{insightValueLabel}</div>
+        ) : null}
 
         <div className={isLiked ? 'optiones liked' : '  optiones'}>
           <Button className="btnLike" onClick={onToggleLike}>
@@ -126,6 +139,8 @@ function SongItemContainer({
   isPinned = false,
   isPinEnabled = false,
   isLiked = false,
+  insightValueLabel = '',
+  showInsightValue = false,
   menuOptions,
   onPlay,
   onToggleLike,
@@ -153,6 +168,8 @@ function SongItemContainer({
       artist={file.artist}
       shortViewCount={file.short_view_count || 0}
       durationText={durationText}
+      insightValueLabel={insightValueLabel}
+      showInsightValue={showInsightValue}
       coverUrl={coverUrl}
       isActive={isActive}
       isPinned={isPinned}
@@ -177,6 +194,8 @@ function areSongItemViewPropsEqual(prevProps, nextProps) {
     prevProps.artist === nextProps.artist &&
     prevProps.shortViewCount === nextProps.shortViewCount &&
     prevProps.durationText === nextProps.durationText &&
+    prevProps.insightValueLabel === nextProps.insightValueLabel &&
+    prevProps.showInsightValue === nextProps.showInsightValue &&
     prevProps.coverUrl === nextProps.coverUrl &&
     prevProps.isActive === nextProps.isActive &&
     prevProps.isPinned === nextProps.isPinned &&
@@ -203,6 +222,8 @@ function areSongItemContainerPropsEqual(prevProps, nextProps) {
     prevProps.isPinned === nextProps.isPinned &&
     prevProps.isPinEnabled === nextProps.isPinEnabled &&
     prevProps.isLiked === nextProps.isLiked &&
+    prevProps.insightValueLabel === nextProps.insightValueLabel &&
+    prevProps.showInsightValue === nextProps.showInsightValue &&
     prevProps.menuOptions === nextProps.menuOptions &&
     prevProps.onPlay === nextProps.onPlay &&
     prevProps.onToggleLike === nextProps.onToggleLike &&

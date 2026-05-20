@@ -217,6 +217,8 @@ const VirtualSongRow = memo(function VirtualSongRow({ index, style, data }) {
       isPinned={data.pinnedSongPath === file.filePath}
       isPinEnabled={data.enablePinMove}
       isLiked={getLikeValue(data.likesLookup, file)}
+      showInsightValue={data.insightMode}
+      insightValueLabel={data.insightValueResolver?.(file) || ''}
       menuOptions={data.menuOptions}
       onPlay={data.onPlay}
       onToggleLike={data.onToggleLike}
@@ -258,6 +260,8 @@ function areVirtualRowsEqual(prevProps, nextProps) {
   return (
     prevProps.data.coverUrls[filePath] === nextProps.data.coverUrls[filePath] &&
     getLikeValue(prevProps.data.likesLookup, prevFile) === getLikeValue(nextProps.data.likesLookup, nextFile) &&
+    (prevProps.data.insightValueResolver?.(prevFile) || '') ===
+      (nextProps.data.insightValueResolver?.(nextFile) || '') &&
     prevProps.data.menuOptions === nextProps.data.menuOptions &&
     prevProps.data.onPlay === nextProps.data.onPlay &&
     prevProps.data.onToggleLike === nextProps.data.onToggleLike &&
@@ -287,7 +291,9 @@ export function Cola({
   enablePinMove = false,
   pinMoveScope = 'none',
   sourceKey,
-  onMoveCommit
+  onMoveCommit,
+  insightMode = false,
+  insightValueResolver = null
 }) {
   const {
     handleSongClick,
@@ -756,10 +762,12 @@ export function Cola({
   }, [height])
 
   const itemData = useMemo(
-      () => ({
-        activeFilePath,
-        coverUrls,
-        enablePinMove: isPinMoveEnabled,
+    () => ({
+      activeFilePath,
+      coverUrls,
+      enablePinMove: isPinMoveEnabled,
+      insightMode,
+      insightValueResolver,
       likesLookup,
       menuOptions,
       onMenuSelect,
@@ -777,6 +785,8 @@ export function Cola({
       coverUrls,
       displayedList,
       isPinMoveEnabled,
+      insightMode,
+      insightValueResolver,
       likesLookup,
       menuOptions,
       onMenuSelect,
@@ -835,6 +845,8 @@ export function Cola({
                   isPinned={pinnedSongPath === file.filePath}
                   isPinEnabled={isPinMoveEnabled}
                   isLiked={getLikeValue(likesLookup, file)}
+                  showInsightValue={insightMode}
+                  insightValueLabel={insightValueResolver?.(file) || ''}
                   menuOptions={menuOptions}
                   onPlay={onPlay}
                   onToggleLike={onToggleLike}
