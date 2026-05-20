@@ -12,7 +12,6 @@ import { useImages } from './ImagesContext'
 const MiniContext = createContext()
 
 // Proveedor del contexto
- 
 export const MiniProvider = ({ children }) => {
   const [recents, setRecents] = useState([])
   const getRecents = useCallback(
@@ -29,7 +28,6 @@ export const MiniProvider = ({ children }) => {
   const [directories, setDiretories] = useState([])
   const [directoriesLoading, setDirectoriesLoading] = useState(false)
   const [directoriesLoaded, setDirectoriesLoaded] = useState(false)
-  const [directoriesLastLoadedAt, setDirectoriesLastLoadedAt] = useState(null)
   const directoriesRequestRef = useRef(null)
   const directoriesInvokerRef = useRef(createLatestOnlyInvoker())
   const [scanProgress, setScanProgress] = useState(null)
@@ -37,25 +35,6 @@ export const MiniProvider = ({ children }) => {
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
   const { getCollectionCoverUrl } = useImages()
-
-  // Función para agregar un elemento al final de la lista
-  const agregarElemento = useCallback((elemento) => {
-    if (elemento === null || elemento === undefined) {
-      console.error('Elemento no puede ser nulo o indefinido.')
-      return
-    }
-
-    setLista((currentList) => {
-      const existe = currentList.some((item) => item.filePath === elemento.filePath)
-
-      if (existe) {
-        console.warn('Elemento ya existe en la lista.')
-        return currentList
-      }
-
-      return [...currentList, elemento]
-    })
-  }, [])
 
   // Función para eliminar un elemento por su índice
   const eliminarElemento = useCallback((elemento) => {
@@ -92,7 +71,6 @@ export const MiniProvider = ({ children }) => {
         if (isLatest && result) {
           setDiretories(result)
           setDirectoriesLoaded(true)
-          setDirectoriesLastLoadedAt(Date.now())
         }
 
         return result
@@ -112,9 +90,6 @@ export const MiniProvider = ({ children }) => {
     return request
   }, [directories, directoriesLoaded])
 
-  const getDirectoryData = useCallback((setState, path) => {
-    ElectronGetter('get-directory-by-path', setState, path, 'directorios obtenidos!')
-  }, [])
   const deleteDirectory = useCallback(async (path) => {
     await ElectronDelete('delete-directory', path, 'directorio eliminado!')
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
@@ -140,6 +115,7 @@ export const MiniProvider = ({ children }) => {
 
     return result
   }, [getDirectories])
+
   const getDirFiles = useCallback((setState, value) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
   }, [])
@@ -215,7 +191,6 @@ export const MiniProvider = ({ children }) => {
         directories,
         directoriesLoading,
         directoriesLoaded,
-        directoriesLastLoadedAt,
         scanProgress,
         addDirectory,
         getDirectories,
@@ -223,13 +198,11 @@ export const MiniProvider = ({ children }) => {
         getDirFiles,
         history,
         getHistory,
-        getDirectoryData,
         later,
         getlatersongs,
         removelatersong,
         latersong,
         lista,
-        agregarElemento,
         eliminarElemento,
         getTotalTracks,
         getTotalLikes,
@@ -242,7 +215,6 @@ export const MiniProvider = ({ children }) => {
         directories,
         directoriesLoading,
         directoriesLoaded,
-        directoriesLastLoadedAt,
         scanProgress,
         addDirectory,
         getDirectories,
@@ -250,13 +222,11 @@ export const MiniProvider = ({ children }) => {
         getDirFiles,
         history,
         getHistory,
-        getDirectoryData,
         later,
         getlatersongs,
         removelatersong,
         latersong,
         lista,
-        agregarElemento,
         eliminarElemento,
         getTotalTracks,
         getTotalLikes,

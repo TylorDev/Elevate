@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Bounce, toast } from 'react-toastify'
-import { useImages, useSongCover } from './ImagesContext'
+import { useSongCover } from './ImagesContext'
 import { useMini } from './MiniContext'
 import { useQueue } from './QueueContext'
 import {
@@ -18,14 +18,12 @@ export const usePlaylists = () => useContext(ContextLikes)
 export const PlaylistsProvider = ({ children }) => {
   const { currentFile, removeTrack, addSong } = useQueue()
   const currentCover = useSongCover(currentFile?.filePath, 'full')
-  const { getCollectionCoverUrl } = useImages()
   const { getDirectories, deleteDirectory } = useMini()
 
   const [allSongs, SetAllSongs] = useState([])
   const [allSongsLoading, setAllSongsLoading] = useState(false)
   const [allSongsHasMore, setAllSongsHasMore] = useState(true)
   const [allSongsPage, setAllSongsPage] = useState(0)
-  const [allSongsTotal, setAllSongsTotal] = useState(0)
   const [randomPlaylist, setRandomPlaylist] = useState()
   const [playlists, setPlaylists] = useState([])
   const [playlistsLoading, setPlaylistsLoading] = useState(false)
@@ -35,62 +33,7 @@ export const PlaylistsProvider = ({ children }) => {
   const playlistsInvokerRef = useRef(createLatestOnlyInvoker())
   const allSongsRequestRef = useRef(null)
   const allSongsLoadedPagesRef = useRef(new Set())
-  const [, setArrayCovers] = useState([])
-  const [, setArrayAlbums] = useState([])
   const [news, setNews] = useState([])
-
-  const updateArrayCovers = useCallback((someArray) => {
-    if (someArray == null) {
-      return null
-    }
-
-    setArrayCovers((currentCovers) => {
-      const existingFilePaths = new Set(currentCovers.map((item) => item.filePath))
-      const newItems = someArray.filter((item) => !existingFilePaths.has(item.filePath))
-
-      if (newItems.length === 0) {
-        return currentCovers
-      }
-
-      return currentCovers.concat(
-        newItems.map((item, index) => ({
-          id: currentCovers.length + index,
-          filePath: item.filePath,
-          cover:
-            item.picture && item.picture.length > 0
-              ? getCollectionCoverUrl(`playlist-song:${item.filePath}`, item.picture[0])
-              : null
-        }))
-      )
-    })
-  }, [getCollectionCoverUrl])
-
-  const updateArrayAlbums = useCallback((someArray) => {
-    if (someArray == null) {
-      return null
-    }
-
-    setArrayAlbums((currentAlbums) => {
-      const existingFilePaths = new Set(currentAlbums.map((item) => item.path))
-      const newItems = someArray.filter((item) => !existingFilePaths.has(item.path))
-
-      if (newItems.length === 0) {
-        return currentAlbums
-      }
-
-      return currentAlbums.concat(
-        newItems.map((item, index) => ({
-          id: currentAlbums.length + index,
-          path: item.path,
-          cover: getCollectionCoverUrl(`playlist-album:${item.path}`, item.cover)
-        }))
-      )
-    })
-  }, [getCollectionCoverUrl])
-
-  useEffect(() => {
-    updateArrayAlbums(playlists)
-  }, [playlists, updateArrayAlbums])
 
   const getSavedLists = useCallback(async ({ force = false } = {}) => {
     if (!force && playlistsLoaded) {
@@ -145,7 +88,6 @@ export const PlaylistsProvider = ({ children }) => {
       SetAllSongs([])
       setAllSongsHasMore(true)
       setAllSongsPage(0)
-      setAllSongsTotal(0)
       allSongsLoadedPagesRef.current.clear()
     }
 
@@ -186,7 +128,6 @@ export const PlaylistsProvider = ({ children }) => {
         allSongsLoadedPagesRef.current.add(nextPage)
         setAllSongsHasMore(Boolean(result?.hasMore))
         setAllSongsPage(result?.page || nextPage)
-        setAllSongsTotal(result?.total || newSongs.length)
 
         return result
       })
@@ -216,30 +157,6 @@ export const PlaylistsProvider = ({ children }) => {
   )
 
   const addPlaylisthistory = useCallback((path) => ElectronSetter2('load-list-to-history', path), [])
-
-  const updatePlaylist = useCallback(async (path, data) => {
-    const response = await ElectronSetter2('change-list-name', path, data)
-
-    if (response.success) {
-      console.log(response.message)
-      await getSavedLists({ force: true })
-    } else {
-      console.error(response.message)
-      toast.error(response.message, {
-        position: 'bottom-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'dark',
-        transition: Bounce
-      })
-    }
-
-    return response
-  }, [getSavedLists])
 
   const updatePlaylistMetadata = useCallback(async (path, payload) => {
     const response = await dedupedInvoke('update-playlist-metadata', {
@@ -539,7 +456,6 @@ export const PlaylistsProvider = ({ children }) => {
       allSongsLoading,
       allSongsHasMore,
       allSongsPage,
-      allSongsTotal,
       playlists,
       playlistsLoading,
       playlistsLoaded,
@@ -551,13 +467,10 @@ export const PlaylistsProvider = ({ children }) => {
       getAllSongs,
       openM3U,
       randomPlaylist,
-      updatePlaylist,
       updatePlaylistMetadata,
       news,
       getNews,
-      updateArrayCovers,
       currentCover,
-      updateArrayAlbums,
       getRandomList,
       removeSongFromList,
       addSongToList,
@@ -576,7 +489,6 @@ export const PlaylistsProvider = ({ children }) => {
       allSongsHasMore,
       allSongsLoading,
       allSongsPage,
-      allSongsTotal,
       currentCover,
       deleteDirectoryList,
       deletePlaylist,
@@ -597,9 +509,6 @@ export const PlaylistsProvider = ({ children }) => {
       resolvePlaylistSaveDirectory,
       listPlaylistSaveDirectory,
       savePlaylistFromTracks,
-      updateArrayAlbums,
-      updateArrayCovers,
-      updatePlaylist,
       updatePlaylistMetadata
     ]
   )
