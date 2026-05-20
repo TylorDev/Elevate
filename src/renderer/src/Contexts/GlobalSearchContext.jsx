@@ -85,7 +85,7 @@ export function GlobalSearchProvider({ children }) {
     playlist: true,
     artist: true,
     name: true,
-    configuration: true
+    configuration: false
   })
   const [songs, setSongs] = useState(createCategoryState)
   const [playlists, setPlaylists] = useState(createCategoryState)

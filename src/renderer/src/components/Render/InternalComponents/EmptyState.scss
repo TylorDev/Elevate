@@ -1,0 +1,52 @@
+@use '../../../styles/variables' as *;
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius;
+  background: rgba(155, 22, 22, 0.018);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.empty-state--compact {
+  padding: 16px;
+}
+
+.empty-state__icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  border-radius: $border-radius;
+  background: rgba(186, 255, 0, 0.08);
+  color: $primary-color;
+}
+
+.empty-state__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.empty-state p,
+.empty-state small {
+  margin: 0;
+}
+
+.empty-state p {
+  color: $text-primary;
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.empty-state small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}

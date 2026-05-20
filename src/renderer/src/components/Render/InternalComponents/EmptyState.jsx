@@ -1,4 +1,4 @@
-import './InternalComponents.scss'
+import './EmptyState.scss'
 
 function EmptyState({ icon: Icon, title, description, className = '', compact = true }) {
   return (

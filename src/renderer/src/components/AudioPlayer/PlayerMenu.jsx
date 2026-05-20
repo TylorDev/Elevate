@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   LuEllipsis,
   LuFootprints,
@@ -23,9 +22,10 @@ export function PlayerMenu({
   isShuffled,
   toggleShuffle,
   loop,
-  toggleRepeat
+  toggleRepeat,
+  isQueueHidden,
+  onToggleQueue
 }) {
-  const navigate = useNavigate()
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -77,7 +77,12 @@ export function PlayerMenu({
             {loop ? <LuRepeat id="btnShuffle-true" /> : <LuRepeat1 id="btnShuffle-false" />}
             <span>Repeat</span>
           </button>
-          <button type="button" role="menuitem" onClick={() => runMenuAction(() => navigate('/music'))}>
+          <button
+            type="button"
+            role="menuitem"
+            aria-pressed={!isQueueHidden}
+            onClick={() => runMenuAction(onToggleQueue)}
+          >
             <LuListVideo />
             <span>Queue</span>
           </button>
@@ -112,7 +117,13 @@ export function PlayerMenu({
           {loop ? <LuRepeat /> : <LuRepeat1 />}
           <span>Repeat</span>
         </button>
-        <button type="button" onClick={() => navigate('/music')} title="Queue">
+        <button
+          type="button"
+          className={!isQueueHidden ? 'is-active' : ''}
+          aria-pressed={!isQueueHidden}
+          onClick={onToggleQueue}
+          title={isQueueHidden ? 'Mostrar queue panel' : 'Ocultar queue panel'}
+        >
           <LuListVideo />
           <span>Queue</span>
         </button>

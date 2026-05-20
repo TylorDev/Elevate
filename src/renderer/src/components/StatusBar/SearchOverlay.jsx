@@ -54,7 +54,7 @@ function SearchSection({
           hasMore={section.hasMore}
           onLoadMore={section.onLoadMore}
           onSelect={onEntitySelect}
-          emptyState={<div className="search-overlay__empty-inline">No hay resultados en {section.title}.</div>}
+          emptyState={<div className="search-overlay__empty-inline">No se encontraron resultados.</div>}
         />
       )}
     </section>
@@ -135,87 +135,93 @@ export function SearchOverlay({ triggerRef }) {
       }),
     [hasQuery, sections]
   )
+  const hasActiveCategories = useMemo(
+    () => sections.some((section) => section.enabled),
+    [sections]
+  )
 
   if (!isOpen) {
     return null
   }
 
   return (
-    <div
-      ref={overlayRef}
-      className="search-overlay"
-      role="dialog"
-      aria-modal="false"
-      aria-label="Global search"
-    >
-      <div className="search-overlay__topline" />
+    <div className="search-overlay-layer">
+      <div
+        ref={overlayRef}
+        className="search-overlay"
+        role="dialog"
+        aria-modal="false"
+        aria-label="Global search"
+      >
+        <div className="search-overlay__topline" />
 
-      <div className="search-overlay__searchbox">
-        <LuSearch className="search-overlay__search-icon" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Busca canciones, playlists, directorios o accesos rapidos..."
-        />
-      </div>
-
-      <div className="search-overlay__filters" role="toolbar" aria-label="Filtros de busqueda">
-        {FILTERS.map((filter) => (
-          <button
-            key={filter.id}
-            type="button"
-            className={filters[filter.id] ? 'search-overlay__filter is-active' : 'search-overlay__filter'}
-            aria-pressed={filters[filter.id]}
-            onClick={() => toggleFilter(filter.id)}
-          >
-            {filter.icon}
-            <span>{filter.label}</span>
-            {filters[filter.id] ? <LuCheck /> : null}
-          </button>
-        ))}
-      </div>
-
-      <div className="search-overlay__content">
-        {!hasQuery ? (
-          <div className="search-overlay__empty-state">
-            <p>Escribe para buscar sin salir de la vista actual.</p>
-            <span>
-              `Name` y `Artist` ya estan activos. Activa mas filtros si quieres incluir playlists,
-              directorios o configuracion.
-            </span>
-          </div>
-        ) : null}
-
-        {visibleSections.map((section) => (
-          <SearchSection
-            key={section.id}
-            section={section}
-            hasQuery={hasQuery}
-            onSongSelect={handleSongSelect}
-            onEntitySelect={(item) => {
-              if (section.id === 'playlists') {
-                void handlePlaylistSelect(item)
-                return
-              }
-
-              if (section.id === 'directories') {
-                void handleDirectorySelect(item)
-                return
-              }
-
-              handleSettingSelect(item)
-            }}
+        <div className="search-overlay__searchbox">
+          <LuSearch className="search-overlay__search-icon" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Busca canciones, playlists, directorios o accesos rapidos..."
           />
-        ))}
+        </div>
 
-        {hasQuery && visibleSections.length === 0 ? (
-          <div className="search-overlay__empty-state">
-            <p>No hay categorias activas para esta busqueda.</p>
-            <span>Activa `Playlist`, `Directory` o `Configuracion` para ampliar resultados.</span>
-          </div>
-        ) : null}
+        <div className="search-overlay__filters" role="toolbar" aria-label="Filtros de busqueda">
+          {FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={filters[filter.id] ? 'search-overlay__filter is-active' : 'search-overlay__filter'}
+              aria-pressed={filters[filter.id]}
+              onClick={() => toggleFilter(filter.id)}
+            >
+              {filter.icon}
+              <span>{filter.label}</span>
+              {filters[filter.id] ? <LuCheck /> : null}
+            </button>
+          ))}
+        </div>
+
+        <div className="search-overlay__content">
+          {!hasQuery ? (
+            <div className="search-overlay__empty-state">
+              <p>Escribe para buscar sin salir de la vista actual.</p>
+              <span>
+                `Name` y `Artist` ya estan activos. Activa mas filtros si quieres incluir
+                playlists, directorios o configuracion.
+              </span>
+            </div>
+          ) : null}
+
+          {visibleSections.map((section) => (
+            <SearchSection
+              key={section.id}
+              section={section}
+              hasQuery={hasQuery}
+              onSongSelect={handleSongSelect}
+              onEntitySelect={(item) => {
+                if (section.id === 'playlists') {
+                  void handlePlaylistSelect(item)
+                  return
+                }
+
+                if (section.id === 'directories') {
+                  void handleDirectorySelect(item)
+                  return
+                }
+
+                handleSettingSelect(item)
+              }}
+            />
+          ))}
+
+          {hasQuery && hasActiveCategories && visibleSections.length === 0 ? (
+            <div className="search-overlay__empty-state">
+              <p>No se encontraron resultados.</p>
+              <span>Prueba otra busqueda o activa mas filtros para ampliar resultados.</span>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )

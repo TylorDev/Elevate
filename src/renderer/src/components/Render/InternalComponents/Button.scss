@@ -1,0 +1,51 @@
+@use '../../../styles/variables' as *;
+
+.preset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.preset-button--default {
+  padding: 0 12px;
+}
+
+.preset-button--icon {
+  width: 34px;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.preset-button--icon.preset-button--active {
+  color: $primary-color;
+  border-color: rgba(186, 255, 0, 0.34);
+  background: rgba(186, 255, 0, 0.1);
+}
+
+.preset-button--back {
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.preset-button:not(:disabled):hover {
+  border-color: rgba(186, 255, 0, 0.32);
+  background: rgba(186, 255, 0, 0.08);
+  color: $primary-color;
+}

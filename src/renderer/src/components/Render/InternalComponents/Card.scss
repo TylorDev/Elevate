@@ -1,0 +1,21 @@
+@use '../../../styles/variables' as *;
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: $border-radius;
+  background: $card;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+}
+
+.preset-card__header,
+.preset-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}

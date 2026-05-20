@@ -1,8 +1,10 @@
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react'
-import { FixedSizeList } from 'react-window'
-import { LuCheck, LuHeart, LuList, LuMusic, LuSearch } from 'react-icons/lu'
+import { LuArrowLeft, LuCheck, LuHeart, LuList, LuMusic, LuSearch } from 'react-icons/lu'
+import { useNavigate } from 'react-router-dom'
+import Button from '../InternalComponents/Button'
+import Card from '../InternalComponents/Card'
 import EmptyState from '../InternalComponents/EmptyState'
-import PresetRow from '../InternalComponents/PresetRow'
+import PresetList from '../InternalComponents/PresetList'
 import {
   createPresetByNameMap,
   mapPresetNamesToItems,
@@ -20,6 +22,7 @@ const VISIBLE_PRESET_ROWS = 5
 const VIRTUAL_LIST_HEIGHT = PRESET_ROW_HEIGHT * VISIBLE_PRESET_ROWS
 
 function PresetLibraryTab() {
+  const navigate = useNavigate()
   const { allPresetItems } = useVisualizerCatalog()
   const { toggleFavorite } = useVisualizerFavoriteActions()
   const { togglePresetInList } = useVisualizerListActions()
@@ -31,24 +34,18 @@ function PresetLibraryTab() {
   const deferredCatalogQuery = useDeferredValue(catalogQuery)
 
   useEffect(() => {
-    setSelectedListId((currentId) => {
-      if (presetLists.some((list) => list.id === currentId)) {
-        return currentId
-      }
+    if (activePresetList?.id && presetLists.some((list) => list.id === activePresetList.id)) {
+      setSelectedListId(activePresetList.id)
+      return
+    }
 
-      if (presetSource?.mode === 'list' && presetSource?.listId) {
-        const sourceListExists = presetLists.some((list) => list.id === presetSource.listId)
-        if (sourceListExists) {
-          return presetSource.listId
-        }
-      }
+    if (presetSource?.mode === 'list' && presetSource?.listId) {
+      const sourceListExists = presetLists.some((list) => list.id === presetSource.listId)
+      setSelectedListId(sourceListExists ? presetSource.listId : '')
+      return
+    }
 
-      if (activePresetList?.id && presetLists.some((list) => list.id === activePresetList.id)) {
-        return activePresetList.id
-      }
-
-      return presetLists[0]?.id || ''
-    })
+    setSelectedListId('')
   }, [activePresetList?.id, presetLists, presetSource?.listId, presetSource?.mode])
 
   const selectedList = useMemo(
@@ -88,6 +85,15 @@ function PresetLibraryTab() {
   return (
     <section className="preset-library-tab">
       <div className="preset-library-tab__toolbar">
+        <Button
+          className="preset-library-tab__back"
+          onClick={() => navigate(-1)}
+          type="button"
+          variant="back"
+        >
+          <LuArrowLeft />
+          <span>Back</span>
+        </Button>
         <label className="preset-library-tab__search">
           <LuSearch />
           <input
@@ -100,20 +106,25 @@ function PresetLibraryTab() {
       </div>
 
       <div className="preset-library-tab__grid">
-        <section className="preset-library-tab__panel">
-          <div className="preset-library-tab__panel-header">
-            <div className="preset-library-tab__panel-copy">
-              <span className="preset-library-tab__eyebrow">Selected List</span>
-              <h3>{selectedList?.name || 'Sin lista'}</h3>
-              <span className="preset-library-tab__meta">
-                {selectedPresetItems.length} presets guardados
-              </span>
+        <Card
+          header={
+            <div className="preset-library-tab__panel-header">
+              <div className="preset-library-tab__panel-copy">
+                <span className="preset-library-tab__eyebrow">Selected List</span>
+                <h3>{selectedList?.name || 'Sin lista'}</h3>
+                <span className="preset-library-tab__meta">
+                  {selectedPresetItems.length} presets guardados
+                </span>
+              </div>
+              <div
+                className={`preset-library-tab__status ${hasSelectedList ? 'is-active' : ''}`.trim()}
+              >
+                {hasSelectedList ? <LuCheck /> : <LuList />}
+                <span>{hasSelectedList ? 'Lista activa' : 'Selecciona una preset list'}</span>
+              </div>
             </div>
-            <div className={`preset-library-tab__status ${hasSelectedList ? 'is-active' : ''}`.trim()}>
-              {hasSelectedList ? <LuCheck /> : <LuList />}
-              <span>{hasSelectedList ? 'Lista activa' : 'Selecciona una preset list'}</span>
-            </div>
-          </div>
+          }
+        >
 
           {!hasSelectedList ? (
             <EmptyState
@@ -128,138 +139,103 @@ function PresetLibraryTab() {
               description="Agrega presets desde la biblioteca para poblarla."
             />
           ) : (
-            <FixedSizeList
+            <PresetList
+              activePresetName={currentPresetName}
               height={VIRTUAL_LIST_HEIGHT}
-              itemCount={selectedPresetItems.length}
-              itemSize={PRESET_ROW_HEIGHT}
-              itemKey={(index) => selectedPresetItems[index]?.id || index}
-              overscanCount={PRESET_OVERSCAN}
-              width="100%"
-              className="preset-library-tab__virtual-list"
-            >
-              {({ index, style }) => {
-                const preset = selectedPresetItems[index]
-
-                if (!preset) {
-                  return null
-                }
-
-                return (
-                  <PresetRow
-                    active={currentPresetName === preset.name}
-                    actions={
-                      <>
-                        <button
-                          className="preset-library-tab__action"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            togglePresetInList(selectedList.id, preset.name)
-                          }}
-                          title="Quitar de la lista"
-                        >
-                          Quitar
-                        </button>
-                        <button
-                          className={`preset-library-tab__icon-action ${preset.isFavorite ? 'is-active' : ''}`.trim()}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            toggleFavorite(preset.name)
-                          }}
-                          title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
-                        >
-                          <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />
-                        </button>
-                      </>
-                    }
-                    cover={preset.Cover}
-                    index={index}
-                    name={preset.name}
-                    onClick={() => setPresetByName(preset.name)}
-                    style={style}
-                  />
-                )
-              }}
-            </FixedSizeList>
+              itemHeight={PRESET_ROW_HEIGHT}
+              itemKey={(preset, index) => preset?.id || index}
+              items={selectedPresetItems}
+              onSelectPreset={setPresetByName}
+              renderActions={(preset) => (
+                <>
+                  <Button
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      togglePresetInList(selectedList.id, preset.name)
+                    }}
+                    title="Quitar de la lista"
+                  >
+                    Quitar
+                  </Button>
+                  <Button
+                    className={preset.isFavorite ? 'preset-button--active' : ''}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      toggleFavorite(preset.name)
+                    }}
+                    title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
+                    variant="icon"
+                  >
+                    <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />
+                  </Button>
+                </>
+              )}
+            />
           )}
-        </section>
+        </Card>
 
-        <section className="preset-library-tab__panel">
-          <div className="preset-library-tab__panel-header">
-            <div className="preset-library-tab__panel-copy">
-              <span className="preset-library-tab__eyebrow">Library</span>
-              <h3>Preset Library</h3>
-              <span className="preset-library-tab__meta">
-                {availableCatalogItems.length} presets disponibles
-              </span>
+        <Card
+          header={
+            <div className="preset-library-tab__panel-header">
+              <div className="preset-library-tab__panel-copy">
+                <span className="preset-library-tab__eyebrow">Library</span>
+                <h3>Preset Library</h3>
+                <span className="preset-library-tab__meta">
+                  {availableCatalogItems.length} presets disponibles
+                </span>
+              </div>
             </div>
-          </div>
+          }
+        >
 
           {availableCatalogItems.length === 0 ? (
             <EmptyState icon={LuSearch} title="No hay presets para esa busqueda." description="" />
           ) : (
-            <FixedSizeList
+            <PresetList
+              activePresetName={currentPresetName}
               height={VIRTUAL_LIST_HEIGHT}
-              itemCount={availableCatalogItems.length}
-              itemSize={PRESET_ROW_HEIGHT}
-              itemKey={(index) => `catalog-${availableCatalogItems[index]?.id || index}`}
-              overscanCount={PRESET_OVERSCAN}
-              width="100%"
-              className="preset-library-tab__virtual-list"
-            >
-              {({ index, style }) => {
-                const preset = availableCatalogItems[index]
-
-                if (!preset) {
-                  return null
-                }
-
+              indexMuted
+              itemHeight={PRESET_ROW_HEIGHT}
+              itemKey={(preset, index) => `catalog-${preset?.id || index}`}
+              items={availableCatalogItems}
+              onSelectPreset={setPresetByName}
+              renderActions={(preset) => {
                 const isIncluded = selectedPresetNamesSet.has(preset.name)
 
                 return (
-                  <PresetRow
-                    active={currentPresetName === preset.name}
-                    actions={
-                      <>
-                        <button
-                          className="preset-library-tab__action"
-                          onClick={(event) => {
-                            event.stopPropagation()
+                  <>
+                    <Button
+                      disabled={!selectedList?.id || isIncluded}
+                      onClick={(event) => {
+                        event.stopPropagation()
 
-                            if (!selectedList?.id || isIncluded) {
-                              return
-                            }
+                        if (!selectedList?.id || isIncluded) {
+                          return
+                        }
 
-                            togglePresetInList(selectedList.id, preset.name)
-                          }}
-                          disabled={!selectedList?.id || isIncluded}
-                          title={isIncluded ? 'Ya agregado a la lista' : 'Agregar a la lista'}
-                        >
-                          {isIncluded ? 'Agregado' : 'Agregar'}
-                        </button>
-                        <button
-                          className={`preset-library-tab__icon-action ${preset.isFavorite ? 'is-active' : ''}`.trim()}
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            toggleFavorite(preset.name)
-                          }}
-                          title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
-                        >
-                          <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />
-                        </button>
-                      </>
-                    }
-                    cover={preset.Cover}
-                    index={index}
-                    indexMuted
-                    name={preset.name}
-                    onClick={() => setPresetByName(preset.name)}
-                    style={style}
-                  />
+                        togglePresetInList(selectedList.id, preset.name)
+                      }}
+                      title={isIncluded ? 'Ya agregado a la lista' : 'Agregar a la lista'}
+                    >
+                      {isIncluded ? 'Agregado' : 'Agregar'}
+                    </Button>
+                    <Button
+                      className={preset.isFavorite ? 'preset-button--active' : ''}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        toggleFavorite(preset.name)
+                      }}
+                      title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
+                      variant="icon"
+                    >
+                      <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />
+                    </Button>
+                  </>
                 )
               }}
-            </FixedSizeList>
+            />
           )}
-        </section>
+        </Card>
       </div>
     </section>
   )

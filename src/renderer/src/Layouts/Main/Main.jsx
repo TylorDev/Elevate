@@ -45,7 +45,10 @@ function Main() {
           <Outlet />
         </main>
         <div className="Main__player">
-          <AudioPlayer />
+          <AudioPlayer
+            isQueueHidden={isQueueHidden}
+            onToggleQueue={() => setIsQueueHidden((current) => !current)}
+          />
         </div>
         <aside className="Main__queue">
           <QueueTabsPanel />

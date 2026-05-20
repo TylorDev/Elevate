@@ -260,6 +260,10 @@ export const OverflowMenu = memo(
                       <span className="overflow-trailing">
                         <HiChevronRight />
                       </span>
+                    ) : option.checked ? (
+                      <span className="overflow-trailing">
+                        <LuCheck />
+                      </span>
                     ) : null}
                   </div>
                 )

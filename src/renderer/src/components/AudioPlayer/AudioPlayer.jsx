@@ -14,7 +14,7 @@ import { AudioPlayerStats } from './AudioPlayerStats'
 import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
 
-export function AudioPlayer() {
+export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
   const { waveformVariant } = useSuper()
   const {
     currentFile,
@@ -122,6 +122,8 @@ export function AudioPlayer() {
             toggleShuffle={toggleShuffle}
             loop={loop}
             toggleRepeat={toggleRepeat}
+            isQueueHidden={isQueueHidden}
+            onToggleQueue={onToggleQueue}
           />
         </div>
       </div>

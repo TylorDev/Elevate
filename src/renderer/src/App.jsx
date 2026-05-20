@@ -14,7 +14,9 @@ const Statistics = lazy(() => import('./Pages/Statistics/Statistics'))
 const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
 const Directories = lazy(() => import('./Pages/Directories/Directories'))
 const Music = lazy(() => import('./Pages/Music/Music'))
-const VisualizerPresetsPage = lazy(() => import('./Pages/VisualizerPresets/VisualizerPresetsPage'))
+const PresetLibraryTab = lazy(
+  () => import('./components/Render/PresetLibraryTab/PresetLibraryTab')
+)
 const CollectionPage = lazy(() => import('./Pages/CollectionPage/CollectionPage'))
 const Settings = lazy(() => import('./Components/Settings/Settings'))
 const Lista = lazy(() => import('./Pages/Lista/Lista'))
@@ -268,7 +270,7 @@ function App() {
             path="/visualizer-presets"
             element={
               <Suspense fallback={<PageLoader />}>
-                <VisualizerPresetsPage />
+                <PresetLibraryTab />
               </Suspense>
             }
           />

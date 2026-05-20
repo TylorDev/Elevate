@@ -83,5 +83,28 @@
       transform: none;
     }
   }
+
+  .DirectoriesQueueTab__group-item {
+    background: transparent;
+    border: none;
+    height: 4rem;
+    padding: 0 0.8rem;
+    margin-bottom: 4px;
+
+    &:hover {
+      background: $hover;
+    }
+
+    .ui-title {
+      text-align: left;
+    }
+
+    .ui-extra {
+      max-width: 14rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
 }
 

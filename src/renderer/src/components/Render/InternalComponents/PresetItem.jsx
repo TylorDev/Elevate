@@ -1,7 +1,7 @@
 import { LuMusic } from 'react-icons/lu'
-import './InternalComponents.scss'
+import './PresetItem.scss'
 
-function PresetRow({
+function PresetItem({
   active = false,
   actions = null,
   className = '',
@@ -40,20 +40,22 @@ function PresetRow({
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
     >
-      <div className="preset-info">
+      <div className="preset-item__info">
         {typeof index === 'number' ? (
-          <span className={`preset-index ${indexMuted ? 'muted' : ''}`.trim()}>{index + 1}</span>
+          <span className={`preset-item__index ${indexMuted ? 'muted' : ''}`.trim()}>
+            {index + 1}
+          </span>
         ) : null}
         {cover ? (
-          <img className="preset-cover" src={cover} alt="" aria-hidden="true" />
+          <img className="preset-item__cover" src={cover} alt="" aria-hidden="true" />
         ) : (
-          <LuMusic className="preset-icon" />
+          <LuMusic className="preset-item__icon" />
         )}
-        <span className="preset-name">{name}</span>
+        <span className="preset-item__name">{name}</span>
       </div>
-      {actions ? <div className="preset-actions">{actions}</div> : null}
+      {actions ? <div className="preset-item__actions">{actions}</div> : null}
     </div>
   )
 }
 
-export default PresetRow
+export default PresetItem

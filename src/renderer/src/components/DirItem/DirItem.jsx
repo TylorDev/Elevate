@@ -59,6 +59,9 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
     () => (directory.cover ? getImage(directory.path, directory.cover) : null),
     [directory.cover, directory.path, getImage]
   )
+  const totalTracks = Number(directory.totalTracks) || 0
+  const totalDuration = Number(directory.totalDuration) || 0
+  const isRootDirectory = totalTracks === 0 && totalDuration === 0
 
   const getLastPart = (path) => {
     const parts = path.split('\\')
@@ -82,35 +85,39 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   }
 
   const menuOptions = [
-    {
-      id: 'link-preset-list',
-      label: 'Vincular',
-      icon: <LuLink />,
-      type: 'single-select',
-      disabled: presetLists.length === 0,
-      items: [
-        {
-          id: '__unlink__',
-          label: 'Quitar vinculo',
-          icon: <LuUnlink />,
-          checked: !linkedPresetListId
-        },
-        ...orderedPresetLists.map((list) => ({
-          id: list.id,
-          label: list.name,
-          checked: list.id === linkedPresetListId
-        }))
-      ],
-      onItemSelect: (selectedId) => {
-        if (selectedId === '__unlink__') {
-          void removeSourceAssociation(directorySource)
-          return
-        }
+    ...(!isRootDirectory
+      ? [
+          {
+            id: 'link-preset-list',
+            label: 'Vincular',
+            icon: <LuLink />,
+            type: 'single-select',
+            disabled: presetLists.length === 0,
+            items: [
+              {
+                id: '__unlink__',
+                label: 'Quitar vinculo',
+                icon: <LuUnlink />,
+                checked: !linkedPresetListId
+              },
+              ...orderedPresetLists.map((list) => ({
+                id: list.id,
+                label: list.name,
+                checked: list.id === linkedPresetListId
+              }))
+            ],
+            onItemSelect: (selectedId) => {
+              if (selectedId === '__unlink__') {
+                void removeSourceAssociation(directorySource)
+                return
+              }
 
-        void associateSourceToList(directorySource, selectedId)
-      }
-    },
-    { id: 'remove', label: 'Remove Directory', icon: <BsFolderMinus color="red" /> }
+              void associateSourceToList(directorySource, selectedId)
+            }
+          },
+          { id: 'remove', label: 'Remove Directory', icon: <BsFolderMinus color="red" /> }
+        ]
+      : [])
   ]
 
   const handleMenuSelect = (optionId) => {
@@ -124,8 +131,8 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
       <UndefinedItem
         cover={cover || <BsFolderFill />}
         title={getLastPart(directory.path)}
-        subtitle={`${directory.totalTracks} tracks`}
-        extraInfo={formatDuration(directory.totalDuration)}
+        subtitle={isRootDirectory ? 'Raiz' : `${totalTracks} tracks`}
+        extraInfo={isRootDirectory ? '' : formatDuration(totalDuration)}
         metaBadge={linkedPresetList?.name || null}
         onTitleClick={selectDirectory}
         onPlayClick={handlePlayClick}

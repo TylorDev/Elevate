@@ -5,12 +5,19 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  height: 100%;
   color: $text-primary;
+
 }
 
 .preset-library-tab__toolbar {
   display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
+
+
 
 .preset-library-tab__search {
   display: flex;
@@ -21,12 +28,12 @@
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: $border-radius;
-  background: rgba(255, 255, 255, 0.03);
+  background: $card;
   color: rgba(255, 255, 255, 0.68);
 
   &:focus-within {
-    border-color: rgba(186, 255, 0, 0.42);
-    box-shadow: 0 0 0 3px rgba(186, 255, 0, 0.14);
+    border-color:$primary-color;
+
     color: $primary-color;
   }
 
@@ -45,18 +52,6 @@
   gap: 16px;
 }
 
-.preset-library-tab__panel {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: $border-radius;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
-}
-
 .preset-library-tab__panel-header,
 .preset-library-tab__panel-copy {
   display: flex;
@@ -65,9 +60,6 @@
   min-width: 0;
 }
 
-.preset-library-tab__panel-header {
-  gap: 14px;
-}
 
 .preset-library-tab__eyebrow {
   color: $primary-color;
@@ -105,48 +97,8 @@
   }
 }
 
-.preset-library-tab__virtual-list {
-  scrollbar-gutter: stable;
-}
-
-.preset-library-tab__action,
-.preset-library-tab__icon-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: $border-radius;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
-}
-
-.preset-library-tab__action {
-  padding: 0 12px;
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-}
-
-.preset-library-tab__icon-action {
-  width: 34px;
-  padding: 0;
-  color: rgba(255, 255, 255, 0.72);
-
-  &.is-active {
-    color: $primary-color;
-    border-color: rgba(186, 255, 0, 0.34);
-    background: rgba(186, 255, 0, 0.1);
-  }
-}
-
 @media (max-width: 980px) {
   .preset-library-tab__grid {
     grid-template-columns: minmax(0, 1fr);
   }
 }
-

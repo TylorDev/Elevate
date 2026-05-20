@@ -45,8 +45,6 @@ import {
 } from 'react-icons/lu'
 
 const STATIC_CONTEXT_MENU_OPTIONS = [
-  { id: 'toggle-cover', label: 'Toggle Cover', icon: <LuImage /> },
-  { id: 'toggle-visualizer', label: 'Toggle Visualizer', icon: <LuActivity /> },
   { id: 'go-to-admin-presets', label: 'Go to Admin Presets', icon: <LuLayoutGrid /> }
 ]
 
@@ -136,8 +134,29 @@ function Music() {
     [togglePlayPause]
   )
 
-  const toggleCover = useCallback(() => setShowCover((prev) => !prev), [])
-  const toggleVisualizerEnabled = useCallback(() => setEnableVisualizer((prev) => !prev), [])
+  const toggleCover = useCallback(() => {
+    setShowCover((previousValue) => {
+      const nextShowCover = !previousValue
+
+      setEnableVisualizer((previousVisualizerValue) =>
+        !nextShowCover && !previousVisualizerValue ? true : previousVisualizerValue
+      )
+
+      return nextShowCover
+    })
+  }, [])
+
+  const toggleVisualizerEnabled = useCallback(() => {
+    setEnableVisualizer((previousValue) => {
+      const nextEnableVisualizer = !previousValue
+
+      setShowCover((previousCoverValue) =>
+        !nextEnableVisualizer && !previousCoverValue ? true : previousCoverValue
+      )
+
+      return nextEnableVisualizer
+    })
+  }, [])
   const openPresetManagerPage = useCallback(() => navigate('/visualizer-presets'), [navigate])
   const canCapturePresetFrame = Boolean(
     enableVisualizer && currentPresetName && visualizerCanvasRef.current
@@ -343,8 +362,18 @@ function Music() {
 
   const contextMenuOptions = useMemo(
     () => [
-      STATIC_CONTEXT_MENU_OPTIONS[0],
-      STATIC_CONTEXT_MENU_OPTIONS[1],
+      {
+        id: 'toggle-cover',
+        label: 'Toggle Cover',
+        icon: <LuImage />,
+        checked: showCover
+      },
+      {
+        id: 'toggle-visualizer',
+        label: 'Toggle Visualizer',
+        icon: <LuActivity />,
+        checked: enableVisualizer
+      },
       {
         id: 'save-preset',
         label: 'Save Preset',
@@ -402,9 +431,10 @@ function Music() {
         ],
         onItemSelect: handleLoadPresetList
       },
-      STATIC_CONTEXT_MENU_OPTIONS[2]
+      STATIC_CONTEXT_MENU_OPTIONS[0]
     ],
     [
+      enableVisualizer,
       currentPresetName,
       handleCloseSavePreset,
       handleCreatePresetList,
@@ -416,7 +446,8 @@ function Music() {
       pendingSaveListIds,
       presetLists,
       presetSource.listId,
-      presetSource.mode
+      presetSource.mode,
+      showCover
     ]
   )
 

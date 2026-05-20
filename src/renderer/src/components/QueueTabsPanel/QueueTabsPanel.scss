@@ -1,7 +1,7 @@
 @use '../../styles/variables' as *;
 
 .QueueTabsPanel {
-  height: 100% ;
+  height: 100%;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -10,7 +10,8 @@
   display: grid;
   grid-template-rows: auto 1fr;
   color: $text-primary;
- 
+  background: $card;
+
   &__header {
     padding: clamp(0.7rem, 1.8vw, 1rem) clamp(0.7rem, 1.8vw, 1rem) 0.5rem;
     display: flex;
@@ -43,21 +44,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-   
+
     border: none;
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
     border-radius: $border-radius;
-   
+
     position: relative;
- 
+
 
     .tab-icon {
       font-size: clamp(0.9rem, 1.8vw, 1rem);
       padding: clamp(0.35rem, 1vw, 0.5rem);
-  
-      
+
+
     }
 
     &:hover {
@@ -88,7 +89,7 @@
     min-width: 0;
     overflow: hidden;
     position: relative;
- 
+
   }
 
   &__pane {
@@ -96,7 +97,6 @@
     min-height: 0;
     min-width: 0;
     overflow: hidden;
-   
+
   }
 }
-
