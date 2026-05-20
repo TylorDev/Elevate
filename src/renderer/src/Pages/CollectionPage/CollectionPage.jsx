@@ -18,6 +18,7 @@ import { Bounce, toast } from 'react-toastify'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useMini } from '../../Contexts/MiniContext'
 import { Button } from '../../components/Button/Button'
@@ -179,12 +180,8 @@ function CollectionPage() {
   const sourcePath = decodeURIComponent(encodedSourcePath)
   const shouldAutoPlay = type === 'directory' && params.play === 'true'
 
-  const {
-    getImage,
-    handleQueueAndPlay,
-    PlayQueue,
-    appendManyToCurrentQueue
-  } = useSuper()
+  const { getImage } = useSuper()
+  const { handleQueueAndPlay, PlayQueue, appendManyToCurrentQueue } = useQueue()
   const { getLikes, likes } = useLikes()
   const {
     addPlaylisthistory,

@@ -2,12 +2,12 @@ import { useState } from 'react'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './PlaylistActions.scss'
 
-import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import PlaylistSaveModal from '../PlaylistSaveModal/PlaylistSaveModal'
 
 export function PlaylistActions({ name }) {
   const { openM3U } = usePlaylists()
-  const { queueState } = useSuper()
+  const { queueState } = useQueue()
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const currentTracks = queueState.currentQueue || []
   const currentSourceName = name || queueState.queueName || ''

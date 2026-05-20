@@ -3,6 +3,7 @@ import { FaTrash } from 'react-icons/fa'
 import { LuDownload, LuLink, LuPencil, LuUnlink } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { memo, useMemo, useState } from 'react'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
@@ -33,7 +34,8 @@ export const PlaylistItem = memo(function PlaylistItem({
 
   const { deletePlaylist, getUniqueList, exportPlaylistTracks, updatePlaylistMetadata } =
     usePlaylists()
-  const { getImage, handleQueueAndPlay } = useSuper()
+  const { getImage } = useSuper()
+  const { handleQueueAndPlay } = useQueue()
   const navigate = useNavigate()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const [isEditVisible, setIsEditVisible] = useState(false)

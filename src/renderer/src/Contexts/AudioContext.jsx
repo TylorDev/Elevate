@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
 
-import { useSuper } from './SupeContext'
 import { useArgv } from './ArgvContext'
+import { usePlayback } from './PlaybackContext'
+import { useQueue } from './QueueContext'
 
 const AudioContextState = createContext(null)
 const SHORT_VIEW_MS = 10_000
@@ -24,7 +25,8 @@ export const useAudioContext = () => {
 }
 
 export const AudioProvider = ({ children }) => {
-  const { currentFile, setCurrentFile, mediaRef, volume, muted, loop } = useSuper()
+  const { currentFile, setCurrentFile } = useQueue()
+  const { mediaRef, mediaElement, volume, muted, loop, attachMediaElement } = usePlayback()
   const { autoplayRequestId } = useArgv()
   const [path, setPath] = useState(null)
   const playbackSessionRef = useRef(null)
@@ -267,22 +269,22 @@ export const AudioProvider = ({ children }) => {
   }, [currentFile?.filePath])
 
   useEffect(() => {
-    if (!path || !mediaRef.current) {
+    if (!path || !mediaElement) {
       return
     }
 
-    const audio = mediaRef.current
+    const audio = mediaElement
     audio.volume = Math.max(0, Math.min(1, Number(volume) || 0))
     audio.muted = Boolean(muted)
     audio.loop = Boolean(loop)
-  }, [loop, mediaRef, muted, path, volume])
+  }, [loop, mediaElement, muted, path, volume])
 
   useEffect(() => {
-    if (!mediaRef.current) {
+    if (!mediaElement) {
       return
     }
 
-    const audio = mediaRef.current
+    const audio = mediaElement
 
     const handlePlay = () => {
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
@@ -334,14 +336,14 @@ export const AudioProvider = ({ children }) => {
       audio.removeEventListener('ended', handleEnded)
       void finalizePlaybackSession('audio-provider-unmount', audio)
     }
-  }, [mediaRef])
+  }, [mediaElement])
 
   useEffect(() => {
-    if (!autoplayRequestId || !path || !mediaRef.current) {
+    if (!autoplayRequestId || !path || !mediaElement) {
       return
     }
 
-    const audio = mediaRef.current
+    const audio = mediaElement
     const tryPlay = () => {
       audio.play().catch((error) => {
         console.warn('Auto-play skipped while syncing resumed session:', error?.message || error)
@@ -357,13 +359,13 @@ export const AudioProvider = ({ children }) => {
     return () => {
       audio.removeEventListener('canplay', tryPlay)
     }
-  }, [autoplayRequestId, path, mediaRef])
+  }, [autoplayRequestId, path, mediaElement])
 
   return (
     <AudioContextState.Provider value={{}}>
       {children}
       <audio
-        ref={mediaRef}
+        ref={attachMediaElement}
         controls
         style={{ display: 'none' }}
         src={path}

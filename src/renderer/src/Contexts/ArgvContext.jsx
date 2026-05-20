@@ -1,14 +1,13 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { usePlaylists } from './PlaylistsContex'
-import { useSuper } from './SupeContext'
 import { useMini } from './MiniContext'
-import { useSession } from './SessionContext'
+import { useQueue } from './QueueContext'
 
 const ArgvContext = createContext()
 
 export const ArgvProvider = ({ children }) => {
-  const { setCurrentFile, setCurrentIndex, setQueueState } = useSession()
-  const { PlayQueue, handleQueueAndPlay } = useSuper()
+  const { setCurrentFile, setCurrentIndex, setQueueState, PlayQueue, handleQueueAndPlay } =
+    useQueue()
   const { getDirectories } = useMini()
   const { getSavedLists } = usePlaylists()
   const [launchReady, setLaunchReady] = useState(false)

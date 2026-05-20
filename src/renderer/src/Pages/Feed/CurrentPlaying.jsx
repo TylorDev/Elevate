@@ -4,14 +4,16 @@ import { Button } from '../../Components/Button/Button'
 import { MediaTimeDisplay } from '../../Components/MediaTimeDisplay/MediaTimeDisplay'
 import './CurrentPlaying.scss'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { useSuper } from '../../Contexts/SupeContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 
 import { useLikes } from '../../Contexts/LikeContext'
 import { Skeleton, Typography } from '@mui/material'
 
 export function CurrentPlaying() {
   const { currentCover } = usePlaylists()
-  const { currentFile, togglePlayPause, isPlaying } = useSuper()
+  const { currentFile } = useQueue()
+  const { togglePlayPause, isPlaying } = usePlayback()
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
 

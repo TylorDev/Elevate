@@ -3,8 +3,7 @@ import { FixedSizeList } from 'react-window'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { useSession } from '../../Contexts/SessionContext'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { DEFAULT_COVER, preloadCoverUrl } from '../../hooks/useCoverUrl'
 import Modal from '../Modal/Modal'
 import PlaylistSaveModal from '../PlaylistSaveModal/PlaylistSaveModal'
@@ -289,8 +288,14 @@ export function Cola({
   sourceKey,
   onMoveCommit
 }) {
-  const { handleSongClick, currentFile, appendToCurrentQueue, removeFromCurrentQueue } = useSuper()
-  const { manualQueueOrders, setManualQueueOrders } = useSession()
+  const {
+    handleSongClick,
+    currentFile,
+    appendToCurrentQueue,
+    removeFromCurrentQueue,
+    manualQueueOrders,
+    setManualQueueOrders
+  } = useQueue()
   const { likesLookup, toggleLike } = useLikes()
   const { latersong } = useMini()
   const { addPlaylisthistory, removeSongFromList } = usePlaylists()

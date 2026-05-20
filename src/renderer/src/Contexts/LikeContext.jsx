@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { toast } from 'react-toastify'
-import { useSuper } from './SupeContext'
+import { useQueue } from './QueueContext'
 import { validateLike } from './utilMenu'
 import { ElectronGetter } from './utils'
 
@@ -56,7 +56,7 @@ function updateLikesCollection(previousLikes, file, nextLiked) {
 export const useLikes = () => useContext(ContextLikes)
 
 export const LikesProvider = ({ children }) => {
-  const { currentFile, currentIndex } = useSuper()
+  const { currentFile, currentIndex } = useQueue()
   const [likeState, setLikeState] = useState({
     currentLike: false,
     likes: {}

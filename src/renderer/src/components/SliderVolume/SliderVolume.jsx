@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { LuVolume1, LuVolume2, LuVolumeX, LuChevronDown } from 'react-icons/lu'
-import { useSuper } from '../../Contexts/SupeContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
 import './SliderVolume.scss'
 
 export function SliderVolume() {
-  const { volume, setMediaVolume, muted, toggleMute } = useSuper()
+  const { volume, setMediaVolume, muted, toggleMute } = usePlayback()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
   

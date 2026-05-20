@@ -5,14 +5,15 @@ import { extractDominantColor } from '../../utils/useDominantColor'
 import { formatDuration } from '../../../timeUtils'
 import { useCoverUrl } from '../../hooks/useCoverUrl'
 
-import { useSuper } from '../../Contexts/SupeContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { useLikes } from '../../Contexts/LikeContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './TrackCard.scss'
 
 export const TrackCard = memo(function TrackCard({ song, index, list, isFocused }) {
-  const { handleSongClick, currentFile, isPlaying, togglePlayPause, appendToCurrentQueue } =
-    useSuper()
+  const { handleSongClick, currentFile, appendToCurrentQueue } = useQueue()
+  const { isPlaying, togglePlayPause } = usePlayback()
   const { toggleLike, isLiked: checkLikeStatus } = useLikes()
   const coverUrl = useCoverUrl(song.filePath, 'thumb')
   const [dominantColor, setDominantColor] = useState({ hex: '#baff00', rgb: '186, 255, 0' })

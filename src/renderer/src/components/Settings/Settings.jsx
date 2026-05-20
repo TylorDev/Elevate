@@ -14,6 +14,7 @@ import {
   LuMessageSquare
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
+import { useBackground } from '../../Contexts/BackgroundContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './Settings.scss'
@@ -50,6 +51,12 @@ function Settings() {
   const {
     color,
     handleColorChange,
+    waveformVariant,
+    handleWaveformVariantChange,
+    discordRpcEnabled,
+    toggleDiscordRpc
+  } = useSuper()
+  const {
     currentBackground,
     backgroundImageUrl,
     backgroundHistory,
@@ -58,12 +65,8 @@ function Settings() {
     pickLocalBackground,
     selectBackgroundFromHistory,
     removeBackgroundHistoryItem,
-    clearBackground,
-    waveformVariant,
-    handleWaveformVariantChange,
-    discordRpcEnabled,
-    toggleDiscordRpc
-  } = useSuper()
+    clearBackground
+  } = useBackground()
 
   const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } =
     useMini()

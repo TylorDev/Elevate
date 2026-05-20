@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Bounce, toast } from 'react-toastify'
 import { useCoverUrl } from '../hooks/useCoverUrl'
 import { useMini } from './MiniContext'
-import { useSuper } from './SupeContext'
+import { useQueue } from './QueueContext'
 import {
   createLatestOnlyInvoker,
   dataToImageUrl,
@@ -17,10 +17,9 @@ const ContextLikes = createContext()
 export const usePlaylists = () => useContext(ContextLikes)
 
 export const PlaylistsProvider = ({ children }) => {
-  const { currentFile } = useSuper()
+  const { currentFile, removeTrack, addSong } = useQueue()
   const currentCover = useCoverUrl(currentFile?.filePath, 'full')
   const { getDirectories, deleteDirectory } = useMini()
-  const { removeTrack, addSong } = useSuper()
 
   const [allSongs, SetAllSongs] = useState([])
   const [allSongsLoading, setAllSongsLoading] = useState(false)

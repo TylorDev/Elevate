@@ -1,5 +1,5 @@
 import './Timer.scss'
-import { usePlaybackProgress } from '../../Contexts/SupeContext'
+import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { SliderVolume } from '../SliderVolume/SliderVolume'
 
 export function Timer() {

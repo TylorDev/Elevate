@@ -5,12 +5,16 @@ import { MediaTimeDisplay } from '../../../Components/MediaTimeDisplay/MediaTime
 import './CurrentPlaying.scss'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import { useSuper } from '../../../Contexts/SupeContext'
+import { usePlayback } from '../../../Contexts/PlaybackContext'
+import { useQueue } from '../../../Contexts/QueueContext'
 import { useLikes } from '../../../Contexts/LikeContext'
 import { Skeleton } from '../../../components/Skeleton/Skeleton'
 
 export function CurrentPlaying() {
   const { currentCover } = usePlaylists()
-  const { currentFile, togglePlayPause, isPlaying, waveformVariant } = useSuper()
+  const { waveformVariant } = useSuper()
+  const { currentFile } = useQueue()
+  const { togglePlayPause, isPlaying } = usePlayback()
   const { likeState, toggleLike } = useLikes()
   const { currentLike } = likeState
 

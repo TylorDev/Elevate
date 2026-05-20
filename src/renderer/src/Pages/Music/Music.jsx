@@ -13,6 +13,8 @@ import {
   SelectValue
 } from '../../components/ui/select'
 import { useSuper } from '../../Contexts/SupeContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useNavigate } from 'react-router-dom'
@@ -67,7 +69,8 @@ function formatListeningHours(seconds) {
 
 function Music() {
   const navigate = useNavigate()
-  const { mediaRef, currentFile, togglePlayPause } = useSuper()
+  const { currentFile } = useQueue()
+  const { mediaElement, togglePlayPause } = usePlayback()
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const [audioEl, setAudioEl] = useState(null)
@@ -108,10 +111,10 @@ function Music() {
   const currentPresetName = rawCurrentPresetName || ''
 
   useEffect(() => {
-    if (mediaRef?.current) {
-      setAudioEl(mediaRef.current)
+    if (mediaElement) {
+      setAudioEl(mediaElement)
     }
-  }, [mediaRef])
+  }, [mediaElement])
 
   const handleLikeClick = useCallback(
     (event) => {

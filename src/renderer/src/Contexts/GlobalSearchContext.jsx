@@ -8,7 +8,7 @@ import {
   useState
 } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useSuper } from './SupeContext'
+import { useQueue } from './QueueContext'
 
 const GlobalSearchContext = createContext(null)
 
@@ -75,7 +75,7 @@ function filterSettingItems(query) {
 export function GlobalSearchProvider({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const { appendToQueueAndPlay, handleQueueAndPlay, openDirectoryQueue } = useSuper()
+  const { appendToQueueAndPlay, handleQueueAndPlay, openDirectoryQueue } = useQueue()
 
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')

@@ -10,12 +10,14 @@ import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
 
 function Favourites() {
   const { getLikes, likes } = useLikes()
   const [back, setBack] = useState()
-  const { getImage, handleQueueAndPlay, toggleShuffle } = useSuper()
+  const { getImage } = useSuper()
+  const { handleQueueAndPlay, toggleShuffle } = useQueue()
   useEffect(() => {
     getLikes()
   }, [])

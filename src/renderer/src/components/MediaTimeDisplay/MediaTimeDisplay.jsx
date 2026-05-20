@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 
 import './MediaTimeDisplay.scss'
 
-import { usePlaybackProgress, useSuper } from '../../Contexts/SupeContext'
+import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 
 const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
@@ -11,8 +13,9 @@ const BARS_COUNT = 72
 const BAR_GAP = 3
 
 export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
-  const { currentFile, handleTimelineClick, isPlaying, mediaRef } = useSuper()
-  const { progress, duration } = usePlaybackProgress()
+  const { currentFile } = useQueue()
+  const { isPlaying, mediaElement } = usePlayback()
+  const { progress, duration, handleTimelineClick } = usePlaybackProgress()
   const canvasRef = useRef(null)
   const analyserRef = useRef(null)
   const dataRef = useRef(null)
@@ -101,7 +104,7 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     const setupAudio = () => {
       if (cancelled) return
 
-      media = mediaRef.current
+      media = mediaElement
 
       if (!media) {
         retryTimer = window.setTimeout(setupAudio, 100)
@@ -183,7 +186,7 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       if (animationRef.current) window.cancelAnimationFrame(animationRef.current)
       media?.removeEventListener('play', resumeAudioContext)
     }
-  }, [currentFile?.filePath, duration, mediaRef])
+  }, [currentFile?.filePath, duration, mediaElement])
 
   const normalizedVariant = normalizeVariant(variant)
   const updateSeekPreview = (event) => {

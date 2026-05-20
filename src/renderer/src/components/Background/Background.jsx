@@ -1,8 +1,8 @@
-import { useSuper } from '../../Contexts/SupeContext'
+import { useBackground } from '../../Contexts/BackgroundContext'
 import './Background.scss'
 
 function Background() {
-  const { backgroundImageUrl: imageUrl } = useSuper()
+  const { backgroundImageUrl: imageUrl } = useBackground()
 
   if (!imageUrl) return null
 

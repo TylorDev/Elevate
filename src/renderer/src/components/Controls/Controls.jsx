@@ -18,22 +18,21 @@ import { useNavigate } from 'react-router-dom'
 import './Controls.scss'
 import { Button } from '../Button/Button'
 import { useSuper } from '../../Contexts/SupeContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 
 export function Controls() {
   const {
     handleNextClick,
     handlePreviousClick,
-    togglePlayPause,
-    isPlaying,
-    muted,
-    toggleMute,
     toggleShuffle,
-    toggleRepeat,
-    isShuffled,
-    loop,
+    isShuffled
+  } = useQueue()
+  const {
     toggleStep,
     isStep
   } = useSuper()
+  const { togglePlayPause, isPlaying, muted, toggleMute, toggleRepeat, loop } = usePlayback()
 
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef(null)

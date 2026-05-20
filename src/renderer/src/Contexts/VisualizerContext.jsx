@@ -10,7 +10,7 @@ import {
 import MINI from 'butterchurn-presets/lib/elevate.min.js'
 import { useMini } from './MiniContext'
 import { usePlaylists } from './PlaylistsContex'
-import { useSuper } from './SupeContext'
+import { useQueue } from './QueueContext'
 import { visualizerService } from './visualizerService'
 import {
   DEFAULT_CYCLE_DURATION,
@@ -259,7 +259,7 @@ function VisualizerCatalogProvider({ children }) {
 }
 
 function VisualizerSourcesProvider({ children }) {
-  const { queueState } = useSuper()
+  const { queueState } = useQueue()
   const { playlists, playlistsLoaded, playlistsLoading, getSavedLists } = usePlaylists()
   const { directories, directoriesLoaded, directoriesLoading, getDirectories } = useMini()
   const {

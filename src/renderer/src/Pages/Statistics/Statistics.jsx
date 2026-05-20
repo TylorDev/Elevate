@@ -9,7 +9,7 @@ import {
 } from 'react-icons/lu'
 
 import { useCoverUrl } from '../../hooks/useCoverUrl'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import './Statistics.scss'
 
 const TABS = [
@@ -71,7 +71,7 @@ function formatMetric(song, metric) {
 
 function StatRow({ song, index, metric, tabTone, list }) {
   const coverUrl = useCoverUrl(song.filePath, 'thumb')
-  const { handleSongClick } = useSuper()
+  const { handleSongClick } = useQueue()
   const title = song.title || song.fileName || 'Untitled'
   const artist = song.artist || 'Unknown Artist'
 

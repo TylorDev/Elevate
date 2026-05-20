@@ -10,11 +10,11 @@ import { useEffect } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useMini } from '../../Contexts/MiniContext'
 import { useParams } from 'react-router-dom'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
 
 function ListenLater() {
-  const { handleQueueAndPlay, toggleShuffle } = useSuper()
+  const { handleQueueAndPlay, toggleShuffle } = useQueue()
   const { getlatersongs, later, removelatersong } = useMini()
 
   useEffect(() => {

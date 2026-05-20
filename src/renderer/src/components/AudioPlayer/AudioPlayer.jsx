@@ -5,7 +5,10 @@ import { useNavigate } from 'react-router-dom'
 import { LuHeart, LuHeartOff, LuPause, LuPlay, LuSkipBack, LuSkipForward } from 'react-icons/lu'
 
 import { SliderVolume } from '../SliderVolume/SliderVolume'
-import { usePlaybackProgress, useSuper } from '../../Contexts/SupeContext'
+import { useSuper } from '../../Contexts/SupeContext'
+import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
+import { usePlayback } from '../../Contexts/PlaybackContext'
+import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 import { PlayerMenu } from './PlayerMenu'
@@ -15,22 +18,15 @@ import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
 
 export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
-  const { waveformVariant } = useSuper()
+  const { waveformVariant, toggleStep, isStep } = useSuper()
   const {
     currentFile,
     handleNextClick,
     handlePreviousClick,
-    togglePlayPause,
-    isPlaying,
-    muted,
-    toggleMute,
     toggleShuffle,
-    toggleRepeat,
-    isShuffled,
-    loop,
-    toggleStep,
-    isStep
-  } = useSuper()
+    isShuffled
+  } = useQueue()
+  const { togglePlayPause, isPlaying, muted, toggleMute, toggleRepeat, loop } = usePlayback()
 
   const { progress, duration } = usePlaybackProgress()
   const { currentCover } = usePlaylists()

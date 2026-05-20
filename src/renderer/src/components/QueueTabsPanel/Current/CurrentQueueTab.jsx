@@ -1,11 +1,9 @@
-import { useSession } from '../../../Contexts/SessionContext'
-import { useSuper } from '../../../Contexts/SupeContext'
+import { useQueue } from '../../../Contexts/QueueContext'
 import Cola from '../../Cola/Cola'
 import './CurrentQueueTab.scss'
 
 function CurrentQueueTab() {
-  const { queueState } = useSession()
-  const { setCurrentFile, setCurrentIndex, reorderCurrentQueue } = useSuper()
+  const { queueState, setCurrentFile, setCurrentIndex, reorderCurrentQueue } = useQueue()
 
   return (
     <div className="CurrentQueueTab">

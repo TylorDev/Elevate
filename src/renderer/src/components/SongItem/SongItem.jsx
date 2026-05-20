@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef } from 'react'
 import { FaPlay, FaEye } from 'react-icons/fa'
 import { LuHeart, LuHeartOff, LuPin } from 'react-icons/lu'
-import { usePlaybackProgress } from '../../Contexts/SupeContext'
+import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { Button } from './../Button/Button'
 import './SongItem.scss'
