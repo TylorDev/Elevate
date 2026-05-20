@@ -15,7 +15,6 @@ import {
 let mainWin
 let prisma
 let isQuitting = false
-const defaultRemoteDebuggingPort = '9222'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen, Menu, Tray, nativeImage } = electron
@@ -24,6 +23,7 @@ const appCommandChannel = 'app:command'
 let tray = null
 let hasShutdownStarted = false
 const mainDir = fileURLToPath(new URL('.', import.meta.url))
+const rendererDir = fileURLToPath(new URL('../renderer', import.meta.url))
 let taskbarPlayerState = {
   isPlaying: false,
   title: '',
@@ -75,10 +75,24 @@ try {
   }
 }
 
-if (!app.isPackaged) {
-  const remoteDebuggingPort =
-    process.env.ELECTRON_REMOTE_DEBUGGING_PORT?.trim() || defaultRemoteDebuggingPort
-  app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
+const hardwareAccelerationDisabled =
+  process.env.ELECTRON_DISABLE_HARDWARE_ACCELERATION?.trim() === '1'
+
+if (process.platform === 'win32') {
+  // On some Windows/driver combinations Chromium's separate GPU process can
+  // crash during startup. Running GPU work in-process avoids Electron treating
+  // that child-process crash as fatal while keeping acceleration available.
+  app.commandLine.appendSwitch('in-process-gpu')
+  // The Chromium audio utility process can hit the same startup crash on this
+  // environment; keep audio service in-process so playback can initialize.
+  app.commandLine.appendSwitch('disable-features', 'AudioServiceOutOfProcess')
+}
+
+if (process.platform === 'win32' && hardwareAccelerationDisabled) {
+  // Some Windows environments crash before first paint when Chromium's GPU
+  // process cannot initialize. Keep this as an opt-in emergency fallback
+  // because the visualizer/WebGL path expects hardware acceleration by default.
+  app.disableHardwareAcceleration()
 }
 
 log.transports.file.level = 'info'
@@ -582,7 +596,7 @@ function createWindow() {
   if (!app.isPackaged && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(rendererDir, 'index.html'))
   }
 }
 
@@ -687,8 +701,7 @@ if (!gotTheLock) {
   })
 
   app.on('child-process-gone', (event, details) => {
-    log.error('Child process gone:', details.reason)
-    log.error('Exit code:', details.exitCode)
+    log.error('Child process gone:', JSON.stringify(details))
   })
 })
 
