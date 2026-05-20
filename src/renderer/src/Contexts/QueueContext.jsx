@@ -2,13 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useNavigate } from 'react-router-dom'
 import { Bounce, toast } from 'react-toastify'
 
-import { electronInvoke } from './utils'
 import {
   createWeightedShuffledQueue,
   goToNext,
   goToPrevious,
   toShuffle
 } from './utilControls'
+import { electronInvoke } from './utils'
 
 const QueueContext = createContext(null)
 
@@ -386,14 +386,6 @@ export const QueueProvider = ({ children }) => {
     navigate('/music')
   }, [currentFile, isShuffled, navigate, queueState.currentQueue, queueState.originalQueue])
 
-  const handleSaveClick = useCallback(async () => {
-    const paths = queueState.currentQueue.map((file) => file.filePath)
-    const result = await electronInvoke('save-m3u', { filePaths: paths })
-    if (result && result.success) {
-      console.log('M3U file saved successfully at', result.path)
-    }
-  }, [queueState.currentQueue])
-
   const removeTrack = useCallback(
     async (playlistPath, index) => {
       const result = await electronInvoke('update-list', {
@@ -537,7 +529,6 @@ export const QueueProvider = ({ children }) => {
       handleSongClick,
       handleQueueAndPlay,
       openDirectoryQueue,
-      handleSaveClick,
       removeTrack,
       addSong
     }),
@@ -552,7 +543,6 @@ export const QueueProvider = ({ children }) => {
       handleNextClick,
       handlePreviousClick,
       handleQueueAndPlay,
-      handleSaveClick,
       handleSongClick,
       isShuffled,
       manualQueueOrders,

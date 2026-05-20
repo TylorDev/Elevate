@@ -1,21 +1,5 @@
 import { Bounce, toast } from 'react-toastify'
 
-export const shuffleArray = (array, currentIndex) => {
-  // Copia el array original para no modificarlo
-  let newArray = [...array]
-
-    // Mueve el elemento actual a la primera posición
-    ;[newArray[0], newArray[currentIndex]] = [newArray[currentIndex], newArray[0]]
-
-  // Aplica el algoritmo de Fisher-Yates solo desde el índice 1
-  for (let i = newArray.length - 1; i > 1; i--) {
-    const j = 1 + Math.floor(Math.random() * i) // solo intercambia desde el índice 1 en adelante
-      ;[newArray[i], newArray[j]] = [newArray[j], newArray[i]]
-  }
-
-  return newArray
-}
-
 const pendingInvokes = new Map()
 
 function getInvokeKey(action, args) {
@@ -183,7 +167,7 @@ export const ElectronSetter2 = async (action, ...values) => {
 
     console.log('File info:', fileInfo)
 
-    // Devolver un mensaje de éxito junto con la información del archivo
+    // Devolver un mensaje de exito junto con la informacion del archivo
     return { success: true, message: 'Data sent successfully', fileInfo }
   } catch (error) {
     toast.error(error, {
@@ -230,7 +214,13 @@ export const electronInvoke = async (action, ...args) => {
   }
 }
 
-export function WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick) {
+export function WindowsPlayer(
+  mediaRef,
+  currentFile,
+  currentCoverUrl,
+  handlePreviousClick,
+  handleNextClick
+) {
   const audio = mediaRef.current
 
   if ('mediaSession' in navigator) {
@@ -240,7 +230,9 @@ export function WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePrev
       album: currentFile?.album || 'Unknown',
       artwork: [
         {
-          src: currentCoverUrl || 'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg',
+          src:
+            currentCoverUrl ||
+            'https://i.pinimg.com/736x/ef/23/25/ef2325cedb047b8ac24fc2b718c15a30.jpg',
           sizes: '512x512',
           type: 'image/jpeg'
         }

@@ -10,7 +10,6 @@ export const ArgvProvider = ({ children }) => {
     useQueue()
   const { getDirectories } = useMini()
   const { getSavedLists } = usePlaylists()
-  const [launchReady, setLaunchReady] = useState(false)
   const [autoplayRequestId, setAutoplayRequestId] = useState(0)
   const queueRef = useRef(Promise.resolve())
   const playQueueRef = useRef(PlayQueue)
@@ -124,18 +123,9 @@ export const ArgvProvider = ({ children }) => {
         normalizedPayloads.forEach((payload) => {
           enqueuePayload(payload)
         })
-
-        queueRef.current.finally(() => {
-          if (alive) {
-            setLaunchReady(true)
-          }
-        })
       })
       .catch((error) => {
         console.error('Error reading launch payloads:', error)
-        if (alive) {
-          setLaunchReady(true)
-        }
       })
 
     return () => {
@@ -145,7 +135,7 @@ export const ArgvProvider = ({ children }) => {
   }, [setCurrentFile, setCurrentIndex, setQueueState])
 
   return (
-    <ArgvContext.Provider value={{ launchReady, autoplayRequestId, handleExternalPayload }}>
+    <ArgvContext.Provider value={{ autoplayRequestId, handleExternalPayload }}>
       {children}
     </ArgvContext.Provider>
   )

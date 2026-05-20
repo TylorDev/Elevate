@@ -2,7 +2,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import { HashRouter } from 'react-router-dom'
-import { AppProvider } from './Contexts/AppContext'
 import { SuperProvider } from './Contexts/SupeContext'
 import { PlaybackProvider } from './Contexts/PlaybackContext'
 import { PlaybackProgressProvider } from './Contexts/PlaybackProgressContext'
@@ -25,21 +24,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <BackgroundProvider>
               <ImagesProvider>
                 <SuperProvider>
-                  <AppProvider>
-                    <MiniProvider>
-                      <PlaylistsProvider>
-                        <ArgvProvider>
-                          <GlobalSearchProvider>
-                            <LikesProvider>
-                              <AudioProvider>
-                                <App />
-                              </AudioProvider>
-                            </LikesProvider>
-                          </GlobalSearchProvider>
-                        </ArgvProvider>
-                      </PlaylistsProvider>
-                    </MiniProvider>
-                  </AppProvider>
+                  <MiniProvider>
+                    <PlaylistsProvider>
+                      <ArgvProvider>
+                        <GlobalSearchProvider>
+                          <LikesProvider>
+                            <AudioProvider>
+                              <App />
+                            </AudioProvider>
+                          </LikesProvider>
+                        </GlobalSearchProvider>
+                      </ArgvProvider>
+                    </PlaylistsProvider>
+                  </MiniProvider>
                 </SuperProvider>
               </ImagesProvider>
             </BackgroundProvider>

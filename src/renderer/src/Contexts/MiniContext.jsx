@@ -30,7 +30,6 @@ export const MiniProvider = ({ children }) => {
   const [directoriesLoaded, setDirectoriesLoaded] = useState(false)
   const directoriesRequestRef = useRef(null)
   const directoriesInvokerRef = useRef(createLatestOnlyInvoker())
-  const [scanProgress, setScanProgress] = useState(null)
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
@@ -120,7 +119,7 @@ export const MiniProvider = ({ children }) => {
     ElectronGetter2('get-audio-in-directory', setState, value)
   }, [])
 
-  // Listen for directory changes from the watcher and scan progress
+  // Listen for directory changes from the watcher
   const getDirectoriesRef = useRef(getDirectories)
   getDirectoriesRef.current = getDirectories
 
@@ -128,22 +127,6 @@ export const MiniProvider = ({ children }) => {
     const handleDirectoryNotification = (message) => {
       if (message === '[directory-changed]') {
         getDirectoriesRef.current({ force: true })
-        setScanProgress(null)
-        return
-      }
-
-      // Handle scan progress messages
-      try {
-        const parsed = typeof message === 'string' ? JSON.parse(message) : message
-        if (parsed?.type === 'scan-progress') {
-          setScanProgress({
-            dirPath: parsed.dirPath,
-            processed: parsed.processed,
-            total: parsed.total
-          })
-        }
-      } catch {
-        // Not a JSON message, ignore
       }
     }
 
@@ -191,7 +174,6 @@ export const MiniProvider = ({ children }) => {
         directories,
         directoriesLoading,
         directoriesLoaded,
-        scanProgress,
         addDirectory,
         getDirectories,
         deleteDirectory,
@@ -215,7 +197,6 @@ export const MiniProvider = ({ children }) => {
         directories,
         directoriesLoading,
         directoriesLoaded,
-        scanProgress,
         addDirectory,
         getDirectories,
         deleteDirectory,

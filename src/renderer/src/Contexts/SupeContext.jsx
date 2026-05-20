@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, useEffect, useState, useMemo, useCallback } from 'react'
-import { ElectronSetter, WindowsPlayer } from './utils'
+import { WindowsPlayer } from './utils'
 import { useSongCover } from './ImagesContext'
 import { extractDominantColor } from '../utils/useDominantColor'
 import { usePlayback } from './PlaybackContext'
@@ -220,8 +220,6 @@ export const SuperProvider = ({ children }) => {
     }
   }, [handleNextClick, handlePreviousClick, togglePlayPause, toggleStep])
 
-  const addhistory = useCallback((common) => ElectronSetter('add-history', common), [])
-
   const [color, setColor] = useState(() => {
     return localStorage.getItem('colorManual') || ''
   })
@@ -271,7 +269,6 @@ export const SuperProvider = ({ children }) => {
 
   const contextValue = useMemo(
     () => ({
-      addhistory,
       scrollRef,
       handleColorChange,
       color,
@@ -285,7 +282,6 @@ export const SuperProvider = ({ children }) => {
       toggleDiscordRpc
     }),
     [
-      addhistory,
       color,
       isAwaken,
       isStep,

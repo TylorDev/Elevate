@@ -140,17 +140,3 @@ export const toShuffle = (
 
   setIsShuffled(!isShuffled)
 }
-export const ToLike = (currentFile, currentLike, likesong, unlikesong, setCurrentLike) => {
-  if (currentFile && currentFile.filePath && currentFile.fileName) {
-    if (currentLike) {
-      unlikesong(currentFile)
-      setCurrentLike(false)
-    } else {
-      console.log('intern dislike', currentFile)
-      likesong(currentFile)
-      setCurrentLike(true)
-    }
-  } else {
-    console.error('currentFile is undefined or missing required properties.')
-  }
-}

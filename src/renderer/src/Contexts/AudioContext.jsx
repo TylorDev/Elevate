@@ -1,11 +1,10 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'react-toastify'
 
 import { useArgv } from './ArgvContext'
 import { usePlayback } from './PlaybackContext'
 import { useQueue } from './QueueContext'
 
-const AudioContextState = createContext(null)
 const SHORT_VIEW_MS = 10_000
 const SKIP_WINDOW_MS = 30_000
 
@@ -18,10 +17,6 @@ const TOAST_OPTIONS = {
   draggable: true,
   progress: undefined,
   theme: 'dark'
-}
-
-export const useAudioContext = () => {
-  return useContext(AudioContextState)
 }
 
 export const AudioProvider = ({ children }) => {
@@ -362,7 +357,7 @@ export const AudioProvider = ({ children }) => {
   }, [autoplayRequestId, path, mediaElement])
 
   return (
-    <AudioContextState.Provider value={{}}>
+    <>
       {children}
       <audio
         ref={attachMediaElement}
@@ -371,6 +366,6 @@ export const AudioProvider = ({ children }) => {
         src={path}
         autoPlay
       />
-    </AudioContextState.Provider>
+    </>
   )
 }
