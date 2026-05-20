@@ -1,12 +1,12 @@
 import { LuFolderOpen, LuListMusic, LuSettings2 } from 'react-icons/lu'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { formatDuration } from '../../../timeUtils'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
 import VirtualizedQueueEntityList from '../QueueTabsPanel/VirtualizedQueueEntityList'
 
-function resolveCover(item, getImage) {
+function resolveCover(item, getCollectionCoverUrl) {
   if (item.type === 'playlist' && item.cover) {
-    return getImage(`search-playlist:${item.path}`, item.cover)
+    return getCollectionCoverUrl(`search-playlist:${item.path}`, item.cover)
   }
 
   return null
@@ -68,14 +68,14 @@ export function SearchEntityList({
   onLoadMore,
   hasMore = false
 }) {
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const shouldRenderStaticList = !loading && !hasMore && items.length > 0 && items.length <= 6
 
   if (shouldRenderStaticList) {
     return (
       <ul className="search-overlay__entity-list search-overlay__entity-list--static">
         {items.map((item, index) => {
-          const cover = resolveCover(item, getImage)
+          const cover = resolveCover(item, getCollectionCoverUrl)
 
           return (
             <UndefinedItem
@@ -118,7 +118,7 @@ export function SearchEntityList({
           )
         }
 
-        const cover = resolveCover(item, getImage)
+        const cover = resolveCover(item, getCollectionCoverUrl)
 
         return (
           <UndefinedItem

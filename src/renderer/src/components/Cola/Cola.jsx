@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedSizeList } from 'react-window'
 import { useLikes } from '../../Contexts/LikeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useQueue } from '../../Contexts/QueueContext'
-import { DEFAULT_COVER, preloadCoverUrl } from '../../hooks/useCoverUrl'
+import { DEFAULT_COVER } from '../../hooks/useCoverUrl'
 import Modal from '../Modal/Modal'
 import PlaylistSaveModal from '../PlaylistSaveModal/PlaylistSaveModal'
 import { FormAddTo } from '../SongItem/FormAddTo'
@@ -299,6 +300,7 @@ export function Cola({
   const { likesLookup, toggleLike } = useLikes()
   const { latersong } = useMini()
   const { addPlaylisthistory, removeSongFromList } = usePlaylists()
+  const { preloadVisibleSongCovers } = useImages()
   const [selectedPlaylistSong, setSelectedPlaylistSong] = useState(null)
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
@@ -591,12 +593,7 @@ export function Cola({
       }
     }
 
-    Promise.all(
-      visibleSongs.map(async (song) => ({
-        filePath: song.filePath,
-        url: await preloadCoverUrl(song.filePath, 'thumb')
-      }))
-    ).then((resolvedCovers) => {
+    preloadVisibleSongCovers(visibleSongs, { variant: 'thumb' }).then((resolvedCovers) => {
       if (!isMounted) {
         return
       }
@@ -638,7 +635,7 @@ export function Cola({
     return () => {
       isMounted = false
     }
-  }, [visibleSongs])
+  }, [preloadVisibleSongCovers, visibleSongs])
 
   const completeLongPress = useCallback((filePath, index) => {
     suppressClickRef.current = filePath

@@ -17,7 +17,7 @@ import {
 import { Bounce, toast } from 'react-toastify'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useLikes } from '../../Contexts/LikeContext'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useMini } from '../../Contexts/MiniContext'
@@ -180,7 +180,7 @@ function CollectionPage() {
   const sourcePath = decodeURIComponent(encodedSourcePath)
   const shouldAutoPlay = type === 'directory' && params.play === 'true'
 
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const { handleQueueAndPlay, PlayQueue, appendManyToCurrentQueue } = useQueue()
   const { getLikes, likes } = useLikes()
   const {
@@ -337,8 +337,8 @@ function CollectionPage() {
     }
 
     const imageKey = sourcePath || type
-    return getImage(`collection:${type}:${imageKey}`, summary.cover)
-  }, [getImage, sourcePath, summary?.cover, type])
+    return getCollectionCoverUrl(`collection:${type}:${imageKey}`, summary.cover)
+  }, [getCollectionCoverUrl, sourcePath, summary?.cover, type])
 
   const menuOptions = useMemo(() => buildCollectionMenuOptions(type), [type])
 

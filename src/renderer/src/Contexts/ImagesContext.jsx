@@ -1,0 +1,342 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { dedupedInvoke } from './utils'
+
+const ImagesContext = createContext(null)
+
+const DEFAULT_COVER =
+  'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22128%22 height=%22128%22 viewBox=%220 0 128 128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23141414%22/%3E%3Cpath d=%22M45 84V35h42v49%22 fill=%22none%22 stroke=%22%23baff00%22 stroke-width=%228%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Ccircle cx=%2238%22 cy=%2287%22 r=%2213%22 fill=%22%23baff00%22/%3E%3Ccircle cx=%2280%22 cy=%2287%22 r=%2213%22 fill=%22%23baff00%22/%3E%3C/svg%3E'
+
+const SONG_COVER_CONFIG = {
+  thumb: {
+    action: 'get-audio-cover-thumbnail',
+    limit: 300
+  },
+  full: {
+    action: 'get-audio-cover-full',
+    limit: 20
+  }
+}
+
+const CACHE_LIMITS = {
+  thumb: SONG_COVER_CONFIG.thumb.limit,
+  full: SONG_COVER_CONFIG.full.limit,
+  collection: 150
+}
+
+const imageCaches = {
+  thumb: new Map(),
+  full: new Map(),
+  collection: new Map()
+}
+
+const pendingSongLoads = {
+  thumb: new Map(),
+  full: new Map()
+}
+
+let cacheRevision = 0
+
+function normalizeSongVariant(variant = 'thumb') {
+  return variant === 'full' ? 'full' : 'thumb'
+}
+
+function getCache(scope = 'collection') {
+  return imageCaches[scope] || imageCaches.collection
+}
+
+function getPendingLoads(variant = 'thumb') {
+  return pendingSongLoads[normalizeSongVariant(variant)]
+}
+
+function revokeUrl(url) {
+  if (url?.startsWith?.('blob:')) {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function toUint8Array(input) {
+  if (!input) return null
+
+  if (input instanceof Uint8Array) {
+    return input
+  }
+
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input)
+  }
+
+  if (Array.isArray(input)) {
+    return new Uint8Array(input)
+  }
+
+  if (input?.type === 'Buffer' && Array.isArray(input.data)) {
+    return new Uint8Array(input.data)
+  }
+
+  if (input?.data) {
+    return toUint8Array(input.data)
+  }
+
+  return null
+}
+
+function toObjectUrl(input, mimeType = 'image/jpeg') {
+  const data = toUint8Array(input?.data ?? input)
+  if (!data) return null
+
+  const blob = new Blob([data], { type: input?.mimeType || input?.format || mimeType })
+  return URL.createObjectURL(blob)
+}
+
+function imageDataToUrl(input, mimeType = 'image/png') {
+  if (input == null) {
+    return DEFAULT_COVER
+  }
+
+  if (typeof input === 'string') {
+    if (
+      input.startsWith('data:') ||
+      input.startsWith('blob:') ||
+      input.startsWith('http://') ||
+      input.startsWith('https://')
+    ) {
+      return input
+    }
+
+    return DEFAULT_COVER
+  }
+
+  return toObjectUrl(input, mimeType) || DEFAULT_COVER
+}
+
+function getCollectionSignature(data) {
+  if (typeof data === 'string') {
+    return data
+  }
+
+  return data
+}
+
+function touchCacheEntry(cache, key, entry) {
+  cache.delete(key)
+  cache.set(key, entry)
+}
+
+function pruneCache(scope) {
+  const cache = getCache(scope)
+  const limit = CACHE_LIMITS[scope] || CACHE_LIMITS.collection
+
+  while (cache.size > limit) {
+    const [oldestKey, oldestEntry] = cache.entries().next().value
+    cache.delete(oldestKey)
+    revokeUrl(oldestEntry?.url)
+  }
+}
+
+export function getSongCoverUrl(filePath, variant = 'thumb') {
+  if (!filePath) return DEFAULT_COVER
+
+  const normalizedVariant = normalizeSongVariant(variant)
+  const cache = getCache(normalizedVariant)
+  const cachedEntry = cache.get(filePath)
+
+  if (!cachedEntry) {
+    return null
+  }
+
+  touchCacheEntry(cache, filePath, cachedEntry)
+  return cachedEntry.url || DEFAULT_COVER
+}
+
+export function preloadSongCover(filePath, variant = 'thumb') {
+  if (!filePath) {
+    return Promise.resolve(DEFAULT_COVER)
+  }
+
+  const normalizedVariant = normalizeSongVariant(variant)
+  const cachedUrl = getSongCoverUrl(filePath, normalizedVariant)
+
+  if (cachedUrl) {
+    return Promise.resolve(cachedUrl)
+  }
+
+  const cache = getCache(normalizedVariant)
+  const pendingLoads = getPendingLoads(normalizedVariant)
+  const pendingLoad = pendingLoads.get(filePath)
+
+  if (pendingLoad) {
+    return pendingLoad
+  }
+
+  const config = SONG_COVER_CONFIG[normalizedVariant]
+  const loadRevision = cacheRevision
+  const loadPromise = dedupedInvoke(config.action, filePath)
+    .then((cover) => {
+      const url = toObjectUrl(cover) || DEFAULT_COVER
+
+      if (loadRevision !== cacheRevision) {
+        revokeUrl(url)
+        return DEFAULT_COVER
+      }
+
+      cache.set(filePath, { url })
+      pruneCache(normalizedVariant)
+      return url
+    })
+    .catch((error) => {
+      console.error(`Error loading ${normalizedVariant} cover:`, error)
+      cache.set(filePath, { url: DEFAULT_COVER })
+      pruneCache(normalizedVariant)
+      return DEFAULT_COVER
+    })
+    .finally(() => {
+      pendingLoads.delete(filePath)
+    })
+
+  pendingLoads.set(filePath, loadPromise)
+  return loadPromise
+}
+
+export function getCollectionCoverUrl(key, data) {
+  if (!key) {
+    return imageDataToUrl(data)
+  }
+
+  const cache = getCache('collection')
+  const existingEntry = cache.get(key)
+  const signature = getCollectionSignature(data)
+
+  if (existingEntry?.signature === signature) {
+    touchCacheEntry(cache, key, existingEntry)
+    return existingEntry.url || DEFAULT_COVER
+  }
+
+  revokeUrl(existingEntry?.url)
+
+  const url = imageDataToUrl(data)
+  cache.set(key, {
+    signature,
+    url
+  })
+  pruneCache('collection')
+  return url
+}
+
+export function preloadVisibleSongCovers(songs = [], options = {}) {
+  const variant = normalizeSongVariant(options.variant)
+  const limit = Number.isFinite(options.limit) ? Math.max(0, options.limit) : songs.length
+  const visibleSongs = songs.slice(0, limit)
+
+  return Promise.all(
+    visibleSongs.map(async (song) => ({
+      filePath: song?.filePath,
+      url: await preloadSongCover(song?.filePath, variant)
+    }))
+  )
+}
+
+export function revokeImage(key, scope = 'collection') {
+  if (!key) return
+
+  const cache = getCache(scope)
+  const entry = cache.get(key)
+  cache.delete(key)
+  revokeUrl(entry?.url)
+}
+
+export function clearImageCache(scope = 'all') {
+  cacheRevision += 1
+  const scopes = scope === 'all' ? Object.keys(imageCaches) : [scope]
+
+  for (const currentScope of scopes) {
+    const cache = getCache(currentScope)
+
+    for (const entry of cache.values()) {
+      revokeUrl(entry?.url)
+    }
+
+    cache.clear()
+  }
+
+  if (scope === 'all' || scope === 'thumb') {
+    pendingSongLoads.thumb.clear()
+  }
+
+  if (scope === 'all' || scope === 'full') {
+    pendingSongLoads.full.clear()
+  }
+}
+
+export function useSongCover(filePath, variant = 'thumb') {
+  const [coverUrl, setCoverUrl] = useState(DEFAULT_COVER)
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!filePath) {
+      setCoverUrl(DEFAULT_COVER)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const cachedUrl = getSongCoverUrl(filePath, variant)
+
+    if (cachedUrl) {
+      setCoverUrl(cachedUrl)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    setCoverUrl(DEFAULT_COVER)
+
+    preloadSongCover(filePath, variant).then((url) => {
+      if (isMounted) {
+        setCoverUrl(url)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [filePath, variant])
+
+  return coverUrl
+}
+
+export function ImagesProvider({ children }) {
+  useEffect(() => {
+    return () => {
+      clearImageCache('all')
+    }
+  }, [])
+
+  const contextValue = useMemo(
+    () => ({
+      DEFAULT_COVER,
+      clearImageCache,
+      getCollectionCoverUrl,
+      getSongCoverUrl,
+      preloadSongCover,
+      preloadVisibleSongCovers,
+      revokeImage,
+      useSongCover
+    }),
+    []
+  )
+
+  return <ImagesContext.Provider value={contextValue}>{children}</ImagesContext.Provider>
+}
+
+export function useImages() {
+  const context = useContext(ImagesContext)
+
+  if (!context) {
+    throw new Error('useImages must be used within an ImagesProvider')
+  }
+
+  return context
+}
+
+export { DEFAULT_COVER }

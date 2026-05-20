@@ -5,7 +5,7 @@ import { formatDuration } from '../../../timeUtils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { memo, useMemo, useState } from 'react'
 import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import {
@@ -25,7 +25,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
 
   const navigate = useNavigate()
   const { deleteDirectoryList } = usePlaylists()
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const { presetLists, sourceAssociations } = useVisualizerSources()
   const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
@@ -56,8 +56,8 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
     })
   }, [linkedPresetListId, presetLists])
   const cover = useMemo(
-    () => (directory.cover ? getImage(directory.path, directory.cover) : null),
-    [directory.cover, directory.path, getImage]
+    () => (directory.cover ? getCollectionCoverUrl(directory.path, directory.cover) : null),
+    [directory.cover, directory.path, getCollectionCoverUrl]
   )
   const totalTracks = Number(directory.totalTracks) || 0
   const totalDuration = Number(directory.totalDuration) || 0

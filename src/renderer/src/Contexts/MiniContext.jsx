@@ -6,7 +6,7 @@ import {
   ElectronGetter2,
   ElectronSetter
 } from './utils'
-import { useSuper } from './SupeContext'
+import { useImages } from './ImagesContext'
 
 // Crear el contexto
 const MiniContext = createContext()
@@ -36,7 +36,7 @@ export const MiniProvider = ({ children }) => {
   const [history, setHistory] = useState([])
   const [later, setLater] = useState([])
   const [lista, setLista] = useState([])
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
 
   // Función para agregar un elemento al final de la lista
   const agregarElemento = useCallback((elemento) => {
@@ -187,13 +187,13 @@ export const MiniProvider = ({ children }) => {
       (laterData) => {
         setLater({
           ...laterData,
-          cover: getImage('Later', laterData.cover)
+          cover: getCollectionCoverUrl('Later', laterData.cover)
         })
       },
       null,
       'listen later cargados!'
     )
-  }, [getImage])
+  }, [getCollectionCoverUrl])
 
   const removelatersong = useCallback((common) => ElectronSetter('remove-listen-later', common, getlatersongs), [getlatersongs])
   const latersong = useCallback((common) => ElectronSetter('listen-later-song', common), [])

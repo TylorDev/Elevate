@@ -1,11 +1,11 @@
 import './PlaylistForm.scss'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { dataToImageUrl } from '../../Contexts/utils'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 
-function resolveSuggestedCoverUrl(cover) {
+function resolveSuggestedCoverUrl(cover, getCollectionCoverUrl) {
   if (cover?.picture?.[0]?.data) {
-    return dataToImageUrl(cover.picture[0])
+    const coverKey = cover.suggestedId || cover.filePath || cover.coverHash || cover.title || 'suggested'
+    return getCollectionCoverUrl(`suggested-cover:${coverKey}`, cover.picture[0])
   }
 
   return null
@@ -20,7 +20,7 @@ const PlaylistForm = ({
   onUpdate,
   close
 }) => {
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const initialCoverMode = coverConfig?.customCoverMode || 'auto'
   const initialSelectedIds = Array.isArray(coverConfig?.customCoverSelection)
     ? coverConfig.customCoverSelection
@@ -94,9 +94,9 @@ const PlaylistForm = ({
       selectedSuggestedCoverIds
         .map((id) => suggestedCovers.find((cover) => cover.suggestedId === id))
         .filter(Boolean)
-        .map((cover) => resolveSuggestedCoverUrl(cover))
+        .map((cover) => resolveSuggestedCoverUrl(cover, getCollectionCoverUrl))
         .filter(Boolean),
-    [selectedSuggestedCoverIds, suggestedCovers]
+    [getCollectionCoverUrl, selectedSuggestedCoverIds, suggestedCovers]
   )
 
   const handleCoverModeChange = useCallback((nextMode) => {
@@ -254,8 +254,12 @@ const PlaylistForm = ({
     validateForm
   ])
 
-  const automaticCoverUrl = automaticCover ? getImage(`${playlist?.path}:auto`, automaticCover) : ''
-  const effectiveCoverUrl = effectiveCover ? getImage(`${playlist?.path}:effective`, effectiveCover) : ''
+  const automaticCoverUrl = automaticCover
+    ? getCollectionCoverUrl(`${playlist?.path}:auto`, automaticCover)
+    : ''
+  const effectiveCoverUrl = effectiveCover
+    ? getCollectionCoverUrl(`${playlist?.path}:effective`, effectiveCover)
+    : ''
 
   return (
     <form onSubmit={handleSubmit} className="playlist-form">
@@ -347,7 +351,7 @@ const PlaylistForm = ({
                 <div className="playlist-form__suggested-grid">
                   {suggestedCovers.map((cover) => {
                     const isSelected = selectedSuggestedCoverIds.includes(cover.suggestedId)
-                    const coverUrl = resolveSuggestedCoverUrl(cover)
+                    const coverUrl = resolveSuggestedCoverUrl(cover, getCollectionCoverUrl)
 
                     return (
                       <button

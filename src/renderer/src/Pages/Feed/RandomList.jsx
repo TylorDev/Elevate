@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import './RandomList.scss'
 import { useNavigate } from 'react-router-dom'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { Skeleton } from '@mui/material'
 
 export function RandomList() {
   const { randomPlaylist, getRandomList } = usePlaylists()
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
 
   const [currentbg, setCurrentBg] = useState()
   const navigate = useNavigate()
@@ -28,11 +28,11 @@ export function RandomList() {
   useEffect(() => {
     let cover = null
     if (randomPlaylist) {
-      cover = getImage(randomPlaylist.path, randomPlaylist.cover)
+      cover = getCollectionCoverUrl(randomPlaylist.path, randomPlaylist.cover)
     }
 
     setBack(cover)
-  }, [randomPlaylist])
+  }, [getCollectionCoverUrl, randomPlaylist])
 
   if (!randomPlaylist) {
     return (

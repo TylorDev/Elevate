@@ -2,7 +2,7 @@ import { formatDuration } from '../../../timeUtils'
 import { FaTrash } from 'react-icons/fa'
 import { LuDownload, LuLink, LuPencil, LuUnlink } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { memo, useMemo, useState } from 'react'
@@ -34,7 +34,7 @@ export const PlaylistItem = memo(function PlaylistItem({
 
   const { deletePlaylist, getUniqueList, exportPlaylistTracks, updatePlaylistMetadata } =
     usePlaylists()
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const { handleQueueAndPlay } = useQueue()
   const navigate = useNavigate()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
@@ -73,9 +73,9 @@ export const PlaylistItem = memo(function PlaylistItem({
   const back = useMemo(
     () => {
       const coverToUse = playlist.effectiveCover || playlist.cover
-      return coverToUse ? getImage(playlist.path, coverToUse) : null
+      return coverToUse ? getCollectionCoverUrl(playlist.path, coverToUse) : null
     },
-    [getImage, playlist.cover, playlist.effectiveCover, playlist.path]
+    [getCollectionCoverUrl, playlist.cover, playlist.effectiveCover, playlist.path]
   )
 
   const selectPlaylist = () => {

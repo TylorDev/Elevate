@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Bounce, toast } from 'react-toastify'
 import { useCoverUrl } from '../hooks/useCoverUrl'
+import { useImages } from './ImagesContext'
 import { useMini } from './MiniContext'
 import { useQueue } from './QueueContext'
 import {
   createLatestOnlyInvoker,
-  dataToImageUrl,
   dedupedInvoke,
   ElectronDelete,
   ElectronGetter,
@@ -19,6 +19,7 @@ export const usePlaylists = () => useContext(ContextLikes)
 export const PlaylistsProvider = ({ children }) => {
   const { currentFile, removeTrack, addSong } = useQueue()
   const currentCover = useCoverUrl(currentFile?.filePath, 'full')
+  const { getCollectionCoverUrl } = useImages()
   const { getDirectories, deleteDirectory } = useMini()
 
   const [allSongs, SetAllSongs] = useState([])
@@ -56,11 +57,14 @@ export const PlaylistsProvider = ({ children }) => {
         newItems.map((item, index) => ({
           id: currentCovers.length + index,
           filePath: item.filePath,
-          cover: item.picture && item.picture.length > 0 ? dataToImageUrl(item.picture[0]) : null
+          cover:
+            item.picture && item.picture.length > 0
+              ? getCollectionCoverUrl(`playlist-song:${item.filePath}`, item.picture[0])
+              : null
         }))
       )
     })
-  }, [])
+  }, [getCollectionCoverUrl])
 
   const updateArrayAlbums = useCallback((someArray) => {
     if (someArray == null) {
@@ -79,11 +83,11 @@ export const PlaylistsProvider = ({ children }) => {
         newItems.map((item, index) => ({
           id: currentAlbums.length + index,
           path: item.path,
-          cover: dataToImageUrl(item.cover)
+          cover: getCollectionCoverUrl(`playlist-album:${item.path}`, item.cover)
         }))
       )
     })
-  }, [])
+  }, [getCollectionCoverUrl])
 
   useEffect(() => {
     updateArrayAlbums(playlists)

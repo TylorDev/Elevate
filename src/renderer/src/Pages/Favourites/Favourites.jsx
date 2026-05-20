@@ -9,14 +9,14 @@ import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useEffect, useState } from 'react'
 import { BiShuffle } from 'react-icons/bi'
 import { useParams } from 'react-router-dom'
-import { useSuper } from '../../Contexts/SupeContext'
+import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
 
 function Favourites() {
   const { getLikes, likes } = useLikes()
   const [back, setBack] = useState()
-  const { getImage } = useSuper()
+  const { getCollectionCoverUrl } = useImages()
   const { handleQueueAndPlay, toggleShuffle } = useQueue()
   useEffect(() => {
     getLikes()
@@ -24,10 +24,10 @@ function Favourites() {
 
   useEffect(() => {
     if (likes.cover) {
-      const img = getImage('Likes', likes.cover)
+      const img = getCollectionCoverUrl('Likes', likes.cover)
       setBack(img)
     }
-  }, [likes])
+  }, [getCollectionCoverUrl, likes])
 
   const handleSelect = (option) => {
     console.log(`Selected option: ${option}`)

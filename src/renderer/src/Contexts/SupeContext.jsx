@@ -1,6 +1,6 @@
 import { createContext, useContext, useRef, useEffect, useState, useMemo, useCallback } from 'react'
-import { dataToImageUrl, ElectronSetter, WindowsPlayer } from './utils'
-import { useCoverUrl } from '../hooks/useCoverUrl'
+import { ElectronSetter, WindowsPlayer } from './utils'
+import { useSongCover } from './ImagesContext'
 import { extractDominantColor } from '../utils/useDominantColor'
 import { usePlayback } from './PlaybackContext'
 import { useQueue } from './QueueContext'
@@ -37,7 +37,7 @@ export const SuperProvider = ({ children }) => {
     handleNextClick
   } = useQueue()
 
-  const currentCoverUrl = useCoverUrl(currentFile?.filePath, 'full')
+  const currentCoverUrl = useSongCover(currentFile?.filePath, 'full')
   const previousCoverUrl = useRef('')
 
   const [isAwaken, setIsAwaken] = useState(false)
@@ -69,31 +69,9 @@ export const SuperProvider = ({ children }) => {
     localStorage.setItem(AUDIO_STORAGE_KEYS.step, JSON.stringify(isStep))
   }, [isStep])
 
-  const imagesRef = useRef(new Map())
-
   const handleAwaken = (value) => {
     setIsAwaken(value)
   }
-
-  const getImage = useCallback((name, data) => {
-    const existingImage = imagesRef.current.get(name)
-    const nextSignature = typeof data === 'string' ? data : data
-
-    if (existingImage?.signature === nextSignature) {
-      return existingImage.url
-    }
-
-    if (existingImage?.url?.startsWith?.('blob:')) {
-      URL.revokeObjectURL(existingImage.url)
-    }
-
-    const url = dataToImageUrl(data)
-    imagesRef.current.set(name, {
-      url,
-      signature: nextSignature
-    })
-    return url
-  }, [])
 
   useEffect(() => {
     WindowsPlayer(mediaRef, currentFile, currentCoverUrl, handlePreviousClick, handleNextClick)
@@ -292,7 +270,6 @@ export const SuperProvider = ({ children }) => {
     () => ({
       addhistory,
       scrollRef,
-      getImage,
       handleColorChange,
       color,
       isAwaken,
@@ -307,7 +284,6 @@ export const SuperProvider = ({ children }) => {
     [
       addhistory,
       color,
-      getImage,
       isAwaken,
       isStep,
       toggleStep,

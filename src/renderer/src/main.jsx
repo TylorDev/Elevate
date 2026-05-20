@@ -8,6 +8,7 @@ import { PlaybackProvider } from './Contexts/PlaybackContext'
 import { PlaybackProgressProvider } from './Contexts/PlaybackProgressContext'
 import { QueueProvider } from './Contexts/QueueContext'
 import { BackgroundProvider } from './Contexts/BackgroundContext'
+import { ImagesProvider } from './Contexts/ImagesContext'
 import { MiniProvider } from './Contexts/MiniContext'
 import { LikesProvider } from './Contexts/LikeContext'
 import { AudioProvider } from './Contexts/AudioContext'
@@ -22,23 +23,25 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <PlaybackProvider>
           <PlaybackProgressProvider>
             <BackgroundProvider>
-              <SuperProvider>
-                <AppProvider>
-                  <MiniProvider>
-                    <PlaylistsProvider>
-                      <ArgvProvider>
-                        <GlobalSearchProvider>
-                          <LikesProvider>
-                            <AudioProvider>
-                              <App />
-                            </AudioProvider>
-                          </LikesProvider>
-                        </GlobalSearchProvider>
-                      </ArgvProvider>
-                    </PlaylistsProvider>
-                  </MiniProvider>
-                </AppProvider>
-              </SuperProvider>
+              <ImagesProvider>
+                <SuperProvider>
+                  <AppProvider>
+                    <MiniProvider>
+                      <PlaylistsProvider>
+                        <ArgvProvider>
+                          <GlobalSearchProvider>
+                            <LikesProvider>
+                              <AudioProvider>
+                                <App />
+                              </AudioProvider>
+                            </LikesProvider>
+                          </GlobalSearchProvider>
+                        </ArgvProvider>
+                      </PlaylistsProvider>
+                    </MiniProvider>
+                  </AppProvider>
+                </SuperProvider>
+              </ImagesProvider>
             </BackgroundProvider>
           </PlaybackProgressProvider>
         </PlaybackProvider>
