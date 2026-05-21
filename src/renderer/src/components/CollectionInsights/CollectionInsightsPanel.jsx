@@ -28,9 +28,13 @@ function EmptyState({ label }) {
 
 export function CollectionInsightsPanel({
   tracks = [],
+  rankings: providedRankings = null,
+  totalTrackCount,
   sourceName,
   mode = 'collection',
-  showAllSongsTab = true
+  showAllSongsTab = true,
+  onLoadMoreRanking,
+  rankingLoadingTab = ''
 }) {
   const defaultTabId = showAllSongsTab ? 'allSongs' : COLLECTION_INSIGHT_CARD_TABS[0]?.id || 'allSongs'
   const [activeTabId, setActiveTabId] = useState(defaultTabId)
@@ -53,21 +57,38 @@ export function CollectionInsightsPanel({
     }
   }, [activeTabId, showAllSongsTab])
 
-  const rankings = useMemo(() => buildCollectionRankings(tracks), [tracks])
+  const fallbackRankings = useMemo(
+    () => (providedRankings ? null : buildCollectionRankings(tracks)),
+    [providedRankings, tracks]
+  )
+  const rankings = providedRankings || fallbackRankings || {}
   const activeTab = useMemo(
     () => COLLECTION_INSIGHT_TABS.find((tab) => tab.id === activeTabId) || COLLECTION_INSIGHT_TABS[0],
     [activeTabId]
   )
-  const activeRows = rankings[activeTab.id] || []
-  const aggregateValue = getInsightAggregateValue(activeTab, activeRows)
+  const activeRanking = rankings[activeTab.id]
+  const activeRows = Array.isArray(activeRanking?.items)
+    ? activeRanking.items
+    : Array.isArray(activeRanking)
+      ? activeRanking
+      : []
+  const aggregateValue =
+    activeTab.id === 'allSongs' || !activeRanking?.totalValue
+      ? getInsightAggregateValue(activeTab, activeRows)
+      : activeRanking.totalValue
   const cardTotals = useMemo(
     () =>
       COLLECTION_INSIGHT_CARD_TABS.reduce((totals, tab) => {
-        totals[tab.id] = getInsightAggregateValue(tab, rankings[tab.id] || [])
+        const ranking = rankings[tab.id]
+        const rows = Array.isArray(ranking?.items) ? ranking.items : Array.isArray(ranking) ? ranking : []
+        totals[tab.id] = ranking?.totalValue ?? getInsightAggregateValue(tab, rows)
         return totals
       }, {}),
     [rankings]
   )
+  const activeHasMore = Boolean(activeRanking?.hasMore)
+  const isActiveRankingLoading = rankingLoadingTab === activeTab.id
+  const visibleTrackCount = Number.isFinite(totalTrackCount) ? totalTrackCount : tracks.length
 
   return (
     <section className={`collection-insights collection-insights--${mode}`}>
@@ -131,6 +152,9 @@ export function CollectionInsightsPanel({
             virtualizationThreshold={20}
             rowHeight={72}
             height={listHeight}
+            hasMore={activeHasMore}
+            isLoading={isActiveRankingLoading}
+            onLoadMore={() => onLoadMoreRanking?.(activeTab.id)}
             insightMode={activeTab.id !== 'allSongs'}
             insightValueResolver={(track) => getInsightTrackValueLabel(activeTab, track)}
           />
@@ -139,7 +163,7 @@ export function CollectionInsightsPanel({
 
       <div className="collection-insights__footer">
         <span>{activeRows.length} tracks visibles</span>
-        <span>{formatMetricValue(tracks.length)} tracks en la coleccion</span>
+        <span>{formatMetricValue(visibleTrackCount)} tracks en la coleccion</span>
       </div>
     </section>
   )

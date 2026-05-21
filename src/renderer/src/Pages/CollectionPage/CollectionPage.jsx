@@ -12,7 +12,6 @@ import {
 } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
 import { formatDuration, formatTimestamp } from '../../../timeUtils'
-import { useLikes } from '../../Contexts/LikeContext'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
@@ -27,14 +26,8 @@ import PlaylistForm from '../../components/PlaylistForm/PlaylistForm'
 import './CollectionPage.scss'
 
 function getCollectionKind(pathname = '') {
-  if (pathname.startsWith('/playlists/')) {
-    return 'playlist'
-  }
-
-  if (pathname.startsWith('/favourites')) {
-    return 'likes'
-  }
-
+  if (pathname.startsWith('/playlists/')) return 'playlist'
+  if (pathname.startsWith('/favourites')) return 'likes'
   return 'directory'
 }
 
@@ -47,34 +40,26 @@ const COLLECTION_MENU_IDS = {
 }
 
 function buildCollectionMenuOptions(type) {
-  if (type === 'likes') {
-    return [
-      { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'AÃ±adir a la Cola', icon: <LuListPlus /> },
-      {
-        id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-        label: 'AÃ±adir a Playlist Nueva',
-        icon: <LuListMusic />
-      },
-      {
-        id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-        label: 'AÃ±adir a Playlist Existente',
-        icon: <LuListPlus />
-      }
-    ]
-  }
-
-  return [
-    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'AÃ±adir a la Cola', icon: <LuListPlus /> },
+  const sharedOptions = [
+    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Anadir a la cola', icon: <LuListPlus /> },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-      label: 'AÃ±adir a Playlist Nueva',
+      label: 'Anadir a playlist nueva',
       icon: <LuListMusic />
     },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-      label: 'AÃ±adir a Playlist Existente',
+      label: 'Anadir a playlist existente',
       icon: <LuListPlus />
-    },
+    }
+  ]
+
+  if (type === 'likes') {
+    return sharedOptions
+  }
+
+  return [
+    ...sharedOptions,
     {
       id: COLLECTION_MENU_IDS.REVEAL_IN_EXPLORER,
       label: 'Mostrar en el explorador',
@@ -91,7 +76,7 @@ function buildCollectionMenuOptions(type) {
 function EmptyCollectionState({ type }) {
   const title =
     type === 'playlist'
-      ? 'Playlist vacÃ­a'
+      ? 'Playlist vacia'
       : type === 'likes'
         ? 'No hay canciones con like'
         : 'Directorio sin canciones'
@@ -99,7 +84,7 @@ function EmptyCollectionState({ type }) {
   return (
     <div className="collection-empty">
       <h2>{title}</h2>
-      <p>Esta colecciÃ³n no tiene canciones disponibles para mostrarse todavÃ­a.</p>
+      <p>Esta coleccion no tiene canciones disponibles para mostrarse todavia.</p>
     </div>
   )
 }
@@ -107,7 +92,7 @@ function EmptyCollectionState({ type }) {
 function ErrorState({ message, onRetry }) {
   return (
     <div className="collection-error">
-      <strong>No se pudo cargar la colecciÃ³n.</strong>
+      <strong>No se pudo cargar la coleccion.</strong>
       <p>{message}</p>
       <button type="button" onClick={onRetry}>
         Reintentar
@@ -116,29 +101,34 @@ function ErrorState({ message, onRetry }) {
   )
 }
 
-function normalizeLikesDetail(likesPayload) {
-  const tracks = Array.isArray(likesPayload?.fileInfos) ? likesPayload.fileInfos : []
-  const sumMetric = (key) =>
-    tracks.reduce((total, track) => total + (Number(track?.[key]) || 0), 0)
+function mergeRankingPage(currentRanking, nextRanking) {
+  if (!nextRanking) return currentRanking
+
+  const currentItems = Array.isArray(currentRanking?.items) ? currentRanking.items : []
+  const nextItems = Array.isArray(nextRanking?.items) ? nextRanking.items : []
+
+  if (nextRanking.page <= (currentRanking?.page || 0)) {
+    return currentRanking
+  }
 
   return {
-    success: true,
-    type: 'likes',
-    meta: {
-      title: 'Favourites'
-    },
-    tracks,
-    summary: {
-      totalDuration: Number(likesPayload?.totalDuration) || 0,
-      trackCount: tracks.length,
-      cover: likesPayload?.cover || null,
-      totalShortViews: sumMetric('short_view_count'),
-      totalLongViews: sumMetric('long_view_count'),
-      totalAccumulatedDuration: sumMetric('active_listening_seconds'),
-      totalRepeats: sumMetric('consecutive_repeat_count'),
-      totalSkips: sumMetric('skip_count')
-    }
+    ...nextRanking,
+    items: [...currentItems, ...nextItems]
   }
+}
+
+function toastLoadError(message) {
+  toast.error(message, {
+    position: 'bottom-right',
+    autoClose: 3000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: 'dark',
+    transition: Bounce
+  })
 }
 
 function CollectionPage() {
@@ -152,8 +142,7 @@ function CollectionPage() {
   const shouldAutoPlay = type === 'directory' && params.play === 'true'
 
   const { getCollectionCoverUrl } = useImages()
-  const { handleQueueAndPlay, PlayQueue, appendManyToCurrentQueue } = useQueue()
-  const { getLikes, likes } = useLikes()
+  const { PlayQueue, appendManyToCurrentQueue } = useQueue()
   const {
     addPlaylisthistory,
     deletePlaylist,
@@ -168,132 +157,126 @@ function CollectionPage() {
   const [isEditVisible, setIsEditVisible] = useState(false)
   const [isAddToPlaylistVisible, setIsAddToPlaylistVisible] = useState(false)
   const [isDeleteVisible, setIsDeleteVisible] = useState(false)
+  const [rankingLoadingTab, setRankingLoadingTab] = useState('')
+  const [hydratingTracks, setHydratingTracks] = useState(false)
+  const [playlistEditPayload, setPlaylistEditPayload] = useState(null)
   const autoPlayedRef = useRef('')
-  const likesHydratedRef = useRef(false)
+  const allTracksCacheRef = useRef(null)
 
   const loadDetail = useCallback(async () => {
     if (type !== 'likes' && !sourcePath) {
-      setError('No se encontrÃ³ la ruta de la colecciÃ³n.')
+      setError('No se encontro la ruta de la coleccion.')
       setLoading(false)
       return
     }
 
     setLoading(true)
     setError('')
+    setPlaylistEditPayload(null)
+    allTracksCacheRef.current = null
+    const startTime = performance.now()
 
     try {
-      if (type === 'likes') {
-        const likesPayload = await getLikes()
-        likesHydratedRef.current = true
-        setDetail(normalizeLikesDetail(likesPayload))
-        return
-      }
-
-      const channel = type === 'playlist' ? 'get-playlist-detail' : 'get-directory-detail'
-      const response = await window.electron.ipcRenderer.invoke(channel, sourcePath)
+      const response = await window.electron.ipcRenderer.invoke('collection:get-overview', {
+        type,
+        sourcePath,
+        pageSize: 50
+      })
 
       if (!response?.success) {
-        setError(response?.error || 'No se pudo cargar la colecciÃ³n.')
+        setError(response?.error || 'No se pudo cargar la coleccion.')
         setDetail(null)
         return
       }
 
       setDetail(response)
+      console.info('[collection] overview loaded', {
+        type,
+        tracks: response?.summary?.trackCount || 0,
+        ms: Math.round(performance.now() - startTime)
+      })
     } catch (loadError) {
-      console.error('Error loading collection detail:', loadError)
-      setError(loadError?.message || 'No se pudo cargar la colecciÃ³n.')
+      console.error('Error loading collection overview:', loadError)
+      setError(loadError?.message || 'No se pudo cargar la coleccion.')
       setDetail(null)
     } finally {
       setLoading(false)
     }
-  }, [getLikes, sourcePath, type])
+  }, [sourcePath, type])
 
   useEffect(() => {
-    if (type === 'likes') {
-      return
-    }
-
     void loadDetail()
-  }, [loadDetail, type])
+  }, [loadDetail])
+
+  const loadAllTracks = useCallback(async () => {
+    if (allTracksCacheRef.current) {
+      return allTracksCacheRef.current
+    }
+
+    const total = Number(detail?.summary?.trackCount) || 0
+    if (total === 0) {
+      allTracksCacheRef.current = []
+      return []
+    }
+
+    const startTime = performance.now()
+    const pageSize = 200
+    const hydratedTracks = []
+    let page = 1
+    let hasMore = true
+
+    setHydratingTracks(true)
+
+    try {
+      while (hasMore) {
+        const response = await window.electron.ipcRenderer.invoke('collection:get-tracks-page', {
+          type,
+          sourcePath,
+          page,
+          pageSize
+        })
+
+        if (response?.success === false) {
+          throw new Error(response.error || 'No se pudieron cargar las canciones.')
+        }
+
+        hydratedTracks.push(...(response?.items || []))
+        hasMore = Boolean(response?.hasMore)
+        page += 1
+      }
+
+      allTracksCacheRef.current = hydratedTracks
+      console.info('[collection] full tracks hydrated', {
+        type,
+        tracks: hydratedTracks.length,
+        ms: Math.round(performance.now() - startTime)
+      })
+      return hydratedTracks
+    } finally {
+      setHydratingTracks(false)
+    }
+  }, [detail?.summary?.trackCount, sourcePath, type])
 
   useEffect(() => {
-    if (type !== 'likes') {
-      likesHydratedRef.current = false
+    if (!shouldAutoPlay || !detail?.summary?.trackCount || autoPlayedRef.current === sourcePath) {
       return
     }
 
-    const hasLikesPayload =
-      Array.isArray(likes?.fileInfos) ||
-      likes?.totalDuration !== undefined ||
-      likes?.cover !== undefined
+    void loadAllTracks().then((tracksToPlay) => {
+      if (tracksToPlay.length === 0 || autoPlayedRef.current === sourcePath) return
 
-    if (hasLikesPayload) {
-      likesHydratedRef.current = true
-      setDetail(normalizeLikesDetail(likes))
-      setError('')
-      setLoading(false)
-      return
-    }
-
-    if (likesHydratedRef.current) {
-      setDetail(normalizeLikesDetail(likes))
-      setError('')
-      setLoading(false)
-      return
-    }
-
-    let isCancelled = false
-
-    setLoading(true)
-    setError('')
-
-    void getLikes()
-      .then((likesPayload) => {
-        if (isCancelled) {
-          return
-        }
-
-        likesHydratedRef.current = true
-        setDetail(normalizeLikesDetail(likesPayload))
-        setError('')
-      })
-      .catch((loadError) => {
-        if (isCancelled) {
-          return
-        }
-
-        console.error('Error loading likes detail:', loadError)
-        setError(loadError?.message || 'No se pudo cargar la colecciÃƒÂ³n.')
-        setDetail(null)
-      })
-      .finally(() => {
-        if (!isCancelled) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      isCancelled = true
-    }
-  }, [getLikes, likes, type])
-
-  useEffect(() => {
-    if (!shouldAutoPlay || !detail?.tracks?.length || autoPlayedRef.current === sourcePath) {
-      return
-    }
-
-    PlayQueue(detail.tracks, `folder:${sourcePath}`, 0)
-    autoPlayedRef.current = sourcePath
-  }, [PlayQueue, detail?.tracks, shouldAutoPlay, sourcePath])
+      PlayQueue(tracksToPlay, `folder:${sourcePath}`, 0)
+      autoPlayedRef.current = sourcePath
+    })
+  }, [PlayQueue, detail?.summary?.trackCount, loadAllTracks, shouldAutoPlay, sourcePath])
 
   const summary = detail?.summary
-  const tracks = detail?.tracks || []
+  const tracks = allTracksCacheRef.current || []
   const meta = detail?.meta
+  const hasTracks = Number(summary?.trackCount) > 0
 
   const heroCoverUrl = useMemo(() => {
-    if (!summary?.cover) {
-      return ''
-    }
+    if (!summary?.cover) return ''
 
     const imageKey = sourcePath || type
     return getCollectionCoverUrl(`collection:${type}:${imageKey}`, summary.cover)
@@ -310,39 +293,51 @@ function CollectionPage() {
   const showSourcePath = Boolean(summary?.sourcePath && type !== 'likes')
 
   const handlePlayCollection = useCallback(async () => {
-    if (tracks.length === 0) {
+    if (!hasTracks) return
+
+    try {
+      const hydratedTracks = await loadAllTracks()
+
+      if (type === 'playlist') {
+        PlayQueue(hydratedTracks, sourcePath, 0)
+        addPlaylisthistory(sourcePath)
+        return
+      }
+
+      if (type === 'likes') {
+        PlayQueue(hydratedTracks, 'favourites', 0)
+        return
+      }
+
+      PlayQueue(hydratedTracks, `folder:${sourcePath}`, 0)
+    } catch (tracksError) {
+      toastLoadError(tracksError?.message || 'No se pudieron cargar las canciones.')
+    }
+  }, [PlayQueue, addPlaylisthistory, hasTracks, loadAllTracks, sourcePath, type])
+
+  const handleOpenEdit = useCallback(async () => {
+    setIsEditVisible(true)
+
+    if (type !== 'playlist' || playlistEditPayload) return
+
+    const response = await window.electron.ipcRenderer.invoke(
+      'collection:get-playlist-edit-payload',
+      sourcePath
+    )
+
+    if (response?.success) {
+      setPlaylistEditPayload(response)
       return
     }
 
-    if (type === 'playlist') {
-      await handleQueueAndPlay(undefined, 0, sourcePath, false)
-      addPlaylisthistory(sourcePath)
-      return
-    }
-
-    if (type === 'likes') {
-      PlayQueue(tracks, 'favourites', 0)
-      return
-    }
-
-    PlayQueue(tracks, `folder:${sourcePath}`, 0)
-  }, [PlayQueue, addPlaylisthistory, handleQueueAndPlay, sourcePath, tracks, type])
+    toastLoadError(response?.error || 'No se pudo cargar la playlist.')
+  }, [playlistEditPayload, sourcePath, type])
 
   const handleRevealInExplorer = useCallback(async () => {
     const result = await window.electron.ipcRenderer.invoke('reveal-path-in-explorer', sourcePath)
 
     if (!result?.success) {
-      toast.error(result?.error || 'No se pudo abrir el explorador.', {
-        position: 'bottom-right',
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: 'dark',
-        transition: Bounce
-      })
+      toastLoadError(result?.error || 'No se pudo abrir el explorador.')
     }
   }, [sourcePath])
 
@@ -357,34 +352,34 @@ function CollectionPage() {
     navigate(routeBack)
   }, [deleteDirectory, deletePlaylist, navigate, routeBack, sourcePath, type])
 
+  const getHydratedTracksForAction = useCallback(async () => {
+    try {
+      return await loadAllTracks()
+    } catch (tracksError) {
+      toastLoadError(tracksError?.message || 'No se pudieron cargar las canciones.')
+      return []
+    }
+  }, [loadAllTracks])
+
   const handleCollectionMenuSelect = useCallback(async (optionId) => {
     if (optionId === COLLECTION_MENU_IDS.ADD_TO_QUEUE) {
-      appendManyToCurrentQueue(tracks)
+      appendManyToCurrentQueue(await getHydratedTracksForAction())
       return
     }
 
     if (optionId === COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST) {
-      const result = await savePlaylistFromTracks(tracks, {
+      const result = await savePlaylistFromTracks(await getHydratedTracksForAction(), {
         nombre: `${collectionName}-copy`
       })
 
       if (!result?.success && result?.error !== 'Save canceled') {
-        toast.error(result?.error || 'No se pudo crear la playlist.', {
-          position: 'bottom-right',
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: 'dark',
-          transition: Bounce
-        })
+        toastLoadError(result?.error || 'No se pudo crear la playlist.')
       }
       return
     }
 
     if (optionId === COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST) {
+      await getHydratedTracksForAction()
       setIsAddToPlaylistVisible(true)
       return
     }
@@ -400,10 +395,43 @@ function CollectionPage() {
   }, [
     appendManyToCurrentQueue,
     collectionName,
+    getHydratedTracksForAction,
     handleRevealInExplorer,
-    savePlaylistFromTracks,
-    tracks
+    savePlaylistFromTracks
   ])
+
+  const handleLoadMoreRanking = useCallback(async (tabId) => {
+    const currentRanking = detail?.rankings?.[tabId]
+
+    if (!currentRanking?.hasMore || rankingLoadingTab) return
+
+    setRankingLoadingTab(tabId)
+
+    try {
+      const response = await window.electron.ipcRenderer.invoke('collection:get-overview', {
+        type,
+        sourcePath,
+        page: (currentRanking.page || 1) + 1,
+        pageSize: currentRanking.pageSize || 50
+      })
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'No se pudo cargar el ranking.')
+      }
+
+      setDetail((currentDetail) => ({
+        ...currentDetail,
+        rankings: {
+          ...currentDetail.rankings,
+          [tabId]: mergeRankingPage(currentDetail.rankings?.[tabId], response.rankings?.[tabId])
+        }
+      }))
+    } catch (rankingError) {
+      toastLoadError(rankingError?.message || 'No se pudo cargar el ranking.')
+    } finally {
+      setRankingLoadingTab('')
+    }
+  }, [detail?.rankings, rankingLoadingTab, sourcePath, type])
 
   const handleUpdatePlaylist = useCallback(async (playlistPath, payload) => {
     const response = await updatePlaylistMetadata(playlistPath, payload)
@@ -420,7 +448,7 @@ function CollectionPage() {
       <section className="collection-page collection-page--loading">
         <div className="collection-loading">
           <LuRefreshCw />
-          Cargando colecciÃ³n...
+          Cargando coleccion...
         </div>
       </section>
     )
@@ -437,7 +465,7 @@ function CollectionPage() {
   if (!detail) {
     return (
       <section className="collection-page">
-        <ErrorState message="No se encontrÃ³ la colecciÃ³n solicitada." onRetry={() => navigate(routeBack)} />
+        <ErrorState message="No se encontro la coleccion solicitada." onRetry={() => navigate(routeBack)} />
       </section>
     )
   }
@@ -477,11 +505,11 @@ function CollectionPage() {
           </div>
 
           <div className="collection-hero__actions">
-            <Button onClick={() => void handlePlayCollection()} disabled={tracks.length === 0}>
+            <Button onClick={() => void handlePlayCollection()} disabled={!hasTracks || hydratingTracks}>
               <LuPlay />
             </Button>
             {type === 'playlist' && (
-              <Button onClick={() => setIsEditVisible(true)}>
+              <Button onClick={() => void handleOpenEdit()}>
                 <LuPencil />
               </Button>
             )}
@@ -490,34 +518,39 @@ function CollectionPage() {
         </div>
       </header>
 
-      {tracks.length === 0 ? (
+      {!hasTracks ? (
         <section className="collection-tracklist">
           <div className="collection-tracklist__header">
             <div>
               <span>Track manifest</span>
               <h2>Todas las canciones</h2>
             </div>
-            <strong>{tracks.length}</strong>
+            <strong>{summary?.trackCount || 0}</strong>
           </div>
           <EmptyCollectionState type={type} />
         </section>
       ) : (
         <CollectionInsightsPanel
-          tracks={tracks}
+          rankings={detail.rankings}
+          totalTrackCount={summary?.trackCount || 0}
           sourceName={collectionSourceName}
           mode="collection"
           showAllSongsTab={false}
+          rankingLoadingTab={rankingLoadingTab}
+          onLoadMoreRanking={handleLoadMoreRanking}
         />
       )}
 
       <Modal isVisible={isEditVisible} closeModal={() => setIsEditVisible(false)}>
-        {type === 'playlist' && detail?.playlistData ? (
+        {type === 'playlist' && (playlistEditPayload?.playlistData || detail?.playlistData) ? (
           <PlaylistForm
-            playlist={detail.playlistData}
-            suggestedCovers={detail.suggestedCovers || []}
-            coverConfig={detail.coverConfig || {}}
-            automaticCover={detail.cover}
-            effectiveCover={detail.effectiveCover || detail.summary?.cover}
+            playlist={playlistEditPayload?.playlistData || detail.playlistData}
+            suggestedCovers={playlistEditPayload?.suggestedCovers || []}
+            coverConfig={playlistEditPayload?.coverConfig || detail.coverConfig || {}}
+            automaticCover={playlistEditPayload?.cover || detail.cover}
+            effectiveCover={
+              playlistEditPayload?.effectiveCover || detail.effectiveCover || detail.summary?.cover
+            }
             onUpdate={handleUpdatePlaylist}
             close={() => setIsEditVisible(false)}
           />
@@ -538,8 +571,8 @@ function CollectionPage() {
           title={type === 'playlist' ? 'Eliminar playlist?' : 'Eliminar directorio?'}
           message={
             type === 'playlist'
-              ? 'Se eliminarÃ¡ esta playlist de Elevate.'
-              : 'Se eliminarÃ¡ este directorio de la biblioteca de Elevate.'
+              ? 'Se eliminara esta playlist de Elevate.'
+              : 'Se eliminara este directorio de la biblioteca de Elevate.'
           }
           confirmLabel={type === 'playlist' ? 'Eliminar playlist' : 'Eliminar directorio'}
           onCancel={() => setIsDeleteVisible(false)}

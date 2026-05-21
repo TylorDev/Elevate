@@ -140,12 +140,174 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results
 }
 
+export const USER_PREFERENCE_TRACK_SELECT = {
+  bpm: true,
+  skip_count: true,
+  short_view_count: true,
+  long_view_count: true,
+  long_play_seconds: true,
+  active_listening_seconds: true,
+  consecutive_repeat_count: true,
+  is_favorite: true
+}
+
+export function mapSongRecordToFileInfo(song) {
+  if (!song) {
+    return null
+  }
+
+  const preference = Array.isArray(song.UserPreferences)
+    ? song.UserPreferences[0]
+    : song.UserPreferences
+
+  return {
+    song_id: song.song_id,
+    filePath: song.filepath,
+    fileName: song.filename,
+    title: song.title,
+    artist: song.artist,
+    album: song.album,
+    genre: song.genre,
+    year: song.year,
+    duration: Number(song.duration) || 0,
+    size: song.size || 0,
+    trackNumber: song.trackNumber,
+    coverHash: song.coverHash,
+    bpm: preference?.bpm || 0,
+    skip_count: preference?.skip_count || 0,
+    short_view_count: preference?.short_view_count || 0,
+    long_view_count: preference?.long_view_count || 0,
+    long_play_seconds: preference?.long_play_seconds || 0,
+    active_listening_seconds: preference?.active_listening_seconds || 0,
+    consecutive_repeat_count: preference?.consecutive_repeat_count || 0,
+    liked: preference?.is_favorite || false
+  }
+}
+
+export function buildCollectionSummaryFromFileInfos(tracks = [], extras = {}) {
+  return tracks.reduce(
+    (summary, track) => {
+      summary.totalDuration += Number(track?.duration) || 0
+      summary.totalShortViews += Number(track?.short_view_count) || 0
+      summary.totalLongViews += Number(track?.long_view_count) || 0
+      summary.totalAccumulatedDuration += Number(track?.active_listening_seconds) || 0
+      summary.totalRepeats += Number(track?.consecutive_repeat_count) || 0
+      summary.totalSkips += Number(track?.skip_count) || 0
+      summary.trackCount += 1
+      return summary
+    },
+    {
+      totalDuration: 0,
+      totalShortViews: 0,
+      totalLongViews: 0,
+      totalAccumulatedDuration: 0,
+      totalRepeats: 0,
+      totalSkips: 0,
+      trackCount: 0,
+      ...extras
+    }
+  )
+}
+
+export function buildRankingPageFromTracks(tracks = [], metricKey, { page = 1, pageSize = 50 } = {}) {
+  const safePage = Math.max(Number(page) || 1, 1)
+  const safePageSize = Math.min(Math.max(Number(pageSize) || 50, 1), 200)
+  const rankedTracks = tracks
+    .filter((track) => (Number(track?.[metricKey]) || 0) > 0)
+    .sort((left, right) => (Number(right?.[metricKey]) || 0) - (Number(left?.[metricKey]) || 0))
+  const offset = (safePage - 1) * safePageSize
+  const items = rankedTracks.slice(offset, offset + safePageSize)
+  const totalValue = rankedTracks.reduce(
+    (total, track) => total + (Number(track?.[metricKey]) || 0),
+    0
+  )
+
+  return {
+    items,
+    page: safePage,
+    pageSize: safePageSize,
+    totalValue,
+    total: rankedTracks.length,
+    hasMore: offset + items.length < rankedTracks.length
+  }
+}
+
+export async function getFileInfosBulk(filePaths = [], { concurrency = 6 } = {}) {
+  const orderedFilePaths = Array.isArray(filePaths)
+    ? filePaths.filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+    : []
+
+  if (orderedFilePaths.length === 0) {
+    return []
+  }
+
+  const validFilePaths = orderedFilePaths.filter((filePath) => {
+    const fileName = path.basename(filePath, path.extname(filePath))
+    return !fileName.includes('#')
+  })
+  const uniqueFilePaths = [...new Set(validFilePaths)]
+
+  const songs = await prisma.songs.findMany({
+    where: {
+      filepath: {
+        in: uniqueFilePaths
+      }
+    },
+    include: {
+      UserPreferences: {
+        select: USER_PREFERENCE_TRACK_SELECT
+      }
+    }
+  })
+  const songByPath = new Map(songs.map((song) => [song.filepath, song]))
+  const missingFilePaths = uniqueFilePaths.filter((filePath) => !songByPath.has(filePath))
+
+  if (missingFilePaths.length > 0) {
+    const missingInfos = await mapWithConcurrency(missingFilePaths, concurrency, async (filePath) => {
+      try {
+        const fileName = path.basename(filePath, path.extname(filePath))
+        return await getOrCreateSong(filePath, fileName)
+      } catch (error) {
+        console.error(`Error processing file ${filePath}:`, error.message)
+        return null
+      }
+    })
+    const createdSongIds = missingInfos.filter(Boolean).map((song) => song.song_id)
+    const hydratedSongs = createdSongIds.length
+      ? await prisma.songs.findMany({
+          where: {
+            song_id: {
+              in: createdSongIds
+            }
+          },
+          include: {
+            UserPreferences: {
+              select: USER_PREFERENCE_TRACK_SELECT
+            }
+          }
+        })
+      : []
+
+    hydratedSongs.forEach((song) => {
+      songByPath.set(song.filepath, song)
+    })
+  }
+
+  return validFilePaths
+    .map((filePath) => mapSongRecordToFileInfo(songByPath.get(filePath)))
+    .filter(Boolean)
+}
+
 /**
  * Gets file info for a list of file paths.
  * Reads metadata from DB when available, only parses new files.
  * No longer sends picture data to the renderer.
  */
 export async function getFileInfos(filePaths, { concurrency = 6 } = {}) {
+  return getFileInfosBulk(filePaths, { concurrency })
+}
+
+export async function getFileInfosLegacy(filePaths, { concurrency = 6 } = {}) {
   const fileInfos = await mapWithConcurrency(filePaths, concurrency, async (filePath) => {
     try {
       const fileName = path.basename(filePath, path.extname(filePath))

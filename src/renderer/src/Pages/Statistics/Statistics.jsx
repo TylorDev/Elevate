@@ -1,39 +1,60 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { LuListMusic, LuRefreshCw } from 'react-icons/lu'
 import { CollectionInsightsPanel } from '../../components/CollectionInsights/CollectionInsightsPanel'
-import { buildCollectionSummaryFromTracks } from '../../components/CollectionInsights/collectionInsightsConfig'
 import './Statistics.scss'
 
+function mergeRankingPage(currentRanking, nextRanking) {
+  if (!nextRanking) return currentRanking
+
+  const currentItems = Array.isArray(currentRanking?.items) ? currentRanking.items : []
+  const nextItems = Array.isArray(nextRanking?.items) ? nextRanking.items : []
+
+  if (nextRanking.page <= (currentRanking?.page || 0)) {
+    return currentRanking
+  }
+
+  return {
+    ...nextRanking,
+    items: [...currentItems, ...nextItems]
+  }
+}
+
 function Statistics() {
-  const [tracks, setTracks] = useState([])
+  const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [rankingLoadingTab, setRankingLoadingTab] = useState('')
 
   useEffect(() => {
     let alive = true
 
-    async function loadLibraryTracks() {
+    async function loadLibraryOverview() {
       setLoading(true)
       setError('')
+      const startTime = performance.now()
 
       try {
-        const result = await window.electron.ipcRenderer.invoke('get-all-audio-files')
+        const result = await window.electron.ipcRenderer.invoke('statistics:get-overview', {
+          pageSize: 50
+        })
 
-        if (!alive) {
+        if (!alive) return
+
+        if (!result?.success) {
+          setError(result?.error || 'No se pudo cargar la biblioteca completa.')
+          setOverview(null)
           return
         }
 
-        if (!Array.isArray(result)) {
-          setError('No se pudo cargar la biblioteca completa.')
-          setTracks([])
-          return
-        }
-
-        setTracks(result)
+        setOverview(result)
+        console.info('[statistics] overview loaded', {
+          tracks: result?.summary?.trackCount || 0,
+          ms: Math.round(performance.now() - startTime)
+        })
       } catch (loadError) {
         if (alive) {
           setError(loadError?.message || 'No se pudo cargar la biblioteca completa.')
-          setTracks([])
+          setOverview(null)
         }
       } finally {
         if (alive) {
@@ -42,14 +63,48 @@ function Statistics() {
       }
     }
 
-    void loadLibraryTracks()
+    void loadLibraryOverview()
 
     return () => {
       alive = false
     }
   }, [])
 
-  const summary = useMemo(() => buildCollectionSummaryFromTracks(tracks), [tracks])
+  const handleLoadMoreRanking = useCallback(async (tabId) => {
+    const currentRanking = overview?.rankings?.[tabId]
+
+    if (!currentRanking?.hasMore || rankingLoadingTab) return
+
+    setRankingLoadingTab(tabId)
+
+    try {
+      const response = await window.electron.ipcRenderer.invoke('statistics:get-ranking-page', {
+        tabId,
+        page: (currentRanking.page || 1) + 1,
+        pageSize: currentRanking.pageSize || 50
+      })
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'No se pudo cargar el ranking.')
+      }
+
+      setOverview((currentOverview) => ({
+        ...currentOverview,
+        rankings: {
+          ...currentOverview.rankings,
+          [tabId]: mergeRankingPage(currentOverview.rankings?.[tabId], response.ranking)
+        }
+      }))
+    } catch (rankingError) {
+      setError(rankingError?.message || 'No se pudo cargar el ranking.')
+    } finally {
+      setRankingLoadingTab('')
+    }
+  }, [overview?.rankings, rankingLoadingTab])
+
+  const summary = overview?.summary || {
+    trackCount: 0
+  }
 
   if (loading) {
     return (
@@ -87,7 +142,7 @@ function Statistics() {
         </div>
       </header>
 
-      {tracks.length === 0 ? (
+      {summary.trackCount === 0 ? (
         <div className="statistics-empty">
           <div className="statistics-empty__icon">
             <LuListMusic />
@@ -97,10 +152,13 @@ function Statistics() {
         </div>
       ) : (
         <CollectionInsightsPanel
-          tracks={tracks}
+          rankings={overview.rankings}
+          totalTrackCount={summary.trackCount || 0}
           sourceName="Estadisticas"
           mode="library"
           showAllSongsTab={false}
+          rankingLoadingTab={rankingLoadingTab}
+          onLoadMoreRanking={handleLoadMoreRanking}
         />
       )}
     </section>

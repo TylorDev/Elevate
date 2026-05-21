@@ -4,6 +4,8 @@ import fs from 'fs'
 import log from 'electron-log/main.js'
 import sharp from 'sharp'
 import {
+  buildCollectionSummaryFromFileInfos,
+  buildRankingPageFromTracks,
   getCoverFromCache,
   generateCover,
   processPlaylist,
@@ -21,6 +23,31 @@ const electron = require('electron')
 const { app, dialog, ipcMain } = electron
 const playlistCoverCache = new Map()
 const pendingPlaylistRequests = new Map()
+const INSIGHT_METRIC_KEYS = {
+  duration: 'duration',
+  shortViews: 'short_view_count',
+  longViews: 'long_view_count',
+  accumulatedDuration: 'active_listening_seconds',
+  repeats: 'consecutive_repeat_count',
+  skips: 'skip_count'
+}
+
+function buildInsightRankingsFromTracks(tracks = [], request = {}) {
+  const page = Number(request?.page) || 1
+  const pageSize = Number(request?.pageSize) || 50
+
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce((rankings, [tabId, metricKey]) => {
+    rankings[tabId] = buildRankingPageFromTracks(tracks, metricKey, { page, pageSize })
+    return rankings
+  }, {})
+}
+
+function normalizePageRequest(request = {}) {
+  return {
+    page: Math.max(Number(request?.page) || 1, 1),
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
+  }
+}
 
 function getPlaylistCacheKey(playlistPath) {
   try {
@@ -143,7 +170,7 @@ async function getPlaylistDetail(filepath) {
   const cover = playlistData ? await getCachedPlaylistCover(playlistData) : null
   const suggestedCovers = await getTop10SuggestedCovers(filepath)
   const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
-  const resolvedCover = effectiveCover ?? (await generateCollectionCoverFromTracks(tracks))
+  const resolvedCover = effectiveCover || (await generateCollectionCoverFromTracks(tracks))
   const summary = buildCollectionSummary(tracks, {
     sourcePath: filepath,
     cover: resolvedCover
@@ -165,6 +192,82 @@ async function getPlaylistDetail(filepath) {
     cover,
     suggestedCovers,
     effectiveCover: resolvedCover,
+    coverConfig: buildCoverConfig(playlistData)
+  }
+}
+
+export async function getPlaylistOverview(filepath, request = {}) {
+  const baseDir = path.dirname(filepath)
+  const tracks = (await processPlaylist(filepath, baseDir)).map((song) => ({
+    ...song,
+    picture: undefined
+  }))
+  const playlistData = await getPlaylist(filepath)
+  const effectiveCover = playlistData?.customCoverMode
+    ? await getEffectiveCover(playlistData, false)
+    : null
+  const resolvedCover = effectiveCover || (await generateCollectionCoverFromTracks(tracks))
+  const summary = buildCollectionSummaryFromFileInfos(tracks, {
+    sourcePath: filepath,
+    cover: resolvedCover
+  })
+
+  return {
+    success: true,
+    type: 'playlist',
+    meta: {
+      title: playlistData?.nombre || extractPlaylistName(filepath),
+      sourcePath: filepath,
+      createdAt: playlistData?.createdAt || null,
+      totalplays: playlistData?.totalplays || 0,
+      editable: true
+    },
+    summary,
+    rankings: buildInsightRankingsFromTracks(tracks, request),
+    playlistData,
+    cover: null,
+    suggestedCovers: [],
+    effectiveCover: resolvedCover,
+    coverConfig: buildCoverConfig(playlistData)
+  }
+}
+
+export async function getPlaylistTracksPage(filepath, request = {}) {
+  const { page, pageSize } = normalizePageRequest(request)
+  const baseDir = path.dirname(filepath)
+  const tracks = (await processPlaylist(filepath, baseDir)).map((song) => ({
+    ...song,
+    picture: undefined
+  }))
+  const offset = (page - 1) * pageSize
+  const items = tracks.slice(offset, offset + pageSize)
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: tracks.length,
+    hasMore: offset + items.length < tracks.length
+  }
+}
+
+export async function getPlaylistEditPayload(filepath) {
+  const playlistData = await getPlaylist(filepath)
+
+  if (!playlistData) {
+    return { success: false, error: 'Playlist no encontrada' }
+  }
+
+  const cover = await getCachedPlaylistCover(playlistData)
+  const suggestedCovers = await getTop10SuggestedCovers(filepath)
+  const effectiveCover = await getEffectiveCover(playlistData, cover)
+
+  return {
+    success: true,
+    playlistData,
+    cover,
+    suggestedCovers,
+    effectiveCover,
     coverConfig: buildCoverConfig(playlistData)
   }
 }

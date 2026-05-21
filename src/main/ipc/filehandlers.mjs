@@ -2,6 +2,8 @@ import { createRequire } from 'node:module'
 import log from 'electron-log/main.js'
 import {
   extractAudioCover,
+  buildCollectionSummaryFromFileInfos,
+  buildRankingPageFromTracks,
   getFileInfos,
   resizeCover,
   getCoverFromCache
@@ -28,6 +30,12 @@ import { sendNotification } from '../index.mjs'
 import { prisma } from '../prisma.mjs'
 import { setBraveVolume } from './audio.mjs'
 import { addDirectoryToLibrary } from './utils/libraryIngestion.mjs'
+import {
+  getPlaylistEditPayload,
+  getPlaylistOverview,
+  getPlaylistTracksPage
+} from './playlistHandlers.mjs'
+import { getLikesOverview, getLikesTracksPage } from './likehandlers.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain, shell } = electron
@@ -37,6 +45,31 @@ const AUDIO_PATHS_TTL = 60 * 1000
 const COVER_CACHE_TTL = 10 * 60 * 1000
 const COVER_CACHE_LIMIT = 400
 let pendingDirectoriesRequest = null
+const INSIGHT_METRIC_KEYS = {
+  duration: 'duration',
+  shortViews: 'short_view_count',
+  longViews: 'long_view_count',
+  accumulatedDuration: 'active_listening_seconds',
+  repeats: 'consecutive_repeat_count',
+  skips: 'skip_count'
+}
+
+function buildInsightRankingsFromTracks(tracks = [], request = {}) {
+  const page = Number(request?.page) || 1
+  const pageSize = Number(request?.pageSize) || 50
+
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce((rankings, [tabId, metricKey]) => {
+    rankings[tabId] = buildRankingPageFromTracks(tracks, metricKey, { page, pageSize })
+    return rankings
+  }, {})
+}
+
+function normalizeCollectionPageRequest(request = {}) {
+  return {
+    page: Math.max(Number(request?.page) || 1, 1),
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
+  }
+}
 
 export function invalidateDirectoryCache(dirPath = null) {
   pendingDirectoriesRequest = null
@@ -146,6 +179,103 @@ async function getDirectoryDetail(directoryPath) {
     tracks,
     summary
   }
+}
+
+async function getDirectoryOverview(directoryPath, request = {}) {
+  const directory = await prisma.directory.findUnique({
+    where: { path: directoryPath }
+  })
+
+  if (!directory) {
+    return { success: false, error: 'Directory not found' }
+  }
+
+  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const uniqueAudioFiles = Array.from(new Set(audioFiles))
+  const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  const summary = buildCollectionSummaryFromFileInfos(tracks, {
+    sourcePath: directoryPath,
+    cover
+  })
+
+  return {
+    success: true,
+    type: 'directory',
+    meta: {
+      title: getPathLeaf(directory.path),
+      sourcePath: directory.path,
+      createdAt: directory.createdAt || null,
+      lastScannedAt: directory.lastScannedAt || null,
+      editable: false,
+      directoryData: directory
+    },
+    summary,
+    rankings: buildInsightRankingsFromTracks(tracks, request)
+  }
+}
+
+async function getDirectoryTracksPage(directoryPath, request = {}) {
+  const { page, pageSize } = normalizeCollectionPageRequest(request)
+  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const uniqueAudioFiles = Array.from(new Set(audioFiles))
+  const offset = (page - 1) * pageSize
+  const pagedPaths = uniqueAudioFiles.slice(offset, offset + pageSize)
+  const items = await getFileInfos(pagedPaths, { includePicture: false })
+
+  return {
+    items,
+    page,
+    pageSize,
+    total: uniqueAudioFiles.length,
+    hasMore: offset + items.length < uniqueAudioFiles.length
+  }
+}
+
+async function getCollectionOverview(request = {}) {
+  const type = request?.type
+  const sourcePath = request?.sourcePath || ''
+
+  if (type === 'likes') {
+    return getLikesOverview(request)
+  }
+
+  if (!sourcePath) {
+    return { success: false, error: 'sourcePath is required' }
+  }
+
+  if (type === 'playlist') {
+    return getPlaylistOverview(sourcePath, request)
+  }
+
+  if (type === 'directory') {
+    return getDirectoryOverview(sourcePath, request)
+  }
+
+  return { success: false, error: 'Invalid collection type' }
+}
+
+async function getCollectionTracksPage(request = {}) {
+  const type = request?.type
+  const sourcePath = request?.sourcePath || ''
+
+  if (type === 'likes') {
+    return getLikesTracksPage(request)
+  }
+
+  if (!sourcePath) {
+    return { success: false, error: 'sourcePath is required' }
+  }
+
+  if (type === 'playlist') {
+    return getPlaylistTracksPage(sourcePath, request)
+  }
+
+  if (type === 'directory') {
+    return getDirectoryTracksPage(sourcePath, request)
+  }
+
+  return { success: false, error: 'Invalid collection type' }
 }
 
 async function getAudioFilesPage(request) {
@@ -450,6 +580,33 @@ export function setupFilehandlers() {
     } catch (error) {
       console.error('Error retrieving directory detail:', error)
       return { success: false, error: error.message || 'No se pudo cargar el directorio.' }
+    }
+  })
+
+  ipcMain.handle('collection:get-overview', async (_, request) => {
+    try {
+      return await getCollectionOverview(request)
+    } catch (error) {
+      console.error('Error retrieving collection overview:', error)
+      return { success: false, error: error.message || 'No se pudo cargar la coleccion.' }
+    }
+  })
+
+  ipcMain.handle('collection:get-tracks-page', async (_, request) => {
+    try {
+      return await getCollectionTracksPage(request)
+    } catch (error) {
+      console.error('Error retrieving collection tracks page:', error)
+      return { success: false, error: error.message || 'No se pudieron cargar las canciones.' }
+    }
+  })
+
+  ipcMain.handle('collection:get-playlist-edit-payload', async (_, playlistPath) => {
+    try {
+      return await getPlaylistEditPayload(playlistPath)
+    } catch (error) {
+      console.error('Error retrieving playlist edit payload:', error)
+      return { success: false, error: error.message || 'No se pudo cargar la playlist.' }
     }
   })
 

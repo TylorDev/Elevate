@@ -1,6 +1,14 @@
 import { createRequire } from 'node:module'
 
-import { generateCover, getFileInfos, getOrCreateSong } from './utils/utils.mjs'
+import {
+  buildCollectionSummaryFromFileInfos,
+  buildRankingPageFromTracks,
+  getFileInfos,
+  getOrCreateSong,
+  mapSongRecordToFileInfo,
+  USER_PREFERENCE_TRACK_SELECT
+} from './utils/utils.mjs'
+import { generateCollectionCoverFromTracks } from './utils/collectionDetail.mjs'
 import { prisma } from '../prisma.mjs'
 
 import { getSongBpm } from './utils/utils.mjs'
@@ -25,10 +33,36 @@ const STAT_SELECT = {
   is_favorite: true
 }
 
+const INSIGHT_METRIC_KEYS = {
+  duration: 'duration',
+  shortViews: 'short_view_count',
+  longViews: 'long_view_count',
+  accumulatedDuration: 'active_listening_seconds',
+  repeats: 'consecutive_repeat_count',
+  skips: 'skip_count'
+}
+
 let lastRecordedPlaybackSongId = null
 
 function withoutPictures(fileInfos) {
   return fileInfos.map((fileInfo) => ({ ...fileInfo, picture: undefined }))
+}
+
+function buildInsightRankingsFromTracks(tracks = [], request = {}) {
+  const page = Number(request?.page) || 1
+  const pageSize = Number(request?.pageSize) || 50
+
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce((rankings, [tabId, metricKey]) => {
+    rankings[tabId] = buildRankingPageFromTracks(tracks, metricKey, { page, pageSize })
+    return rankings
+  }, {})
+}
+
+function normalizeRankingPageRequest(request = {}) {
+  return {
+    page: Math.max(Number(request?.page) || 1, 1),
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
+  }
 }
 
 async function markUserPreference(songId, preferenceField, preferenceValue = true) {
@@ -72,8 +106,8 @@ async function getUserPreferencesByCriteria(criteria) {
 
     const filePaths = songs.map((song) => song.filepath)
     const coverData = await getFileInfos(filePaths)
-    const cover = await generateCover(coverData)
     const tracks = withoutPictures(coverData)
+    const cover = await generateCollectionCoverFromTracks(tracks)
     const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
     return { fileInfos: tracks, cover, totalDuration }
   } catch (error) {
@@ -182,6 +216,65 @@ async function getMostPlayedSongsWithDetails() {
   }
 }
 
+export async function getLikesOverview(request = {}) {
+  const favorites = await prisma.userPreferences.findMany({
+    where: { is_favorite: true },
+    include: {
+      Songs: {
+        include: {
+          UserPreferences: {
+            select: USER_PREFERENCE_TRACK_SELECT
+          }
+        }
+      }
+    }
+  })
+  const tracks = favorites.map((preference) => mapSongRecordToFileInfo(preference.Songs)).filter(Boolean)
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  const summary = buildCollectionSummaryFromFileInfos(tracks, { cover })
+
+  return {
+    success: true,
+    type: 'likes',
+    meta: {
+      title: 'Favourites'
+    },
+    summary,
+    rankings: buildInsightRankingsFromTracks(tracks, request)
+  }
+}
+
+export async function getLikesTracksPage(request = {}) {
+  const { page, pageSize } = normalizeRankingPageRequest(request)
+  const offset = (page - 1) * pageSize
+  const total = await prisma.userPreferences.count({
+    where: { is_favorite: true }
+  })
+  const favorites = await prisma.userPreferences.findMany({
+    where: { is_favorite: true },
+    skip: offset,
+    take: pageSize,
+    include: {
+      Songs: {
+        include: {
+          UserPreferences: {
+            select: USER_PREFERENCE_TRACK_SELECT
+          }
+        }
+      }
+    }
+  })
+  const items = favorites.map((preference) => mapSongRecordToFileInfo(preference.Songs)).filter(Boolean)
+
+  return {
+    items,
+    page,
+    pageSize,
+    total,
+    hasMore: offset + items.length < total
+  }
+}
+
 function formatRankedSong(record, metricKey) {
   const song = record.Songs
   return {
@@ -243,6 +336,50 @@ async function getStatisticsRankings(request = {}) {
       repeats,
       skips
     }
+  }
+}
+
+async function getStatisticsOverview(request = {}) {
+  const songs = await prisma.songs.findMany({
+    include: {
+      UserPreferences: {
+        select: USER_PREFERENCE_TRACK_SELECT
+      }
+    }
+  })
+  const tracks = songs.map((song) => mapSongRecordToFileInfo(song)).filter(Boolean)
+
+  return {
+    success: true,
+    type: 'library',
+    meta: {
+      title: 'Estadisticas'
+    },
+    summary: buildCollectionSummaryFromFileInfos(tracks),
+    rankings: buildInsightRankingsFromTracks(tracks, request)
+  }
+}
+
+async function getStatisticsRankingPage(request = {}) {
+  const tabId = String(request?.tabId || '')
+  const metricKey = INSIGHT_METRIC_KEYS[tabId]
+
+  if (!metricKey) {
+    return { success: false, error: 'Invalid ranking tab' }
+  }
+
+  const songs = await prisma.songs.findMany({
+    include: {
+      UserPreferences: {
+        select: USER_PREFERENCE_TRACK_SELECT
+      }
+    }
+  })
+  const tracks = songs.map((song) => mapSongRecordToFileInfo(song)).filter(Boolean)
+
+  return {
+    success: true,
+    ranking: buildRankingPageFromTracks(tracks, metricKey, normalizeRankingPageRequest(request))
   }
 }
 async function getPlayHistoryOrdered(page = 1) {
@@ -807,6 +944,24 @@ export function setupLikeSongHandlers() {
       return await getStatisticsRankings(request)
     } catch (error) {
       console.error('Error retrieving statistics rankings:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('statistics:get-overview', async (event, request) => {
+    try {
+      return await getStatisticsOverview(request)
+    } catch (error) {
+      console.error('Error retrieving statistics overview:', error)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('statistics:get-ranking-page', async (event, request) => {
+    try {
+      return await getStatisticsRankingPage(request)
+    } catch (error) {
+      console.error('Error retrieving statistics ranking page:', error)
       return { success: false, error: error.message }
     }
   })
