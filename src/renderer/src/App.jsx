@@ -10,6 +10,7 @@ const Feed = lazy(() => import('./Pages/Feed/Feed'))
 const ListenLater = lazy(() => import('./Pages/ListenLater/ListenLater'))
 const AllTracks = lazy(() => import('./Pages/AllTracks/AllTracks'))
 const History = lazy(() => import('./Pages/History/History'))
+const HistorySong = lazy(() => import('./Pages/History/HistorySong'))
 const Statistics = lazy(() => import('./Pages/Statistics/Statistics'))
 const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
 const Directories = lazy(() => import('./Pages/Directories/Directories'))
@@ -214,6 +215,14 @@ function App() {
             element={
               <Suspense fallback={<PageLoader />}>
                 <History />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/history/song/:filePath"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <HistorySong />
               </Suspense>
             }
           />

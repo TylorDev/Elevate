@@ -151,7 +151,7 @@ export const USER_PREFERENCE_TRACK_SELECT = {
   is_favorite: true
 }
 
-export function mapSongRecordToFileInfo(song) {
+export function mapSongRecordToFileInfo(song, extras = {}) {
   if (!song) {
     return null
   }
@@ -180,8 +180,38 @@ export function mapSongRecordToFileInfo(song) {
     long_play_seconds: preference?.long_play_seconds || 0,
     active_listening_seconds: preference?.active_listening_seconds || 0,
     consecutive_repeat_count: preference?.consecutive_repeat_count || 0,
-    liked: preference?.is_favorite || false
+    liked: preference?.is_favorite || false,
+    ...extras
   }
+}
+
+export async function getLastPlayedAtBySongId(songIds = []) {
+  const uniqueSongIds = [...new Set(songIds.filter((songId) => Number.isInteger(songId)))]
+
+  if (uniqueSongIds.length === 0) {
+    return new Map()
+  }
+
+  const historyRecords = await prisma.playHistory.groupBy({
+    by: ['song_id'],
+    where: {
+      song_id: {
+        in: uniqueSongIds
+      }
+    },
+    _max: {
+      timestamp: true
+    }
+  })
+
+  return new Map(
+    historyRecords
+      .map((record) => {
+        const lastPlayedAt = record._max?.timestamp
+        return lastPlayedAt ? [record.song_id, lastPlayedAt.toISOString()] : null
+      })
+      .filter(Boolean)
+  )
 }
 
 export function buildCollectionSummaryFromFileInfos(tracks = [], extras = {}) {
@@ -293,8 +323,18 @@ export async function getFileInfosBulk(filePaths = [], { concurrency = 6 } = {})
     })
   }
 
+  const lastPlayedAtBySongId = await getLastPlayedAtBySongId(
+    Array.from(songByPath.values()).map((song) => song.song_id)
+  )
+
   return validFilePaths
-    .map((filePath) => mapSongRecordToFileInfo(songByPath.get(filePath)))
+    .map((filePath) => {
+      const song = songByPath.get(filePath)
+
+      return mapSongRecordToFileInfo(song, {
+        lastPlayedAt: lastPlayedAtBySongId.get(song?.song_id) || null
+      })
+    })
     .filter(Boolean)
 }
 
@@ -352,7 +392,9 @@ export async function getFileInfosLegacy(filePaths, { concurrency = 6 } = {}) {
         long_play_seconds: userPreference?.long_play_seconds || 0,
         active_listening_seconds: userPreference?.active_listening_seconds || 0,
         consecutive_repeat_count: userPreference?.consecutive_repeat_count || 0,
-        liked: userPreference?.is_favorite || false
+        liked: userPreference?.is_favorite || false,
+        lastPlayedAt:
+          (await getLastPlayedAtBySongId([song.song_id])).get(song.song_id) || null
       }
     } catch (error) {
       console.error(`Error processing file ${filePath}:`, error.message)

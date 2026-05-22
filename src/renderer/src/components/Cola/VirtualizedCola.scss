@@ -16,3 +16,37 @@
     justify-content: center;
     min-height: 4rem;
 }
+
+.VirtualizedCola__dateHeader,
+.VirtualizedCola__hourHeader {
+    display: flex;
+    align-items: center;
+    pointer-events: none;
+}
+
+.VirtualizedCola__dateHeader {
+    padding: 0.4rem 0 0.2rem;
+    color: $text-primary;
+    font-size: 0.95rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.VirtualizedCola__dateHeader span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    padding: 0 0.85rem;
+    border-left: 3px solid $primary-color;
+    background: linear-gradient(90deg, color-mix(in srgb, $primary-color 14%, transparent), transparent);
+}
+
+.VirtualizedCola__hourHeader {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.VirtualizedCola__hourHeader span {
+    padding-left: 0.9rem;
+}

@@ -7,6 +7,9 @@ import { useQueue } from './QueueContext'
 
 const SHORT_VIEW_MS = 10_000
 const SKIP_WINDOW_MS = 30_000
+const LONG_VIEW_COMPLETION_THRESHOLD = 0.7
+const REPLAY_RESTART_THRESHOLD = 0.16
+const REPLAY_WRAP_BACKTRACK_MS = 1_500
 
 const TOAST_OPTIONS = {
   position: 'bottom-right',
@@ -25,8 +28,8 @@ export const AudioProvider = ({ children }) => {
   const { autoplayRequestId } = useArgv()
   const [path, setPath] = useState(null)
   const playbackSessionRef = useRef(null)
+  const pendingReplayRef = useRef(null)
   const currentFileRef = useRef(currentFile)
-  const finalizedSessionIdsRef = useRef(new Set())
 
   useEffect(() => {
     currentFileRef.current = currentFile
@@ -73,6 +76,7 @@ export const AudioProvider = ({ children }) => {
       shortViewAwarded: false,
       longViewAwarded: false,
       skipAwarded: false,
+      finalizing: false,
       finalized: false
     }
 
@@ -111,6 +115,32 @@ export const AudioProvider = ({ children }) => {
 
     session.activeListeningMs += Math.max(0, now - session.activeSegmentStartedAt)
     session.activeSegmentStartedAt = null
+  }
+
+  function getRestartThresholdTime(durationSeconds) {
+    return Math.max(0, Number(durationSeconds) || 0) * REPLAY_RESTART_THRESHOLD
+  }
+
+  function isReplayStartPosition(currentTime, durationSeconds) {
+    const thresholdTime = getRestartThresholdTime(durationSeconds)
+    return thresholdTime > 0 && Math.max(0, Number(currentTime) || 0) <= thresholdTime
+  }
+
+  function resetCycleState(session, audio = mediaRef.current) {
+    if (!session) {
+      return
+    }
+
+    const now = Date.now()
+    const currentTime = Math.max(0, Number(audio?.currentTime) || 0)
+
+    session.activeListeningMs = 0
+    session.activeSegmentStartedAt = audio && !audio.paused ? now : null
+    session.lastKnownCurrentTime = currentTime
+    session.shortViewAwarded = false
+    session.longViewAwarded = false
+    session.skipAwarded = false
+    session.finalizing = false
   }
 
   async function recordPlaybackEvent(session, eventType, extra = {}) {
@@ -164,7 +194,7 @@ export const AudioProvider = ({ children }) => {
 
     const durationMs = Math.max(0, Number(session.duration) || 0) * 1000
 
-    if (!durationMs || getActiveListeningMs(session) < durationMs * 0.8) {
+    if (!durationMs || getActiveListeningMs(session) < durationMs * LONG_VIEW_COMPLETION_THRESHOLD) {
       return
     }
 
@@ -185,6 +215,21 @@ export const AudioProvider = ({ children }) => {
 
     await maybeAwardShortView(session)
     await maybeAwardLongView(session)
+  }
+
+  async function finalizeCycleSnapshot(session, countAsRepeat = false) {
+    if (!session) {
+      return null
+    }
+
+    const activeListeningSeconds = getActiveListeningMs(session) / 1000
+
+    return recordPlaybackEvent(session, 'playback-finalize', {
+      activeListeningSeconds,
+      shortViewAwarded: session.shortViewAwarded,
+      longViewAwarded: session.longViewAwarded,
+      countAsRepeat
+    })
   }
 
   function syncSessionFromAudio(audio, { allowSegmentStart = false } = {}) {
@@ -208,18 +253,80 @@ export const AudioProvider = ({ children }) => {
     return session
   }
 
+  async function confirmQualifiedCycleAndRestart(_trigger, audio = mediaRef.current) {
+    const session = playbackSessionRef.current
+
+    if (!session || session.finalized || session.finalizing || !session.longViewAwarded) {
+      return false
+    }
+
+    session.finalizing = true
+    syncSessionFromAudio(audio)
+    stopActiveSegment(session)
+
+    const result = await finalizeCycleSnapshot(session, true)
+
+    if (!result?.success) {
+      session.finalizing = false
+      if (audio && !audio.paused) {
+        startActiveSegment(session)
+      }
+      return false
+    }
+
+    pendingReplayRef.current = null
+    resetCycleState(session, audio)
+    return true
+  }
+
+  async function confirmPendingReplayStart(audio = mediaRef.current) {
+    const pendingReplay = pendingReplayRef.current
+    const activeFilePath = currentFileRef.current?.filePath
+
+    if (!pendingReplay || !activeFilePath || pendingReplay.filePath !== activeFilePath) {
+      return false
+    }
+
+    const currentTime = Math.max(0, Number(audio?.currentTime) || 0)
+    const durationSeconds = Math.max(0, Number(audio?.duration) || Number(currentFileRef.current?.duration) || 0)
+
+    if (!isReplayStartPosition(currentTime, durationSeconds)) {
+      return false
+    }
+
+    const session = playbackSessionRef.current || ensureSession()
+
+    if (!session || session.finalized || session.finalizing) {
+      return false
+    }
+
+    session.finalizing = true
+
+    const result = await recordPlaybackEvent(session, 'playback-finalize', {
+      activeListeningSeconds: 0,
+      shortViewAwarded: false,
+      longViewAwarded: false,
+      countAsRepeat: true
+    })
+
+    if (!result?.success) {
+      session.finalizing = false
+      return false
+    }
+
+    pendingReplayRef.current = null
+    resetCycleState(session, audio)
+    return true
+  }
+
   async function finalizePlaybackSession(reason = 'change', audio = mediaRef.current) {
     const session = playbackSessionRef.current
 
-    if (!session || session.finalized) {
+    if (!session || session.finalized || session.finalizing) {
       return
     }
 
-    if (finalizedSessionIdsRef.current.has(session.id)) {
-      session.finalized = true
-      playbackSessionRef.current = null
-      return
-    }
+    session.finalizing = true
 
     syncSessionFromAudio(audio)
     stopActiveSegment(session)
@@ -238,19 +345,26 @@ export const AudioProvider = ({ children }) => {
       }
     }
 
-    const activeListeningSeconds = getActiveListeningMs(session) / 1000
-    await recordPlaybackEvent(session, 'playback-finalize', {
-      activeListeningSeconds,
-      shortViewAwarded: session.shortViewAwarded,
-      longViewAwarded: session.longViewAwarded
-    })
+    const result = await finalizeCycleSnapshot(session, false)
+    session.finalizing = false
 
-    finalizedSessionIdsRef.current.add(session.id)
+    if (!result?.success) {
+      return
+    }
+
+    pendingReplayRef.current =
+      reason === 'ended' && session.longViewAwarded
+        ? { filePath: session.file.filePath }
+        : null
     session.finalized = true
     playbackSessionRef.current = null
   }
 
   useEffect(() => {
+    if (pendingReplayRef.current && pendingReplayRef.current.filePath !== currentFile?.filePath) {
+      pendingReplayRef.current = null
+    }
+
     if (currentFile?.filePath) {
       setPath(sanitizePath(currentFile.filePath))
       openPlaybackSession(currentFile)
@@ -283,7 +397,10 @@ export const AudioProvider = ({ children }) => {
 
     const handlePlay = () => {
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
-      void evaluateSessionAwards(session)
+      void (async () => {
+        await confirmPendingReplayStart(audio)
+        await evaluateSessionAwards(playbackSessionRef.current || session)
+      })()
     }
 
     const handlePause = () => {
@@ -293,7 +410,22 @@ export const AudioProvider = ({ children }) => {
     }
 
     const handleTimeUpdate = () => {
+      const previousSession = playbackSessionRef.current
+      const previousTime = Math.max(0, Number(previousSession?.lastKnownCurrentTime) || 0)
+      const currentTime = Math.max(0, Number(audio.currentTime) || 0)
+      const durationSeconds = Math.max(0, Number(audio.duration) || Number(previousSession?.duration) || 0)
+      const didWrapToReplayStart =
+        Boolean(previousSession?.longViewAwarded) &&
+        previousTime - currentTime >= REPLAY_WRAP_BACKTRACK_MS / 1000 &&
+        isReplayStartPosition(currentTime, durationSeconds)
+
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
+
+      if (didWrapToReplayStart) {
+        void confirmQualifiedCycleAndRestart('autoloop', audio)
+        return
+      }
+
       void evaluateSessionAwards(session)
     }
 
@@ -303,7 +435,21 @@ export const AudioProvider = ({ children }) => {
     }
 
     const handleSeeked = () => {
+      const sessionBeforeSeek = playbackSessionRef.current
+      const previousTime = Math.max(0, Number(sessionBeforeSeek?.lastKnownCurrentTime) || 0)
       const session = syncSessionFromAudio(audio, { allowSegmentStart: !audio.paused })
+      const currentTime = Math.max(0, Number(audio.currentTime) || 0)
+      const durationSeconds = Math.max(0, Number(audio.duration) || Number(session?.duration) || 0)
+      const didReplaySeek =
+        Boolean(sessionBeforeSeek?.longViewAwarded) &&
+        previousTime > currentTime &&
+        isReplayStartPosition(currentTime, durationSeconds)
+
+      if (didReplaySeek) {
+        void confirmQualifiedCycleAndRestart('seek-back', audio)
+        return
+      }
+
       void evaluateSessionAwards(session)
     }
 

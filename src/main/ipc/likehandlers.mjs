@@ -4,6 +4,7 @@ import {
   buildCollectionSummaryFromFileInfos,
   buildRankingPageFromTracks,
   getFileInfos,
+  getLastPlayedAtBySongId,
   getOrCreateSong,
   mapSongRecordToFileInfo,
   USER_PREFERENCE_TRACK_SELECT
@@ -42,8 +43,6 @@ const INSIGHT_METRIC_KEYS = {
   skips: 'skip_count'
 }
 
-let lastRecordedPlaybackSongId = null
-
 function withoutPictures(fileInfos) {
   return fileInfos.map((fileInfo) => ({ ...fileInfo, picture: undefined }))
 }
@@ -63,6 +62,16 @@ function normalizeRankingPageRequest(request = {}) {
     page: Math.max(Number(request?.page) || 1, 1),
     pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
   }
+}
+
+function toDayKey(value) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.toISOString().slice(0, 10)
 }
 
 async function markUserPreference(songId, preferenceField, preferenceValue = true) {
@@ -382,45 +391,151 @@ async function getStatisticsRankingPage(request = {}) {
     ranking: buildRankingPageFromTracks(tracks, metricKey, normalizeRankingPageRequest(request))
   }
 }
-async function getPlayHistoryOrdered(page = 1) {
-  const pageSize = 10 // Número de elementos por página
+async function getPlayHistoryOrdered(request = 1) {
+  const page = Math.max(Number(request?.page ?? request) || 1, 1)
+  const pageSize = Math.min(Math.max(Number(request?.pageSize) || 10, 1), 50)
+  const offset = (page - 1) * pageSize
 
   try {
-    // Contar el total de registros en PlayHistory
-    const totalRecords = await prisma.playHistory.count()
+    const uniqueHistoryRows = await prisma.playHistory.groupBy({
+      by: ['song_id']
+    })
+    const totalRecords = uniqueHistoryRows.length
 
-    // Calcular el número máximo de páginas
     const maxPages = Math.ceil(totalRecords / pageSize)
 
-    // Obtener solo 10 registros de PlayHistory ordenados por el campo timestamp más reciente
-    const playHistoryRecords = await prisma.playHistory.findMany({
-      orderBy: {
-        timestamp: 'desc' // Ordenar de más reciente a más antiguo
+    const playHistoryRecords = await prisma.playHistory.groupBy({
+      by: ['song_id'],
+      _max: {
+        timestamp: true
       },
-      take: pageSize, // Limitar a 10 registros
-      skip: (page - 1) * pageSize, // Omitir elementos según la página
+      orderBy: [
+        {
+          _max: {
+            timestamp: 'desc'
+          }
+        },
+        {
+          song_id: 'desc'
+        }
+      ],
+      take: pageSize,
+      skip: offset
+    })
+
+    const songIds = playHistoryRecords.map((record) => record.song_id)
+    const songs = songIds.length
+      ? await prisma.songs.findMany({
+          where: {
+            song_id: {
+              in: songIds
+            }
+          },
+          select: {
+            song_id: true,
+            filepath: true
+          }
+        })
+      : []
+    const songById = new Map(songs.map((song) => [song.song_id, song]))
+    const lastPlayedAtByPath = new Map(
+      playHistoryRecords
+        .map((record) => {
+          const filePath = songById.get(record.song_id)?.filepath
+          const lastPlayedAt = record._max?.timestamp
+
+          return filePath && lastPlayedAt ? [filePath, lastPlayedAt.toISOString()] : null
+        })
+        .filter(Boolean)
+    )
+
+    const filePaths = songIds.map((songId) => songById.get(songId)?.filepath).filter(Boolean)
+    const fileInfos = (await getFileInfos(filePaths, { includePicture: false })).map((fileInfo) => ({
+      ...fileInfo,
+      lastPlayedAt: lastPlayedAtByPath.get(fileInfo.filePath) || null
+    }))
+
+    return {
+      fileInfos,
+      page,
+      pageSize,
+      total: totalRecords,
+      maxPages,
+      hasMore: offset + fileInfos.length < totalRecords
+    }
+  } catch (error) {
+    console.error('Error retrieving play history:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+async function getSongHistoryTimeline(request = {}) {
+  const filePath = typeof request?.filePath === 'string' ? request.filePath : ''
+
+  if (!filePath) {
+    return { success: false, error: 'No se recibio una cancion valida.' }
+  }
+
+  try {
+    const songRecord = await prisma.songs.findUnique({
+      where: { filepath: filePath },
       select: {
         song_id: true,
-        timestamp: true, // Incluye el campo timestamp para información adicional
-        Songs: {
-          select: {
-            filepath: true,
-            filename: true
-          }
-        }
+        filepath: true,
+        timestamp: true
       }
     })
 
-    // Extraer canciones según el historial de reproducción
-    const songs = playHistoryRecords.map((record) => record.Songs)
+    if (!songRecord) {
+      return { success: false, error: 'No se encontro esta cancion en la biblioteca.' }
+    }
 
-    // Obtener información adicional de las canciones
-    const filePaths = songs.map((song) => song.filepath)
-    const fileInfos = await getFileInfos(filePaths, { includePicture: false })
+    const historyRecords = await prisma.playHistory.findMany({
+      where: { song_id: songRecord.song_id },
+      orderBy: { timestamp: 'asc' },
+      select: { timestamp: true }
+    })
+    const events = historyRecords
+      .map((record) => record.timestamp?.toISOString?.())
+      .filter(Boolean)
+    const recordsByDay = new Map()
 
-    return { fileInfos, maxPages }
+    for (const eventTimestamp of events) {
+      const dayKey = toDayKey(eventTimestamp)
+
+      if (!dayKey) {
+        continue
+      }
+
+      recordsByDay.set(dayKey, (recordsByDay.get(dayKey) || 0) + 1)
+    }
+
+    const dailyRecords = Array.from(recordsByDay.entries())
+      .map(([date, count]) => ({ date, count }))
+      .sort((left, right) => left.date.localeCompare(right.date))
+    const peakDay =
+      dailyRecords.reduce(
+        (currentPeak, record) => (record.count > currentPeak.count ? record : currentPeak),
+        { date: null, count: 0 }
+      ) || null
+    const fileInfos = await getFileInfos([songRecord.filepath], { includePicture: false })
+
+    return {
+      success: true,
+      song: fileInfos[0] || {
+        song_id: songRecord.song_id,
+        filePath: songRecord.filepath
+      },
+      libraryAddedAt: songRecord.timestamp?.toISOString?.() || null,
+      totalRecords: events.length,
+      firstPlayedAt: events[0] || null,
+      lastPlayedAt: events[events.length - 1] || null,
+      peakDay: peakDay.date ? peakDay : null,
+      dailyRecords,
+      events
+    }
   } catch (error) {
-    console.error('Error retrieving play history:', error)
+    console.error('Error retrieving song history timeline:', error)
     return { success: false, error: error.message }
   }
 }
@@ -572,14 +687,12 @@ async function recordPlaybackStats(payload = {}) {
   const song = await getOrCreateSong(filePath, fileName || '')
   const duration = normalizePlaybackNumber(payload?.duration, Number(song.duration) || 0)
   const activeListeningSeconds = normalizePlaybackNumber(payload?.activeListeningSeconds, 0)
-  const shouldCreateHistory = Boolean(payload?.shortViewAwarded || payload?.longViewAwarded)
-  const isConsecutiveRepeat =
-    eventType === 'playback-finalize' && shouldCreateHistory
-      ? lastRecordedPlaybackSongId === song.song_id
-      : false
+  const countAsRepeat =
+    eventType === 'playback-finalize' && Boolean(payload?.countAsRepeat)
   const updateData = {}
   const createData = { song_id: song.song_id }
   let shouldCreatePlayHistory = false
+  let createdPlayHistoryAt = null
 
   if (eventType === 'skip-award') {
     updateData.skip_count = { increment: 1 }
@@ -591,6 +704,7 @@ async function recordPlaybackStats(payload = {}) {
     updateData.play_count = { increment: 1 }
     createData.short_view_count = 1
     createData.play_count = 1
+    shouldCreatePlayHistory = true
   }
 
   if (eventType === 'long-view-award') {
@@ -603,10 +717,9 @@ async function recordPlaybackStats(payload = {}) {
   if (eventType === 'playback-finalize') {
     updateData.active_listening_seconds = { increment: activeListeningSeconds }
     createData.active_listening_seconds = activeListeningSeconds
-    shouldCreatePlayHistory = shouldCreateHistory
   }
 
-  if (isConsecutiveRepeat) {
+  if (countAsRepeat) {
     updateData.consecutive_repeat_count = { increment: 1 }
     createData.consecutive_repeat_count = 1
   }
@@ -619,17 +732,14 @@ async function recordPlaybackStats(payload = {}) {
     })
 
     if (shouldCreatePlayHistory) {
-      await tx.playHistory.create({
+      const historyRecord = await tx.playHistory.create({
         data: {
           song_id: song.song_id
         }
       })
+      createdPlayHistoryAt = historyRecord.timestamp?.toISOString?.() || null
     }
   })
-
-  if (eventType === 'playback-finalize' && shouldCreateHistory) {
-    lastRecordedPlaybackSongId = song.song_id
-  }
 
   const stats = await prisma.userPreferences.findUnique({
     where: { song_id: song.song_id },
@@ -640,8 +750,11 @@ async function recordPlaybackStats(payload = {}) {
     success: true,
     songId: song.song_id,
     eventType,
-    isConsecutiveRepeat,
-    stats
+    isConsecutiveRepeat: countAsRepeat,
+    stats: {
+      ...stats,
+      ...(createdPlayHistoryAt ? { lastPlayedAt: createdPlayHistoryAt } : {})
+    }
   }
 }
 
@@ -760,6 +873,9 @@ async function searchSongsPage(request = {}) {
         }
       }
     })
+    const lastPlayedAtBySongId = await getLastPlayedAtBySongId(
+      songs.map((song) => song.song_id)
+    )
 
     const matchedSongs = songs
       .map((song) => ({
@@ -812,7 +928,9 @@ async function searchSongsPage(request = {}) {
           active_listening_seconds:
             Number(song.UserPreferences?.[0]?.active_listening_seconds) || 0,
           consecutive_repeat_count:
-            Number(song.UserPreferences?.[0]?.consecutive_repeat_count) || 0
+            Number(song.UserPreferences?.[0]?.consecutive_repeat_count) || 0,
+          liked: Boolean(song.UserPreferences?.[0]?.is_favorite),
+          lastPlayedAt: lastPlayedAtBySongId.get(song.song_id) || null
         }))
       : []
 
@@ -923,6 +1041,10 @@ export function setupLikeSongHandlers() {
 
   ipcMain.handle('get-history', async (event, page) => {
     return getPlayHistoryOrdered(page)
+  })
+
+  ipcMain.handle('history:get-song-timeline', async (event, request) => {
+    return getSongHistoryTimeline(request)
   })
 
   ipcMain.handle('get-recents', async (event) => {

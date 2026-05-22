@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FixedSizeList } from 'react-window'
+import { FixedSizeList, VariableSizeList } from 'react-window'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useMini } from '../../Contexts/MiniContext'
@@ -14,6 +14,8 @@ import './Cola.scss'
 import './VirtualizedCola.scss'
 
 const DEFAULT_ROW_HEIGHT = 75
+const DEFAULT_DATE_HEADER_HEIGHT = 54
+const DEFAULT_HOUR_HEADER_HEIGHT = 38
 const DEFAULT_VIRTUALIZATION_THRESHOLD = 25
 const DEFAULT_OVERSCAN_COUNT = 8
 const DEFAULT_MIN_HEIGHT = 320
@@ -194,6 +196,102 @@ function clearTimer(timerRef) {
   }
 }
 
+function getDateKey(value) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'unknown'
+  }
+
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+function getHourKey(value) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'unknown'
+  }
+
+  return `${date.getHours()}`
+}
+
+function formatDateHeader(value) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Fecha desconocida'
+  }
+
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (getDateKey(date) === getDateKey(today)) {
+    return 'Hoy'
+  }
+
+  if (getDateKey(date) === getDateKey(yesterday)) {
+    return 'Ayer'
+  }
+
+  return new Intl.DateTimeFormat(navigator.language, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(date)
+}
+
+function formatHourHeader(value) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return 'Hora desconocida'
+  }
+
+  return `${date.getHours().toString().padStart(2, '0')}:00`
+}
+
+function buildTimeGroupedRows(list = []) {
+  const rows = []
+  let currentDateKey = ''
+  let currentHourKey = ''
+
+  list.forEach((file, songIndex) => {
+    const lastPlayedAt = file?.lastPlayedAt
+    const dateKey = getDateKey(lastPlayedAt)
+    const hourKey = `${dateKey}-${getHourKey(lastPlayedAt)}`
+
+    if (dateKey !== currentDateKey) {
+      currentDateKey = dateKey
+      currentHourKey = ''
+      rows.push({
+        id: `date-${dateKey}`,
+        type: 'date-header',
+        label: formatDateHeader(lastPlayedAt)
+      })
+    }
+
+    if (hourKey !== currentHourKey) {
+      currentHourKey = hourKey
+      rows.push({
+        id: `hour-${hourKey}`,
+        type: 'hour-header',
+        label: formatHourHeader(lastPlayedAt)
+      })
+    }
+
+    rows.push({
+      id: `song-${file?.filePath || songIndex}`,
+      type: 'song',
+      file,
+      songIndex
+    })
+  })
+
+  return rows
+}
+
 const VirtualSongRow = memo(function VirtualSongRow({ index, style, data }) {
   const file = data.songs[index]
 
@@ -230,6 +328,96 @@ const VirtualSongRow = memo(function VirtualSongRow({ index, style, data }) {
     />
   )
 }, areVirtualRowsEqual)
+
+const TimeGroupedSongRow = memo(function TimeGroupedSongRow({ index, style, data }) {
+  const row = data.groupedRows[index]
+
+  if (!row) {
+    return (
+      <div style={style} className="VirtualizedCola__loader">
+        Loading more tracks...
+      </div>
+    )
+  }
+
+  if (row.type === 'date-header') {
+    return (
+      <div style={style} className="VirtualizedCola__dateHeader">
+        <span>{row.label}</span>
+      </div>
+    )
+  }
+
+  if (row.type === 'hour-header') {
+    return (
+      <div style={style} className="VirtualizedCola__hourHeader">
+        <span>{row.label}</span>
+      </div>
+    )
+  }
+
+  const file = row.file
+  const isActive = data.activeFilePath === file?.filePath
+
+  return (
+    <SongItem
+      style={style}
+      file={file}
+      index={row.songIndex}
+      coverUrl={data.coverUrls[file.filePath] || DEFAULT_COVER}
+      isActive={isActive}
+      isPinned={data.pinnedSongPath === file.filePath}
+      isPinEnabled={data.enablePinMove}
+      isLiked={getLikeValue(data.likesLookup, file)}
+      showInsightValue={data.insightMode}
+      insightValueLabel={data.insightValueResolver?.(file) || ''}
+      menuOptions={data.menuOptions}
+      onPlay={data.onPlay}
+      onToggleLike={data.onToggleLike}
+      onMenuSelect={data.onMenuSelect}
+      onPointerDown={data.onSongPointerDown}
+      onPointerUp={data.onSongPointerUp}
+      onPointerLeave={data.onSongPointerLeave}
+      onPointerCancel={data.onSongPointerCancel}
+    />
+  )
+}, areTimeGroupedRowsEqual)
+
+function areTimeGroupedRowsEqual(prevProps, nextProps) {
+  if (prevProps.index !== nextProps.index || !areStylesEqual(prevProps.style, nextProps.style)) {
+    return false
+  }
+
+  const prevRow = prevProps.data.groupedRows[prevProps.index]
+  const nextRow = nextProps.data.groupedRows[nextProps.index]
+
+  if (prevRow !== nextRow) {
+    return false
+  }
+
+  if (!nextRow || nextRow.type !== 'song') {
+    return true
+  }
+
+  const filePath = nextRow.file?.filePath
+
+  return (
+    prevProps.data.activeFilePath === nextProps.data.activeFilePath &&
+    prevProps.data.coverUrls[filePath] === nextProps.data.coverUrls[filePath] &&
+    getLikeValue(prevProps.data.likesLookup, prevRow.file) ===
+      getLikeValue(nextProps.data.likesLookup, nextRow.file) &&
+    prevProps.data.menuOptions === nextProps.data.menuOptions &&
+    prevProps.data.onPlay === nextProps.data.onPlay &&
+    prevProps.data.onToggleLike === nextProps.data.onToggleLike &&
+    prevProps.data.onMenuSelect === nextProps.data.onMenuSelect &&
+    prevProps.data.onSongPointerDown === nextProps.data.onSongPointerDown &&
+    prevProps.data.onSongPointerUp === nextProps.data.onSongPointerUp &&
+    prevProps.data.onSongPointerLeave === nextProps.data.onSongPointerLeave &&
+    prevProps.data.onSongPointerCancel === nextProps.data.onSongPointerCancel &&
+    prevProps.data.enablePinMove === nextProps.data.enablePinMove &&
+    prevProps.data.pinnedSongPath === nextProps.data.pinnedSongPath
+  )
+}
 
 function areVirtualRowsEqual(prevProps, nextProps) {
   if (prevProps.index !== nextProps.index || !areStylesEqual(prevProps.style, nextProps.style)) {
@@ -280,6 +468,8 @@ export function Cola({
   actions,
   preserveOrder = false,
   onPlayOverride,
+  playbackMode = 'list',
+  groupByTime = false,
   virtualized,
   virtualizationThreshold = DEFAULT_VIRTUALIZATION_THRESHOLD,
   rowHeight = DEFAULT_ROW_HEIGHT,
@@ -346,6 +536,10 @@ export function Cola({
     typeof virtualized === 'boolean'
       ? virtualized
       : displayedList.length >= virtualizationThreshold
+  const groupedRows = useMemo(
+    () => (groupByTime ? buildTimeGroupedRows(displayedList) : []),
+    [displayedList, groupByTime]
+  )
 
   const activeFilePath = currentFile?.filePath ?? null
   const isDirectorySource = typeof name === 'string' && name.startsWith('folder:')
@@ -458,6 +652,11 @@ export function Cola({
         return
       }
 
+      if (playbackMode === 'single') {
+        handleSongClick(file, 0, [file], name)
+        return
+      }
+
       handleSongClick(file, index, displayedList, name)
 
       if (name && !name.startsWith('folder:') && !name.startsWith('/')) {
@@ -472,6 +671,7 @@ export function Cola({
       handleSongClick,
       name,
       onPlayOverride,
+      playbackMode,
       pinnedSongPath
     ]
   )
@@ -558,14 +758,15 @@ export function Cola({
         }
       })
 
+      const loadMoreStartIndex = groupByTime ? groupedRows.length : displayedList.length
       const shouldLoadMore =
-        hasMore && !isLoading && visibleStopIndex >= displayedList.length - LOAD_MORE_THRESHOLD
+        hasMore && !isLoading && visibleStopIndex >= loadMoreStartIndex - LOAD_MORE_THRESHOLD
 
       if (shouldLoadMore) {
         onLoadMore?.()
       }
     },
-    [displayedList.length, hasMore, isLoading, onLoadMore]
+    [displayedList.length, groupByTime, groupedRows.length, hasMore, isLoading, onLoadMore]
   )
 
   const visibleSongs = useMemo(() => {
@@ -577,6 +778,20 @@ export function Cola({
       return displayedList.slice(0, NON_VIRTUALIZED_COVER_LIMIT)
     }
 
+    if (groupByTime) {
+      const start = Math.max(visibleRange.start - overscanCount, 0)
+      const stop = Math.min(visibleRange.stop + overscanCount, groupedRows.length - 1)
+
+      if (stop < start) {
+        return displayedList.slice(0, Math.min(displayedList.length, NON_VIRTUALIZED_COVER_LIMIT))
+      }
+
+      return groupedRows
+        .slice(start, stop + 1)
+        .map((row) => row.type === 'song' ? row.file : null)
+        .filter(Boolean)
+    }
+
     const start = Math.max(visibleRange.start - overscanCount, 0)
     const stop = Math.min(visibleRange.stop + overscanCount, displayedList.length - 1)
 
@@ -585,7 +800,15 @@ export function Cola({
     }
 
     return displayedList.slice(start, stop + 1)
-  }, [displayedList, overscanCount, shouldVirtualize, visibleRange.start, visibleRange.stop])
+  }, [
+    displayedList,
+    groupByTime,
+    groupedRows,
+    overscanCount,
+    shouldVirtualize,
+    visibleRange.start,
+    visibleRange.stop
+  ])
 
   useEffect(() => {
     let isMounted = true
@@ -766,6 +989,7 @@ export function Cola({
       activeFilePath,
       coverUrls,
       enablePinMove: isPinMoveEnabled,
+      groupedRows,
       insightMode,
       insightValueResolver,
       likesLookup,
@@ -784,6 +1008,7 @@ export function Cola({
       activeFilePath,
       coverUrls,
       displayedList,
+      groupedRows,
       isPinMoveEnabled,
       insightMode,
       insightValueResolver,
@@ -801,8 +1026,26 @@ export function Cola({
   )
 
   const fillsParentHeight = shouldFillParentHeight(height)
-  const itemCount = displayedList.length + (hasMore ? 1 : 0)
+  const virtualItemCount = groupByTime ? groupedRows.length : displayedList.length
+  const shouldRenderLoadingRow = hasMore && isLoading
+  const itemCount = virtualItemCount + (shouldRenderLoadingRow ? 1 : 0)
   const listHeight = fillsParentHeight ? measuredHeight : resolveListHeight(height)
+  const getGroupedRowHeight = useCallback(
+    (index) => {
+      const row = groupedRows[index]
+
+      if (row?.type === 'date-header') {
+        return DEFAULT_DATE_HEADER_HEIGHT
+      }
+
+      if (row?.type === 'hour-header') {
+        return DEFAULT_HOUR_HEADER_HEIGHT
+      }
+
+      return rowHeight
+    },
+    [groupedRows, rowHeight]
+  )
 
   return (
     <div
@@ -813,7 +1056,21 @@ export function Cola({
       data-pinned-source={pinnedSourceKey ?? ''}
     >
       {itemCount > 0 ? (
-        shouldVirtualize ? (
+        shouldVirtualize && groupByTime ? (
+          <VariableSizeList
+            className="VirtualizedCola__list VirtualizedCola__list--grouped"
+            height={listHeight}
+            itemCount={itemCount}
+            itemData={itemData}
+            itemKey={(index, data) => data.groupedRows[index]?.id || `loader-${index}`}
+            itemSize={getGroupedRowHeight}
+            onItemsRendered={handleItemsRendered}
+            overscanCount={overscanCount}
+            width="100%"
+          >
+            {TimeGroupedSongRow}
+          </VariableSizeList>
+        ) : shouldVirtualize ? (
           <FixedSizeList
             className="VirtualizedCola__list"
             height={listHeight}

@@ -5,6 +5,7 @@ import {
   buildCollectionSummaryFromFileInfos,
   buildRankingPageFromTracks,
   getFileInfos,
+  processPlaylist,
   resizeCover,
   getCoverFromCache
 } from './utils/utils.mjs'
@@ -52,6 +53,37 @@ const INSIGHT_METRIC_KEYS = {
   accumulatedDuration: 'active_listening_seconds',
   repeats: 'consecutive_repeat_count',
   skips: 'skip_count'
+}
+const FEED_SCOPE_VALUES = new Set(['mixed', 'playlists', 'directories'])
+const FEED_RANKING_TABS = {
+  recent: {
+    metricKey: 'recentActivityAt',
+    direction: 'date'
+  },
+  shortViews: {
+    metricKey: 'totalShortViews',
+    direction: 'number'
+  },
+  longViews: {
+    metricKey: 'totalLongViews',
+    direction: 'number'
+  },
+  duration: {
+    metricKey: 'totalDuration',
+    direction: 'number'
+  },
+  accumulatedDuration: {
+    metricKey: 'totalAccumulatedDuration',
+    direction: 'number'
+  },
+  repeats: {
+    metricKey: 'totalRepeats',
+    direction: 'number'
+  },
+  skips: {
+    metricKey: 'totalSkips',
+    direction: 'number'
+  }
 }
 
 function buildInsightRankingsFromTracks(tracks = [], request = {}) {
@@ -145,6 +177,223 @@ function getPathLeaf(pathValue = '') {
   const normalizedPath = String(pathValue).replace(/\\/g, '/')
   const segments = normalizedPath.split('/').filter(Boolean)
   return segments[segments.length - 1] || normalizedPath
+}
+
+function toNumber(value) {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+function getLatestIsoDate(values = []) {
+  const latestTimestamp = values.reduce((latest, value) => {
+    if (!value) {
+      return latest
+    }
+
+    const timestamp = new Date(value).getTime()
+
+    if (!Number.isFinite(timestamp)) {
+      return latest
+    }
+
+    return Math.max(latest, timestamp)
+  }, 0)
+
+  return latestTimestamp > 0 ? new Date(latestTimestamp).toISOString() : null
+}
+
+function getCollectionRecentActivity(tracks = [], extraDate = null) {
+  return getLatestIsoDate([
+    extraDate,
+    ...tracks.map((track) => track?.lastPlayedAt).filter(Boolean)
+  ])
+}
+
+function normalizeFeedRankingsRequest(request = {}) {
+  const scope = FEED_SCOPE_VALUES.has(request?.scope) ? request.scope : 'mixed'
+
+  return {
+    scope,
+    tabId: typeof request?.tabId === 'string' ? request.tabId : '',
+    page: Math.max(Number(request?.page) || 1, 1),
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 30, 1), 100)
+  }
+}
+
+function buildCollectionEntityRankings(collections = [], request = {}) {
+  const { tabId, page, pageSize } = normalizeFeedRankingsRequest(request)
+  const tabEntries = tabId && FEED_RANKING_TABS[tabId]
+    ? [[tabId, FEED_RANKING_TABS[tabId]]]
+    : Object.entries(FEED_RANKING_TABS)
+
+  return tabEntries.reduce((rankings, [currentTabId, tab]) => {
+    const sortedItems = collections
+      .slice()
+      .sort((left, right) => {
+        const leftValue =
+          tab.direction === 'date'
+            ? new Date(left?.[tab.metricKey] || 0).getTime()
+            : toNumber(left?.[tab.metricKey])
+        const rightValue =
+          tab.direction === 'date'
+            ? new Date(right?.[tab.metricKey] || 0).getTime()
+            : toNumber(right?.[tab.metricKey])
+
+        if (rightValue !== leftValue) {
+          return rightValue - leftValue
+        }
+
+        return String(left?.name || '').localeCompare(String(right?.name || ''), undefined, {
+          sensitivity: 'base'
+        })
+      })
+    const offset = (page - 1) * pageSize
+    const items = sortedItems.slice(offset, offset + pageSize)
+
+    rankings[currentTabId] = {
+      items,
+      page,
+      pageSize,
+      total: sortedItems.length,
+      totalValue: sortedItems.reduce((total, item) => {
+        if (tab.direction === 'date') {
+          return total
+        }
+
+        return total + toNumber(item?.[tab.metricKey])
+      }, 0),
+      hasMore: offset + items.length < sortedItems.length
+    }
+
+    return rankings
+  }, {})
+}
+
+function mapSummaryToCollectionEntity({ type, id, name, sourcePath, tracks, summary, cover, recentActivityAt }) {
+  return {
+    id,
+    type,
+    name,
+    path: sourcePath,
+    cover,
+    totalShortViews: toNumber(summary?.totalShortViews),
+    totalLongViews: toNumber(summary?.totalLongViews),
+    totalDuration: toNumber(summary?.totalDuration),
+    totalAccumulatedDuration: toNumber(summary?.totalAccumulatedDuration),
+    totalRepeats: toNumber(summary?.totalRepeats),
+    totalSkips: toNumber(summary?.totalSkips),
+    recentActivityAt,
+    trackCount: toNumber(summary?.trackCount) || tracks.length
+  }
+}
+
+async function buildDirectoryFeedEntity(directory) {
+  const audioFiles = await getCachedAudioFiles(directory.path)
+  const tracks = await getFileInfos(Array.from(new Set(audioFiles)), { includePicture: false })
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  const summary = buildCollectionSummaryFromFileInfos(tracks, {
+    sourcePath: directory.path,
+    cover
+  })
+
+  return mapSummaryToCollectionEntity({
+    type: 'directory',
+    id: `directory:${directory.id}`,
+    name: getPathLeaf(directory.path),
+    sourcePath: directory.path,
+    tracks,
+    summary,
+    cover,
+    recentActivityAt: getCollectionRecentActivity(tracks)
+  })
+}
+
+async function buildPlaylistFeedEntity(playlist, lastOpenedAt = null) {
+  const baseDir = path.dirname(playlist.path)
+  const tracks = (await processPlaylist(playlist.path, baseDir)).map((song) => ({
+    ...song,
+    picture: undefined
+  }))
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  const summary = buildCollectionSummaryFromFileInfos(tracks, {
+    sourcePath: playlist.path,
+    cover
+  })
+
+  return mapSummaryToCollectionEntity({
+    type: 'playlist',
+    id: `playlist:${playlist.id}`,
+    name: playlist.nombre || getPathLeaf(playlist.path),
+    sourcePath: playlist.path,
+    tracks,
+    summary,
+    cover,
+    recentActivityAt: getCollectionRecentActivity(tracks, lastOpenedAt)
+  })
+}
+
+async function getPlaylistHistoryDatesById(playlistIds = []) {
+  if (!playlistIds.length) {
+    return new Map()
+  }
+
+  const historyRecords = await prisma.historial.groupBy({
+    by: ['playlistId'],
+    where: {
+      playlistId: {
+        in: playlistIds
+      }
+    },
+    _max: {
+      playedAt: true
+    }
+  })
+
+  return new Map(
+    historyRecords
+      .map((record) => {
+        const playedAt = record._max?.playedAt
+        return playedAt ? [record.playlistId, playedAt.toISOString()] : null
+      })
+      .filter(Boolean)
+  )
+}
+
+async function getFeedCollectionRankings(request = {}) {
+  const normalizedRequest = normalizeFeedRankingsRequest(request)
+  const shouldLoadPlaylists =
+    normalizedRequest.scope === 'mixed' || normalizedRequest.scope === 'playlists'
+  const shouldLoadDirectories =
+    normalizedRequest.scope === 'mixed' || normalizedRequest.scope === 'directories'
+  const collections = []
+
+  if (shouldLoadPlaylists) {
+    const playlists = await prisma.playlist.findMany()
+    const lastOpenedAtByPlaylistId = await getPlaylistHistoryDatesById(
+      playlists.map((playlist) => playlist.id)
+    )
+    const playlistEntities = await Promise.all(
+      playlists.map((playlist) =>
+        buildPlaylistFeedEntity(playlist, lastOpenedAtByPlaylistId.get(playlist.id) || null)
+      )
+    )
+    collections.push(...playlistEntities)
+  }
+
+  if (shouldLoadDirectories) {
+    const directories = await prisma.directory.findMany()
+    const directoryEntities = await Promise.all(
+      directories.map((directory) => buildDirectoryFeedEntity(directory))
+    )
+    collections.push(...directoryEntities)
+  }
+
+  return {
+    success: true,
+    scope: normalizedRequest.scope,
+    total: collections.length,
+    rankings: buildCollectionEntityRankings(collections, normalizedRequest)
+  }
 }
 
 async function getDirectoryDetail(directoryPath) {
@@ -607,6 +856,15 @@ export function setupFilehandlers() {
     } catch (error) {
       console.error('Error retrieving playlist edit payload:', error)
       return { success: false, error: error.message || 'No se pudo cargar la playlist.' }
+    }
+  })
+
+  ipcMain.handle('feed:get-collection-rankings', async (_, request) => {
+    try {
+      return await getFeedCollectionRankings(request)
+    } catch (error) {
+      console.error('Error retrieving feed collection rankings:', error)
+      return { success: false, error: error.message || 'No se pudo cargar el feed.' }
     }
   })
 

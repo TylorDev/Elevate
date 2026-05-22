@@ -8,12 +8,20 @@
   max-width: 1200px;
   margin: 0 auto;
   height: 100%;
-  overflow-y: auto;
+  overflow: hidden;
+  background-color: $background;
 
   .history-header {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+
+    .history-header__top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
 
     .title-group {
       display: flex;
@@ -39,79 +47,55 @@
       color: rgba(255, 255, 255, 0.4);
       margin-left: 3.2rem;
     }
-  }
 
-  .history-content {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .history-footer {
-    padding: 2rem 0;
-    display: flex;
-    justify-content: center;
-
-    .pagination-container {
-      display: flex;
+    .history-refresh-btn {
+      display: inline-flex;
       align-items: center;
-      gap: 1.5rem;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 0.5rem;
+      justify-content: center;
+      width: 2.6rem;
+      height: 2.6rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: $border-radius;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-
-    }
-
-    .pagination-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 0.6rem 1.2rem;
-      border: none;
-      background: transparent;
+      background: rgba(255, 255, 255, 0.04);
       color: $text-primary;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border-radius: $border-radius;
       cursor: pointer;
-
+      transition:
+        background 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
 
       &:hover:not(:disabled) {
         background: $hover;
+        border-color: color-mix(in srgb, $primary-color 42%, rgba(255, 255, 255, 0.12));
+        color: $primary-color;
         transform: translateY(-1px);
       }
 
       &:disabled {
-        opacity: 0.3;
+        opacity: 0.55;
         cursor: not-allowed;
+
+        svg {
+          animation: history-refresh-spin 900ms linear infinite;
+        }
       }
 
       svg {
         font-size: 1.1rem;
       }
     }
+  }
 
-    .pagination-info {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: var(--font-main);
-      font-weight: 700;
-
-      .current {
-        color: $primary-color;
-        font-size: 1.1rem;
-      }
-
-      .separator {
-        color: rgba(255, 255, 255, 0.2);
-      }
-
-      .total {
-        color: rgba(255, 255, 255, 0.5);
-        font-size: 0.9rem;
-      }
-    }
+  .history-content {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 
+@keyframes history-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

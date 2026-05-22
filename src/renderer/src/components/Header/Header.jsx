@@ -33,16 +33,15 @@ const Header = memo(function Header() {
             <LuChartColumnIncreasing />
           </NavLink>
 
-          <NavLink to="/history" className={getActiveClass} title="History">
-            <LuCalendarDays />
-          </NavLink>
-
           <NavLink to="/favourites" className={getActiveClass} title="Favorites">
             <LuHeart />
           </NavLink>
 
           <NavLink to="/settings" className={getActiveClass} title="Settings">
             <LuSlidersHorizontal />
+          </NavLink>
+          <NavLink to="/history" className={getActiveClass} title="History">
+            <LuCalendarDays />
           </NavLink>
         </div>
       </div>
