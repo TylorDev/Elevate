@@ -22,7 +22,7 @@
     }
 
     &::-webkit-scrollbar-track {
-        background: transparent;
+        background: $background;
     }
 
     &::-webkit-scrollbar-thumb {
@@ -39,7 +39,7 @@
 // Estilos globales de scrollbar para todos los contenedores
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: rgba(255, 255, 255, 0.1) $background;
 
     &::-webkit-scrollbar {
         width: 6px;
@@ -74,7 +74,7 @@ body {
     height: 100vh;
 
     overflow: hidden;
-    background-color:$background;
+    background-color: $background;
     border: 5px solod red;
 }
 
@@ -91,10 +91,3 @@ body {
     background-color: transparent;
 
 }
-
-
-
-
-
-
-

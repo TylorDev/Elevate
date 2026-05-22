@@ -13,7 +13,7 @@ import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
 import './VirtualizedCola.scss'
 
-const DEFAULT_ROW_HEIGHT = 65
+const DEFAULT_ROW_HEIGHT = 75
 const DEFAULT_VIRTUALIZATION_THRESHOLD = 25
 const DEFAULT_OVERSCAN_COUNT = 8
 const DEFAULT_MIN_HEIGHT = 320
@@ -261,7 +261,7 @@ function areVirtualRowsEqual(prevProps, nextProps) {
     prevProps.data.coverUrls[filePath] === nextProps.data.coverUrls[filePath] &&
     getLikeValue(prevProps.data.likesLookup, prevFile) === getLikeValue(nextProps.data.likesLookup, nextFile) &&
     (prevProps.data.insightValueResolver?.(prevFile) || '') ===
-      (nextProps.data.insightValueResolver?.(nextFile) || '') &&
+    (nextProps.data.insightValueResolver?.(nextFile) || '') &&
     prevProps.data.menuOptions === nextProps.data.menuOptions &&
     prevProps.data.onPlay === nextProps.data.onPlay &&
     prevProps.data.onToggleLike === nextProps.data.onToggleLike &&

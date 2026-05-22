@@ -1,15 +1,14 @@
 :root {
-    --Card: #171717;
+    --Card: #111111;
     --Dynamic-color: #baff00;
     --text-secondary: #646464;
     --secondary: #363636;
-    --background:#0A0A0A;
- 
-
+    --background: #0A0A0A;
+    --activeIcon: black;
     /* ── States ── */
     --hover: #272727;
-    --selected:#505050;
-    --primary-text:oklch(98.511% 0.00011 271.152);
+    --selected: #505050;
+    --primary-text: oklch(98.511% 0.00011 271.152);
 
     /* ── Typography ── */
     --font-main: 'Geist Sans', 'Inter', system-ui, -apple-system, sans-serif;
@@ -36,7 +35,7 @@
     --fw-semibold: 600;
     --fw-bold: 700;
     --fw-extrabold: 800;
-    
+
 }
 
 $card: var(--Card);
@@ -48,4 +47,5 @@ $background: var(--background);
 $hover: var(--hover);
 $selected: var(--selected);
 $highlight: var(--highlight);
+$activeIcon: var(--activeIcon);
 $border-radius: 3px;

@@ -73,13 +73,6 @@ function Settings() {
   const { openM3U } = usePlaylists()
 
   const [activeTab, setActiveTab] = useState('library')
-  const [imageUrl, setImageUrl] = useState(null)
-
-  const [bannerDraft, setBannerDraft] = useState('')
-  const [isBannerValidating, setIsBannerValidating] = useState(false)
-  const [bannerError, setBannerError] = useState(null)
-  const [bannerSuccess, setBannerSuccess] = useState(null)
-
   const [bgDraft, setBgDraft] = useState('')
   const [isBgValidating, setIsBgValidating] = useState(false)
   const [bgError, setBgError] = useState(null)
@@ -90,61 +83,8 @@ function Settings() {
   }, [])
 
   useEffect(() => {
-    const savedImageUrl = localStorage.getItem('bannerImageUrl')
-    if (savedImageUrl) {
-      setImageUrl(savedImageUrl)
-      if (!savedImageUrl.startsWith('data:')) {
-        setBannerDraft(savedImageUrl)
-      }
-    } else {
-      const defaultUrl =
-        'https://i.pinimg.com/originals/65/ff/25/65ff25ffbe3786b2de094f7051bbd873.gif'
-      setImageUrl(defaultUrl)
-      setBannerDraft(defaultUrl)
-    }
-  }, [])
-
-  useEffect(() => {
     setBgDraft(getBackgroundDraftValue(currentBackground))
   }, [currentBackground])
-
-  const validateAndApplyBannerImage = async (url) => {
-    if (!url) return
-
-    setIsBannerValidating(true)
-    setBannerError(null)
-    setBannerSuccess(null)
-
-    if (url.startsWith('data:')) {
-      if (url.includes(';base64,')) {
-        setImageUrl(url)
-        localStorage.setItem('bannerImageUrl', url)
-        setBannerSuccess('Imagen base64 aplicada')
-        setIsBannerValidating(false)
-        return
-      }
-
-      setBannerError('Formato Base64 inválido')
-      setIsBannerValidating(false)
-      return
-    }
-
-    try {
-      const result = await window.electron.imageSources.validateRemote(url)
-      if (result.success) {
-        setImageUrl(result.resolvedUrl)
-        localStorage.setItem('bannerImageUrl', result.resolvedUrl)
-        setBannerSuccess('Imagen cargada con éxito')
-      } else {
-        setBannerError(result.errorMessage)
-      }
-    } catch (error) {
-      console.error('Error validating banner image:', error)
-      setBannerError('Error al validar la imagen')
-    } finally {
-      setIsBannerValidating(false)
-    }
-  }
 
   const applyBackgroundDraft = async () => {
     if (!bgDraft?.trim()) return
@@ -157,7 +97,7 @@ function Settings() {
       const result = await applyRemoteBackground(bgDraft.trim())
       if (result?.success) {
         setBgDraft(getBackgroundDraftValue(result.current) || bgDraft.trim())
-        setBgSuccess('Imagen cargada con éxito')
+        setBgSuccess('Imagen cargada con exito')
       } else if (result?.errorCode !== 'canceled') {
         setBgError(result?.errorMessage || 'No se pudo aplicar la imagen')
       }
@@ -169,59 +109,28 @@ function Settings() {
     }
   }
 
-  const pickLocalImage = async (type) => {
-    if (type === 'background') {
-      setIsBgValidating(true)
-      setBgError(null)
-      setBgSuccess(null)
-
-      try {
-        const result = await pickLocalBackground()
-        if (result?.success) {
-          setBgDraft(getBackgroundDraftValue(result.current))
-          setBgSuccess('Imagen cargada con éxito')
-        } else if (result?.errorCode !== 'canceled') {
-          setBgError(result?.errorMessage || 'No se pudo cargar la imagen')
-        }
-      } catch (error) {
-        console.error('Error picking local background:', error)
-        setBgError('Error al seleccionar la imagen')
-      } finally {
-        setIsBgValidating(false)
-      }
-
-      return
-    }
-
-    setBannerError(null)
-    setBannerSuccess(null)
+  const pickLocalImage = async () => {
+    setIsBgValidating(true)
+    setBgError(null)
+    setBgSuccess(null)
 
     try {
-      const result = await window.electron.imageSources.pickLocal()
-      if (result.success) {
-        setImageUrl(result.resolvedUrl)
-        localStorage.setItem('bannerImageUrl', result.resolvedUrl)
-        setBannerDraft(result.filePath || '')
-        setBannerSuccess('Imagen cargada con éxito')
-      } else if (result.errorCode !== 'canceled') {
-        setBannerError(result.errorMessage)
+      const result = await pickLocalBackground()
+      if (result?.success) {
+        setBgDraft(getBackgroundDraftValue(result.current))
+        setBgSuccess('Imagen cargada con exito')
+      } else if (result?.errorCode !== 'canceled') {
+        setBgError(result?.errorMessage || 'No se pudo cargar la imagen')
       }
     } catch (error) {
-      console.error('Error picking local image:', error)
-      setBannerError('Error al seleccionar la imagen')
+      console.error('Error picking local background:', error)
+      setBgError('Error al seleccionar la imagen')
+    } finally {
+      setIsBgValidating(false)
     }
   }
 
-  const clearImage = (type) => {
-    if (type === 'banner') {
-      setImageUrl('')
-      setBannerDraft('')
-      setBannerError(null)
-      setBannerSuccess(null)
-      localStorage.removeItem('bannerImageUrl')
-      return
-    }
-
+  const clearImage = () => {
     void (async () => {
       setBgError(null)
       setBgSuccess(null)
@@ -245,7 +154,7 @@ function Settings() {
       const result = await selectBackgroundFromHistory(itemId)
       if (result?.success) {
         setBgDraft(getBackgroundDraftValue(result.current))
-        setBgSuccess('Imagen reutilizada con éxito')
+        setBgSuccess('Imagen reutilizada con exito')
       } else {
         setBgError(result?.errorMessage || 'No se pudo reutilizar la imagen')
       }
@@ -276,10 +185,6 @@ function Settings() {
 
   return (
     <div className="Settings">
-      <div className="settings-header">
-        <h1>Settings</h1>
-      </div>
-
       <nav className="settings-tabs">
         {TABS.map((tab) => (
           <button
@@ -359,8 +264,8 @@ function Settings() {
                     <div className="directory-meta">
                       <span className="directory-path">{dir.path}</span>
                       <span className="directory-stats">
-                        {dir.totalTracks ?? '—'} tracks ·{' '}
-                        {dir.totalDuration ? `${Math.floor(dir.totalDuration / 60)} min` : '—'}
+                        {dir.totalTracks ?? '-'} tracks ·{' '}
+                        {dir.totalDuration ? `${Math.floor(dir.totalDuration / 60)} min` : '-'}
                       </span>
                     </div>
                   </div>
@@ -394,48 +299,6 @@ function Settings() {
               <LuSparkles />
               <span>Auto cover color</span>
             </button>
-
-            <div className="input-group">
-              <label>Banner Image</label>
-              <div className="input-row">
-                <input
-                  type="text"
-                  value={bannerDraft}
-                  onChange={(event) => setBannerDraft(event.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                  className="settings-input"
-                />
-                <button
-                  className="settings-action-btn s-btn"
-                  onClick={() => validateAndApplyBannerImage(bannerDraft)}
-                  disabled={isBannerValidating}
-                >
-                  {isBannerValidating ? '...' : 'Apply'}
-                </button>
-                <button
-                  className="settings-action-btn s-btn"
-                  onClick={() => pickLocalImage('banner')}
-                >
-                  <LuImage />
-                  <span>Local</span>
-                </button>
-                <button
-                  className="settings-icon-btn danger"
-                  onClick={() => clearImage('banner')}
-                  title="Clear"
-                >
-                  <LuTrash2 />
-                </button>
-              </div>
-              {bannerError && <span className="settings-error">{bannerError}</span>}
-              {bannerSuccess && <span className="settings-success">{bannerSuccess}</span>}
-            </div>
-
-            {imageUrl && (
-              <div className="image-preview">
-                <img src={imageUrl} alt="Banner preview" />
-              </div>
-            )}
           </section>
         )}
 
@@ -464,7 +327,7 @@ function Settings() {
                 </button>
                 <button
                   className="settings-action-btn s-btn"
-                  onClick={() => pickLocalImage('background')}
+                  onClick={pickLocalImage}
                   disabled={isBgValidating || backgroundLoading}
                 >
                   <LuImage />
@@ -472,7 +335,7 @@ function Settings() {
                 </button>
                 <button
                   className="settings-icon-btn danger"
-                  onClick={() => clearImage('background')}
+                  onClick={clearImage}
                   title="Clear"
                   disabled={backgroundLoading}
                 >

@@ -8,7 +8,7 @@
     height: 100%;
     width: 3.5rem;
     background: $card;
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    border-right: 1px solid $secondary;
     padding: 1.5rem 0;
 
 
@@ -40,24 +40,24 @@
         justify-content: center;
         position: relative;
         overflow: hidden;
-      
+
 
         svg {
             font-size: 1.1rem;
             min-width: 1.1rem;
-            
+
         }
 
         &:hover {
-            color:$primary-color;
+            color: $primary-color;
             background: $hover;
         }
 
         &.activo {
-            color: $text-primary;
+            color: $activeIcon;
             background: $primary-color;
 
-          
+
         }
     }
 }

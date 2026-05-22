@@ -173,70 +173,6 @@
   }
 }
 
-.collection-summary {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.9rem;
-  margin-top: 1.2rem;
-}
-
-.collection-summary-card {
-  display: grid;
-  gap: 0.55rem;
-  padding: 1rem;
-  border: 1px solid var(--collection-line);
-  border-radius: $border-radius;
-  background: rgba(10, 12, 12, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-  &__icon {
-    font-size: 1.1rem;
-  }
-
-  &__label {
-    color: var(--collection-muted);
-    font-size: 0.76rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  &__value {
-    font-size: 1.1rem;
-    line-height: 1.25;
-  }
-
-  &.tone-acid .collection-summary-card__icon,
-  &.tone-acid .collection-summary-card__value {
-    color: #baff00;
-  }
-
-  &.tone-gold .collection-summary-card__icon,
-  &.tone-gold .collection-summary-card__value {
-    color: #ffd166;
-  }
-
-  &.tone-blue .collection-summary-card__icon,
-  &.tone-blue .collection-summary-card__value {
-    color: #66d9ff;
-  }
-
-  &.tone-violet .collection-summary-card__icon,
-  &.tone-violet .collection-summary-card__value {
-    color: #d6a5ff;
-  }
-
-  &.tone-rose .collection-summary-card__icon,
-  &.tone-rose .collection-summary-card__value {
-    color: #ff7fb6;
-  }
-
-  &.tone-ash .collection-summary-card__icon,
-  &.tone-ash .collection-summary-card__value {
-    color: #d7dbdd;
-  }
-}
-
 .collection-tracklist {
   margin-top: 1.2rem;
   border: 1px solid var(--collection-line);
@@ -273,12 +209,6 @@
   }
 }
 
-@media (max-width: 1180px) {
-  .collection-summary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 860px) {
   .collection-hero {
     grid-template-columns: 1fr;
@@ -287,19 +217,11 @@
   .collection-hero__media {
     max-width: 220px;
   }
-
-  .collection-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 560px) {
   .collection-page {
     padding: 1rem;
-  }
-
-  .collection-summary {
-    grid-template-columns: 1fr;
   }
 
   .collection-hero__actions {

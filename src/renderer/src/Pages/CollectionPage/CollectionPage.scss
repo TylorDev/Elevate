@@ -2,13 +2,23 @@
   --collection-line: rgba(255, 255, 255, 0.11);
   --collection-ink: rgba(255, 255, 255, 0.94);
   --collection-muted: rgba(255, 255, 255, 0.58);
-  min-height: 100%;
-  padding: clamp(1.2rem, 3vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 0.5rem;
+  overflow: hidden;
+  background-color: $background;
   color: var(--collection-ink);
 }
 
 .collection-page--loading {
   display: flex;
+  flex: 1;
+  min-height: 0;
   align-items: center;
   justify-content: center;
 }
@@ -44,201 +54,9 @@
   cursor: pointer;
 }
 
-.collection-hero {
-  position: relative;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: clamp(1.2rem, 3vw, 2rem);
-  padding: clamp(1.2rem, 3vw, 2rem);
-  border: 1px solid var(--collection-line);
-  border-radius: $border-radius;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 12% 10%, rgba(186, 255, 0, 0.18), transparent 26%),
-    radial-gradient(circle at 90% 18%, rgba(255, 112, 166, 0.12), transparent 24%),
-    linear-gradient(135deg, rgba(8, 10, 10, 0.96), rgba(20, 23, 21, 0.82));
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
-}
-
-.collection-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: 0.16;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
-  background-size: 34px 34px;
-  mask-image: linear-gradient(130deg, #000, transparent 75%);
-  pointer-events: none;
-}
-
-.collection-hero__media {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 280px;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-radius: $border-radius;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.35);
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-}
-
-.collection-hero__placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(186, 255, 0, 0.8);
-  font-size: 4rem;
-}
-
-.collection-hero__body {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
-}
-
-.collection-hero__eyebrow {
-  display: inline-flex;
-  width: fit-content;
-  padding: 0.4rem 0.7rem;
-  border-radius: $border-radius;
-  background: rgba(186, 255, 0, 0.12);
-  color: rgba(186, 255, 0, 0.86);
-  font-size: 0.75rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.collection-hero h1 {
-  margin: 0;
-  font-family: 'UnifrakturCook', serif;
-  font-size: clamp(2.6rem, 8vw, 5.8rem);
-  line-height: 0.9;
-  text-shadow: 0 0 28px rgba(186, 255, 0, 0.18);
-}
-
-.collection-hero__path {
-  margin: 0;
-  color: var(--collection-muted);
-  font-size: 0.96rem;
-  line-height: 1.65;
-  word-break: break-word;
-}
-
-.collection-hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-
-  span {
-    display: inline-flex;
-    align-items: center;
-    min-height: 34px;
-    padding: 0 0.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: $border-radius;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-}
-
-.collection-hero__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  margin-top: auto;
-
-  #Button {
-    min-width: 52px;
-    min-height: 52px;
-    border-radius: $border-radius;
-  }
-}
-
-.collection-summary {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.9rem;
-  margin-top: 1.2rem;
-}
-
-.collection-summary-card {
-  display: grid;
-  gap: 0.55rem;
-  padding: 1rem;
-  border: 1px solid var(--collection-line);
-  border-radius: $border-radius;
-  background: rgba(10, 12, 12, 0.72);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-  &__icon {
-    font-size: 1.1rem;
-  }
-
-  &__label {
-    color: var(--collection-muted);
-    font-size: 0.76rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  &__value {
-    font-size: 1.1rem;
-    line-height: 1.25;
-  }
-
-  &.tone-acid .collection-summary-card__icon,
-  &.tone-acid .collection-summary-card__value {
-    color: #baff00;
-  }
-
-  &.tone-gold .collection-summary-card__icon,
-  &.tone-gold .collection-summary-card__value {
-    color: #ffd166;
-  }
-
-  &.tone-blue .collection-summary-card__icon,
-  &.tone-blue .collection-summary-card__value {
-    color: #66d9ff;
-  }
-
-  &.tone-violet .collection-summary-card__icon,
-  &.tone-violet .collection-summary-card__value {
-    color: #d6a5ff;
-  }
-
-  &.tone-rose .collection-summary-card__icon,
-  &.tone-rose .collection-summary-card__value {
-    color: #ff7fb6;
-  }
-
-  &.tone-ash .collection-summary-card__icon,
-  &.tone-ash .collection-summary-card__value {
-    color: #d7dbdd;
-  }
-}
-
 .collection-tracklist {
-  margin-top: 1.2rem;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--collection-line);
   border-radius: $border-radius;
   overflow: hidden;

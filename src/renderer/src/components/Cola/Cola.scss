@@ -3,6 +3,7 @@
     height: 100%;
     flex: 1;
     min-height: 0;
+
 }
 
 #Button.Decendente {
@@ -22,6 +23,7 @@
     padding: 0;
     margin: 0;
     width: 100%;
+
 }
 
 .Cola__list--scrollable {
@@ -29,9 +31,10 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+
 }
 
 .Cola__list--sortable {
     touch-action: none;
 }
-

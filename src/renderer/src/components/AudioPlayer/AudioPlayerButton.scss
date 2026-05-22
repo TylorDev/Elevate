@@ -35,7 +35,7 @@
 
     &--play {
         background-color: $primary-color;
-        color: $card;
+        color: $activeIcon;
         width: 2.75rem;
         height: 2.75rem;
         border-radius: 50%;
@@ -46,11 +46,13 @@
 
         &:active {
             transform: scale(0.95);
+
         }
 
         svg {
             font-size: 1.5rem;
-            fill: currentColor;
+            color: $activeIcon;
+            fill: $activeIcon;
         }
     }
 
@@ -78,4 +80,3 @@
         }
     }
 }
-

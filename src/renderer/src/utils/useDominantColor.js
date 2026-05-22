@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react'
 
-const FALLBACK = { hex: '#baff00', rgb: '186, 255, 0' }
+const LIGHT_CONTRAST = { hex: '#ffffff', rgb: '255, 255, 255' }
+const DARK_CONTRAST = { hex: '#000000', rgb: '0, 0, 0' }
+const FALLBACK = {
+  hex: '#baff00',
+  rgb: '186, 255, 0',
+  contrastHex: DARK_CONTRAST.hex,
+  contrastRgb: DARK_CONTRAST.rgb
+}
 const PLACEHOLDER_SVG = 'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22128%22 height=%22128%22 viewBox=%220 0 128 128%22%3E%3Crect width=%22128%22 height=%22128%22 fill=%22%23141414%22/%3E%3Cpath d=%22M45 84V35h42v49%22 fill=%22none%22 stroke=%22%23baff00%22 stroke-width=%228%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3Ccircle cx=%2238%22 cy=%2287%22 r=%2213%22 fill=%22%23baff00%22/%3E%3Ccircle cx=%2280%22 cy=%2287%22 r=%2213%22 fill=%22%23baff00%22/%3E%3C/svg%3E'
 const CACHE = new Map()
-const SAMPLE_SIZE = 32
+const SAMPLE_SIZE = 48
+const SAMPLE_BORDER_INSET = 4
 const COLOR_BUCKET_SIZE = 24
 const MIN_VISIBLE_SATURATION = 0.18
 const MIN_COLORFUL_SATURATION = 0.22
 const MAX_NEUTRAL_CHANNEL_DELTA = 18
-const MIN_ACCEPTABLE_LIGHTNESS = 0.08
-const MAX_ACCEPTABLE_LIGHTNESS = 0.92
 
 export async function extractDominantColor(src, cacheKey = src) {
   if (!src || src === PLACEHOLDER_SVG) return FALLBACK
@@ -53,6 +59,12 @@ function collectCandidateBuckets(data) {
   const buckets = new Map()
 
   for (let i = 0; i < data.length; i += 4) {
+    const pixelIndex = i / 4
+    const x = pixelIndex % SAMPLE_SIZE
+    const y = Math.floor(pixelIndex / SAMPLE_SIZE)
+
+    if (isBorderSample(x, y)) continue
+
     const alpha = data[i + 3]
     if (alpha < 180) continue
 
@@ -61,17 +73,15 @@ function collectCandidateBuckets(data) {
     const b = data[i + 2]
     const { s, l } = rgbToHsl(r, g, b)
 
-    if (l < MIN_ACCEPTABLE_LIGHTNESS || l > MAX_ACCEPTABLE_LIGHTNESS) continue
-
     const bucketKey = [
       quantizeChannel(r),
       quantizeChannel(g),
       quantizeChannel(b)
     ].join(',')
 
-    const lightnessScore = 1 - Math.abs(l - 0.55)
-    const saturationScore = clamp(Math.max(0.12, s), 0.12, 1)
-    const weight = saturationScore * saturationScore * clamp(lightnessScore, 0.1, 1)
+    const edgeDistanceScore = clamp(Math.min(l, 1 - l) / 0.34, 0.08, 1)
+    const saturationScore = clamp(0.35 + s * 1.65, 0.35, 2)
+    const weight = saturationScore * edgeDistanceScore
 
     if (!buckets.has(bucketKey)) {
       buckets.set(bucketKey, {
@@ -98,6 +108,9 @@ function collectCandidateBuckets(data) {
       const g = Math.round(bucket.g / bucket.totalWeight)
       const b = Math.round(bucket.b / bucket.totalWeight)
       const { h, s, l } = rgbToHsl(r, g, b)
+      const baseScore = bucket.totalWeight * (1 + bucket.pixelCount / 12)
+      const colorfulnessScore = clamp(s * 1.8, 0, 1.6)
+      const lightnessUsabilityScore = clamp(Math.min(l, 1 - l) / 0.28, 0.18, 1)
 
       return {
         r,
@@ -106,19 +119,20 @@ function collectCandidateBuckets(data) {
         h,
         s,
         l,
-        score: bucket.totalWeight * (1 + bucket.pixelCount / 12)
+        score: baseScore,
+        colorfulScore: baseScore * (1 + colorfulnessScore) * lightnessUsabilityScore
       }
     })
     .sort((left, right) => right.score - left.score)
 }
 
 function pickBestCandidate(candidates) {
-  for (const candidate of candidates) {
-    if (isNeutralCandidate(candidate)) {
-      continue
-    }
+  const colorfulCandidate = candidates
+    .filter((candidate) => !isNeutralCandidate(candidate))
+    .sort((left, right) => right.colorfulScore - left.colorfulScore)[0]
 
-    return boostCandidate(candidate)
+  if (colorfulCandidate) {
+    return boostColorfulCandidate(colorfulCandidate)
   }
 
   return null
@@ -129,20 +143,19 @@ function isNeutralCandidate({ r, g, b, s, l }) {
 
   if (s < MIN_VISIBLE_SATURATION) return true
   if (channelDelta < MAX_NEUTRAL_CHANNEL_DELTA) return true
-  if (l < MIN_ACCEPTABLE_LIGHTNESS || l > MAX_ACCEPTABLE_LIGHTNESS) return true
   if (s < MIN_COLORFUL_SATURATION && channelDelta < MAX_NEUTRAL_CHANNEL_DELTA * 1.8) return true
 
   return false
 }
 
-function boostCandidate({ h, s, l }) {
-  const boostedS = clamp(s * 1.9 + 0.18, 0.58, 0.92)
-  const boostedL = clamp(l < 0.42 ? l + 0.16 : l, 0.46, 0.64)
+function boostColorfulCandidate({ h, s, l }) {
+  const boostedS = clamp(s * 1.35 + 0.08, Math.max(s, 0.35), 0.9)
+  const boostedL = clamp(l < 0.18 ? 0.22 : l > 0.84 ? 0.78 : l, 0.18, 0.82)
   let { r, g, b } = hslToRgb(h, boostedS, boostedL)
 
   const brightness = (r * 299 + g * 587 + b * 114) / 1000
-  if (brightness < 90) {
-    const lift = 90 - brightness
+  if (brightness < 56) {
+    const lift = 56 - brightness
     r = Math.min(255, Math.round(r + lift))
     g = Math.min(255, Math.round(g + lift))
     b = Math.min(255, Math.round(b + lift))
@@ -152,15 +165,110 @@ function boostCandidate({ h, s, l }) {
 }
 
 function formatColorResult({ r, g, b }) {
-  return { hex: `rgb(${r}, ${g}, ${b})`, rgb: `${r}, ${g}, ${b}` }
+  const contrastColor = getContrastColor(r, g, b)
+
+  return {
+    hex: `rgb(${r}, ${g}, ${b})`,
+    rgb: `${r}, ${g}, ${b}`,
+    contrastHex: contrastColor.hex,
+    contrastRgb: contrastColor.rgb
+  }
 }
 
 function quantizeChannel(value) {
   return Math.round(value / COLOR_BUCKET_SIZE) * COLOR_BUCKET_SIZE
 }
 
+function isBorderSample(x, y) {
+  return (
+    x < SAMPLE_BORDER_INSET ||
+    y < SAMPLE_BORDER_INSET ||
+    x >= SAMPLE_SIZE - SAMPLE_BORDER_INSET ||
+    y >= SAMPLE_SIZE - SAMPLE_BORDER_INSET
+  )
+}
+
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
+}
+
+function getRelativeLuminance(r, g, b) {
+  const [normalizedR, normalizedG, normalizedB] = [r, g, b].map((channel) => {
+    const normalized = channel / 255
+    return normalized <= 0.03928
+      ? normalized / 12.92
+      : ((normalized + 0.055) / 1.055) ** 2.4
+  })
+
+  return 0.2126 * normalizedR + 0.7152 * normalizedG + 0.0722 * normalizedB
+}
+
+function getContrastColor(r, g, b) {
+  const luminance = getRelativeLuminance(r, g, b)
+  const contrastAgainstBlack = getContrastRatio(luminance, 0)
+  const contrastAgainstWhite = getContrastRatio(luminance, 1)
+
+  return contrastAgainstBlack >= contrastAgainstWhite ? DARK_CONTRAST : LIGHT_CONTRAST
+}
+
+function getContrastRatio(firstLuminance, secondLuminance) {
+  const lighter = Math.max(firstLuminance, secondLuminance)
+  const darker = Math.min(firstLuminance, secondLuminance)
+
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+export function getContrastColorForBackground(color) {
+  if (!color || typeof color !== 'string') {
+    return FALLBACK.contrastHex
+  }
+
+  const parsed = parseColorString(color)
+  if (!parsed) {
+    return FALLBACK.contrastHex
+  }
+
+  return getContrastColor(parsed.r, parsed.g, parsed.b).hex
+}
+
+function parseColorString(color) {
+  const normalized = color.trim()
+
+  if (normalized.startsWith('#')) {
+    return parseHexColor(normalized)
+  }
+
+  const rgbMatch = normalized.match(/^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i)
+  if (!rgbMatch) {
+    return null
+  }
+
+  return {
+    r: clamp(Number.parseInt(rgbMatch[1], 10), 0, 255),
+    g: clamp(Number.parseInt(rgbMatch[2], 10), 0, 255),
+    b: clamp(Number.parseInt(rgbMatch[3], 10), 0, 255)
+  }
+}
+
+function parseHexColor(color) {
+  const hex = color.slice(1)
+  const normalizedHex =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((value) => value + value)
+          .join('')
+      : hex
+
+  if (!/^[0-9a-f]{6}$/i.test(normalizedHex)) {
+    return null
+  }
+
+  return {
+    r: Number.parseInt(normalizedHex.slice(0, 2), 16),
+    g: Number.parseInt(normalizedHex.slice(2, 4), 16),
+    b: Number.parseInt(normalizedHex.slice(4, 6), 16)
+  }
 }
 
 function rgbToHsl(r, g, b) {

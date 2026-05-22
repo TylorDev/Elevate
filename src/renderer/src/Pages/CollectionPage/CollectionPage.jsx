@@ -11,7 +11,6 @@ import {
   LuTrash2
 } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
-import { formatDuration, formatTimestamp } from '../../../timeUtils'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
@@ -38,6 +37,7 @@ const COLLECTION_MENU_IDS = {
   REVEAL_IN_EXPLORER: 'reveal-in-explorer',
   DELETE: 'delete'
 }
+const RANKING_PLAY_PAGE_SIZE = 200
 
 function buildCollectionMenuOptions(type) {
   const sharedOptions = [
@@ -286,11 +286,12 @@ function CollectionPage() {
 
   const collectionName =
     meta?.title || (type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory')
+  const sourceTypeLabel =
+    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
   const routeBack =
     type === 'playlist' ? '/playlists' : type === 'likes' ? '/favourites' : '/directories'
   const collectionSourceName =
     type === 'playlist' ? sourcePath : type === 'directory' ? `folder:${sourcePath}` : 'favourites'
-  const showSourcePath = Boolean(summary?.sourcePath && type !== 'likes')
 
   const handlePlayCollection = useCallback(async () => {
     if (!hasTracks) return
@@ -433,6 +434,43 @@ function CollectionPage() {
     }
   }, [detail?.rankings, rankingLoadingTab, sourcePath, type])
 
+  const handlePlayRanking = useCallback(async (tabId) => {
+    if (!tabId) return
+
+    try {
+      const rankingTracks = []
+      let page = 1
+      let hasMore = true
+
+      while (hasMore) {
+        const response = await window.electron.ipcRenderer.invoke('collection:get-overview', {
+          type,
+          sourcePath,
+          page,
+          pageSize: RANKING_PLAY_PAGE_SIZE
+        })
+
+        if (!response?.success) {
+          throw new Error(response?.error || 'No se pudo cargar el ranking.')
+        }
+
+        const ranking = response.rankings?.[tabId]
+        const items = Array.isArray(ranking?.items) ? ranking.items : []
+        rankingTracks.push(...items)
+        hasMore = Boolean(ranking?.hasMore)
+        page += 1
+      }
+
+      if (rankingTracks.length === 0) {
+        throw new Error('Este ranking no tiene canciones para reproducir.')
+      }
+
+      PlayQueue(rankingTracks, `${collectionSourceName}:${tabId}`, 0)
+    } catch (rankingError) {
+      toastLoadError(rankingError?.message || 'No se pudo reproducir el ranking.')
+    }
+  }, [PlayQueue, collectionSourceName, sourcePath, type])
+
   const handleUpdatePlaylist = useCallback(async (playlistPath, payload) => {
     const response = await updatePlaylistMetadata(playlistPath, payload)
 
@@ -472,52 +510,6 @@ function CollectionPage() {
 
   return (
     <section className={`collection-page collection-page--${type}`}>
-      <header className="collection-hero">
-        <div className="collection-hero__media">
-          {heroCoverUrl ? (
-            <img src={heroCoverUrl} alt={collectionName} />
-          ) : (
-            <div className="collection-hero__placeholder">
-              {type === 'playlist' ? <LuListMusic /> : type === 'likes' ? <LuHeart /> : <LuFolderOpen />}
-            </div>
-          )}
-        </div>
-
-        <div className="collection-hero__body">
-          <span className="collection-hero__eyebrow">
-            {type === 'playlist'
-              ? 'Playlist profile'
-              : type === 'likes'
-                ? 'System collection'
-                : 'Directory profile'}
-          </span>
-          <h1>{collectionName}</h1>
-          {showSourcePath && (
-            <p className="collection-hero__path" title={summary?.sourcePath}>
-              {summary?.sourcePath}
-            </p>
-          )}
-
-          <div className="collection-hero__meta">
-            <span>{summary?.trackCount || 0} tracks</span>
-            <span>{formatDuration(summary?.totalDuration || 0)}</span>
-            {meta?.createdAt && <span>{formatTimestamp(meta.createdAt)}</span>}
-          </div>
-
-          <div className="collection-hero__actions">
-            <Button onClick={() => void handlePlayCollection()} disabled={!hasTracks || hydratingTracks}>
-              <LuPlay />
-            </Button>
-            {type === 'playlist' && (
-              <Button onClick={() => void handleOpenEdit()}>
-                <LuPencil />
-              </Button>
-            )}
-            <OverflowMenu options={menuOptions} onSelect={handleCollectionMenuSelect} />
-          </div>
-        </div>
-      </header>
-
       {!hasTracks ? (
         <section className="collection-tracklist">
           <div className="collection-tracklist__header">
@@ -535,9 +527,27 @@ function CollectionPage() {
           totalTrackCount={summary?.trackCount || 0}
           sourceName={collectionSourceName}
           mode="collection"
+          collectionCoverUrl={heroCoverUrl}
+          collectionDisplayName={collectionName}
+          sourceTypeLabel={sourceTypeLabel}
+          headerActions={
+            <>
+              <Button onClick={() => void handlePlayCollection()} disabled={!hasTracks || hydratingTracks}>
+                <LuPlay />
+              </Button>
+              {type === 'playlist' && (
+                <Button onClick={() => void handleOpenEdit()}>
+                  <LuPencil />
+                </Button>
+              )}
+              <OverflowMenu options={menuOptions} onSelect={handleCollectionMenuSelect} />
+            </>
+          }
           showAllSongsTab={false}
+          visibleRows={4}
           rankingLoadingTab={rankingLoadingTab}
           onLoadMoreRanking={handleLoadMoreRanking}
+          onPlayRanking={handlePlayRanking}
         />
       )}
 

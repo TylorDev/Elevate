@@ -1,7 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
 import { LuListMusic, LuRefreshCw } from 'react-icons/lu'
+import { Bounce, toast } from 'react-toastify'
+
+import { useQueue } from '../../Contexts/QueueContext'
 import { CollectionInsightsPanel } from '../../components/CollectionInsights/CollectionInsightsPanel'
 import './Statistics.scss'
+
+const RANKING_PLAY_PAGE_SIZE = 200
+
+function toastLoadError(message) {
+  toast.error(message, {
+    position: 'bottom-right',
+    autoClose: 3000,
+    hideProgressBar: false,
+    closeOnClick: true,
+    pauseOnHover: true,
+    draggable: true,
+    progress: undefined,
+    theme: 'dark',
+    transition: Bounce
+  })
+}
 
 function mergeRankingPage(currentRanking, nextRanking) {
   if (!nextRanking) return currentRanking
@@ -20,6 +39,7 @@ function mergeRankingPage(currentRanking, nextRanking) {
 }
 
 function Statistics() {
+  const { PlayQueue } = useQueue()
   const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -102,6 +122,42 @@ function Statistics() {
     }
   }, [overview?.rankings, rankingLoadingTab])
 
+  const handlePlayRanking = useCallback(async (tabId) => {
+    if (!tabId) return
+
+    try {
+      const rankingTracks = []
+      let page = 1
+      let hasMore = true
+
+      while (hasMore) {
+        const response = await window.electron.ipcRenderer.invoke('statistics:get-ranking-page', {
+          tabId,
+          page,
+          pageSize: RANKING_PLAY_PAGE_SIZE
+        })
+
+        if (!response?.success) {
+          throw new Error(response?.error || 'No se pudo cargar el ranking.')
+        }
+
+        const ranking = response.ranking
+        const items = Array.isArray(ranking?.items) ? ranking.items : []
+        rankingTracks.push(...items)
+        hasMore = Boolean(ranking?.hasMore)
+        page += 1
+      }
+
+      if (rankingTracks.length === 0) {
+        throw new Error('Este ranking no tiene canciones para reproducir.')
+      }
+
+      PlayQueue(rankingTracks, `statistics:${tabId}`, 0)
+    } catch (rankingError) {
+      toastLoadError(rankingError?.message || 'No se pudo reproducir el ranking.')
+    }
+  }, [PlayQueue])
+
   const summary = overview?.summary || {
     trackCount: 0
   }
@@ -127,21 +183,6 @@ function Statistics() {
 
   return (
     <section className="statistics-page">
-      <header className="statistics-hero">
-        <div className="statistics-hero__copy">
-          <span className="statistics-kicker">Playback telemetry</span>
-          <h1>Estadisticas</h1>
-          <p>
-            La misma consola de coleccion, pero agregada sobre toda la biblioteca del usuario.
-          </p>
-        </div>
-
-        <div className="statistics-hero__signal">
-          <span>{summary.trackCount || 0}</span>
-          <small>tracks en biblioteca</small>
-        </div>
-      </header>
-
       {summary.trackCount === 0 ? (
         <div className="statistics-empty">
           <div className="statistics-empty__icon">
@@ -159,6 +200,7 @@ function Statistics() {
           showAllSongsTab={false}
           rankingLoadingTab={rankingLoadingTab}
           onLoadMoreRanking={handleLoadMoreRanking}
+          onPlayRanking={handlePlayRanking}
         />
       )}
     </section>

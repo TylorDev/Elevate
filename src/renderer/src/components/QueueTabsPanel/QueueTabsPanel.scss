@@ -68,7 +68,7 @@
 
     &.is-active {
       background: $primary-color;
-      color: $text-primary;
+      color: $activeIcon;
 
       &::after {
         content: '';

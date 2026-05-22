@@ -1,7 +1,7 @@
 import { createContext, useContext, useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { WindowsPlayer } from './utils'
 import { useSongCover } from './ImagesContext'
-import { extractDominantColor } from '../utils/useDominantColor'
+import { extractDominantColor, getContrastColorForBackground } from '../utils/useDominantColor'
 import { usePlayback } from './PlaybackContext'
 import { useQueue } from './QueueContext'
 
@@ -227,6 +227,10 @@ export const SuperProvider = ({ children }) => {
   useEffect(() => {
     if (color) {
       document.documentElement.style.setProperty('--Dynamic-color', color)
+      document.documentElement.style.setProperty(
+        '--activeIcon',
+        getContrastColorForBackground(color)
+      )
       localStorage.setItem('colorManual', color)
       return
     }
@@ -247,6 +251,7 @@ export const SuperProvider = ({ children }) => {
         .then((dominantColor) => {
           if (alive) {
             document.documentElement.style.setProperty('--Dynamic-color', dominantColor.hex)
+            document.documentElement.style.setProperty('--activeIcon', dominantColor.contrastHex)
           }
         })
         .catch((error) => {
