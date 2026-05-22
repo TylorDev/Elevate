@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuLoaderCircle, LuPlay } from 'react-icons/lu'
 import { Cola } from '../Cola/Cola'
 import { useSongCover, DEFAULT_COVER } from '../../Contexts/ImagesContext'
+import { Skeleton } from '../Skeleton/Skeleton'
 import { useDominantColor } from '../../utils/useDominantColor'
 import {
   COLLECTION_INSIGHT_CARD_TABS,
@@ -17,6 +18,7 @@ import './CollectionInsightsPanel.scss'
 const DEFAULT_LIST_HEIGHT = 320
 const VIEWPORT_OFFSET = 390
 const INSIGHT_ROW_HEIGHT = 72
+const DEFAULT_LOADING_ROWS = 5
 
 function getListHeight() {
   return Math.max(window.innerHeight - VIEWPORT_OFFSET, DEFAULT_LIST_HEIGHT)
@@ -79,6 +81,123 @@ function EmptyState({ label }) {
   )
 }
 
+function CollectionInsightCardSkeleton({ tone = 'neutral', className = '' }) {
+  return (
+    <div className={`collection-card tone-${tone} collection-insights__card--skeleton ${className}`.trim()}>
+      <span className="collection-card__icon">
+        <Skeleton width="22px" height="22px" borderRadius="999px" />
+      </span>
+      <span className="collection-card__label">
+        <Skeleton width="84px" height="12px" />
+      </span>
+      <strong className="collection-card__value">
+        <Skeleton width="100px" height="28px" />
+      </strong>
+      <span className="collection-card__meta">
+        <Skeleton width="118px" height="12px" />
+      </span>
+    </div>
+  )
+}
+
+function CollectionInsightRowSkeleton() {
+  return (
+    <div className="collection-insights__row-skeleton" aria-hidden="true">
+      <Skeleton
+        className="collection-insights__row-skeleton-cover"
+        width="58px"
+        height="58px"
+        borderRadius="12px"
+      />
+      <div className="collection-insights__row-skeleton-body">
+        <Skeleton width="48%" height="14px" />
+        <Skeleton width="76%" height="12px" />
+        <div className="collection-insights__row-skeleton-meta">
+          <Skeleton width="96px" height="10px" />
+          <Skeleton width="74px" height="10px" />
+          <Skeleton width="62px" height="10px" />
+        </div>
+      </div>
+      <div className="collection-insights__row-skeleton-value">
+        <Skeleton width="82px" height="30px" borderRadius="10px" />
+      </div>
+    </div>
+  )
+}
+
+export function CollectionInsightsLoadingShell({
+  mode = 'collection',
+  cards = COLLECTION_INSIGHT_CARD_TABS,
+  loadingRows = DEFAULT_LOADING_ROWS,
+  loadingActionCount = 0,
+  loadingTitle = 'Cargando ranking',
+  loadingEyebrow = 'Ranking activo',
+  showSecondaryTabs = false,
+  cardsClassName = '',
+  cardClassName = '',
+  boardClassName = ''
+}) {
+  return (
+    <section className={`collection-insights collection-insights--${mode}`}>
+      <div
+        className={`collection-insights__cards ${cardsClassName}`.trim()}
+        aria-hidden="true"
+      >
+        {cards.map((tab) => (
+          <CollectionInsightCardSkeleton
+            key={tab.id}
+            tone={tab.tone}
+            className={cardClassName}
+          />
+        ))}
+      </div>
+
+      {showSecondaryTabs ? (
+        <div className="collection-insights__secondary-tabs" aria-hidden="true">
+          <button type="button" disabled>
+            All Songs
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        className={`collection-insights__board collection-insights__board--skeleton tone-neutral ${boardClassName}`.trim()}
+        aria-hidden="true"
+      >
+        <div className="collection-insights__board-header">
+          <div className="collection-insights__board-header-main">
+            <span>{loadingEyebrow}</span>
+            <h2>{loadingTitle}</h2>
+          </div>
+          <div className="collection-insights__board-header-side">
+            <Skeleton width="110px" height="32px" />
+            {loadingActionCount > 0 ? (
+              <div className="collection-insights__board-actions collection-insights__board-actions--skeleton">
+                {Array.from({ length: loadingActionCount }).map((_, index) => (
+                  <Skeleton
+                    key={`collection-insights-action-skeleton-${index}`}
+                    width="52px"
+                    height="52px"
+                    borderRadius="12px"
+                  />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="collection-insights__list-skeleton">
+          <div className="collection-insights__list-skeleton-rows">
+            {Array.from({ length: loadingRows }).map((_, index) => (
+              <CollectionInsightRowSkeleton key={`collection-insights-row-skeleton-${index}`} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export function CollectionInsightsPanel({
   tracks = [],
   rankings: providedRankings = null,
@@ -93,7 +212,12 @@ export function CollectionInsightsPanel({
   visibleRows,
   onLoadMoreRanking,
   onPlayRanking,
-  rankingLoadingTab = ''
+  rankingLoadingTab = '',
+  loading = false,
+  loadingRows = DEFAULT_LOADING_ROWS,
+  loadingActionCount = 0,
+  loadingTitle = 'Cargando ranking',
+  loadingEyebrow = 'Ranking activo'
 }) {
   const defaultTabId = showAllSongsTab ? 'allSongs' : COLLECTION_INSIGHT_CARD_TABS[0]?.id || 'allSongs'
   const hasFixedVisibleRows = Number.isFinite(visibleRows) && visibleRows > 0
@@ -216,6 +340,20 @@ export function CollectionInsightsPanel({
     },
     [onPlayRanking, playingRankingTabId]
   )
+
+  if (loading) {
+    return (
+      <CollectionInsightsLoadingShell
+        mode={mode}
+        cards={COLLECTION_INSIGHT_CARD_TABS}
+        loadingRows={loadingRows}
+        loadingActionCount={loadingActionCount}
+        loadingTitle={loadingTitle}
+        loadingEyebrow={loadingEyebrow}
+        showSecondaryTabs={showAllSongsTab}
+      />
+    )
+  }
 
   return (
     <section className={`collection-insights collection-insights--${mode}`}>

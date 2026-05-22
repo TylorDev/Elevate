@@ -36,6 +36,18 @@
   color: var(--insight-ink);
 }
 
+.collection-insights__card--skeleton {
+  pointer-events: none;
+}
+
+.collection-insights__card--skeleton .collection-card__icon,
+.collection-insights__card--skeleton .collection-card__label,
+.collection-insights__card--skeleton .collection-card__value,
+.collection-insights__card--skeleton .collection-card__meta {
+  display: flex;
+  align-items: center;
+}
+
 .collection-insights__secondary-tabs {
   display: flex;
   gap: 0.75rem;
@@ -63,6 +75,12 @@
   background: $hover;
   color: var(--insight-ink);
   transform: translateY(-2px);
+}
+
+.collection-insights__secondary-tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
 }
 
 .collection-insights__board {
@@ -109,6 +127,10 @@
 
 .collection-insights__board.tone-ash {
   --board-color: #d7dbdd;
+}
+
+.collection-insights__board--skeleton {
+  --board-color: rgba(255, 255, 255, 0.48);
 }
 
 .collection-insights__board-header {
@@ -167,6 +189,54 @@
   }
 }
 
+.collection-insights__board-actions--skeleton {
+  gap: 0.7rem;
+}
+
+.collection-insights__list-skeleton {
+  flex: 1;
+  min-height: 0;
+  padding: 0.85rem;
+  overflow: hidden;
+}
+
+.collection-insights__list-skeleton-rows {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.collection-insights__row-skeleton {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(96px, auto);
+  align-items: center;
+  gap: 0.95rem;
+  min-height: 72px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: $border-radius;
+  background: rgba(12, 13, 13, 0.78);
+}
+
+.collection-insights__row-skeleton-cover {
+  flex: 0 0 auto;
+}
+
+.collection-insights__row-skeleton-body {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.collection-insights__row-skeleton-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.collection-insights__row-skeleton-value {
+  justify-self: end;
+}
+
 .collection-insights__empty {
   display: grid;
   place-items: center;
@@ -194,4 +264,15 @@
   color: var(--insight-muted);
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .collection-insights__row-skeleton {
+    grid-template-columns: 52px minmax(0, 1fr);
+  }
+
+  .collection-insights__row-skeleton-value {
+    grid-column: 2;
+    justify-self: start;
+  }
 }

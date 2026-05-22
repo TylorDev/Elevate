@@ -7,7 +7,6 @@ import {
   LuListPlus,
   LuPencil,
   LuPlay,
-  LuRefreshCw,
   LuTrash2
 } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
@@ -140,6 +139,11 @@ function CollectionPage() {
     type === 'playlist' ? params.dir || '' : type === 'directory' ? params.directory || '' : ''
   const sourcePath = decodeURIComponent(encodedSourcePath)
   const shouldAutoPlay = type === 'directory' && params.play === 'true'
+  const loadingActionCount = type === 'playlist' ? 3 : 2
+  const loadingCollectionTitle =
+    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
+  const loadingSourceTypeLabel =
+    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
 
   const { getCollectionCoverUrl } = useImages()
   const { PlayQueue, appendManyToCurrentQueue } = useQueue()
@@ -484,10 +488,15 @@ function CollectionPage() {
   if (loading) {
     return (
       <section className="collection-page collection-page--loading">
-        <div className="collection-loading">
-          <LuRefreshCw />
-          Cargando coleccion...
-        </div>
+        <CollectionInsightsPanel
+          loading
+          mode="collection"
+          showAllSongsTab={false}
+          loadingRows={4}
+          loadingActionCount={loadingActionCount}
+          loadingTitle={loadingCollectionTitle}
+          loadingEyebrow={loadingSourceTypeLabel}
+        />
       </section>
     )
   }

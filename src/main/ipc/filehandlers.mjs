@@ -45,6 +45,7 @@ const audioCoverCache = new Map()
 const AUDIO_PATHS_TTL = 60 * 1000
 const COVER_CACHE_TTL = 10 * 60 * 1000
 const COVER_CACHE_LIMIT = 400
+const FEED_CACHE_SCOPES = ['mixed', 'playlists', 'directories']
 let pendingDirectoriesRequest = null
 const INSIGHT_METRIC_KEYS = {
   duration: 'duration',
@@ -55,6 +56,9 @@ const INSIGHT_METRIC_KEYS = {
   skips: 'skip_count'
 }
 const FEED_SCOPE_VALUES = new Set(['mixed', 'playlists', 'directories'])
+const feedRankingsCache = new Map()
+const pendingFeedCollections = new Map()
+const feedCollectionCoverCache = new Map()
 const FEED_RANKING_TABS = {
   recent: {
     metricKey: 'recentActivityAt',
@@ -84,6 +88,10 @@ const FEED_RANKING_TABS = {
     metricKey: 'totalSkips',
     direction: 'number'
   }
+}
+
+for (const scope of FEED_CACHE_SCOPES) {
+  feedRankingsCache.set(scope, null)
 }
 
 function buildInsightRankingsFromTracks(tracks = [], request = {}) {
@@ -216,8 +224,84 @@ function normalizeFeedRankingsRequest(request = {}) {
     scope,
     tabId: typeof request?.tabId === 'string' ? request.tabId : '',
     page: Math.max(Number(request?.page) || 1, 1),
-    pageSize: Math.min(Math.max(Number(request?.pageSize) || 30, 1), 100)
+    pageSize: Math.min(Math.max(Number(request?.pageSize) || 30, 1), 100),
+    forceRefresh: Boolean(request?.forceRefresh)
   }
+}
+
+function invalidateFeedCollectionsCache(scope = 'all') {
+  if (scope === 'all') {
+    for (const cacheScope of FEED_CACHE_SCOPES) {
+      feedRankingsCache.set(cacheScope, null)
+      pendingFeedCollections.delete(cacheScope)
+    }
+    feedCollectionCoverCache.clear()
+    return
+  }
+
+  if (!FEED_SCOPE_VALUES.has(scope)) return
+
+  feedRankingsCache.set(scope, null)
+  pendingFeedCollections.delete(scope)
+
+  if (scope === 'playlists') {
+    feedRankingsCache.set('mixed', null)
+    pendingFeedCollections.delete('mixed')
+  }
+
+  if (scope === 'directories') {
+    feedRankingsCache.set('mixed', null)
+    pendingFeedCollections.delete('mixed')
+  }
+}
+
+function getFileStatSignature(filePath = '') {
+  if (!filePath) return 'missing'
+
+  try {
+    const stats = fs.statSync(filePath)
+    return `${stats.mtimeMs}:${stats.size}`
+  } catch {
+    return 'missing'
+  }
+}
+
+function getPlaylistFeedCoverSignature(playlist) {
+  return [
+    playlist?.path || '',
+    getFileStatSignature(playlist?.path),
+    playlist?.numElementos || 0,
+    playlist?.duracion || 0,
+    playlist?.customCoverMode || '',
+    playlist?.customCoverValue || '',
+    playlist?.customCoverSelection || '',
+    playlist?.customCoverUpdatedAt?.getTime?.() || ''
+  ].join('|')
+}
+
+function getDirectoryFeedCoverSignature(directory, trackCount = 0) {
+  return [
+    directory?.path || '',
+    directory?.lastScannedAt?.getTime?.() || '',
+    directory?.totalTracks || trackCount || 0,
+    directory?.totalDuration || 0
+  ].join('|')
+}
+
+async function getCachedFeedCollectionCover({ type, sourcePath, signature, tracks }) {
+  const cacheKey = `${type}:${sourcePath}`
+  const cachedCover = feedCollectionCoverCache.get(cacheKey)
+
+  if (cachedCover?.signature === signature) {
+    return cachedCover.cover
+  }
+
+  const cover = await generateCollectionCoverFromTracks(tracks)
+  feedCollectionCoverCache.set(cacheKey, {
+    signature,
+    cover
+  })
+  return cover
 }
 
 function buildCollectionEntityRankings(collections = [], request = {}) {
@@ -289,8 +373,14 @@ function mapSummaryToCollectionEntity({ type, id, name, sourcePath, tracks, summ
 
 async function buildDirectoryFeedEntity(directory) {
   const audioFiles = await getCachedAudioFiles(directory.path)
-  const tracks = await getFileInfos(Array.from(new Set(audioFiles)), { includePicture: false })
-  const cover = await generateCollectionCoverFromTracks(tracks)
+  const uniqueAudioFiles = Array.from(new Set(audioFiles))
+  const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
+  const cover = await getCachedFeedCollectionCover({
+    type: 'directory',
+    sourcePath: directory.path,
+    signature: getDirectoryFeedCoverSignature(directory, uniqueAudioFiles.length),
+    tracks
+  })
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
     sourcePath: directory.path,
     cover
@@ -314,7 +404,12 @@ async function buildPlaylistFeedEntity(playlist, lastOpenedAt = null) {
     ...song,
     picture: undefined
   }))
-  const cover = await generateCollectionCoverFromTracks(tracks)
+  const cover = await getCachedFeedCollectionCover({
+    type: 'playlist',
+    sourcePath: playlist.path,
+    signature: getPlaylistFeedCoverSignature(playlist),
+    tracks
+  })
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
     sourcePath: playlist.path,
     cover
@@ -359,12 +454,9 @@ async function getPlaylistHistoryDatesById(playlistIds = []) {
   )
 }
 
-async function getFeedCollectionRankings(request = {}) {
-  const normalizedRequest = normalizeFeedRankingsRequest(request)
-  const shouldLoadPlaylists =
-    normalizedRequest.scope === 'mixed' || normalizedRequest.scope === 'playlists'
-  const shouldLoadDirectories =
-    normalizedRequest.scope === 'mixed' || normalizedRequest.scope === 'directories'
+async function buildFeedCollectionEntities(scope) {
+  const shouldLoadPlaylists = scope === 'mixed' || scope === 'playlists'
+  const shouldLoadDirectories = scope === 'mixed' || scope === 'directories'
   const collections = []
 
   if (shouldLoadPlaylists) {
@@ -388,11 +480,66 @@ async function getFeedCollectionRankings(request = {}) {
     collections.push(...directoryEntities)
   }
 
+  return collections
+}
+
+async function getFeedCollectionEntities(scope, { forceRefresh = false } = {}) {
+  const cachedEntry = feedRankingsCache.get(scope)
+
+  if (!forceRefresh && cachedEntry?.entities) {
+    return {
+      entities: cachedEntry.entities,
+      generatedAt: cachedEntry.generatedAt,
+      cached: true
+    }
+  }
+
+  if (!forceRefresh) {
+    const pendingRequest = pendingFeedCollections.get(scope)
+    if (pendingRequest) {
+      const pendingEntry = await pendingRequest
+      return {
+        ...pendingEntry,
+        cached: true
+      }
+    }
+  } else {
+    invalidateFeedCollectionsCache(scope)
+    feedCollectionCoverCache.clear()
+  }
+
+  const buildPromise = buildFeedCollectionEntities(scope).then((entities) => {
+    const entry = {
+      entities,
+      generatedAt: new Date().toISOString()
+    }
+    feedRankingsCache.set(scope, entry)
+    return entry
+  }).finally(() => {
+    pendingFeedCollections.delete(scope)
+  })
+
+  pendingFeedCollections.set(scope, buildPromise)
+  const freshEntry = await buildPromise
+  return {
+    ...freshEntry,
+    cached: false
+  }
+}
+
+async function getFeedCollectionRankings(request = {}) {
+  const normalizedRequest = normalizeFeedRankingsRequest(request)
+  const collectionResult = await getFeedCollectionEntities(normalizedRequest.scope, {
+    forceRefresh: normalizedRequest.forceRefresh
+  })
+
   return {
     success: true,
     scope: normalizedRequest.scope,
-    total: collections.length,
-    rankings: buildCollectionEntityRankings(collections, normalizedRequest)
+    total: collectionResult.entities.length,
+    cached: collectionResult.cached,
+    generatedAt: collectionResult.generatedAt,
+    rankings: buildCollectionEntityRankings(collectionResult.entities, normalizedRequest)
   }
 }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { LuListMusic, LuRefreshCw } from 'react-icons/lu'
+import { LuListMusic } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
 
 import { useQueue } from '../../Contexts/QueueContext'
@@ -165,10 +165,14 @@ function Statistics() {
   if (loading) {
     return (
       <section className="statistics-page statistics-page--loading">
-        <div className="statistics-loading">
-          <LuRefreshCw />
-          Cargando estadisticas...
-        </div>
+        <CollectionInsightsPanel
+          loading
+          mode="library"
+          showAllSongsTab={false}
+          loadingRows={5}
+          loadingTitle="Biblioteca completa"
+          loadingEyebrow="Biblioteca global"
+        />
       </section>
     )
   }

@@ -12,6 +12,7 @@ import {
 } from 'react-icons/lu'
 import { formatDuration } from '../../../timeUtils'
 import { CollectionCard } from '../../components/CollectionCard/CollectionCard'
+import { CollectionInsightsLoadingShell } from '../../components/CollectionInsights/CollectionInsightsPanel'
 import { CollectionEntityItem } from './components/CollectionEntityItem'
 import './Feed.scss'
 
@@ -145,6 +146,19 @@ function formatRecentActivity(value) {
   }).format(date)
 }
 
+function formatFeedUpdatedAt(value) {
+  if (!value) return ''
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return ''
+
+  return new Intl.DateTimeFormat(navigator.language, {
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
+
 function mergeRankingPage(currentRanking, nextRanking) {
   if (!nextRanking) return currentRanking
 
@@ -185,19 +199,35 @@ const CollectionEntityRow = memo(function CollectionEntityRow({ index, style, da
 function Feed() {
   const navigate = useNavigate()
   const listWrapRef = useRef(null)
+  const overviewCacheRef = useRef(new Map())
   const [scope, setScope] = useState('mixed')
   const [activeTabId, setActiveTabId] = useState('recent')
   const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [switchingScope, setSwitchingScope] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [rankingLoadingTab, setRankingLoadingTab] = useState('')
   const [listHeight, setListHeight] = useState(FEED_LIST_MIN_HEIGHT)
   const [error, setError] = useState('')
+  const [lastUpdatedAt, setLastUpdatedAt] = useState('')
+  const [isUsingCache, setIsUsingCache] = useState(false)
 
   useEffect(() => {
     let alive = true
 
     async function loadFeed() {
+      const cachedOverview = overviewCacheRef.current.get(scope)
+
+      if (cachedOverview) {
+        setOverview(cachedOverview)
+        setLastUpdatedAt(cachedOverview.generatedAt || '')
+        setIsUsingCache(true)
+        setLoading(false)
+        setSwitchingScope(false)
+        setError('')
+        return
+      }
+
       setLoading((currentLoading) => currentLoading || !overview)
       setSwitchingScope(Boolean(overview))
       setError('')
@@ -217,7 +247,10 @@ function Feed() {
           return
         }
 
+        overviewCacheRef.current.set(scope, response)
         setOverview(response)
+        setLastUpdatedAt(response.generatedAt || '')
+        setIsUsingCache(Boolean(response.cached))
       } catch (loadError) {
         if (alive) {
           setError(loadError?.message || 'No se pudo cargar el Feed.')
@@ -249,6 +282,7 @@ function Feed() {
     activeRanking?.totalValue ??
     activeRows.reduce((total, item) => total + toNumber(item?.[activeTab.metricKey]), 0)
   const scopeLabel = SCOPE_OPTIONS.find((option) => option.id === scope)?.label || 'Mixto'
+  const lastUpdatedLabel = formatFeedUpdatedAt(lastUpdatedAt)
 
   useEffect(() => {
     const listWrap = listWrapRef.current
@@ -256,9 +290,7 @@ function Feed() {
 
     const updateListHeight = () => {
       const nextHeight = Math.max(listWrap.clientHeight || 0, FEED_LIST_MIN_HEIGHT)
-      setListHeight((currentHeight) =>
-        currentHeight === nextHeight ? currentHeight : nextHeight
-      )
+      setListHeight((currentHeight) => (currentHeight === nextHeight ? currentHeight : nextHeight))
     }
 
     updateListHeight()
@@ -297,22 +329,63 @@ function Feed() {
         throw new Error(response?.error || 'No se pudo cargar el ranking.')
       }
 
-      setOverview((currentOverview) => ({
-        ...currentOverview,
-        rankings: {
-          ...currentOverview.rankings,
-          [activeTab.id]: mergeRankingPage(
-            currentOverview.rankings?.[activeTab.id],
-            response.rankings?.[activeTab.id]
-          )
+      setOverview((currentOverview) => {
+        const nextOverview = {
+          ...currentOverview,
+          cached: response.cached,
+          generatedAt: response.generatedAt || currentOverview?.generatedAt,
+          rankings: {
+            ...currentOverview.rankings,
+            [activeTab.id]: mergeRankingPage(
+              currentOverview.rankings?.[activeTab.id],
+              response.rankings?.[activeTab.id]
+            )
+          }
         }
-      }))
+
+        overviewCacheRef.current.set(scope, nextOverview)
+        return nextOverview
+      })
+      setLastUpdatedAt(response.generatedAt || lastUpdatedAt)
+      setIsUsingCache(Boolean(response.cached))
     } catch (rankingError) {
       setError(rankingError?.message || 'No se pudo cargar el ranking.')
     } finally {
       setRankingLoadingTab('')
     }
-  }, [activeRanking, activeTab.id, rankingLoadingTab, scope])
+  }, [activeRanking, activeTab.id, lastUpdatedAt, rankingLoadingTab, scope])
+
+  const handleRefreshFeed = useCallback(async () => {
+    if (refreshing) return
+
+    setRefreshing(true)
+    setError('')
+
+    try {
+      const response = await window.electron.ipcRenderer.invoke('feed:get-collection-rankings', {
+        scope,
+        page: 1,
+        pageSize: FEED_PAGE_SIZE,
+        forceRefresh: true
+      })
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'No se pudo actualizar el Feed.')
+      }
+
+      if (scope === 'playlists' || scope === 'directories') {
+        overviewCacheRef.current.delete('mixed')
+      }
+      overviewCacheRef.current.set(scope, response)
+      setOverview(response)
+      setLastUpdatedAt(response.generatedAt || '')
+      setIsUsingCache(Boolean(response.cached))
+    } catch (refreshError) {
+      setError(refreshError?.message || 'No se pudo actualizar el Feed.')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [refreshing, scope])
 
   const handleOpenCollection = useCallback(
     (collection) => {
@@ -337,15 +410,122 @@ function Feed() {
     [activeRows, activeTab, handleOpenCollection]
   )
 
-  if (loading) {
-    return (
-      <section className="Feed Feed--loading">
-        <div className="feed-loading">
-          <LuRefreshCw />
-          Cargando Feed...
+  const renderRankingCards = () => (
+    <div className="feed-ranking-cards" role="tablist" aria-label="Rankings de colecciones">
+      {RANKING_TABS.map((tab) => {
+        const Icon = tab.icon
+        const ranking = rankings[tab.id]
+        const rows = getRankingRows(ranking)
+        const totalValue =
+          ranking?.totalValue ??
+          rows.reduce((total, item) => total + toNumber(item?.[tab.metricKey]), 0)
+
+        return (
+          <CollectionCard
+            key={tab.id}
+            as="button"
+            role="tab"
+            aria-selected={activeTab.id === tab.id}
+            tone={tab.tone}
+            active={activeTab.id === tab.id}
+            interactive
+            icon={<Icon />}
+            label={tab.summaryLabel}
+            value={tab.formatValue(totalValue, rows)}
+            meta={`${formatMetricValue(ranking?.total || rows.length)} colecciones`}
+            className="feed-ranking-card"
+            onClick={() => setActiveTabId(tab.id)}
+          />
+        )
+      })}
+    </div>
+  )
+
+  const renderRankingBoard = () => (
+    <div className={`feed-ranking-board tone-${activeTab.tone}`}>
+      <div className="feed-ranking-board__header">
+        <div>
+          <span>{scopeLabel}</span>
+          <h2>{activeTab.boardLabel}</h2>
         </div>
-      </section>
-    )
+        <strong>{activeTab.formatValue(activeTotalValue, activeRows)}</strong>
+      </div>
+
+      {error ? <div className="feed-ranking-board__error">{error}</div> : null}
+
+      {activeRows.length === 0 ? (
+        <div className="feed-ranking-board__empty">No hay colecciones para este ranking.</div>
+      ) : (
+        <div ref={listWrapRef} className="feed-ranking-board__listWrap">
+          <FixedSizeList
+            className="feed-collection-list feed-collection-list--virtual"
+            height={listHeight}
+            itemCount={activeRows.length}
+            itemData={virtualListData}
+            itemKey={(index, data) => {
+              const collection = data.items[index]
+              return collection ? `${collection.type}:${collection.path}` : `collection-${index}`
+            }}
+            itemSize={FEED_ROW_HEIGHT}
+            overscanCount={FEED_OVERSCAN_COUNT}
+            width="100%"
+          >
+            {CollectionEntityRow}
+          </FixedSizeList>
+        </div>
+      )}
+
+      {activeRanking?.hasMore ? (
+        <button
+          type="button"
+          className="feed-load-more"
+          disabled={rankingLoadingTab === activeTab.id}
+          onClick={() => void handleLoadMoreRanking()}
+        >
+          {rankingLoadingTab === activeTab.id ? 'Cargando...' : 'Cargar mas'}
+        </button>
+      ) : null}
+    </div>
+  )
+
+  const renderLoadingFeed = () => (
+    <section className="Feed Feed--loading" aria-busy="true">
+      <header className="feed-header">
+        <div className="feed-header__copy">
+          <span>Collection Feed</span>
+          <h1>Directorios y Playlists</h1>
+        </div>
+
+        <div className="feed-header__actions">
+          <button type="button" className="feed-refresh-button" disabled aria-label="Actualizar Feed">
+            <LuRefreshCw aria-hidden="true" />
+          </button>
+
+          <div className="feed-scope-switch is-disabled" aria-hidden="true">
+            {SCOPE_OPTIONS.map((option) => (
+              <button key={option.id} type="button" disabled>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <CollectionInsightsLoadingShell
+        mode="library"
+        cards={RANKING_TABS}
+        loadingRows={6}
+        loadingTitle="Directorios y Playlists"
+        loadingEyebrow="Collection Feed"
+        cardsClassName="feed-ranking-cards feed-ranking-cards--skeleton"
+        cardClassName="feed-ranking-card"
+        boardClassName="feed-ranking-board"
+      />
+    </section>
+  )
+
+  if (loading) {
+    return renderLoadingFeed()
   }
 
   if (error && !overview) {
@@ -357,113 +537,66 @@ function Feed() {
   }
 
   return (
-    <section className="Feed">
+    <section className={`Feed${switchingScope ? ' Feed--loading' : ''}`} aria-busy={refreshing || switchingScope}>
       <header className="feed-header">
         <div className="feed-header__copy">
           <span>Collection Feed</span>
           <h1>Directorios y Playlists</h1>
         </div>
 
-        <div className="feed-scope-switch" role="tablist" aria-label="Filtrar colecciones">
-          {SCOPE_OPTIONS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              role="tab"
-              aria-selected={scope === option.id}
-              className={scope === option.id ? 'is-active' : ''}
-              onClick={() => setScope(option.id)}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="feed-header__actions">
+          {lastUpdatedLabel ? (
+            <span className="feed-cache-status">
+              {isUsingCache ? 'Cache de sesion' : 'Actualizado'} {lastUpdatedLabel}
+            </span>
+          ) : null}
+
+          <button
+            type="button"
+            className={`feed-refresh-button${refreshing ? ' is-refreshing' : ''}`}
+            aria-label="Actualizar Feed"
+            aria-busy={refreshing}
+            disabled={refreshing}
+            onClick={() => void handleRefreshFeed()}
+          >
+            <LuRefreshCw aria-hidden="true" />
+          </button>
+
+          <div className="feed-scope-switch" role="tablist" aria-label="Filtrar colecciones">
+            {SCOPE_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="tab"
+                aria-selected={scope === option.id}
+                className={scope === option.id ? 'is-active' : ''}
+                disabled={switchingScope}
+                onClick={() => setScope(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
       {switchingScope ? (
-        <div className="feed-inline-loading">
-          <LuRefreshCw />
-          Actualizando ranking...
-        </div>
-      ) : null}
-
-      <div className="feed-ranking-cards" role="tablist" aria-label="Rankings de colecciones">
-        {RANKING_TABS.map((tab) => {
-          const Icon = tab.icon
-          const ranking = rankings[tab.id]
-          const rows = getRankingRows(ranking)
-          const totalValue =
-            ranking?.totalValue ??
-            rows.reduce((total, item) => total + toNumber(item?.[tab.metricKey]), 0)
-
-          return (
-            <CollectionCard
-              key={tab.id}
-              as="button"
-              role="tab"
-              aria-selected={activeTab.id === tab.id}
-              tone={tab.tone}
-              active={activeTab.id === tab.id}
-              interactive
-              icon={<Icon />}
-              label={tab.summaryLabel}
-              value={tab.formatValue(totalValue, rows)}
-              meta={`${formatMetricValue(ranking?.total || rows.length)} colecciones`}
-              className="feed-ranking-card"
-              onClick={() => setActiveTabId(tab.id)}
-            />
-          )
-        })}
-      </div>
-
-      <div className={`feed-ranking-board tone-${activeTab.tone}`}>
-        <div className="feed-ranking-board__header">
-          <div>
-            <span>{scopeLabel}</span>
-            <h2>{activeTab.boardLabel}</h2>
-          </div>
-          <strong>{activeTab.formatValue(activeTotalValue, activeRows)}</strong>
-        </div>
-
-        {error ? <div className="feed-ranking-board__error">{error}</div> : null}
-
-        {activeRows.length === 0 ? (
-          <div className="feed-ranking-board__empty">
-            No hay colecciones para este ranking.
-          </div>
-        ) : (
-          <div ref={listWrapRef} className="feed-ranking-board__listWrap">
-            <FixedSizeList
-              className="feed-collection-list feed-collection-list--virtual"
-              height={listHeight}
-              itemCount={activeRows.length}
-              itemData={virtualListData}
-              itemKey={(index, data) => {
-                const collection = data.items[index]
-                return collection
-                  ? `${collection.type}:${collection.path}`
-                  : `collection-${index}`
-              }}
-              itemSize={FEED_ROW_HEIGHT}
-              overscanCount={FEED_OVERSCAN_COUNT}
-              width="100%"
-            >
-              {CollectionEntityRow}
-            </FixedSizeList>
-          </div>
-        )}
-
-        {activeRanking?.hasMore ? (
-          <button
-            type="button"
-            className="feed-load-more"
-            disabled={rankingLoadingTab === activeTab.id}
-            onClick={() => void handleLoadMoreRanking()}
-          >
-            {rankingLoadingTab === activeTab.id ? 'Cargando...' : 'Cargar mas'}
-          </button>
-        ) : null}
-      </div>
+        <CollectionInsightsLoadingShell
+          mode="library"
+          cards={RANKING_TABS}
+          loadingRows={6}
+          loadingTitle="Directorios y Playlists"
+          loadingEyebrow="Collection Feed"
+          cardsClassName="feed-ranking-cards feed-ranking-cards--skeleton"
+          cardClassName="feed-ranking-card"
+          boardClassName="feed-ranking-board"
+        />
+      ) : (
+        <>
+          {renderRankingCards()}
+          {renderRankingBoard()}
+        </>
+      )}
     </section>
   )
 }
