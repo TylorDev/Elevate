@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { RiShuffleLine } from 'react-icons/ri'
+import { Bounce, toast } from 'react-toastify'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { PlaylistItem } from '../../../Pages/Playlists/PlaylistItem'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
+import { useQueue } from '../../../Contexts/QueueContext'
+import { dedupedInvoke } from '../../../Contexts/utils'
 import Cola from '../../Cola/Cola'
 import VirtualizedQueueEntityList from '../VirtualizedQueueEntityList'
 import './PlaylistsQueueTab.scss'
@@ -19,8 +23,11 @@ function PlaylistsQueueTab({ isActive }) {
     playlistsLoaded,
     playlistsLoading
   } = usePlaylists()
+  const { playQueueShuffled } = useQueue()
   const [selectedPlaylist, setSelectedPlaylist] = useState(null)
   const [currentPlaylist, setCurrentPlaylist] = useState(null)
+  const [playlistCount, setPlaylistCount] = useState(null)
+  const [playingRandom, setPlayingRandom] = useState(false)
   const selectedPlaylistPath = selectedPlaylist?.path
 
   useEffect(() => {
@@ -36,6 +43,26 @@ function PlaylistsQueueTab({ isActive }) {
     getUniqueList(setCurrentPlaylist, selectedPlaylistPath)
   }, [getUniqueList, playlistsLastLoadedAt, selectedPlaylistPath])
 
+  useEffect(() => {
+    if (!isActive) return
+
+    let cancelled = false
+
+    dedupedInvoke('get-playlists-number')
+      .then((count) => {
+        if (!cancelled) {
+          setPlaylistCount(Number(count) || 0)
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading playlists count:', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isActive, playlistsLastLoadedAt])
+
   const renderPlaylistRow = useCallback(
     (playlist, index, style) => (
       <PlaylistItem
@@ -50,6 +77,71 @@ function PlaylistsQueueTab({ isActive }) {
     ),
     [addPlaylisthistory]
   )
+
+  const showRandomButton = !selectedPlaylist && Number(playlistCount) > 0
+
+  const handlePlayRandomPlaylist = useCallback(async () => {
+    if (playingRandom) {
+      return
+    }
+
+    setPlayingRandom(true)
+
+    try {
+      const randomPlaylist = await dedupedInvoke('get-random-playlist')
+
+      if (!randomPlaylist?.path) {
+        toast.error('No hay playlists disponibles para reproducir.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return
+      }
+
+      const playlistData = await dedupedInvoke('get-list', randomPlaylist.path)
+      const tracks = playlistData?.processedData || []
+
+      if (tracks.length === 0) {
+        toast.error('La playlist aleatoria no tiene canciones disponibles.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return
+      }
+
+      playQueueShuffled(tracks, randomPlaylist.path)
+      addPlaylisthistory(randomPlaylist.path)
+    } catch (error) {
+      console.error('Error playing random playlist:', error)
+      toast.error(error?.message || 'No se pudo reproducir una playlist aleatoria.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+    } finally {
+      setPlayingRandom(false)
+    }
+  }, [addPlaylisthistory, playQueueShuffled, playingRandom])
 
   if (selectedPlaylist) {
     return (
@@ -89,6 +181,18 @@ function PlaylistsQueueTab({ isActive }) {
         renderItem={renderPlaylistRow}
         loading={!playlistsLoaded && playlistsLoading}
       />
+      {showRandomButton ? (
+        <button
+          type="button"
+          className="PlaylistsQueueTab__random-fab"
+          onClick={() => void handlePlayRandomPlaylist()}
+          title="Random playlist"
+          aria-label="Play random playlist"
+          disabled={playingRandom}
+        >
+          <RiShuffleLine />
+        </button>
+      ) : null}
     </div>
   )
 }

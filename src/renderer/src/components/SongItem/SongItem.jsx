@@ -45,6 +45,7 @@ export const SongItemView = memo(function SongItemView({
   onPlay,
   onToggleLike,
   onMenuSelect,
+  itemRef,
   onPointerDown,
   onPointerUp,
   onPointerLeave,
@@ -60,6 +61,7 @@ export const SongItemView = memo(function SongItemView({
 
   return (
     <li
+      ref={itemRef}
       className={isPinned ? 'visible is-pinned' : 'visible'}
       style={style}
       onClick={onPlay}
@@ -145,6 +147,7 @@ function SongItemContainer({
   onPlay,
   onToggleLike,
   onMenuSelect,
+  itemRef,
   onPointerDown,
   onPointerUp,
   onPointerLeave,
@@ -180,6 +183,7 @@ function SongItemContainer({
       onPlay={() => onPlay?.(file, index)}
       onToggleLike={(event) => onToggleLike?.(event, file, isLiked)}
       onMenuSelect={(optionId) => onMenuSelect?.(optionId, file, index)}
+      itemRef={itemRef}
       onPointerDown={(event) => onPointerDown?.(event, file, index)}
       onPointerUp={(event) => onPointerUp?.(event, file, index)}
       onPointerLeave={(event) => onPointerLeave?.(event, file, index)}

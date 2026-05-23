@@ -1,4 +1,5 @@
 .Cola {
+    position: relative;
     width: 100%;
     height: 100%;
     flex: 1;
@@ -32,9 +33,60 @@
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+    box-sizing: border-box;
 
 }
 
 .Cola__list--sortable {
     touch-action: none;
+}
+
+.Cola__active-track-fabs {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.Cola__active-track-fab {
+    position: absolute;
+    right: 1rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, $card 78%, black);
+    color: $text-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+    transition:
+        transform 0.18s ease,
+        background 0.18s ease,
+        color 0.18s ease,
+        box-shadow 0.18s ease;
+
+    svg {
+        font-size: 1.05rem;
+    }
+
+    &:hover {
+        transform: scale(1.05);
+        background: color-mix(in srgb, $primary-color 28%, $card);
+        color: $primary-color;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    &--top {
+        top: 1rem;
+    }
+
+    &--bottom {
+        bottom: 1rem;
+    }
 }

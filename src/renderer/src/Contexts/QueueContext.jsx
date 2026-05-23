@@ -151,6 +151,24 @@ export const QueueProvider = ({ children }) => {
     [applyBaseQueue]
   )
 
+  const playQueueShuffled = useCallback(
+    (list, name) => {
+      const baseQueue = Array.isArray(list) ? [...list] : []
+      const shuffledQueue = createWeightedShuffledQueue(baseQueue)
+      const nextFile = shuffledQueue[0] || ''
+
+      setQueueState({
+        currentQueue: shuffledQueue,
+        originalQueue: baseQueue,
+        queueName: name
+      })
+      setIsShuffled(true)
+      setCurrentFile(nextFile)
+      setCurrentIndex(0)
+    },
+    []
+  )
+
   const appendToCurrentQueue = useCallback(
     (song) => {
       if (!song?.filePath) {
@@ -518,6 +536,7 @@ export const QueueProvider = ({ children }) => {
       manualQueueOrders,
       setManualQueueOrders,
       PlayQueue,
+      playQueueShuffled,
       appendToCurrentQueue,
       appendManyToCurrentQueue,
       appendToQueueAndPlay,
@@ -547,6 +566,7 @@ export const QueueProvider = ({ children }) => {
       isShuffled,
       manualQueueOrders,
       openDirectoryQueue,
+      playQueueShuffled,
       queueState,
       removeFromCurrentQueue,
       removeTrack,

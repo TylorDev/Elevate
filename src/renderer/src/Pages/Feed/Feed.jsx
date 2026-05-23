@@ -216,12 +216,14 @@ function Feed() {
     let alive = true
 
     async function loadFeed() {
+      let keepLoading = false
       const cachedOverview = overviewCacheRef.current.get(scope)
 
       if (cachedOverview) {
         setOverview(cachedOverview)
         setLastUpdatedAt(cachedOverview.generatedAt || '')
         setIsUsingCache(true)
+        setRefreshing(Boolean(cachedOverview.refreshing))
         setLoading(false)
         setSwitchingScope(false)
         setError('')
@@ -247,10 +249,17 @@ function Feed() {
           return
         }
 
+        if (response.cacheMiss && response.refreshing) {
+          setRefreshing(true)
+          keepLoading = true
+          return
+        }
+
         overviewCacheRef.current.set(scope, response)
         setOverview(response)
         setLastUpdatedAt(response.generatedAt || '')
         setIsUsingCache(Boolean(response.cached))
+        setRefreshing(Boolean(response.refreshing))
       } catch (loadError) {
         if (alive) {
           setError(loadError?.message || 'No se pudo cargar el Feed.')
@@ -258,7 +267,7 @@ function Feed() {
         }
       } finally {
         if (alive) {
-          setLoading(false)
+          setLoading(keepLoading)
           setSwitchingScope(false)
         }
       }
@@ -270,6 +279,55 @@ function Feed() {
       alive = false
     }
   }, [scope])
+
+  const loadUpdatedFeed = useCallback(
+    async (targetScope = scope) => {
+      try {
+        const response = await window.electron.ipcRenderer.invoke('feed:get-collection-rankings', {
+          scope: targetScope,
+          page: 1,
+          pageSize: FEED_PAGE_SIZE
+        })
+
+        if (!response?.success || response.cacheMiss) {
+          return
+        }
+
+        overviewCacheRef.current.set(targetScope, response)
+
+        if (targetScope === scope) {
+          setOverview(response)
+          setLastUpdatedAt(response.generatedAt || '')
+          setIsUsingCache(Boolean(response.cached))
+          setRefreshing(Boolean(response.refreshing))
+          setLoading(false)
+          setSwitchingScope(false)
+        }
+      } catch (updateError) {
+        setError(updateError?.message || 'No se pudo recargar el Feed.')
+      }
+    },
+    [scope]
+  )
+
+  useEffect(() => {
+    const handleFeedUpdated = (payload) => {
+      if (!payload?.scope) return
+
+      overviewCacheRef.current.delete(payload.scope)
+      setRefreshing(false)
+
+      if (payload.scope === scope) {
+        void loadUpdatedFeed(payload.scope)
+      }
+    }
+
+    window.electron.ipcRenderer.on('feed:collection-rankings-updated', handleFeedUpdated)
+
+    return () => {
+      window.electron.ipcRenderer.removeAllListeners('feed:collection-rankings-updated')
+    }
+  }, [loadUpdatedFeed, scope])
 
   const activeTab = useMemo(
     () => RANKING_TABS.find((tab) => tab.id === activeTabId) || RANKING_TABS[0],
@@ -362,27 +420,15 @@ function Feed() {
     setError('')
 
     try {
-      const response = await window.electron.ipcRenderer.invoke('feed:get-collection-rankings', {
-        scope,
-        page: 1,
-        pageSize: FEED_PAGE_SIZE,
-        forceRefresh: true
+      const response = await window.electron.ipcRenderer.invoke('feed:refresh-collection-rankings', {
+        scope
       })
 
       if (!response?.success) {
         throw new Error(response?.error || 'No se pudo actualizar el Feed.')
       }
-
-      if (scope === 'playlists' || scope === 'directories') {
-        overviewCacheRef.current.delete('mixed')
-      }
-      overviewCacheRef.current.set(scope, response)
-      setOverview(response)
-      setLastUpdatedAt(response.generatedAt || '')
-      setIsUsingCache(Boolean(response.cached))
     } catch (refreshError) {
       setError(refreshError?.message || 'No se pudo actualizar el Feed.')
-    } finally {
       setRefreshing(false)
     }
   }, [refreshing, scope])
@@ -547,7 +593,7 @@ function Feed() {
         <div className="feed-header__actions">
           {lastUpdatedLabel ? (
             <span className="feed-cache-status">
-              {isUsingCache ? 'Cache de sesion' : 'Actualizado'} {lastUpdatedLabel}
+              {refreshing ? 'Actualizando cache...' : `${isUsingCache ? 'Cache' : 'Actualizado'} ${lastUpdatedLabel}`}
             </span>
           ) : null}
 

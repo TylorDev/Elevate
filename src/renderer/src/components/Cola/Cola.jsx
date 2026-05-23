@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedSizeList, VariableSizeList } from 'react-window'
+import { RiFocus3Line } from 'react-icons/ri'
 import { useLikes } from '../../Contexts/LikeContext'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useMini } from '../../Contexts/MiniContext'
@@ -505,6 +506,9 @@ export function Cola({
   const [pinnedOriginalIndex, setPinnedOriginalIndex] = useState(null)
   const [pinnedSourceKey, setPinnedSourceKey] = useState(null)
   const containerRef = useRef(null)
+  const scrollContainerRef = useRef(null)
+  const virtualListRef = useRef(null)
+  const activeSongNodeRef = useRef(null)
   const longPressTimerRef = useRef(null)
   const longPressStateRef = useRef(null)
   const suppressClickRef = useRef(null)
@@ -542,6 +546,19 @@ export function Cola({
   )
 
   const activeFilePath = currentFile?.filePath ?? null
+  const activeSongIndex = useMemo(
+    () => displayedList.findIndex((file) => file?.filePath === activeFilePath),
+    [activeFilePath, displayedList]
+  )
+  const activeGroupedRowIndex = useMemo(
+    () =>
+      groupByTime
+        ? groupedRows.findIndex(
+            (row) => row?.type === 'song' && row?.file?.filePath === activeFilePath
+          )
+        : -1,
+    [activeFilePath, groupByTime, groupedRows]
+  )
   const isDirectorySource = typeof name === 'string' && name.startsWith('folder:')
   const isCurrentQueueSource = name === 'currentQueue'
   const isPlaylistSource =
@@ -742,6 +759,84 @@ export function Cola({
     ]
   )
 
+  const [isActiveVisible, setIsActiveVisible] = useState(true)
+
+  const evaluateActiveVisibility = useCallback(() => {
+    if (!activeFilePath) {
+      setIsActiveVisible(true)
+      return
+    }
+
+    if (shouldVirtualize) {
+      const comparisonIndex = groupByTime ? activeGroupedRowIndex : activeSongIndex
+
+      if (comparisonIndex < 0) {
+        setIsActiveVisible(true)
+        return
+      }
+
+      const currentStart = visibleRange.start
+      const currentStop = visibleRange.stop
+      const visible = currentStop >= currentStart && comparisonIndex >= currentStart && comparisonIndex <= currentStop
+      setIsActiveVisible(visible)
+      return
+    }
+
+    const scrollContainer = scrollContainerRef.current
+    const activeNode = activeSongNodeRef.current
+
+    if (!scrollContainer || !activeNode) {
+      setIsActiveVisible(true)
+      return
+    }
+
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const activeRect = activeNode.getBoundingClientRect()
+    const visible =
+      activeRect.top >= containerRect.top && activeRect.bottom <= containerRect.bottom
+
+    setIsActiveVisible(visible)
+  }, [
+    activeFilePath,
+    activeGroupedRowIndex,
+    activeSongIndex,
+    groupByTime,
+    shouldVirtualize,
+    visibleRange.start,
+    visibleRange.stop
+  ])
+
+  const scrollActiveItemToCenter = useCallback(() => {
+    if (!activeFilePath) {
+      return
+    }
+
+    if (shouldVirtualize) {
+      const targetIndex = groupByTime ? activeGroupedRowIndex : activeSongIndex
+
+      if (targetIndex >= 0) {
+        virtualListRef.current?.scrollToItem(targetIndex, 'center')
+      }
+
+      return
+    }
+
+    const scrollContainer = scrollContainerRef.current
+    const activeNode = activeSongNodeRef.current
+
+    if (!scrollContainer || !activeNode) {
+      return
+    }
+
+    const targetScrollTop =
+      activeNode.offsetTop - scrollContainer.clientHeight / 2 + activeNode.clientHeight / 2
+
+    scrollContainer.scrollTo({
+      top: Math.max(0, targetScrollTop),
+      behavior: 'smooth'
+    })
+  }, [activeFilePath, activeGroupedRowIndex, activeSongIndex, groupByTime, shouldVirtualize])
+
   const handleItemsRendered = useCallback(
     ({ visibleStartIndex, visibleStopIndex }) => {
       setVisibleRange((currentRange) => {
@@ -768,6 +863,34 @@ export function Cola({
     },
     [displayedList.length, groupByTime, groupedRows.length, hasMore, isLoading, onLoadMore]
   )
+
+  useEffect(() => {
+    evaluateActiveVisibility()
+  }, [evaluateActiveVisibility])
+
+  useEffect(() => {
+    if (shouldVirtualize) {
+      return undefined
+    }
+
+    const scrollContainer = scrollContainerRef.current
+
+    if (!scrollContainer) {
+      return undefined
+    }
+
+    const handleVisibilityChange = () => {
+      evaluateActiveVisibility()
+    }
+
+    scrollContainer.addEventListener('scroll', handleVisibilityChange, { passive: true })
+    window.addEventListener('resize', handleVisibilityChange)
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleVisibilityChange)
+      window.removeEventListener('resize', handleVisibilityChange)
+    }
+  }, [evaluateActiveVisibility, shouldVirtualize])
 
   const visibleSongs = useMemo(() => {
     if (displayedList.length === 0) {
@@ -1046,6 +1169,7 @@ export function Cola({
     },
     [groupedRows, rowHeight]
   )
+  const showScrollToActiveButtons = Boolean(activeFilePath) && !isActiveVisible
 
   return (
     <div
@@ -1058,6 +1182,8 @@ export function Cola({
       {itemCount > 0 ? (
         shouldVirtualize && groupByTime ? (
           <VariableSizeList
+            ref={virtualListRef}
+            outerRef={scrollContainerRef}
             className="VirtualizedCola__list VirtualizedCola__list--grouped"
             height={listHeight}
             itemCount={itemCount}
@@ -1072,6 +1198,8 @@ export function Cola({
           </VariableSizeList>
         ) : shouldVirtualize ? (
           <FixedSizeList
+            ref={virtualListRef}
+            outerRef={scrollContainerRef}
             className="VirtualizedCola__list"
             height={listHeight}
             itemCount={itemCount}
@@ -1086,6 +1214,7 @@ export function Cola({
           </FixedSizeList>
         ) : (
           <ul
+            ref={scrollContainerRef}
             className={fillsParentHeight ? 'Cola__list Cola__list--scrollable' : 'Cola__list'}
             style={fillsParentHeight ? undefined : typeof height === 'string' ? { minHeight: height } : undefined}
           >
@@ -1099,6 +1228,7 @@ export function Cola({
                   index={index}
                   coverUrl={coverUrls[file.filePath] || DEFAULT_COVER}
                   isActive={isActive}
+                  itemRef={isActive ? activeSongNodeRef : undefined}
                   isPinned={pinnedSongPath === file.filePath}
                   isPinEnabled={isPinMoveEnabled}
                   isLiked={getLikeValue(likesLookup, file)}
@@ -1120,6 +1250,29 @@ export function Cola({
       ) : (
         <LoadingCola isLoading={isLoading} />
       )}
+
+      {showScrollToActiveButtons ? (
+        <div className="Cola__active-track-fabs" aria-hidden="false">
+          <button
+            type="button"
+            className="Cola__active-track-fab Cola__active-track-fab--top"
+            onClick={scrollActiveItemToCenter}
+            title="Center active track"
+            aria-label="Center active track"
+          >
+            <RiFocus3Line />
+          </button>
+          <button
+            type="button"
+            className="Cola__active-track-fab Cola__active-track-fab--bottom"
+            onClick={scrollActiveItemToCenter}
+            title="Center active track"
+            aria-label="Center active track"
+          >
+            <RiFocus3Line />
+          </button>
+        </div>
+      ) : null}
 
       {selectedPlaylistSong && (
         <Modal isVisible={Boolean(selectedPlaylistSong)} closeModal={() => setSelectedPlaylistSong(null)}>

@@ -33,6 +33,7 @@ const pendingSongLoads = {
   thumb: new Map(),
   full: new Map()
 }
+const pendingCollectionLoads = new Map()
 
 const VALID_CACHE_SCOPES = new Set(['thumb', 'full', 'collection'])
 
@@ -243,6 +244,65 @@ export function getCollectionCoverUrl(key, data) {
   return url
 }
 
+export function preloadCollectionCover(coverKey, coverSignature) {
+  if (!coverKey) {
+    return Promise.resolve(DEFAULT_COVER)
+  }
+
+  const cache = getCache('collection')
+  const cachedEntry = cache.get(coverKey)
+
+  if (cachedEntry?.signature === coverSignature) {
+    touchCacheEntry(cache, coverKey, cachedEntry)
+    return Promise.resolve(cachedEntry.url || DEFAULT_COVER)
+  }
+
+  const pendingKey = `${coverKey}:${coverSignature || ''}`
+  const pendingLoad = pendingCollectionLoads.get(pendingKey)
+
+  if (pendingLoad) {
+    return pendingLoad
+  }
+
+  revokeUrl(cachedEntry?.url)
+
+  const loadRevision = cacheRevisions.collection
+  const loadPromise = dedupedInvoke('feed:get-collection-cover', {
+    coverKey,
+    coverSignature
+  })
+    .then((cover) => {
+      const url = toObjectUrl(cover, 'image/png') || DEFAULT_COVER
+
+      if (loadRevision !== cacheRevisions.collection) {
+        revokeUrl(url)
+        return DEFAULT_COVER
+      }
+
+      cache.set(coverKey, {
+        signature: coverSignature,
+        url
+      })
+      pruneCache('collection')
+      return url
+    })
+    .catch((error) => {
+      console.error('Error loading collection cover:', error)
+      cache.set(coverKey, {
+        signature: coverSignature,
+        url: DEFAULT_COVER
+      })
+      pruneCache('collection')
+      return DEFAULT_COVER
+    })
+    .finally(() => {
+      pendingCollectionLoads.delete(pendingKey)
+    })
+
+  pendingCollectionLoads.set(pendingKey, loadPromise)
+  return loadPromise
+}
+
 export function preloadVisibleSongCovers(songs = [], options = {}) {
   const variant = normalizeSongVariant(options.variant)
   const limit = Number.isFinite(options.limit) ? Math.max(0, options.limit) : songs.length
@@ -292,6 +352,10 @@ export function clearImageCache(scope = 'all') {
   if (normalizedScope === 'all' || normalizedScope === 'full') {
     pendingSongLoads.full.clear()
   }
+
+  if (normalizedScope === 'all' || normalizedScope === 'collection') {
+    pendingCollectionLoads.clear()
+  }
 }
 
 export function useSongCover(filePath, variant = 'thumb') {
@@ -332,6 +396,43 @@ export function useSongCover(filePath, variant = 'thumb') {
   return coverUrl
 }
 
+export function useCollectionCover(coverKey, coverSignature) {
+  const [coverUrl, setCoverUrl] = useState(DEFAULT_COVER)
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!coverKey) {
+      setCoverUrl(DEFAULT_COVER)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const cachedEntry = getCache('collection').get(coverKey)
+    if (cachedEntry?.signature === coverSignature && cachedEntry?.url) {
+      touchCacheEntry(getCache('collection'), coverKey, cachedEntry)
+      setCoverUrl(cachedEntry.url || DEFAULT_COVER)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    setCoverUrl(DEFAULT_COVER)
+    preloadCollectionCover(coverKey, coverSignature).then((url) => {
+      if (isMounted) {
+        setCoverUrl(url)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [coverKey, coverSignature])
+
+  return coverUrl
+}
+
 export function ImagesProvider({ children }) {
   useEffect(() => {
     return () => {
@@ -345,9 +446,11 @@ export function ImagesProvider({ children }) {
       clearImageCache,
       getCollectionCoverUrl,
       getSongCoverUrl,
+      preloadCollectionCover,
       preloadSongCover,
       preloadVisibleSongCovers,
       revokeImage,
+      useCollectionCover,
       useSongCover
     }),
     []

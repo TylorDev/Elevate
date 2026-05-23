@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo } from 'react'
 import { LuFolderOpen, LuListMusic } from 'react-icons/lu'
 import { formatDuration } from '../../../../timeUtils'
 import { useImages } from '../../../Contexts/ImagesContext'
@@ -14,17 +14,8 @@ function CollectionEntityItemComponent({
   onOpen,
   style
 }) {
-  const { getCollectionCoverUrl, DEFAULT_COVER } = useImages()
-  const coverUrl = useMemo(() => {
-    if (!collection?.cover) {
-      return DEFAULT_COVER
-    }
-
-    return getCollectionCoverUrl(
-      `feed:${collection.type}:${collection.path}`,
-      collection.cover
-    )
-  }, [DEFAULT_COVER, collection?.cover, collection?.path, collection?.type, getCollectionCoverUrl])
+  const { useCollectionCover } = useImages()
+  const coverUrl = useCollectionCover(collection?.coverKey, collection?.coverSignature)
 
   if (!collection) {
     return null

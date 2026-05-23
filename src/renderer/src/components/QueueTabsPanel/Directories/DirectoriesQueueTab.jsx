@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BsFolderFill } from 'react-icons/bs'
-import { RiArrowLeftLine } from 'react-icons/ri'
+import { RiArrowLeftLine, RiShuffleLine } from 'react-icons/ri'
+import { Bounce, toast } from 'react-toastify'
 import { DirItem } from '../../DirItem/DirItem'
 import { useMini } from '../../../Contexts/MiniContext'
+import { useQueue } from '../../../Contexts/QueueContext'
+import { dedupedInvoke } from '../../../Contexts/utils'
 import Cola from '../../Cola/Cola'
 import VirtualizedQueueEntityList from '../VirtualizedQueueEntityList'
 import { UndefinedItem } from '../../UndefinedItem/UndefinedItem'
@@ -43,9 +46,12 @@ function getParentDirectoryInfo(path = '') {
 
 function DirectoriesQueueTab({ isActive }) {
   const { directories, directoriesLoaded, directoriesLoading, getDirFiles, getDirectories } = useMini()
+  const { playQueueShuffled } = useQueue()
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [selectedDirectory, setSelectedDirectory] = useState(null)
   const [currentDir, setCurrentDir] = useState([])
+  const [directoryCount, setDirectoryCount] = useState(null)
+  const [playingRandom, setPlayingRandom] = useState(false)
   const selectedDirectoryPath = selectedDirectory?.path
   const groupedDirectories = useMemo(() => {
     const groupsMap = new Map()
@@ -107,10 +113,93 @@ function DirectoriesQueueTab({ isActive }) {
     getDirFiles(setCurrentDir, selectedDirectoryPath)
   }, [getDirFiles, selectedDirectoryPath])
 
+  useEffect(() => {
+    if (!isActive) return
+
+    let cancelled = false
+
+    dedupedInvoke('get-directories-number')
+      .then((count) => {
+        if (!cancelled) {
+          setDirectoryCount(Number(count) || 0)
+        }
+      })
+      .catch((error) => {
+        console.error('Error loading directories count:', error)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [directories.length, directoriesLoaded, isActive])
+
   const renderDirectoryRow = useCallback(
     (directory, index, style) => <DirItem key={directory?.id || index} directory={directory} disableNavigation onSelect={setSelectedDirectory} style={style} />,
     []
   )
+
+  const showRandomButton = !selectedGroup && !selectedDirectory && Number(directoryCount) > 0
+
+  const handlePlayRandomDirectory = useCallback(async () => {
+    if (playingRandom) {
+      return
+    }
+
+    setPlayingRandom(true)
+
+    try {
+      const randomDirectory = await dedupedInvoke('get-random-directory')
+
+      if (!randomDirectory?.path) {
+        toast.error('No hay directorios disponibles para reproducir.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return
+      }
+
+      const tracks = await dedupedInvoke('get-audio-in-directory', randomDirectory.path)
+
+      if (!Array.isArray(tracks) || tracks.length === 0) {
+        toast.error('El directorio aleatorio no tiene canciones disponibles.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return
+      }
+
+      playQueueShuffled(tracks, `folder:${randomDirectory.path}`)
+    } catch (error) {
+      console.error('Error playing random directory:', error)
+      toast.error(error?.message || 'No se pudo reproducir un directorio aleatorio.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+    } finally {
+      setPlayingRandom(false)
+    }
+  }, [playQueueShuffled, playingRandom])
   const renderGroupRow = useCallback(
     (group, index, style) => (
       <UndefinedItem
@@ -203,6 +292,18 @@ function DirectoriesQueueTab({ isActive }) {
         renderItem={renderGroupRow}
         loading={!directoriesLoaded && directoriesLoading}
       />
+      {showRandomButton ? (
+        <button
+          type="button"
+          className="DirectoriesQueueTab__random-fab"
+          onClick={() => void handlePlayRandomDirectory()}
+          title="Random directory"
+          aria-label="Play random directory"
+          disabled={playingRandom}
+        >
+          <RiShuffleLine />
+        </button>
+      ) : null}
     </div>
   )
 }

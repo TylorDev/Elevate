@@ -6,6 +6,9 @@
 .VirtualizedCola__list {
     overflow-x: hidden !important;
     scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+    box-sizing: border-box;
 }
 
 .VirtualizedCola__loader,

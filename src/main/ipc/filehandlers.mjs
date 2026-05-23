@@ -27,6 +27,7 @@ import {
 
 import fs from 'fs'
 import path from 'path'
+import crypto from 'crypto'
 import { sendNotification } from '../index.mjs'
 import { prisma } from '../prisma.mjs'
 import { setBraveVolume } from './audio.mjs'
@@ -39,13 +40,15 @@ import {
 import { getLikesOverview, getLikesTracksPage } from './likehandlers.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, dialog, ipcMain, shell } = electron
+const { app, BrowserWindow, dialog, ipcMain, shell } = electron
 const audioPathsCache = new Map()
 const audioCoverCache = new Map()
 const AUDIO_PATHS_TTL = 60 * 1000
 const COVER_CACHE_TTL = 10 * 60 * 1000
 const COVER_CACHE_LIMIT = 400
 const FEED_CACHE_SCOPES = ['mixed', 'playlists', 'directories']
+const FEED_CACHE_VERSION = 1
+const FEED_ENTITY_BATCH_SIZE = 6
 let pendingDirectoriesRequest = null
 const INSIGHT_METRIC_KEYS = {
   duration: 'duration',
@@ -92,6 +95,66 @@ const FEED_RANKING_TABS = {
 
 for (const scope of FEED_CACHE_SCOPES) {
   feedRankingsCache.set(scope, null)
+}
+
+function getFeedCacheDir() {
+  const baseDir = app.getPath('userData')
+  const cacheDir = path.join(baseDir, 'feed-cache-v1')
+  fs.mkdirSync(cacheDir, { recursive: true })
+  fs.mkdirSync(path.join(cacheDir, 'covers'), { recursive: true })
+  return cacheDir
+}
+
+function getFeedSnapshotPath(scope) {
+  return path.join(getFeedCacheDir(), `${scope}.json`)
+}
+
+function getFeedCoverCachePath(coverKey, coverSignature = '') {
+  const hash = crypto
+    .createHash('sha1')
+    .update(`${coverKey}|${coverSignature}`)
+    .digest('hex')
+  return path.join(getFeedCacheDir(), 'covers', `${hash}.png`)
+}
+
+function encodeFeedCoverKey(type, sourcePath = '') {
+  return `${type}:${Buffer.from(sourcePath).toString('base64url')}`
+}
+
+function decodeFeedCoverKey(coverKey = '') {
+  const separatorIndex = coverKey.indexOf(':')
+  if (separatorIndex <= 0) {
+    return null
+  }
+
+  const type = coverKey.slice(0, separatorIndex)
+  const encodedPath = coverKey.slice(separatorIndex + 1)
+
+  if (type !== 'playlist' && type !== 'directory') {
+    return null
+  }
+
+  try {
+    return {
+      type,
+      sourcePath: Buffer.from(encodedPath, 'base64url').toString('utf8')
+    }
+  } catch {
+    return null
+  }
+}
+
+function delayFeedBatch() {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
+function sendFeedRankingsUpdated(scope, generatedAt) {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('feed:collection-rankings-updated', {
+      scope,
+      generatedAt
+    })
+  }
 }
 
 function buildInsightRankingsFromTracks(tracks = [], request = {}) {
@@ -185,6 +248,10 @@ function getPathLeaf(pathValue = '') {
   const normalizedPath = String(pathValue).replace(/\\/g, '/')
   const segments = normalizedPath.split('/').filter(Boolean)
   return segments[segments.length - 1] || normalizedPath
+}
+
+function getRandomIndex(total) {
+  return Math.floor(Math.random() * total)
 }
 
 function toNumber(value) {
@@ -304,6 +371,103 @@ async function getCachedFeedCollectionCover({ type, sourcePath, signature, track
   return cover
 }
 
+async function readFeedSnapshot(scope) {
+  const memorySnapshot = feedRankingsCache.get(scope)
+  if (memorySnapshot?.version === FEED_CACHE_VERSION) {
+    return memorySnapshot
+  }
+
+  try {
+    const snapshotText = await fs.promises.readFile(getFeedSnapshotPath(scope), 'utf8')
+    const snapshot = JSON.parse(snapshotText)
+
+    if (snapshot?.version !== FEED_CACHE_VERSION || snapshot?.scope !== scope) {
+      return null
+    }
+
+    feedRankingsCache.set(scope, snapshot)
+    return snapshot
+  } catch {
+    return null
+  }
+}
+
+async function writeFeedSnapshot(scope, snapshot) {
+  const snapshotPath = getFeedSnapshotPath(scope)
+  const tempPath = `${snapshotPath}.tmp`
+  await fs.promises.writeFile(tempPath, JSON.stringify(snapshot), 'utf8')
+  await fs.promises.rename(tempPath, snapshotPath)
+  feedRankingsCache.set(scope, snapshot)
+}
+
+async function getFeedSourceSignature(scope) {
+  const shouldLoadPlaylists = scope === 'mixed' || scope === 'playlists'
+  const shouldLoadDirectories = scope === 'mixed' || scope === 'directories'
+  const signatureParts = []
+
+  if (shouldLoadPlaylists) {
+    const playlists = await prisma.playlist.findMany({
+      select: {
+        id: true,
+        path: true,
+        duracion: true,
+        numElementos: true,
+        totalplays: true,
+        customCoverMode: true,
+        customCoverValue: true,
+        customCoverSelection: true,
+        customCoverUpdatedAt: true
+      },
+      orderBy: {
+        id: 'asc'
+      }
+    })
+    signatureParts.push({
+      playlists: playlists.map((playlist) => ({
+        ...playlist,
+        stat: getFileStatSignature(playlist.path),
+        customCoverUpdatedAt: playlist.customCoverUpdatedAt?.toISOString?.() || null
+      }))
+    })
+  }
+
+  if (shouldLoadDirectories) {
+    const directories = await prisma.directory.findMany({
+      select: {
+        id: true,
+        path: true,
+        totalTracks: true,
+        totalDuration: true,
+        lastScannedAt: true
+      },
+      orderBy: {
+        id: 'asc'
+      }
+    })
+    signatureParts.push({
+      directories: directories.map((directory) => ({
+        ...directory,
+        lastScannedAt: directory.lastScannedAt?.toISOString?.() || null
+      }))
+    })
+  }
+
+  return crypto.createHash('sha1').update(JSON.stringify(signatureParts)).digest('hex')
+}
+
+async function mapFeedEntitiesInBatches(items, mapper) {
+  const entities = []
+
+  for (let index = 0; index < items.length; index += FEED_ENTITY_BATCH_SIZE) {
+    const batch = items.slice(index, index + FEED_ENTITY_BATCH_SIZE)
+    const batchEntities = await Promise.all(batch.map((item) => mapper(item)))
+    entities.push(...batchEntities.filter(Boolean))
+    await delayFeedBatch()
+  }
+
+  return entities
+}
+
 function buildCollectionEntityRankings(collections = [], request = {}) {
   const { tabId, page, pageSize } = normalizeFeedRankingsRequest(request)
   const tabEntries = tabId && FEED_RANKING_TABS[tabId]
@@ -353,13 +517,24 @@ function buildCollectionEntityRankings(collections = [], request = {}) {
   }, {})
 }
 
-function mapSummaryToCollectionEntity({ type, id, name, sourcePath, tracks, summary, cover, recentActivityAt }) {
+function mapSummaryToCollectionEntity({
+  type,
+  id,
+  name,
+  sourcePath,
+  tracks,
+  summary,
+  coverKey,
+  coverSignature,
+  recentActivityAt
+}) {
   return {
     id,
     type,
     name,
     path: sourcePath,
-    cover,
+    coverKey,
+    coverSignature,
     totalShortViews: toNumber(summary?.totalShortViews),
     totalLongViews: toNumber(summary?.totalLongViews),
     totalDuration: toNumber(summary?.totalDuration),
@@ -375,15 +550,9 @@ async function buildDirectoryFeedEntity(directory) {
   const audioFiles = await getCachedAudioFiles(directory.path)
   const uniqueAudioFiles = Array.from(new Set(audioFiles))
   const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
-  const cover = await getCachedFeedCollectionCover({
-    type: 'directory',
-    sourcePath: directory.path,
-    signature: getDirectoryFeedCoverSignature(directory, uniqueAudioFiles.length),
-    tracks
-  })
+  const coverSignature = getDirectoryFeedCoverSignature(directory, uniqueAudioFiles.length)
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
-    sourcePath: directory.path,
-    cover
+    sourcePath: directory.path
   })
 
   return mapSummaryToCollectionEntity({
@@ -393,7 +562,8 @@ async function buildDirectoryFeedEntity(directory) {
     sourcePath: directory.path,
     tracks,
     summary,
-    cover,
+    coverKey: encodeFeedCoverKey('directory', directory.path),
+    coverSignature,
     recentActivityAt: getCollectionRecentActivity(tracks)
   })
 }
@@ -404,15 +574,9 @@ async function buildPlaylistFeedEntity(playlist, lastOpenedAt = null) {
     ...song,
     picture: undefined
   }))
-  const cover = await getCachedFeedCollectionCover({
-    type: 'playlist',
-    sourcePath: playlist.path,
-    signature: getPlaylistFeedCoverSignature(playlist),
-    tracks
-  })
+  const coverSignature = getPlaylistFeedCoverSignature(playlist)
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
-    sourcePath: playlist.path,
-    cover
+    sourcePath: playlist.path
   })
 
   return mapSummaryToCollectionEntity({
@@ -422,7 +586,8 @@ async function buildPlaylistFeedEntity(playlist, lastOpenedAt = null) {
     sourcePath: playlist.path,
     tracks,
     summary,
-    cover,
+    coverKey: encodeFeedCoverKey('playlist', playlist.path),
+    coverSignature,
     recentActivityAt: getCollectionRecentActivity(tracks, lastOpenedAt)
   })
 }
@@ -464,83 +629,175 @@ async function buildFeedCollectionEntities(scope) {
     const lastOpenedAtByPlaylistId = await getPlaylistHistoryDatesById(
       playlists.map((playlist) => playlist.id)
     )
-    const playlistEntities = await Promise.all(
-      playlists.map((playlist) =>
+    const playlistEntities = await mapFeedEntitiesInBatches(
+      playlists,
+      (playlist) =>
         buildPlaylistFeedEntity(playlist, lastOpenedAtByPlaylistId.get(playlist.id) || null)
-      )
     )
     collections.push(...playlistEntities)
   }
 
   if (shouldLoadDirectories) {
     const directories = await prisma.directory.findMany()
-    const directoryEntities = await Promise.all(
-      directories.map((directory) => buildDirectoryFeedEntity(directory))
-    )
+    const directoryEntities = await mapFeedEntitiesInBatches(directories, buildDirectoryFeedEntity)
     collections.push(...directoryEntities)
   }
 
   return collections
 }
 
-async function getFeedCollectionEntities(scope, { forceRefresh = false } = {}) {
-  const cachedEntry = feedRankingsCache.get(scope)
+async function buildAndStoreFeedSnapshot(scope) {
+  const sourceSignature = await getFeedSourceSignature(scope)
+  const entities = await buildFeedCollectionEntities(scope)
+  const snapshot = {
+    version: FEED_CACHE_VERSION,
+    status: 'ready',
+    scope,
+    generatedAt: new Date().toISOString(),
+    sourceSignature,
+    entities
+  }
 
-  if (!forceRefresh && cachedEntry?.entities) {
+  await writeFeedSnapshot(scope, snapshot)
+  return snapshot
+}
+
+function startFeedRefreshJob(scope) {
+  const existingJob = pendingFeedCollections.get(scope)
+  if (existingJob) {
     return {
-      entities: cachedEntry.entities,
-      generatedAt: cachedEntry.generatedAt,
-      cached: true
+      started: false,
+      alreadyRunning: true,
+      promise: existingJob
     }
   }
 
-  if (!forceRefresh) {
-    const pendingRequest = pendingFeedCollections.get(scope)
-    if (pendingRequest) {
-      const pendingEntry = await pendingRequest
-      return {
-        ...pendingEntry,
-        cached: true
-      }
-    }
-  } else {
-    invalidateFeedCollectionsCache(scope)
-    feedCollectionCoverCache.clear()
-  }
+  invalidateFeedCollectionsCache(scope)
+  const refreshJob = buildAndStoreFeedSnapshot(scope)
+    .then((snapshot) => {
+      sendFeedRankingsUpdated(scope, snapshot.generatedAt)
+      return snapshot
+    })
+    .catch((error) => {
+      console.error(`Error refreshing feed cache for ${scope}:`, error)
+      return null
+    })
+    .finally(() => {
+      pendingFeedCollections.delete(scope)
+    })
 
-  const buildPromise = buildFeedCollectionEntities(scope).then((entities) => {
-    const entry = {
-      entities,
-      generatedAt: new Date().toISOString()
-    }
-    feedRankingsCache.set(scope, entry)
-    return entry
-  }).finally(() => {
-    pendingFeedCollections.delete(scope)
-  })
+  pendingFeedCollections.set(scope, refreshJob)
 
-  pendingFeedCollections.set(scope, buildPromise)
-  const freshEntry = await buildPromise
   return {
-    ...freshEntry,
-    cached: false
+    started: true,
+    alreadyRunning: false,
+    promise: refreshJob
   }
 }
 
 async function getFeedCollectionRankings(request = {}) {
   const normalizedRequest = normalizeFeedRankingsRequest(request)
-  const collectionResult = await getFeedCollectionEntities(normalizedRequest.scope, {
-    forceRefresh: normalizedRequest.forceRefresh
-  })
+  const currentSourceSignature = await getFeedSourceSignature(normalizedRequest.scope)
+  let snapshot = await readFeedSnapshot(normalizedRequest.scope)
+
+  if (normalizedRequest.forceRefresh) {
+    startFeedRefreshJob(normalizedRequest.scope)
+  }
+
+  if (!snapshot) {
+    startFeedRefreshJob(normalizedRequest.scope)
+    return {
+      success: true,
+      scope: normalizedRequest.scope,
+      total: 0,
+      cached: false,
+      stale: false,
+      cacheMiss: true,
+      refreshing: true,
+      generatedAt: null,
+      rankings: buildCollectionEntityRankings([], normalizedRequest)
+    }
+  }
+
+  const isStale = snapshot.sourceSignature !== currentSourceSignature
+  if (isStale || normalizedRequest.forceRefresh) {
+    startFeedRefreshJob(normalizedRequest.scope)
+  }
+
+  const entities = Array.isArray(snapshot.entities) ? snapshot.entities : []
 
   return {
     success: true,
     scope: normalizedRequest.scope,
-    total: collectionResult.entities.length,
-    cached: collectionResult.cached,
-    generatedAt: collectionResult.generatedAt,
-    rankings: buildCollectionEntityRankings(collectionResult.entities, normalizedRequest)
+    total: entities.length,
+    cached: true,
+    stale: isStale,
+    cacheMiss: false,
+    refreshing: pendingFeedCollections.has(normalizedRequest.scope),
+    generatedAt: snapshot.generatedAt,
+    rankings: buildCollectionEntityRankings(entities, normalizedRequest)
   }
+}
+
+async function refreshFeedCollectionRankings(request = {}) {
+  const normalizedRequest = normalizeFeedRankingsRequest(request)
+  const jobResult = startFeedRefreshJob(normalizedRequest.scope)
+
+  return {
+    success: true,
+    scope: normalizedRequest.scope,
+    started: jobResult.started,
+    alreadyRunning: jobResult.alreadyRunning
+  }
+}
+
+async function getFeedCollectionCover(request = {}) {
+  const coverKey = typeof request?.coverKey === 'string' ? request.coverKey : ''
+  const coverSignature = typeof request?.coverSignature === 'string' ? request.coverSignature : ''
+  const decodedCoverKey = decodeFeedCoverKey(coverKey)
+
+  if (!decodedCoverKey?.sourcePath) {
+    return null
+  }
+
+  const memoryCover = feedCollectionCoverCache.get(`${coverKey}:${coverSignature}`)
+  if (memoryCover) {
+    return memoryCover
+  }
+
+  const coverPath = getFeedCoverCachePath(coverKey, coverSignature)
+  try {
+    const cachedBuffer = await fs.promises.readFile(coverPath)
+    const cachedCover = {
+      data: cachedBuffer,
+      mimeType: 'image/png'
+    }
+    feedCollectionCoverCache.set(`${coverKey}:${coverSignature}`, cachedCover)
+    return cachedCover
+  } catch {
+    // Missing cover cache; generate lazily below.
+  }
+
+  const { type, sourcePath } = decodedCoverKey
+  const tracks =
+    type === 'playlist'
+      ? await processPlaylist(sourcePath, path.dirname(sourcePath), { includePicture: false })
+      : await getFileInfos(Array.from(new Set(await getCachedAudioFiles(sourcePath))), {
+          includePicture: false
+        })
+  const coverBuffer = await generateCollectionCoverFromTracks(tracks)
+
+  if (!coverBuffer) {
+    return null
+  }
+
+  await fs.promises.writeFile(coverPath, coverBuffer)
+  const generatedCover = {
+    data: coverBuffer,
+    mimeType: 'image/png'
+  }
+  feedCollectionCoverCache.set(`${coverKey}:${coverSignature}`, generatedCover)
+  return generatedCover
 }
 
 async function getDirectoryDetail(directoryPath) {
@@ -806,6 +1063,25 @@ async function searchDirectoriesPage(request = {}) {
   }
 }
 
+async function getRandomDirectory() {
+  try {
+    const totalDirectories = await prisma.directory.count()
+    if (totalDirectories === 0) return null
+
+    const randomIndex = getRandomIndex(totalDirectories)
+
+    return await prisma.directory.findFirst({
+      skip: randomIndex,
+      orderBy: {
+        id: 'asc'
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching random directory:', error)
+    return null
+  }
+}
+
 export function setupFilehandlers() {
   // Connect the watcher notification system to the renderer
   setNotifyRenderer((message) => sendNotification(message))
@@ -1015,6 +1291,24 @@ export function setupFilehandlers() {
     }
   })
 
+  ipcMain.handle('feed:refresh-collection-rankings', async (_, request) => {
+    try {
+      return await refreshFeedCollectionRankings(request)
+    } catch (error) {
+      console.error('Error refreshing feed collection rankings:', error)
+      return { success: false, error: error.message || 'No se pudo actualizar el feed.' }
+    }
+  })
+
+  ipcMain.handle('feed:get-collection-cover', async (_, request) => {
+    try {
+      return await getFeedCollectionCover(request)
+    } catch (error) {
+      console.error('Error retrieving feed collection cover:', error)
+      return null
+    }
+  })
+
   // ─── delete-directory ────────────────────────────────────────────
   ipcMain.handle('delete-directory', async (event, dirPath) => {
     try {
@@ -1093,6 +1387,19 @@ export function setupFilehandlers() {
       console.error('Error retrieving directories:', error)
       throw error
     }
+  })
+
+  ipcMain.handle('get-directories-number', async () => {
+    try {
+      return await prisma.directory.count()
+    } catch (error) {
+      console.error('Error retrieving directories count:', error)
+      throw error
+    }
+  })
+
+  ipcMain.handle('get-random-directory', async () => {
+    return await getRandomDirectory()
   })
 
   ipcMain.handle('search-directories-page', async (event, request) => {
