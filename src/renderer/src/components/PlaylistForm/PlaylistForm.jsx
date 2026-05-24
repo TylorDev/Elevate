@@ -2,13 +2,53 @@ import './PlaylistForm.scss'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useImages } from '../../Contexts/ImagesContext'
 
+const COVER_MODE_DETAILS = {
+  auto: {
+    label: 'Automatica',
+    eyebrow: 'Curada por Elevate',
+    description: 'Genera una portada basada en las canciones con mas peso dentro de la playlist.'
+  },
+  'suggested-collage': {
+    label: 'Collage sugerido',
+    eyebrow: 'Seleccion manual',
+    description: 'Combina cuatro covers sugeridos para construir una portada con mas identidad.'
+  },
+  'local-image': {
+    label: 'Imagen local',
+    eyebrow: 'Archivo propio',
+    description: 'Usa una imagen guardada en tu equipo para personalizar la portada.'
+  },
+  'remote-image': {
+    label: 'URL remota',
+    eyebrow: 'Desde la web',
+    description: 'Valida una imagen online y usala como portada final de la playlist.'
+  }
+}
+
 function resolveSuggestedCoverUrl(cover, getCollectionCoverUrl) {
   if (cover?.picture?.[0]?.data) {
-    const coverKey = cover.suggestedId || cover.filePath || cover.coverHash || cover.title || 'suggested'
+    const coverKey =
+      cover.suggestedId || cover.filePath || cover.coverHash || cover.title || 'suggested'
     return getCollectionCoverUrl(`suggested-cover:${coverKey}`, cover.picture[0])
   }
 
   return null
+}
+
+function formatAssetLabel(value, fallback = 'Imagen seleccionada') {
+  if (!value) {
+    return ''
+  }
+
+  if (value.startsWith('data:')) {
+    const mimeType = value.slice(5, value.indexOf(';')) || 'image'
+    const shortType = mimeType.replace('image/', '')
+    return `${fallback} (${shortType.toUpperCase()})`
+  }
+
+  const normalizedValue = value.replace(/\\/g, '/')
+  const segments = normalizedValue.split('/')
+  return segments[segments.length - 1] || fallback
 }
 
 const PlaylistForm = ({
@@ -89,6 +129,13 @@ const PlaylistForm = ({
     }
   }, [coverConfig])
 
+  const automaticCoverUrl = automaticCover
+    ? getCollectionCoverUrl(`${playlist?.path}:auto`, automaticCover)
+    : ''
+  const effectiveCoverUrl = effectiveCover
+    ? getCollectionCoverUrl(`${playlist?.path}:effective`, effectiveCover)
+    : ''
+
   const collagePreviewUrls = useMemo(
     () =>
       selectedSuggestedCoverIds
@@ -98,6 +145,15 @@ const PlaylistForm = ({
         .filter(Boolean),
     [getCollectionCoverUrl, selectedSuggestedCoverIds, suggestedCovers]
   )
+
+  const activeModeDetails = COVER_MODE_DETAILS[coverMode] || COVER_MODE_DETAILS.auto
+  const localAssetLabel = formatAssetLabel(localImageValue || localResolvedUrl, 'Imagen local')
+  const remoteAssetLabel = formatAssetLabel(remoteImageValue || remoteResolvedUrl, 'Imagen remota')
+  const currentPreviewUrl =
+    (coverMode === 'local-image' && localPreviewUrl) ||
+    (coverMode === 'remote-image' && remotePreviewUrl) ||
+    effectiveCoverUrl ||
+    automaticCoverUrl
 
   const handleCoverModeChange = useCallback((nextMode) => {
     setCoverMode(nextMode)
@@ -113,7 +169,7 @@ const PlaylistForm = ({
       }
 
       if (previous.length >= 4) {
-        setErrorMessage('Selecciona solo 4 imágenes')
+        setErrorMessage('Selecciona solo 4 imagenes')
         return previous
       }
 
@@ -146,7 +202,7 @@ const PlaylistForm = ({
   const handleRemoteImageApply = useCallback(async () => {
     const url = remoteImageValue.trim()
     if (!url) {
-      setErrorMessage('Introduce una URL válida')
+      setErrorMessage('Introduce una URL valida')
       return
     }
 
@@ -183,310 +239,343 @@ const PlaylistForm = ({
 
   const validateForm = useCallback(() => {
     if (!nombre.trim()) {
-      setErrorMessage('El nombre no puede estar vacío')
+      setErrorMessage('El nombre no puede estar vacio')
       return false
     }
 
     if (coverMode === 'suggested-collage' && selectedSuggestedCoverIds.length !== 4) {
-      setErrorMessage('Selecciona exactamente 4 imágenes para el collage')
+      setErrorMessage('Selecciona exactamente 4 imagenes para el collage')
       return false
     }
 
     if (coverMode === 'local-image' && !localResolvedUrl) {
-      setErrorMessage('Selecciona una imagen local válida')
+      setErrorMessage('Selecciona una imagen local valida')
       return false
     }
 
     if (coverMode === 'remote-image' && !remoteResolvedUrl) {
-      setErrorMessage('Aplica una URL de imagen válida antes de guardar')
+      setErrorMessage('Valida una URL de imagen antes de guardar')
       return false
     }
 
     return true
   }, [coverMode, localResolvedUrl, nombre, remoteResolvedUrl, selectedSuggestedCoverIds.length])
 
-  const handleSubmit = useCallback(async (event) => {
-    event.preventDefault()
-    setErrorMessage('')
+  const handleSubmit = useCallback(
+    async (event) => {
+      event.preventDefault()
+      setErrorMessage('')
 
-    if (!validateForm()) {
-      return
-    }
-
-    setIsSubmitting(true)
-
-    const payload = {
-      nombre: nombre.trim()
-    }
-
-    if (coverMode === 'suggested-collage') {
-      payload.coverMode = 'suggested-collage'
-      payload.coverSelection = selectedSuggestedCoverIds
-    } else if (coverMode === 'local-image') {
-      payload.coverMode = 'local-image'
-      payload.coverValue = localResolvedUrl
-    } else if (coverMode === 'remote-image') {
-      payload.coverMode = 'remote-image'
-      payload.coverValue = remoteResolvedUrl
-    } else {
-      payload.coverMode = 'auto'
-    }
-
-    try {
-      const response = await onUpdate(playlist.path, payload)
-      if (response?.success) {
-        close()
-      } else {
-        setErrorMessage(response?.error || 'Error al guardar')
+      if (!validateForm()) {
+        return
       }
-    } finally {
-      setIsSubmitting(false)
-    }
-  }, [
-    close,
-    coverMode,
-    localResolvedUrl,
-    nombre,
-    onUpdate,
-    playlist.path,
-    remoteResolvedUrl,
-    selectedSuggestedCoverIds,
-    validateForm
-  ])
 
-  const automaticCoverUrl = automaticCover
-    ? getCollectionCoverUrl(`${playlist?.path}:auto`, automaticCover)
-    : ''
-  const effectiveCoverUrl = effectiveCover
-    ? getCollectionCoverUrl(`${playlist?.path}:effective`, effectiveCover)
-    : ''
+      setIsSubmitting(true)
+
+      const payload = {
+        nombre: nombre.trim()
+      }
+
+      if (coverMode === 'suggested-collage') {
+        payload.coverMode = 'suggested-collage'
+        payload.coverSelection = selectedSuggestedCoverIds
+      } else if (coverMode === 'local-image') {
+        payload.coverMode = 'local-image'
+        payload.coverValue = localResolvedUrl
+      } else if (coverMode === 'remote-image') {
+        payload.coverMode = 'remote-image'
+        payload.coverValue = remoteResolvedUrl
+      } else {
+        payload.coverMode = 'auto'
+      }
+
+      try {
+        const response = await onUpdate(playlist.path, payload)
+        if (response?.success) {
+          close()
+        } else {
+          setErrorMessage(response?.error || 'Error al guardar')
+        }
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [
+      close,
+      coverMode,
+      localResolvedUrl,
+      nombre,
+      onUpdate,
+      playlist.path,
+      remoteResolvedUrl,
+      selectedSuggestedCoverIds,
+      validateForm
+    ]
+  )
 
   return (
     <form onSubmit={handleSubmit} className="playlist-form">
       <div className="playlist-form__header">
-        <h2>Editar Playlist</h2>
+        <div>
+          <span className="playlist-form__eyebrow">Editor de playlist</span>
+        </div>
+        <div className="playlist-form__header-badge">{activeModeDetails.label}</div>
       </div>
 
       <div className="playlist-form__body">
-        <div className="playlist-form__field">
-          <label className="playlist-form__label">Nombre</label>
-          <input
-            type="text"
-            value={nombre}
-            onChange={(event) => setNombre(event.target.value)}
-            className="playlist-form__input"
-            placeholder="Nombre de la playlist"
-          />
-        </div>
+        <div className="playlist-form__layout">
+          <section className="playlist-form__panel playlist-form__panel--details">
+            <div className="playlist-form__field">
+              <label className="playlist-form__label">Nombre</label>
 
-        <div className="playlist-form__field">
-          <label className="playlist-form__label">Path</label>
-          <input
-            type="text"
-            value={playlist?.path || ''}
-            className="playlist-form__input playlist-form__input--disabled"
-            disabled
-          />
-        </div>
-
-        <div className="playlist-form__section">
-          <div className="playlist-form__section-header">
-            <label className="playlist-form__label">Portada</label>
-            <button type="button" className="playlist-form__clear-btn" onClick={handleResetCover}>
-              Restablecer
-            </button>
-          </div>
-
-          <div className="playlist-form__cover-modes">
-            <button
-              type="button"
-              className={`playlist-form__mode-btn ${coverMode === 'auto' ? 'playlist-form__mode-btn--active' : ''}`}
-              onClick={() => handleCoverModeChange('auto')}
-            >
-              Automático
-            </button>
-            <button
-              type="button"
-              className={`playlist-form__mode-btn ${coverMode === 'suggested-collage' ? 'playlist-form__mode-btn--active' : ''}`}
-              onClick={() => handleCoverModeChange('suggested-collage')}
-            >
-              Sugeridos
-            </button>
-            <button
-              type="button"
-              className={`playlist-form__mode-btn ${coverMode === 'local-image' ? 'playlist-form__mode-btn--active' : ''}`}
-              onClick={() => handleCoverModeChange('local-image')}
-            >
-              Imagen local
-            </button>
-            <button
-              type="button"
-              className={`playlist-form__mode-btn ${coverMode === 'remote-image' ? 'playlist-form__mode-btn--active' : ''}`}
-              onClick={() => handleCoverModeChange('remote-image')}
-            >
-              URL
-            </button>
-          </div>
-
-          {coverMode === 'auto' && (
-            <div className="playlist-form__cover-preview">
-              <p className="playlist-form__cover-info">
-                Se usará la portada automática basada en las canciones más escuchadas.
-              </p>
-              {automaticCoverUrl ? (
-                <div className="playlist-form__cover-current">
-                  <img src={automaticCoverUrl} alt="Cover automático" />
-                </div>
-              ) : null}
+              <input
+                type="text"
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                className="playlist-form__input"
+                placeholder="Nombre de la playlist"
+              />
             </div>
-          )}
 
-          {coverMode === 'suggested-collage' && (
-            <div className="playlist-form__suggested">
-              <p className="playlist-form__cover-info">
-                Selecciona exactamente 4 imágenes ({selectedSuggestedCoverIds.length}/4)
-              </p>
+            <div className="playlist-form__field">
+              <label className="playlist-form__label">Ubicacion</label>
+              <div className="playlist-form__path-card">
+                <span className="playlist-form__path-kicker">Ruta vinculada</span>
+                <strong>{playlist?.path || 'Sin ruta disponible'}</strong>
+              </div>
+            </div>
 
-              {suggestedCovers.length > 0 ? (
-                <div className="playlist-form__suggested-grid">
-                  {suggestedCovers.map((cover) => {
-                    const isSelected = selectedSuggestedCoverIds.includes(cover.suggestedId)
-                    const coverUrl = resolveSuggestedCoverUrl(cover, getCollectionCoverUrl)
-
-                    return (
-                      <button
-                        key={cover.suggestedId}
-                        type="button"
-                        className={`playlist-form__suggested-item ${isSelected ? 'playlist-form__suggested-item--selected' : ''}`}
-                        onClick={() => handleSuggestedCoverClick(cover)}
-                      >
-                        {coverUrl ? (
-                          <img src={coverUrl} alt={cover.title || 'Cover'} />
-                        ) : (
-                          <div className="playlist-form__suggested-placeholder">Sin cover</div>
-                        )}
-                        <div className="playlist-form__suggested-info">
-                          <span className="playlist-form__suggested-title">{cover.title || 'Sin título'}</span>
-                          {cover.artist ? (
-                            <span className="playlist-form__suggested-artist">{cover.artist}</span>
-                          ) : null}
-                        </div>
-                        {isSelected ? <div className="playlist-form__suggested-check">✓</div> : null}
-                      </button>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="playlist-form__cover-info">
-                  No hay suficientes covers disponibles para crear un collage.
-                </p>
-              )}
-
-              {selectedSuggestedCoverIds.length > 0 ? (
-                <div className="playlist-form__selected-info">
-                  <p>Seleccionadas: {selectedSuggestedCoverIds.length}/4</p>
-                  <button
-                    type="button"
-                    className="playlist-form__clear-btn"
-                    onClick={() => setSelectedSuggestedCoverIds([])}
-                  >
-                    Limpiar selección
-                  </button>
-                </div>
-              ) : null}
-
-              {collagePreviewUrls.length > 0 ? (
-                <div className="playlist-form__collage-preview">
-                  <h4>Vista previa del collage</h4>
-                  <div className="playlist-form__collage-grid">
+            <div className="playlist-form__summary-card">
+              <div className="playlist-form__summary-art">
+                {coverMode === 'suggested-collage' && collagePreviewUrls.length > 0 ? (
+                  <div className="playlist-form__summary-collage">
                     {collagePreviewUrls.map((image, index) => (
-                      <img key={`${image}-${index}`} src={image} alt={`Collage ${index + 1}`} />
+                      <img key={`${image}-${index}`} src={image} alt={`Preview ${index + 1}`} />
                     ))}
                   </div>
-                </div>
-              ) : null}
-            </div>
-          )}
+                ) : currentPreviewUrl ? (
+                  <img src={currentPreviewUrl} alt="Preview de portada" />
+                ) : (
+                  <div className="playlist-form__summary-empty">Sin portada</div>
+                )}
+              </div>
 
-          {coverMode === 'local-image' && (
-            <div className="playlist-form__local">
-              <button
-                type="button"
-                className="playlist-form__select-btn"
-                onClick={handleLocalImageSelect}
-                disabled={isResolvingLocal}
-              >
-                {isResolvingLocal ? 'Cargando imagen...' : 'Elegir imagen'}
+              <div className="playlist-form__summary-copy">
+                <span>{activeModeDetails.eyebrow}</span>
+                <h3>{activeModeDetails.label}</h3>
+                <p>{activeModeDetails.description}</p>
+                <div className="playlist-form__summary-meta">
+                  <strong>
+                    {coverMode === 'auto' ? 'Portada automatica' : 'Portada personalizada activa'}
+                  </strong>
+                  <small>
+                    {coverMode === 'suggested-collage'
+                      ? `${selectedSuggestedCoverIds.length}/4 imagenes seleccionadas`
+                      : coverMode === 'local-image'
+                        ? localAssetLabel || 'Aun no has elegido un archivo'
+                        : coverMode === 'remote-image'
+                          ? remoteAssetLabel || 'Aun no has validado ninguna URL'
+                          : automaticCoverUrl
+                            ? 'Basada en tu coleccion actual'
+                            : 'Se generara cuando haya material disponible'}
+                  </small>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="playlist-form__panel playlist-form__panel--cover">
+            <div className="playlist-form__section-header">
+              <div>
+                <label className="playlist-form__label">Portada</label>
+              </div>
+              <button type="button" className="playlist-form__ghost-btn" onClick={handleResetCover}>
+                Restablecer
               </button>
-              {localPreviewUrl ? (
-                <div className="playlist-form__local-preview">
-                  <img src={localPreviewUrl} alt="Preview local" />
-                  <button
-                    type="button"
-                    className="playlist-form__clear-btn"
-                    onClick={() => {
-                      setLocalImageValue('')
-                      setLocalResolvedUrl('')
-                      setLocalPreviewUrl('')
-                    }}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              ) : null}
             </div>
-          )}
 
-          {coverMode === 'remote-image' && (
-            <div className="playlist-form__remote">
-              <div className="playlist-form__remote-input-group">
-                <input
-                  type="text"
-                  value={remoteImageValue}
-                  onChange={(event) => {
-                    setRemoteImageValue(event.target.value)
-                    setRemoteResolvedUrl('')
-                    setRemotePreviewUrl('')
-                  }}
-                  placeholder="https://ejemplo.com/imagen.jpg"
-                  className="playlist-form__input"
-                />
+            <div className="playlist-form__cover-modes">
+              {Object.entries(COVER_MODE_DETAILS).map(([modeKey, details]) => (
+                <button
+                  key={modeKey}
+                  type="button"
+                  className={`playlist-form__mode-btn ${coverMode === modeKey ? 'playlist-form__mode-btn--active' : ''}`}
+                  onClick={() => handleCoverModeChange(modeKey)}
+                  aria-pressed={coverMode === modeKey}
+                >
+                  <span>{details.eyebrow}</span>
+                  <strong>{details.label}</strong>
+                </button>
+              ))}
+            </div>
+
+            {coverMode === 'auto' && (
+              <div className="playlist-form__cover-preview">
+                <p className="playlist-form__cover-info">
+                  Se usara la portada automatica basada en las canciones mas escuchadas.
+                </p>
+                {automaticCoverUrl ? (
+                  <div className="playlist-form__cover-current">
+                    <img src={automaticCoverUrl} alt="Cover automatico" />
+                  </div>
+                ) : (
+                  <div className="playlist-form__cover-empty">
+                    Aun no hay una portada automatica disponible para esta playlist.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {coverMode === 'suggested-collage' && (
+              <div className="playlist-form__suggested">
+                <p className="playlist-form__cover-info">
+                  Selecciona exactamente 4 imagenes para construir el collage (
+                  {selectedSuggestedCoverIds.length}/4)
+                </p>
+
+                {suggestedCovers.length > 0 ? (
+                  <div className="playlist-form__suggested-grid">
+                    {suggestedCovers.map((cover) => {
+                      const isSelected = selectedSuggestedCoverIds.includes(cover.suggestedId)
+                      const coverUrl = resolveSuggestedCoverUrl(cover, getCollectionCoverUrl)
+
+                      return (
+                        <button
+                          key={cover.suggestedId}
+                          type="button"
+                          className={`playlist-form__suggested-item ${isSelected ? 'playlist-form__suggested-item--selected' : ''}`}
+                          onClick={() => handleSuggestedCoverClick(cover)}
+                        >
+                          {coverUrl ? (
+                            <img src={coverUrl} alt={cover.title || 'Cover'} />
+                          ) : (
+                            <div className="playlist-form__suggested-placeholder">Sin cover</div>
+                          )}
+                          <div className="playlist-form__suggested-info">
+                            <span className="playlist-form__suggested-title">
+                              {cover.title || 'Sin titulo'}
+                            </span>
+                            {cover.artist ? (
+                              <span className="playlist-form__suggested-artist">
+                                {cover.artist}
+                              </span>
+                            ) : null}
+                          </div>
+                          {isSelected ? (
+                            <div className="playlist-form__suggested-check">OK</div>
+                          ) : null}
+                        </button>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <p className="playlist-form__cover-info">
+                    No hay suficientes covers disponibles para crear un collage.
+                  </p>
+                )}
+
+                {selectedSuggestedCoverIds.length > 0 ? (
+                  <div className="playlist-form__selected-info">
+                    <p>Seleccionadas: {selectedSuggestedCoverIds.length}/4</p>
+                    <button
+                      type="button"
+                      className="playlist-form__ghost-btn"
+                      onClick={() => setSelectedSuggestedCoverIds([])}
+                    >
+                      Limpiar seleccion
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {coverMode === 'local-image' && (
+              <div className="playlist-form__local">
+                <div className="playlist-form__picker-copy">
+                  <span>Archivo local</span>
+                  <p>
+                    Elige una imagen cuadrada o con buen recorte para mantener una portada limpia.
+                  </p>
+                </div>
                 <button
                   type="button"
-                  className="playlist-form__apply-btn"
-                  onClick={handleRemoteImageApply}
-                  disabled={isResolvingRemote}
+                  className="playlist-form__select-btn"
+                  onClick={handleLocalImageSelect}
+                  disabled={isResolvingLocal}
                 >
-                  {isResolvingRemote ? 'Validando...' : 'Aplicar'}
+                  {isResolvingLocal ? 'Cargando imagen...' : 'Elegir imagen'}
                 </button>
+                {localAssetLabel ? (
+                  <code className="playlist-form__asset-pill">{localAssetLabel}</code>
+                ) : null}
+                {localPreviewUrl ? (
+                  <div className="playlist-form__local-preview">
+                    <img src={localPreviewUrl} alt="Preview local" />
+                    <button
+                      type="button"
+                      className="playlist-form__ghost-btn"
+                      onClick={() => {
+                        setLocalImageValue('')
+                        setLocalResolvedUrl('')
+                        setLocalPreviewUrl('')
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                ) : null}
               </div>
-              {remotePreviewUrl ? (
-                <div className="playlist-form__remote-preview">
-                  <img src={remotePreviewUrl} alt="Preview remota" />
-                  <button
-                    type="button"
-                    className="playlist-form__clear-btn"
-                    onClick={() => {
-                      setRemoteImageValue('')
+            )}
+
+            {coverMode === 'remote-image' && (
+              <div className="playlist-form__remote">
+                <div className="playlist-form__picker-copy">
+                  <span>Imagen remota</span>
+                  <p>Pega una URL directa y validala antes de guardar para evitar enlaces rotos.</p>
+                </div>
+                <div className="playlist-form__remote-input-group">
+                  <input
+                    type="text"
+                    value={remoteImageValue}
+                    onChange={(event) => {
+                      setRemoteImageValue(event.target.value)
                       setRemoteResolvedUrl('')
                       setRemotePreviewUrl('')
                     }}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    className="playlist-form__input"
+                  />
+                  <button
+                    type="button"
+                    className="playlist-form__apply-btn"
+                    onClick={handleRemoteImageApply}
+                    disabled={isResolvingRemote}
                   >
-                    Eliminar
+                    {isResolvingRemote ? 'Validando...' : 'Validar URL'}
                   </button>
                 </div>
-              ) : null}
-            </div>
-          )}
-
-          {coverMode !== 'auto' && effectiveCoverUrl ? (
-            <div className="playlist-form__effective-preview">
-              <p className="playlist-form__cover-info">Cover actual guardado</p>
-              <div className="playlist-form__cover-current">
-                <img src={effectiveCoverUrl} alt="Cover actual" />
+                {remoteAssetLabel ? (
+                  <code className="playlist-form__asset-pill">{remoteAssetLabel}</code>
+                ) : null}
+                {remotePreviewUrl ? (
+                  <div className="playlist-form__remote-preview">
+                    <img src={remotePreviewUrl} alt="Preview remota" />
+                    <button
+                      type="button"
+                      className="playlist-form__ghost-btn"
+                      onClick={() => {
+                        setRemoteImageValue('')
+                        setRemoteResolvedUrl('')
+                        setRemotePreviewUrl('')
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ) : null}
+            )}
+          </section>
         </div>
 
         {errorMessage ? <div className="playlist-form__error">{errorMessage}</div> : null}
@@ -497,7 +586,7 @@ const PlaylistForm = ({
           Cancelar
         </button>
         <button type="submit" className="playlist-form__submit-btn" disabled={isSubmitting}>
-          {isSubmitting ? 'Guardando...' : 'Guardar'}
+          {isSubmitting ? 'Guardando...' : 'Guardar cambios'}
         </button>
       </div>
     </form>

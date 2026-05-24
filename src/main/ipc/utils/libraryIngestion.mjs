@@ -14,14 +14,40 @@ function uniquePaths(paths) {
   return [...new Set(paths.map((currentPath) => path.normalize(currentPath)))]
 }
 
+function getPathDepth(dirPath) {
+  return path
+    .normalize(dirPath)
+    .split(path.sep)
+    .filter(Boolean).length
+}
+
 async function registerDirectoryTree(rootPath, audioDirs) {
+  // Check if the parent directory is already registered in the library.
+  // If it is, this import is a child of an existing branch, not a new root.
+  const parentPath = path.dirname(rootPath)
+  const existingParent = parentPath !== rootPath
+    ? await prisma.directory.findUnique({ where: { path: parentPath } })
+    : null
+
   const rootDirectory = await prisma.directory.upsert({
     where: { path: rootPath },
-    update: {},
-    create: { path: rootPath }
+    update: { parentId: existingParent?.id ?? null },
+    create: { path: rootPath, parentId: existingParent?.id ?? null }
   })
 
-  for (const dirPath of audioDirs) {
+  const sortedDirectories = uniquePaths(audioDirs)
+    .filter((dirPath) => dirPath !== rootPath)
+    .sort((leftPath, rightPath) => {
+      const depthDifference = getPathDepth(leftPath) - getPathDepth(rightPath)
+
+      if (depthDifference !== 0) {
+        return depthDifference
+      }
+
+      return leftPath.localeCompare(rightPath)
+    })
+
+  for (const dirPath of sortedDirectories) {
     if (dirPath === rootPath) {
       continue
     }
@@ -33,7 +59,9 @@ async function registerDirectoryTree(rootPath, audioDirs) {
 
     await prisma.directory.upsert({
       where: { path: dirPath },
-      update: {},
+      update: {
+        parentId: parentRecord?.id || rootDirectory.id
+      },
       create: {
         path: dirPath,
         parentId: parentRecord?.id || rootDirectory.id
@@ -82,6 +110,25 @@ export async function addDirectoryToLibrary(
   } = {}
 ) {
   const normalizedRootPath = path.normalize(rootPath)
+
+  // If this directory is already registered in the library (as root or child),
+  // skip re-registration to avoid detaching it from its branch or causing
+  // redundant re-indexing.
+  const existingDirectory = await prisma.directory.findUnique({
+    where: { path: normalizedRootPath }
+  })
+
+  if (existingDirectory) {
+    return {
+      success: true,
+      message: 'This directory is already imported in your library.',
+      alreadyImported: true,
+      count: 0,
+      directories: [],
+      songs: []
+    }
+  }
+
   const recursiveAudioFiles = uniquePaths(await scanDirectoryAsync(normalizedRootPath, true))
 
   if (recursiveAudioFiles.length === 0) {

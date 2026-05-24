@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { LuListMusic } from 'react-icons/lu'
 import { RiShuffleLine } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
 import { RiArrowLeftLine } from 'react-icons/ri'
@@ -16,8 +17,11 @@ const PLAYLIST_OVERSCAN = 6
 function PlaylistsQueueTab({ isActive }) {
   const {
     addPlaylisthistory,
+    deletingPlaylistPaths,
     getSavedLists,
     getUniqueList,
+    isPlaylistDeleting,
+    openM3U,
     playlists,
     playlistsLastLoadedAt,
     playlistsLoaded,
@@ -29,6 +33,32 @@ function PlaylistsQueueTab({ isActive }) {
   const [playlistCount, setPlaylistCount] = useState(null)
   const [playingRandom, setPlayingRandom] = useState(false)
   const selectedPlaylistPath = selectedPlaylist?.path
+  const selectedPlaylistExists = selectedPlaylistPath
+    ? playlists.some((playlist) => playlist.path === selectedPlaylistPath)
+    : false
+  const selectedPlaylistIsDeleting = selectedPlaylistPath
+    ? deletingPlaylistPaths.includes(selectedPlaylistPath) || isPlaylistDeleting(selectedPlaylistPath)
+    : false
+  const playlistsEmptyState =
+    playlists.length === 0 ? (
+      <div className="PlaylistsQueueTab__empty">
+        <div className="PlaylistsQueueTab__empty-icon">
+          <LuListMusic />
+        </div>
+        <div className="PlaylistsQueueTab__empty-copy">
+          <h3>No playlists yet</h3>
+          <p>Import an existing M3U file to start building your playlists library.</p>
+        </div>
+        <button
+          type="button"
+          className="PlaylistsQueueTab__empty-action"
+          onClick={() => void openM3U()}
+        >
+          <LuListMusic />
+          <span>Import M3U</span>
+        </button>
+      </div>
+    ) : null
 
   useEffect(() => {
     if (isActive && !playlistsLoaded && !playlistsLoading) {
@@ -38,30 +68,25 @@ function PlaylistsQueueTab({ isActive }) {
 
   useEffect(() => {
     if (!selectedPlaylistPath) return
+    if (!selectedPlaylistExists || selectedPlaylistIsDeleting) {
+      setSelectedPlaylist(null)
+      setCurrentPlaylist(null)
+      return
+    }
 
     setCurrentPlaylist(null)
     getUniqueList(setCurrentPlaylist, selectedPlaylistPath)
-  }, [getUniqueList, playlistsLastLoadedAt, selectedPlaylistPath])
+  }, [
+    getUniqueList,
+    playlistsLastLoadedAt,
+    selectedPlaylistExists,
+    selectedPlaylistIsDeleting,
+    selectedPlaylistPath
+  ])
 
   useEffect(() => {
-    if (!isActive) return
-
-    let cancelled = false
-
-    dedupedInvoke('get-playlists-number')
-      .then((count) => {
-        if (!cancelled) {
-          setPlaylistCount(Number(count) || 0)
-        }
-      })
-      .catch((error) => {
-        console.error('Error loading playlists count:', error)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [isActive, playlistsLastLoadedAt])
+    setPlaylistCount(playlists.length)
+  }, [playlists.length])
 
   const renderPlaylistRow = useCallback(
     (playlist, index, style) => (
@@ -71,6 +96,7 @@ function PlaylistsQueueTab({ isActive }) {
         addPlaylisthistory={addPlaylisthistory}
         index={index}
         disableNavigation
+        showDuration={false}
         onSelect={setSelectedPlaylist}
         style={style}
       />
@@ -180,6 +206,7 @@ function PlaylistsQueueTab({ isActive }) {
         itemKey={(index, playlist) => playlist?.path || `playlist-${index}`}
         renderItem={renderPlaylistRow}
         loading={!playlistsLoaded && playlistsLoading}
+        emptyState={playlistsEmptyState}
       />
       {showRandomButton ? (
         <button

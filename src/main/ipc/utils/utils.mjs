@@ -486,14 +486,20 @@ export async function getCoverFromCache(filePath, variant = 'thumb') {
 
 export async function processPlaylist(filepath, baseDir, options = {}) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  const relativePaths = fileContent
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
   const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
   return getFileInfos(absolutePaths, options)
 }
 
 export async function processPlaylistCover(filepath, baseDir) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const relativePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
+  const relativePaths = fileContent
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
   const absolutePaths = relativePaths.map((relPath) => path.resolve(baseDir, relPath.trim()))
   return getFileCovers(absolutePaths)
 }

@@ -10,6 +10,8 @@ let rendererLaunchChannelReady = false
 const WINDOWS_OPEN_BATCH_MS = 450
 let pendingDispatchRequests = []
 let dispatchTimer = null
+let droppedPlaylistImportCounter = 0
+const pendingDroppedPlaylistImports = new Map()
 
 function createEmptyPayload() {
   return {
@@ -102,6 +104,94 @@ function summarizePayload(payload) {
   }
 }
 
+function createDroppedPlaylistImportPayload(result, jobId, filePath) {
+  if (!result?.success) {
+    return {
+      jobId,
+      path: filePath,
+      success: false,
+      error: result?.error || 'No se pudo importar la playlist.'
+    }
+  }
+
+  return {
+    jobId,
+    path: filePath,
+    success: true,
+    playlistPath: result.path,
+    playlistName: result.playlistName
+  }
+}
+
+function queueDroppedPlaylistImport(filePath, sender) {
+  const normalizedPath = normalizeExistingPath(filePath, process.cwd())
+
+  if (!normalizedPath || !isPlaylistFile(normalizedPath)) {
+    return { success: false, error: 'Playlist invalida para importar.' }
+  }
+
+  const pendingJob = pendingDroppedPlaylistImports.get(normalizedPath)
+  if (pendingJob) {
+    return {
+      success: true,
+      queued: true,
+      duplicate: true,
+      jobId: pendingJob.jobId,
+      path: normalizedPath
+    }
+  }
+
+  const jobId = `dropped-playlist-import-${Date.now()}-${++droppedPlaylistImportCounter}`
+  pendingDroppedPlaylistImports.set(normalizedPath, { jobId })
+
+  setImmediate(async () => {
+    let payload
+
+    try {
+      const importedPlaylist = await importPlaylistFile(normalizedPath)
+      payload = createDroppedPlaylistImportPayload(importedPlaylist, jobId, normalizedPath)
+
+      if (!sender?.isDestroyed?.()) {
+        if (payload.success) {
+          sender.send('notification', {
+            type: 'toast',
+            variant: 'success',
+            message: `Playlist importada: ${payload.playlistName}`
+          })
+        } else {
+          sender.send('notification', {
+            type: 'toast',
+            variant: 'error',
+            message: payload.error
+          })
+        }
+
+        sender.send('dropped-playlist-import-completed', payload)
+      }
+    } catch (error) {
+      payload = {
+        jobId,
+        path: normalizedPath,
+        success: false,
+        error: error?.message || 'No se pudo importar la playlist.'
+      }
+
+      if (!sender?.isDestroyed?.()) {
+        sender.send('notification', {
+          type: 'toast',
+          variant: 'error',
+          message: payload.error
+        })
+        sender.send('dropped-playlist-import-completed', payload)
+      }
+    } finally {
+      pendingDroppedPlaylistImports.delete(normalizedPath)
+    }
+  })
+
+  return { success: true, queued: true, jobId, path: normalizedPath }
+}
+
 function normalizeLaunchEntries(rawArgs, workingDirectory = process.cwd()) {
   const appPath = path.normalize(app.getAppPath())
   const cwdPath = path.normalize(process.cwd())
@@ -171,16 +261,28 @@ async function processLaunchEntries(
     try {
       importedPlaylist = await importPlaylistFile(playlistEntries[0].path)
     } catch (error) {
-      notifyRenderer(error?.message || 'No se pudo importar la playlist.')
+      notifyRenderer({
+        type: 'toast',
+        variant: 'error',
+        message: error?.message || 'No se pudo importar la playlist.'
+      })
       return createEmptyPayload()
     }
 
     if (!importedPlaylist?.success) {
-      notifyRenderer(importedPlaylist?.error || 'No se pudo importar la playlist.')
+      notifyRenderer({
+        type: 'toast',
+        variant: 'error',
+        message: importedPlaylist?.error || 'No se pudo importar la playlist.'
+      })
       return createEmptyPayload()
     }
 
-    notifyRenderer(`Playlist importada: ${importedPlaylist.playlistName}`)
+    notifyRenderer({
+      type: 'toast',
+      variant: 'success',
+      message: `Playlist importada: ${importedPlaylist.playlistName}`
+    })
 
     return {
       kind: 'playlist-import',
@@ -333,6 +435,10 @@ export function setupArgvHandlers() {
         }
       }
     })
+  })
+
+  ipcMain.handle('queue-dropped-playlist-import', async (_, filePath) => {
+    return queueDroppedPlaylistImport(filePath, _.sender)
   })
 }
 

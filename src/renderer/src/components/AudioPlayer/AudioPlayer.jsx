@@ -37,7 +37,24 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   const title = currentFile?.title || currentFile?.fileName || 'Unknown'
   const artist = currentFile?.artist || 'Unknown'
   const shortViews = Number(currentFile?.short_view_count) || 0
+  const repeats = Number(currentFile?.consecutive_repeat_count) || 0
   const skips = Number(currentFile?.skip_count) || 0
+  const containerFolderName = (() => {
+    const filePath = currentFile?.filePath
+
+    if (typeof filePath !== 'string' || !filePath.trim()) {
+      return ''
+    }
+
+    const normalizedPath = filePath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const pathParts = normalizedPath.split('/').filter(Boolean)
+
+    if (pathParts.length < 2) {
+      return ''
+    }
+
+    return pathParts[pathParts.length - 2] || ''
+  })()
 
   const formatTime = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -70,7 +87,12 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
       </div>
 
       <AudioPlayerMetadata title={title} artist={artist}>
-        <AudioPlayerStats shortViews={shortViews} skips={skips} />
+        <AudioPlayerStats
+          shortViews={shortViews}
+          repeats={repeats}
+          skips={skips}
+          containerFolderName={containerFolderName}
+        />
       </AudioPlayerMetadata>
 
       <div className="AudioPlayer__controls" id="controls">

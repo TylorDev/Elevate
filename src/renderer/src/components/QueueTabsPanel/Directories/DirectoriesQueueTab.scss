@@ -83,6 +83,21 @@
       background: $hover;
       transform: none;
     }
+
+    &.dirItem-ui--root {
+      background:
+        linear-gradient(90deg, color-mix(in srgb, $primary-color 10%, transparent), transparent 64%),
+        rgba(255, 255, 255, 0.015);
+
+      .ui-cover-icon {
+        color: $primary-color;
+      }
+
+      .ui-subtitle {
+        color: color-mix(in srgb, $primary-color 72%, $text-primary);
+        font-weight: 700;
+      }
+    }
   }
 
   .DirectoriesQueueTab__group-item {
@@ -105,6 +120,76 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+  }
+
+  .DirectoriesQueueTab__empty {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem 1.25rem;
+    text-align: center;
+  }
+
+  .DirectoriesQueueTab__empty-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, $primary-color 8%, transparent);
+    color: $primary-color;
+
+    svg {
+      font-size: 1.5rem;
+    }
+  }
+
+  .DirectoriesQueueTab__empty-copy {
+    display: grid;
+    gap: 0.35rem;
+    max-width: 18rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.42);
+    }
+  }
+
+  .DirectoriesQueueTab__empty-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease,
+      transform 0.18s ease;
+
+    &:hover {
+      background: $hover;
+      color: $text-primary;
+      transform: translateY(-1px);
     }
   }
 

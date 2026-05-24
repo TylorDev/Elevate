@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LuArrowLeft, LuArrowRight, LuFolderOpen, LuMoveUp } from 'react-icons/lu'
 import Modal from '../Modal/Modal'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import ExploremItem from './ExploremItem'
 import './PlaylistSaveModal.scss'
 
 function getSourcePath(sourceName = '') {
@@ -25,48 +27,157 @@ function getPlaylistNameFromPath(filePath = '') {
   return leaf.replace(/\.m3u$/i, '')
 }
 
-export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName = '' }) {
-  const {
-    resolvePlaylistSaveDirectory,
-    listPlaylistSaveDirectory,
-    savePlaylistFromTracks
-  } = usePlaylists()
-  const [currentDirectory, setCurrentDirectory] = useState('')
-  const [directoryState, setDirectoryState] = useState({
+function normalizePlaylistName(name = '') {
+  return String(name)
+    .trim()
+    .replace(/\.m3u$/i, '')
+}
+
+const WINDOWS_RESERVED_FILE_NAMES = new Set([
+  'CON',
+  'PRN',
+  'AUX',
+  'NUL',
+  'COM1',
+  'COM2',
+  'COM3',
+  'COM4',
+  'COM5',
+  'COM6',
+  'COM7',
+  'COM8',
+  'COM9',
+  'LPT1',
+  'LPT2',
+  'LPT3',
+  'LPT4',
+  'LPT5',
+  'LPT6',
+  'LPT7',
+  'LPT8',
+  'LPT9'
+])
+
+function getPlaylistNameValidationError(name = '') {
+  const trimmedName = String(name).trim()
+
+  if (!trimmedName) {
+    return 'Escribe un nombre valido para la playlist.'
+  }
+
+  if (/[\x00-\x1f]/.test(trimmedName)) {
+    return 'El nombre de la playlist contiene caracteres no permitidos.'
+  }
+
+  if (/[<>:"/\\|?*]/.test(trimmedName)) {
+    return 'El nombre de la playlist contiene caracteres no permitidos.'
+  }
+
+  if (/[. ]$/.test(trimmedName)) {
+    return 'El nombre de la playlist no puede terminar en punto o espacio.'
+  }
+
+  if (WINDOWS_RESERVED_FILE_NAMES.has(trimmedName.toUpperCase())) {
+    return 'El nombre de la playlist esta reservado por el sistema.'
+  }
+
+  return ''
+}
+
+function createEmptyDirectoryState() {
+  return {
     currentPath: '',
     parentPath: null,
     directories: [],
     files: []
-  })
+  }
+}
+
+function buildBrowserEntries(directoryState) {
+  const directories = Array.isArray(directoryState?.directories) ? directoryState.directories : []
+  const files = Array.isArray(directoryState?.files) ? directoryState.files : []
+
+  return [
+    ...directories.map((directory) => ({
+      ...directory,
+      entryType: 'directory'
+    })),
+    ...files.map((file) => ({
+      ...file,
+      entryType: 'file'
+    }))
+  ]
+}
+
+export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName = '' }) {
+  const { resolvePlaylistSaveDirectory, listPlaylistSaveDirectory, savePlaylistFromTracks } =
+    usePlaylists()
+  const [currentDirectory, setCurrentDirectory] = useState('')
+  const [directoryState, setDirectoryState] = useState(createEmptyDirectoryState)
+  const [navigationHistory, setNavigationHistory] = useState([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [addressInput, setAddressInput] = useState('')
   const [nombre, setNombre] = useState('')
   const [selectedFilePath, setSelectedFilePath] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
+  const [navigationError, setNavigationError] = useState('')
 
   const trackCount = tracks.length
+  const canGoBack = historyIndex > 0
+  const canGoForward = historyIndex >= 0 && historyIndex < navigationHistory.length - 1
+  const browserEntries = useMemo(() => buildBrowserEntries(directoryState), [directoryState])
 
   const loadDirectory = useCallback(
-    async (directoryPath, { preserveSelection = false } = {}) => {
+    async (directoryPath, options = {}) => {
+      const { preserveSelection = false, preserveName = false, updateHistory = true } = options
+
+      if (typeof directoryPath !== 'string' || directoryPath.trim() === '') {
+        setNavigationError('No hay una carpeta valida para abrir.')
+        return false
+      }
+
       setIsLoading(true)
       setError('')
+      setNavigationError('')
 
       try {
         const nextState = await listPlaylistSaveDirectory(directoryPath)
+
         setCurrentDirectory(nextState.currentPath)
         setDirectoryState(nextState)
+        setAddressInput(nextState.currentPath)
 
         if (!preserveSelection) {
           setSelectedFilePath(null)
         }
+
+        if (!preserveName && !preserveSelection) {
+          setNombre('')
+        }
+
+        if (updateHistory) {
+          const baseHistory = navigationHistory.slice(0, historyIndex + 1)
+          const nextHistory =
+            baseHistory[baseHistory.length - 1] === nextState.currentPath
+              ? baseHistory
+              : [...baseHistory, nextState.currentPath]
+
+          setNavigationHistory(nextHistory)
+          setHistoryIndex(nextHistory.length - 1)
+        }
+
+        return true
       } catch (loadError) {
         console.error('Error loading playlist save directory:', loadError)
-        setError('No se pudo abrir esta carpeta.')
+        setNavigationError(loadError?.message || 'No se pudo abrir esta carpeta.')
+        return false
       } finally {
         setIsLoading(false)
       }
     },
-    [listPlaylistSaveDirectory]
+    [historyIndex, listPlaylistSaveDirectory, navigationHistory]
   )
 
   useEffect(() => {
@@ -80,6 +191,12 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
       setNombre('')
       setSelectedFilePath(null)
       setError('')
+      setNavigationError('')
+      setCurrentDirectory('')
+      setDirectoryState(createEmptyDirectoryState())
+      setNavigationHistory([])
+      setHistoryIndex(-1)
+      setAddressInput('')
       setIsLoading(true)
 
       try {
@@ -97,10 +214,14 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
 
         setCurrentDirectory(nextState.currentPath)
         setDirectoryState(nextState)
+        setAddressInput(nextState.currentPath)
+        setNavigationHistory([nextState.currentPath])
+        setHistoryIndex(0)
       } catch (loadError) {
         console.error('Error initializing playlist save modal:', loadError)
         if (isMounted) {
           setError('No se pudo abrir el explorador de playlists.')
+          setNavigationError(loadError?.message || '')
         }
       } finally {
         if (isMounted) {
@@ -120,32 +241,88 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
     setSelectedFilePath(filePath)
     setNombre(getPlaylistNameFromPath(filePath))
     setError('')
+    setNavigationError('')
   }, [])
 
-  const handleNameChange = useCallback((event) => {
-    const nextName = event.target.value
-    setNombre(nextName)
-    setError('')
+  const handleNameChange = useCallback(
+    (event) => {
+      const nextName = normalizePlaylistName(event.target.value)
+      setNombre(nextName)
+      setError('')
 
-    if (selectedFilePath && getPlaylistNameFromPath(selectedFilePath) !== nextName.trim()) {
-      setSelectedFilePath(null)
+      if (selectedFilePath && getPlaylistNameFromPath(selectedFilePath) !== nextName) {
+        setSelectedFilePath(null)
+      }
+    },
+    [selectedFilePath]
+  )
+
+  const handleAddressSubmit = useCallback(async () => {
+    const trimmedAddress = addressInput.trim()
+
+    if (!trimmedAddress) {
+      setNavigationError('Escribe una ruta para navegar.')
+      return
     }
-  }, [selectedFilePath])
 
-  const saveModeLabel = useMemo(() => {
-    if (selectedFilePath) {
-      return 'Reemplazar archivo existente'
+    await loadDirectory(trimmedAddress, {
+      preserveName: true,
+      preserveSelection: false,
+      updateHistory: true
+    })
+  }, [addressInput, loadDirectory])
+
+  const handleGoBack = useCallback(async () => {
+    if (!canGoBack) return
+
+    const previousIndex = historyIndex - 1
+    const targetPath = navigationHistory[previousIndex]
+    const success = await loadDirectory(targetPath, {
+      preserveName: true,
+      preserveSelection: false,
+      updateHistory: false
+    })
+
+    if (success) {
+      setHistoryIndex(previousIndex)
     }
+  }, [canGoBack, historyIndex, loadDirectory, navigationHistory])
 
-    return 'Crear archivo nuevo'
-  }, [selectedFilePath])
+  const handleGoForward = useCallback(async () => {
+    if (!canGoForward) return
+
+    const nextIndex = historyIndex + 1
+    const targetPath = navigationHistory[nextIndex]
+    const success = await loadDirectory(targetPath, {
+      preserveName: true,
+      preserveSelection: false,
+      updateHistory: false
+    })
+
+    if (success) {
+      setHistoryIndex(nextIndex)
+    }
+  }, [canGoForward, historyIndex, loadDirectory, navigationHistory])
+
+  const handleGoUp = useCallback(async () => {
+    if (!directoryState.parentPath) return
+
+    await loadDirectory(directoryState.parentPath, {
+      preserveName: true,
+      preserveSelection: false,
+      updateHistory: true
+    })
+  }, [directoryState.parentPath, loadDirectory])
 
   const handleSubmit = useCallback(
     async (event) => {
       event.preventDefault()
 
-      if (!nombre.trim()) {
-        setError('Escribe un nombre para la playlist.')
+      const normalizedName = normalizePlaylistName(nombre)
+      const validationError = getPlaylistNameValidationError(normalizedName)
+
+      if (validationError) {
+        setError(validationError)
         return
       }
 
@@ -159,7 +336,7 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
 
       try {
         const result = await savePlaylistFromTracks(tracks, {
-          nombre,
+          nombre: normalizedName,
           targetDirectory: currentDirectory,
           replacePath: selectedFilePath
         })
@@ -178,107 +355,136 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
   )
 
   return (
-    <Modal
-      isVisible={isVisible}
-      closeModal={onClose}
-      contentClassName="playlist-save-modal"
-    >
+    <Modal isVisible={isVisible} closeModal={onClose} contentClassName="playlist-save-modal">
       <form className="playlist-save-modal__form" onSubmit={handleSubmit}>
-        <div className="playlist-save-modal__header">
-          <div>
-            <h2>Guardar como playlist</h2>
-            <p>{trackCount} tracks en la lista actual</p>
-          </div>
-          <span className="playlist-save-modal__mode">{saveModeLabel}</span>
-        </div>
-
-        <label className="playlist-save-modal__field">
-          <span>Nombre</span>
-          <input
-            type="text"
-            value={nombre}
-            onChange={handleNameChange}
-            placeholder="Mi playlist"
-            maxLength={80}
-          />
-        </label>
-
-        <div className="playlist-save-modal__path">
-          <span>Carpeta actual</span>
-          <strong title={currentDirectory}>{currentDirectory || 'Cargando...'}</strong>
-        </div>
-
         <section className="playlist-save-modal__browser" aria-label="Explorador de playlists">
-          <div className="playlist-save-modal__browser-bar">
+          <div className="playlist-save-modal__toolbar">
             <button
               type="button"
-              onClick={() => loadDirectory(directoryState.parentPath)}
-              disabled={!directoryState.parentPath || isLoading}
+              className="playlist-save-modal__nav-button"
+              onClick={() => void handleGoBack()}
+              disabled={!canGoBack || isLoading}
+              aria-label="Previous"
             >
-              Subir
+              <LuArrowLeft />
+              <span>Previous</span>
             </button>
-            <span title={directoryState.currentPath}>{directoryState.currentPath || '...'}</span>
+
+            <button
+              type="button"
+              className="playlist-save-modal__nav-button"
+              onClick={() => void handleGoForward()}
+              disabled={!canGoForward || isLoading}
+              aria-label="Next"
+            >
+              <LuArrowRight />
+              <span>Next</span>
+            </button>
+
+            <button
+              type="button"
+              className="playlist-save-modal__nav-button"
+              onClick={() => void handleGoUp()}
+              disabled={!directoryState.parentPath || isLoading}
+              aria-label="Up"
+            >
+              <LuMoveUp />
+              <span>Up</span>
+            </button>
+
+            <div className="playlist-save-modal__address">
+              <LuFolderOpen className="playlist-save-modal__address-icon" />
+              <input
+                type="text"
+                value={addressInput}
+                onChange={(event) => {
+                  setAddressInput(event.target.value)
+                  setNavigationError('')
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void handleAddressSubmit()
+                  }
+                }}
+                placeholder="Pega una direccion absoluta"
+                spellCheck={false}
+                disabled={isLoading}
+                aria-label="Direccion de carpeta"
+              />
+            </div>
           </div>
 
-          <div className="playlist-save-modal__browser-grid">
-            <div className="playlist-save-modal__column">
-              <div className="playlist-save-modal__column-title">Carpetas</div>
-              <div className="playlist-save-modal__entries">
-                {directoryState.directories.map((directory) => (
-                  <button
-                    key={directory.path}
-                    type="button"
-                    className="playlist-save-modal__entry"
-                    onClick={() => loadDirectory(directory.path)}
-                  >
-                    <span className="playlist-save-modal__entry-icon">DIR</span>
-                    <span>{directory.name}</span>
-                  </button>
-                ))}
-
-                {!isLoading && directoryState.directories.length === 0 && (
-                  <div className="playlist-save-modal__empty">No hay carpetas disponibles.</div>
-                )}
-              </div>
+          {navigationError && (
+            <div className="playlist-save-modal__error playlist-save-modal__error--subtle">
+              {navigationError}
             </div>
+          )}
 
-            <div className="playlist-save-modal__column">
-              <div className="playlist-save-modal__column-title">Archivos .m3u</div>
-              <div className="playlist-save-modal__entries">
-                {directoryState.files.map((file) => (
-                  <button
-                    key={file.path}
-                    type="button"
-                    className={
-                      selectedFilePath === file.path
-                        ? 'playlist-save-modal__entry is-selected'
-                        : 'playlist-save-modal__entry'
-                    }
-                    onClick={() => handleFileSelect(file.path)}
-                  >
-                    <span className="playlist-save-modal__entry-icon">M3U</span>
-                    <span>{file.name}</span>
-                  </button>
-                ))}
+          <div className="playlist-save-modal__content">
+            <section className="playlist-save-modal__section">
+              <div className="playlist-save-modal__browser-grid">
+                {browserEntries.map((entry) => {
+                  const isDirectory = entry.entryType === 'directory'
+                  const isSelectedFile =
+                    entry.entryType === 'file' && selectedFilePath === entry.path
 
-                {!isLoading && directoryState.files.length === 0 && (
-                  <div className="playlist-save-modal__empty">No hay archivos .m3u en esta carpeta.</div>
-                )}
+                  return (
+                    <ExploremItem
+                      key={entry.path}
+                      entry={entry}
+                      isSelected={isSelectedFile}
+                      isDisabled={isLoading}
+                      onClick={() => {
+                        if (isDirectory) {
+                          void loadDirectory(entry.path, {
+                            preserveName: true,
+                            preserveSelection: false,
+                            updateHistory: true
+                          })
+                          return
+                        }
+
+                        handleFileSelect(entry.path)
+                      }}
+                    />
+                  )
+                })}
               </div>
-            </div>
+
+              {!isLoading && browserEntries.length === 0 && (
+                <div className="playlist-save-modal__empty">
+                  No hay carpetas ni archivos <code>.m3u</code> en esta ubicacion.
+                </div>
+              )}
+            </section>
           </div>
         </section>
 
-        {error && <div className="playlist-save-modal__error">{error}</div>}
-
-        <div className="playlist-save-modal__actions">
-          <button type="button" onClick={onClose} disabled={isSaving}>
-            Cancelar
-          </button>
-          <button type="submit" disabled={isSaving || isLoading || trackCount === 0}>
-            {isSaving ? 'Guardando...' : 'Guardar'}
-          </button>
+        <div className="playlist-save-modal__footer">
+          <div className="playlist-save-modal__footer-bar">
+            <label className="playlist-save-modal__name-field">
+              <span>Name</span>
+              <input
+                type="text"
+                value={nombre}
+                onChange={handleNameChange}
+                placeholder="MyList"
+                maxLength={80}
+              />
+            </label>
+            <div className="playlist-save-modal__actions">
+              <button type="button" onClick={onClose} disabled={isSaving}>
+                Cancel
+              </button>
+              <button type="submit" disabled={isSaving || isLoading || trackCount === 0}>
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
         </div>
+
+        {error && <div className="playlist-save-modal__error">{error}</div>}
       </form>
     </Modal>
   )

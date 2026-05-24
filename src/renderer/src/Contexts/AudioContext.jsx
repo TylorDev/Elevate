@@ -8,6 +8,7 @@ import { useQueue } from './QueueContext'
 const SHORT_VIEW_MS = 10_000
 const SKIP_WINDOW_MS = 30_000
 const LONG_VIEW_COMPLETION_THRESHOLD = 0.7
+const LONG_VIEW_MIN_ACTIVE_LISTENING_RATIO = 0.4
 const REPLAY_RESTART_THRESHOLD = 0.16
 const REPLAY_WRAP_BACKTRACK_MS = 1_500
 
@@ -75,6 +76,7 @@ export const AudioProvider = ({ children }) => {
       lastKnownCurrentTime: 0,
       shortViewAwarded: false,
       longViewAwarded: false,
+      replayCyclePendingCompletionRepeat: false,
       skipAwarded: false,
       finalizing: false,
       finalized: false
@@ -193,8 +195,16 @@ export const AudioProvider = ({ children }) => {
     }
 
     const durationMs = Math.max(0, Number(session.duration) || 0) * 1000
+    const activeListeningMs = getActiveListeningMs(session)
+    const lastKnownCurrentTime = Math.max(0, Number(session.lastKnownCurrentTime) || 0)
+    const reachedCompletionThreshold =
+      durationMs > 0 &&
+      lastKnownCurrentTime / (durationMs / 1000) >= LONG_VIEW_COMPLETION_THRESHOLD
+    const reachedMinimumActiveListening =
+      durationMs > 0 &&
+      activeListeningMs >= durationMs * LONG_VIEW_MIN_ACTIVE_LISTENING_RATIO
 
-    if (!durationMs || getActiveListeningMs(session) < durationMs * LONG_VIEW_COMPLETION_THRESHOLD) {
+    if (!durationMs || !reachedCompletionThreshold || !reachedMinimumActiveListening) {
       return
     }
 
@@ -205,6 +215,15 @@ export const AudioProvider = ({ children }) => {
     }
 
     session.longViewAwarded = true
+
+    if (session.replayCyclePendingCompletionRepeat) {
+      const repeatResult = await recordPlaybackEvent(session, 'repeat-award')
+
+      if (repeatResult?.success) {
+        session.replayCyclePendingCompletionRepeat = false
+      }
+    }
+
     toast.success('+1 long views', TOAST_OPTIONS)
   }
 
@@ -276,6 +295,7 @@ export const AudioProvider = ({ children }) => {
 
     pendingReplayRef.current = null
     resetCycleState(session, audio)
+    session.replayCyclePendingCompletionRepeat = true
     return true
   }
 
@@ -316,6 +336,7 @@ export const AudioProvider = ({ children }) => {
 
     pendingReplayRef.current = null
     resetCycleState(session, audio)
+    session.replayCyclePendingCompletionRepeat = true
     return true
   }
 

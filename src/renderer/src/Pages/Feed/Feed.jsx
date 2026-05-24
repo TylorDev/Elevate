@@ -420,9 +420,12 @@ function Feed() {
     setError('')
 
     try {
-      const response = await window.electron.ipcRenderer.invoke('feed:refresh-collection-rankings', {
-        scope
-      })
+      const response = await window.electron.ipcRenderer.invoke(
+        'feed:refresh-collection-rankings',
+        {
+          scope
+        }
+      )
 
       if (!response?.success) {
         throw new Error(response?.error || 'No se pudo actualizar el Feed.')
@@ -543,7 +546,12 @@ function Feed() {
         </div>
 
         <div className="feed-header__actions">
-          <button type="button" className="feed-refresh-button" disabled aria-label="Actualizar Feed">
+          <button
+            type="button"
+            className="feed-refresh-button"
+            disabled
+            aria-label="Actualizar Feed"
+          >
             <LuRefreshCw aria-hidden="true" />
           </button>
 
@@ -583,17 +591,21 @@ function Feed() {
   }
 
   return (
-    <section className={`Feed${switchingScope ? ' Feed--loading' : ''}`} aria-busy={refreshing || switchingScope}>
+    <section
+      className={`Feed${switchingScope ? ' Feed--loading' : ''}`}
+      aria-busy={refreshing || switchingScope}
+    >
       <header className="feed-header">
         <div className="feed-header__copy">
           <span>Collection Feed</span>
-          <h1>Directorios y Playlists</h1>
         </div>
 
         <div className="feed-header__actions">
           {lastUpdatedLabel ? (
             <span className="feed-cache-status">
-              {refreshing ? 'Actualizando cache...' : `${isUsingCache ? 'Cache' : 'Actualizado'} ${lastUpdatedLabel}`}
+              {refreshing
+                ? 'Actualizando cache...'
+                : `${isUsingCache ? 'Cache' : 'Actualizado'} ${lastUpdatedLabel}`}
             </span>
           ) : null}
 

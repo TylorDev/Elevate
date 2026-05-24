@@ -2,7 +2,7 @@ import chokidar from 'chokidar'
 import path from 'path'
 import { prisma } from '../../prisma.mjs'
 import { getOrCreateSong } from './utils.mjs'
-import { updateDirectoryStats, directoryHasAudio } from './directoryScanner.mjs'
+import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.mjs'
 
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 const DEBOUNCE_MS = 500
@@ -15,6 +15,17 @@ const pendingChanges = new Map()
 
 let debounceTimer = null
 let notifyRenderer = null
+
+function uniquePaths(paths) {
+  return [...new Set(paths.map((currentPath) => path.normalize(currentPath)))]
+}
+
+function getPathDepth(dirPath) {
+  return path
+    .normalize(dirPath)
+    .split(path.sep)
+    .filter(Boolean).length
+}
 
 // ─── Public API ──────────────────────────────────────────────────────
 
@@ -135,30 +146,41 @@ async function onDirAdded(newDirPath, rootDirPath) {
   // (files may still be copying)
   setTimeout(async () => {
     try {
-      const hasAudio = await directoryHasAudio(newDirPath)
-      if (!hasAudio) return
+      const discoveredDirectories = uniquePaths(await discoverSubdirectories(newDirPath))
+      const directoriesToRegister = uniquePaths([newDirPath, ...discoveredDirectories]).sort(
+        (leftPath, rightPath) => {
+          const depthDifference = getPathDepth(leftPath) - getPathDepth(rightPath)
 
-      // Check if it's already registered
-      const existing = await prisma.directory.findUnique({ where: { path: newDirPath } })
-      if (existing) return
+          if (depthDifference !== 0) {
+            return depthDifference
+          }
 
-      // Find the parent directory in DB
-      const parent = await prisma.directory.findFirst({
-        where: { path: path.dirname(newDirPath) }
-      })
-
-      await prisma.directory.create({
-        data: {
-          path: newDirPath,
-          parentId: parent?.id || null
+          return leftPath.localeCompare(rightPath)
         }
-      })
+      )
 
-      // Index the new subdirectory
-      const { updateDirectoryStats: updateStats } = await import('./directoryScanner.mjs')
-      await updateStats(newDirPath)
+      if (discoveredDirectories.length === 0) return
 
-      console.debug(`[watcher] Registered new subdirectory: ${newDirPath}`)
+      for (const dirPath of directoriesToRegister) {
+        const parent = await prisma.directory.findFirst({
+          where: { path: path.dirname(dirPath) }
+        })
+
+        await prisma.directory.upsert({
+          where: { path: dirPath },
+          update: {
+            parentId: parent?.id || null
+          },
+          create: {
+            path: dirPath,
+            parentId: parent?.id || null
+          }
+        })
+
+        await updateDirectoryStats(dirPath)
+      }
+
+      console.debug(`[watcher] Registered directory tree: ${newDirPath}`)
       notifyRenderer?.('[directory-changed]')
     } catch (error) {
       console.error(`[watcher] Error handling new directory ${newDirPath}:`, error.message)

@@ -19,6 +19,7 @@ const { ipcMain } = electron
 const PLAYBACK_EVENT_TYPES = new Set([
   'short-view-award',
   'long-view-award',
+  'repeat-award',
   'skip-award',
   'playback-finalize'
 ])
@@ -712,6 +713,11 @@ async function recordPlaybackStats(payload = {}) {
     updateData.long_play_seconds = { increment: duration }
     createData.long_view_count = 1
     createData.long_play_seconds = duration
+  }
+
+  if (eventType === 'repeat-award') {
+    updateData.consecutive_repeat_count = { increment: 1 }
+    createData.consecutive_repeat_count = 1
   }
 
   if (eventType === 'playback-finalize') {

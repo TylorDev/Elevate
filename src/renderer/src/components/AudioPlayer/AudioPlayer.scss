@@ -108,23 +108,9 @@
         flex-wrap: wrap;
     }
 
-    &__cortas {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        padding: 0.1rem 0.5rem;
-        border-radius: $border-radius;
-        background: rgba(255, 255, 255, 0.08);
-        color: $text-secondary;
-        font-size: 0.7rem;
-        white-space: nowrap;
-
-        strong {
-            color: $primary-color;
-            font-weight: 600;
-        }
-    }
-
+    &__cortas,
+    &__folder,
+    &__repeats,
     &__skips {
         display: inline-flex;
         align-items: center;
@@ -137,8 +123,20 @@
         white-space: nowrap;
 
         strong {
-            color: $primary-color;
+            color: $text-primary;
             font-weight: 600;
+        }
+    }
+
+    &__folder {
+        min-width: 0;
+
+        strong {
+            display: inline-block;
+            max-width: 8rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
     }
 

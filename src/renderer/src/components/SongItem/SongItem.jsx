@@ -1,6 +1,6 @@
 import { memo, useMemo, useRef } from 'react'
 import { FaPlay, FaEye } from 'react-icons/fa'
-import { LuHeart, LuHeartOff, LuPin } from 'react-icons/lu'
+import { LuFolder, LuHeart, LuHeartOff, LuPin } from 'react-icons/lu'
 import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { Button } from './../Button/Button'
@@ -32,6 +32,7 @@ export const SongItemView = memo(function SongItemView({
   title,
   artist,
   shortViewCount,
+  containerFolderName = '',
   durationText,
   insightValueLabel = '',
   showInsightValue = false,
@@ -107,6 +108,12 @@ export const SongItemView = memo(function SongItemView({
               <FaEye /> {shortViewCount}
             </span>
           </span>
+          {containerFolderName ? (
+            <span className="song-folder" title={containerFolderName}>
+              <LuFolder />
+              <strong>{containerFolderName}</strong>
+            </span>
+          ) : null}
         </div>
 
         {showInsightValue ? (
@@ -164,12 +171,29 @@ function SongItemContainer({
         .padStart(2, '0')}`,
     [file.duration]
   )
+  const containerFolderName = useMemo(() => {
+    const filePath = file?.filePath
+
+    if (typeof filePath !== 'string' || !filePath.trim()) {
+      return ''
+    }
+
+    const normalizedPath = filePath.replace(/\\/g, '/').replace(/\/+$/, '')
+    const pathParts = normalizedPath.split('/').filter(Boolean)
+
+    if (pathParts.length < 2) {
+      return ''
+    }
+
+    return pathParts[pathParts.length - 2] || ''
+  }, [file?.filePath])
 
   return (
     <SongItemView
       title={file.fileName}
       artist={file.artist}
       shortViewCount={file.short_view_count || 0}
+      containerFolderName={containerFolderName}
       durationText={durationText}
       insightValueLabel={insightValueLabel}
       showInsightValue={showInsightValue}
@@ -197,6 +221,7 @@ function areSongItemViewPropsEqual(prevProps, nextProps) {
     prevProps.title === nextProps.title &&
     prevProps.artist === nextProps.artist &&
     prevProps.shortViewCount === nextProps.shortViewCount &&
+    prevProps.containerFolderName === nextProps.containerFolderName &&
     prevProps.durationText === nextProps.durationText &&
     prevProps.insightValueLabel === nextProps.insightValueLabel &&
     prevProps.showInsightValue === nextProps.showInsightValue &&

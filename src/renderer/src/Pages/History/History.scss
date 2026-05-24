@@ -92,6 +92,57 @@
     min-height: 0;
     overflow: hidden;
   }
+
+  .history-content--skeleton {
+    display: grid;
+    gap: 0.85rem;
+    align-content: start;
+  }
+}
+
+.HistoryPage--loading {
+  .history-skeleton__title-stack {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .history-skeleton__row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.9rem 1rem;
+    border-radius: $border-radius;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .history-skeleton__copy {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .history-skeleton__meta {
+    min-width: 84px;
+    display: grid;
+    justify-items: end;
+    gap: 0.45rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .HistoryPage--loading {
+    .history-skeleton__row {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .history-skeleton__meta {
+      grid-column: 1 / -1;
+      justify-items: start;
+      min-width: 0;
+      padding-left: calc(56px + 1rem);
+    }
+  }
 }
 
 @keyframes history-refresh-spin {

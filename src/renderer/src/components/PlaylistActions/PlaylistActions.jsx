@@ -21,7 +21,7 @@ export function PlaylistActions({ name }) {
           setIsSavePlaylistVisible(true)
         }}
       >
-        Save queue to Playlists
+        Guardar playlist
       </button>
 
       <button type="button" onClick={openM3U}>Upload list</button>

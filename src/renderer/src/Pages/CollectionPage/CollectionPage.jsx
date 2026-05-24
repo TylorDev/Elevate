@@ -348,7 +348,7 @@ function CollectionPage() {
 
   const handleDeleteCollection = useCallback(async () => {
     if (type === 'playlist') {
-      await deletePlaylist(sourcePath)
+      deletePlaylist(sourcePath)
     } else {
       await deleteDirectory(sourcePath)
     }

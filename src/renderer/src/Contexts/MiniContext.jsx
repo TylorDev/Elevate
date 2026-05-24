@@ -90,10 +90,27 @@ export const MiniProvider = ({ children }) => {
   }, [directories, directoriesLoaded])
 
   const deleteDirectory = useCallback(async (path) => {
-    await ElectronDelete('delete-directory', path, 'directorio eliminado!')
+    const result = await ElectronDelete('delete-directory', path, 'directorio eliminado!')
+
+    if (result?.success === false) {
+      return result
+    }
+
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
     setDirectoriesLoaded(false)
+    return result
   }, [])
+
+  const deleteDirectoryBranch = useCallback(async (path) => {
+    const result = await ElectronDelete('delete-directory-branch', path, 'rama de directorios eliminada!')
+
+    if (result?.success === false) {
+      return result
+    }
+
+    await getDirectories({ force: true })
+    return result
+  }, [getDirectories])
 
   const addDirectory = useCallback(async (directoryPath = null) => {
     const normalizedPath =
@@ -177,6 +194,7 @@ export const MiniProvider = ({ children }) => {
         addDirectory,
         getDirectories,
         deleteDirectory,
+        deleteDirectoryBranch,
         getDirFiles,
         history,
         getHistory,
@@ -200,6 +218,7 @@ export const MiniProvider = ({ children }) => {
         addDirectory,
         getDirectories,
         deleteDirectory,
+        deleteDirectoryBranch,
         getDirFiles,
         history,
         getHistory,

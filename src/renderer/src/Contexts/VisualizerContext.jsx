@@ -7,7 +7,9 @@ import {
   useRef,
   useState
 } from 'react'
+import { useLocation } from 'react-router-dom'
 import MINI from 'butterchurn-presets/lib/elevate.min.js'
+import { usePlayback } from './PlaybackContext'
 import { useMini } from './MiniContext'
 import { usePlaylists } from './PlaylistsContex'
 import { useQueue } from './QueueContext'
@@ -394,6 +396,8 @@ function VisualizerPlaybackProvider({ children }) {
     'VisualizerPlaybackProvider'
   )
   const { activePresetItems, activePresetNames } = useVisualizerCatalog()
+  const { isPlaying } = usePlayback()
+  const location = useLocation()
   const [isShuffled, setIsShuffled] = useState(false)
   const [shuffledOrder, setShuffledOrder] = useState([])
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
@@ -419,6 +423,7 @@ function VisualizerPlaybackProvider({ children }) {
     }
     return activePresetNames
   }, [activePresetNames, isShuffled, shuffledOrder])
+  const canAutoCyclePresets = isPlaying && location.pathname === '/music'
 
   const currentPresetName = currentOrder[currentPresetIndex] || ''
 
@@ -449,7 +454,7 @@ function VisualizerPlaybackProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    if (!isPresetPaused && currentOrder.length > 0) {
+    if (!isPresetPaused && canAutoCyclePresets && currentOrder.length > 0) {
       if (presetIntervalRef.current) {
         clearInterval(presetIntervalRef.current)
       }
@@ -465,7 +470,7 @@ function VisualizerPlaybackProvider({ children }) {
         presetIntervalRef.current = null
       }
     }
-  }, [cycleDurationMs, currentOrder, isPresetPaused, nextPreset])
+  }, [canAutoCyclePresets, cycleDurationMs, currentOrder, isPresetPaused, nextPreset])
 
   const setPresetIndex = useCallback(
     (index) => {

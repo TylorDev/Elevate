@@ -11,6 +11,13 @@ export function ConfirmActionModal({
   onConfirm,
   isDanger = true
 }) {
+  const handleConfirm = () => {
+    onCancel?.()
+    window.setTimeout(() => {
+      onConfirm?.()
+    }, 0)
+  }
+
   return (
     <Modal isVisible={isVisible} closeModal={onCancel} contentClassName="confirm-action-modal">
       <div className="confirm-action-modal__body">
@@ -27,7 +34,7 @@ export function ConfirmActionModal({
                 ? 'confirm-action-modal__button is-danger'
                 : 'confirm-action-modal__button is-primary'
             }
-            onClick={onConfirm}
+            onClick={handleConfirm}
           >
             {confirmLabel}
           </button>

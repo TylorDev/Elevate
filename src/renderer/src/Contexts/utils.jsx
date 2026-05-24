@@ -80,6 +80,22 @@ export const ElectronGetter = async (action, setState = null, value = null, mess
 export const ElectronDelete = async (action, value, message = null) => {
   try {
     const fileInfos = await window.electron.ipcRenderer.invoke(action, value)
+
+    if (fileInfos?.success === false) {
+      toast.error(fileInfos.message || fileInfos.error || 'No se pudo eliminar.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+      return fileInfos
+    }
+
     if (fileInfos) {
       toast.warning(message || 'Eliminado!', {
         position: 'bottom-right',
@@ -95,6 +111,8 @@ export const ElectronDelete = async (action, value, message = null) => {
     } else {
       console.log('No files were selected')
     }
+
+    return fileInfos
   } catch (error) {
     // Mostrar el error del backend
     toast.error(error.message || 'Error desconocido', {

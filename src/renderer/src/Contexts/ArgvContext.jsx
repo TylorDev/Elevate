@@ -16,6 +16,7 @@ export const ArgvProvider = ({ children }) => {
   const handleQueueAndPlayRef = useRef(handleQueueAndPlay)
   const getDirectoriesRef = useRef(getDirectories)
   const getSavedListsRef = useRef(getSavedLists)
+  const processedDroppedPlaylistImportJobsRef = useRef(new Set())
 
   playQueueRef.current = PlayQueue
   handleQueueAndPlayRef.current = handleQueueAndPlay
@@ -106,7 +107,39 @@ export const ArgvProvider = ({ children }) => {
       enqueuePayload(data)
     }
 
+    const handleDroppedPlaylistImportCompleted = (payload) => {
+      const jobId = payload?.jobId
+
+      if (jobId && processedDroppedPlaylistImportJobsRef.current.has(jobId)) {
+        return
+      }
+
+      if (jobId) {
+        processedDroppedPlaylistImportJobsRef.current.add(jobId)
+      }
+
+      if (!payload?.success || !payload?.playlistPath) {
+        return
+      }
+
+      enqueuePayload({
+        kind: 'playlist-import',
+        files: [],
+        directories: [],
+        songs: [],
+        hasDirectories: false,
+        queueName: payload.playlistName || payload.playlistPath,
+        startIndex: 0,
+        playlistPath: payload.playlistPath,
+        playlistName: payload.playlistName
+      })
+    }
+
     window.electron.ipcRenderer.on('argv-files-processed', callback)
+    window.electron.ipcRenderer.on(
+      'dropped-playlist-import-completed',
+      handleDroppedPlaylistImportCompleted
+    )
 
     window.electron.ipcRenderer.invoke('get-argv-files')
       .then((payloads) => {
@@ -131,6 +164,7 @@ export const ArgvProvider = ({ children }) => {
     return () => {
       alive = false
       window.electron.ipcRenderer.removeAllListeners('argv-files-processed')
+      window.electron.ipcRenderer.removeAllListeners('dropped-playlist-import-completed')
     }
   }, [setCurrentFile, setCurrentIndex, setQueueState])
 

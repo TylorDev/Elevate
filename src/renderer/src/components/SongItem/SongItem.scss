@@ -7,14 +7,14 @@
 }
 
 .songItem {
-    height: 75px;
+    min-height: 88px;
     display: grid;
     grid-template-columns: minmax(0, 1rem) clamp(3rem, 5vw, 4rem) minmax(0, 1fr) auto auto;
     grid-template-rows: 1fr 1fr 1fr;
     grid-template-areas:
         "indicator cover title  actions duration"
-        "indicator cover title  actions duration"
-        "indicator cover artist actions duration";
+        "indicator cover artist actions duration"
+        "indicator cover folder actions duration";
     align-items: center;
     column-gap: clamp(0.45rem, 1vw, 0.9rem);
     padding: 0 clamp(0.7rem, 1.4vw, 1.2rem);
@@ -141,7 +141,7 @@
 
         .song-artist {
             grid-area: artist;
-            align-self: start;
+            align-self: center;
             font-size: 0.75rem;
             color: var(--text-secondary);
             white-space: nowrap;
@@ -160,6 +160,39 @@
                 svg {
                     font-size: 0.8rem;
                 }
+            }
+        }
+
+        .song-folder {
+            grid-area: folder;
+            align-self: start;
+            justify-self: start;
+            min-width: 0;
+            max-width: 100%;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.68rem;
+            line-height: 1;
+
+            svg {
+                flex-shrink: 0;
+                font-size: 0.72rem;
+            }
+
+            strong {
+                display: inline-block;
+                min-width: 0;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-weight: 600;
+                color: $text-primary;
             }
         }
     }
@@ -245,8 +278,8 @@
     grid-template-columns: minmax(0, 1rem) clamp(3rem, 5vw, 4rem) minmax(0, 1fr) auto auto auto;
     grid-template-areas:
         "indicator cover title  insight actions duration"
-        "indicator cover title  insight actions duration"
-        "indicator cover artist insight actions duration";
+        "indicator cover artist insight actions duration"
+        "indicator cover folder insight actions duration";
 
     .songItem__insightValue {
         grid-area: insight;

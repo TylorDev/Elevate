@@ -22,6 +22,7 @@ export const PlaylistItem = memo(function PlaylistItem({
   addPlaylisthistory,
   onSelect,
   disableNavigation = false,
+  showDuration = true,
   style
 }) {
   if (!playlist) {
@@ -191,7 +192,7 @@ export const PlaylistItem = memo(function PlaylistItem({
         cover={back}
         title={playlist.nombre}
         subtitle={`${playlist.numElementos} tracks`}
-        extraInfo={formatDuration(playlist.duracion)}
+        extraInfo={showDuration ? formatDuration(playlist.duracion) : ''}
         metaBadge={linkedPresetList?.name || null}
         onTitleClick={selectPlaylist}
         onPlayClick={handlePlayClick}
@@ -209,7 +210,6 @@ export const PlaylistItem = memo(function PlaylistItem({
         confirmLabel="Delete playlist"
         onCancel={() => setIsConfirmVisible(false)}
         onConfirm={() => {
-          setIsConfirmVisible(false)
           void deletePlaylist(playlist.path)
         }}
       />

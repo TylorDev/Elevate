@@ -176,6 +176,7 @@ function normalizeCollectionPageRequest(request = {}) {
 
 export function invalidateDirectoryCache(dirPath = null) {
   pendingDirectoriesRequest = null
+  invalidateFeedCollectionsCache('all')
 
   if (!dirPath) {
     audioPathsCache.clear()
@@ -183,7 +184,12 @@ export function invalidateDirectoryCache(dirPath = null) {
     return
   }
 
-  audioPathsCache.delete(dirPath)
+  for (const key of audioPathsCache.keys()) {
+    if (key === dirPath || key.endsWith(`:${dirPath}`) || key.includes(dirPath)) {
+      audioPathsCache.delete(key)
+    }
+  }
+
   for (const key of audioCoverCache.keys()) {
     if (key.startsWith(`${dirPath}:`) || key.includes(`:${dirPath}:`)) {
       audioCoverCache.delete(key)
@@ -191,17 +197,20 @@ export function invalidateDirectoryCache(dirPath = null) {
   }
 }
 
-async function getCachedAudioFiles(dirPath) {
-  const cachedFiles = audioPathsCache.get(dirPath)
+function getAudioPathsCacheKey(dirPath, recursive = true) {
+  return `${recursive ? 'recursive' : 'direct'}:${dirPath}`
+}
+
+async function getCachedAudioFiles(dirPath, { recursive = true } = {}) {
+  const cacheKey = getAudioPathsCacheKey(dirPath, recursive)
+  const cachedFiles = audioPathsCache.get(cacheKey)
 
   if (cachedFiles && cachedFiles.expiresAt > Date.now()) {
     return cachedFiles.files
   }
 
-  // Use recursive=true here because the UI expects to see all files
-  // inside the directory, even if we register subdirectories individually.
-  const files = await scanDirectoryAsync(dirPath, true)
-  audioPathsCache.set(dirPath, {
+  const files = await scanDirectoryAsync(dirPath, recursive)
+  audioPathsCache.set(cacheKey, {
     files,
     expiresAt: Date.now() + AUDIO_PATHS_TTL
   })
@@ -216,7 +225,7 @@ async function getUniqueAudioPaths() {
 
   const allAudioFiles = []
   for (const dir of directories) {
-    const files = await getCachedAudioFiles(dir.path)
+    const files = await getCachedAudioFiles(dir.path, { recursive: true })
     allAudioFiles.push(...files)
   }
   return [...new Set(allAudioFiles)]
@@ -257,6 +266,131 @@ function getRandomIndex(total) {
 function toNumber(value) {
   const numericValue = Number(value)
   return Number.isFinite(numericValue) ? numericValue : 0
+}
+
+function getDirectoryChildrenCount(directory) {
+  return toNumber(directory?._count?.children ?? directory?.childrenCount)
+}
+
+function getDirectoryKind(directory) {
+  return toNumber(directory?.totalTracks) === 0 && getDirectoryChildrenCount(directory) > 0
+    ? 'root'
+    : 'normal'
+}
+
+function isRootDirectoryRecord(directory) {
+  return getDirectoryKind(directory) === 'root'
+}
+
+async function getDirectoryRecursiveStats(directoryPath) {
+  const audioFiles = Array.from(
+    new Set(await getCachedAudioFiles(directoryPath, { recursive: true }))
+  )
+
+  if (audioFiles.length === 0) {
+    return {
+      recursiveTotalTracks: 0,
+      recursiveTotalDuration: 0
+    }
+  }
+
+  const songs = await prisma.songs.findMany({
+    where: {
+      filepath: {
+        in: audioFiles
+      }
+    },
+    select: {
+      duration: true
+    }
+  })
+
+  return {
+    recursiveTotalTracks: audioFiles.length,
+    recursiveTotalDuration: songs.reduce((total, song) => total + toNumber(song.duration), 0)
+  }
+}
+
+async function enrichDirectory(directory) {
+  if (!directory) {
+    return null
+  }
+
+  const childrenCount = getDirectoryChildrenCount(directory)
+  const directoryKind = getDirectoryKind({
+    ...directory,
+    childrenCount
+  })
+  const directTotals = {
+    recursiveTotalTracks: toNumber(directory.totalTracks),
+    recursiveTotalDuration: toNumber(directory.totalDuration)
+  }
+  const recursiveTotals =
+    directoryKind === 'root' ? await getDirectoryRecursiveStats(directory.path) : directTotals
+
+  return {
+    ...directory,
+    childrenCount,
+    directoryKind,
+    ...recursiveTotals
+  }
+}
+
+async function enrichDirectories(directories = []) {
+  return Promise.all(directories.map((directory) => enrichDirectory(directory)))
+}
+
+async function getDirectoryByPath(directoryPath) {
+  return prisma.directory.findUnique({
+    where: { path: directoryPath },
+    include: {
+      _count: {
+        select: {
+          children: true
+        }
+      }
+    }
+  })
+}
+
+async function getDirectoryBranch(directoryId) {
+  const directories = await prisma.directory.findMany({
+    select: {
+      id: true,
+      path: true,
+      parentId: true
+    }
+  })
+  const childrenByParentId = new Map()
+
+  for (const directory of directories) {
+    const currentChildren = childrenByParentId.get(directory.parentId) || []
+    currentChildren.push(directory)
+    childrenByParentId.set(directory.parentId, currentChildren)
+  }
+
+  const branch = []
+  const stack = [...(childrenByParentId.get(directoryId) || [])]
+
+  while (stack.length > 0) {
+    const directory = stack.pop()
+    branch.push(directory)
+    stack.push(...(childrenByParentId.get(directory.id) || []))
+  }
+
+  return branch
+}
+
+async function getDirectoryAudioFiles(directory) {
+  const enrichedDirectory = directory?.directoryKind ? directory : await enrichDirectory(directory)
+
+  if (!enrichedDirectory?.path) {
+    return []
+  }
+
+  const recursive = enrichedDirectory?.directoryKind === 'root'
+
+  return getCachedAudioFiles(enrichedDirectory.path, { recursive })
 }
 
 function getLatestIsoDate(values = []) {
@@ -436,9 +570,15 @@ async function getFeedSourceSignature(scope) {
       select: {
         id: true,
         path: true,
+        parentId: true,
         totalTracks: true,
         totalDuration: true,
-        lastScannedAt: true
+        lastScannedAt: true,
+        _count: {
+          select: {
+            children: true
+          }
+        }
       },
       orderBy: {
         id: 'asc'
@@ -447,6 +587,8 @@ async function getFeedSourceSignature(scope) {
     signatureParts.push({
       directories: directories.map((directory) => ({
         ...directory,
+        childrenCount: getDirectoryChildrenCount(directory),
+        directoryKind: getDirectoryKind(directory),
         lastScannedAt: directory.lastScannedAt?.toISOString?.() || null
       }))
     })
@@ -547,7 +689,11 @@ function mapSummaryToCollectionEntity({
 }
 
 async function buildDirectoryFeedEntity(directory) {
-  const audioFiles = await getCachedAudioFiles(directory.path)
+  if (isRootDirectoryRecord(directory)) {
+    return null
+  }
+
+  const audioFiles = await getCachedAudioFiles(directory.path, { recursive: false })
   const uniqueAudioFiles = Array.from(new Set(audioFiles))
   const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
   const coverSignature = getDirectoryFeedCoverSignature(directory, uniqueAudioFiles.length)
@@ -638,8 +784,20 @@ async function buildFeedCollectionEntities(scope) {
   }
 
   if (shouldLoadDirectories) {
-    const directories = await prisma.directory.findMany()
-    const directoryEntities = await mapFeedEntitiesInBatches(directories, buildDirectoryFeedEntity)
+    const directories = await prisma.directory.findMany({
+      include: {
+        _count: {
+          select: {
+            children: true
+          }
+        }
+      }
+    })
+    const normalDirectories = directories.filter((directory) => !isRootDirectoryRecord(directory))
+    const directoryEntities = await mapFeedEntitiesInBatches(
+      normalDirectories,
+      buildDirectoryFeedEntity
+    )
     collections.push(...directoryEntities)
   }
 
@@ -779,12 +937,20 @@ async function getFeedCollectionCover(request = {}) {
   }
 
   const { type, sourcePath } = decodedCoverKey
-  const tracks =
-    type === 'playlist'
-      ? await processPlaylist(sourcePath, path.dirname(sourcePath), { includePicture: false })
-      : await getFileInfos(Array.from(new Set(await getCachedAudioFiles(sourcePath))), {
-          includePicture: false
-        })
+  let tracks
+
+  if (type === 'playlist') {
+    tracks = await processPlaylist(sourcePath, path.dirname(sourcePath), { includePicture: false })
+  } else {
+    const directory = await getDirectoryByPath(sourcePath)
+    const audioFiles = directory
+      ? await getDirectoryAudioFiles(directory)
+      : await getCachedAudioFiles(sourcePath, { recursive: false })
+
+    tracks = await getFileInfos(Array.from(new Set(audioFiles)), {
+      includePicture: false
+    })
+  }
   const coverBuffer = await generateCollectionCoverFromTracks(tracks)
 
   if (!coverBuffer) {
@@ -801,15 +967,14 @@ async function getFeedCollectionCover(request = {}) {
 }
 
 async function getDirectoryDetail(directoryPath) {
-  const directory = await prisma.directory.findUnique({
-    where: { path: directoryPath }
-  })
+  const directory = await getDirectoryByPath(directoryPath)
 
   if (!directory) {
     return { success: false, error: 'Directory not found' }
   }
 
-  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const directoryData = await enrichDirectory(directory)
+  const audioFiles = await getDirectoryAudioFiles(directoryData)
   const uniqueAudioFiles = Array.from(new Set(audioFiles))
   const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
   const cover = await generateCollectionCoverFromTracks(tracks)
@@ -827,7 +992,10 @@ async function getDirectoryDetail(directoryPath) {
       createdAt: directory.createdAt || null,
       lastScannedAt: directory.lastScannedAt || null,
       editable: false,
-      directoryData: directory
+      directoryKind: directoryData.directoryKind,
+      recursiveTotalTracks: directoryData.recursiveTotalTracks,
+      recursiveTotalDuration: directoryData.recursiveTotalDuration,
+      directoryData
     },
     tracks,
     summary
@@ -835,15 +1003,14 @@ async function getDirectoryDetail(directoryPath) {
 }
 
 async function getDirectoryOverview(directoryPath, request = {}) {
-  const directory = await prisma.directory.findUnique({
-    where: { path: directoryPath }
-  })
+  const directory = await getDirectoryByPath(directoryPath)
 
   if (!directory) {
     return { success: false, error: 'Directory not found' }
   }
 
-  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const directoryData = await enrichDirectory(directory)
+  const audioFiles = await getDirectoryAudioFiles(directoryData)
   const uniqueAudioFiles = Array.from(new Set(audioFiles))
   const tracks = await getFileInfos(uniqueAudioFiles, { includePicture: false })
   const cover = await generateCollectionCoverFromTracks(tracks)
@@ -861,7 +1028,10 @@ async function getDirectoryOverview(directoryPath, request = {}) {
       createdAt: directory.createdAt || null,
       lastScannedAt: directory.lastScannedAt || null,
       editable: false,
-      directoryData: directory
+      directoryKind: directoryData.directoryKind,
+      recursiveTotalTracks: directoryData.recursiveTotalTracks,
+      recursiveTotalDuration: directoryData.recursiveTotalDuration,
+      directoryData
     },
     summary,
     rankings: buildInsightRankingsFromTracks(tracks, request)
@@ -870,7 +1040,20 @@ async function getDirectoryOverview(directoryPath, request = {}) {
 
 async function getDirectoryTracksPage(directoryPath, request = {}) {
   const { page, pageSize } = normalizeCollectionPageRequest(request)
-  const audioFiles = await getCachedAudioFiles(directoryPath)
+  const directory = await getDirectoryByPath(directoryPath)
+
+  if (!directory) {
+    return {
+      items: [],
+      page,
+      pageSize,
+      total: 0,
+      hasMore: false
+    }
+  }
+
+  const directoryData = await enrichDirectory(directory)
+  const audioFiles = await getDirectoryAudioFiles(directoryData)
   const uniqueAudioFiles = Array.from(new Set(audioFiles))
   const offset = (page - 1) * pageSize
   const pagedPaths = uniqueAudioFiles.slice(offset, offset + pageSize)
@@ -1028,6 +1211,13 @@ async function searchDirectoriesPage(request = {}) {
       path: {
         contains: query
       }
+    },
+    include: {
+      _count: {
+        select: {
+          children: true
+        }
+      }
     }
   })
 
@@ -1040,19 +1230,39 @@ async function searchDirectoriesPage(request = {}) {
     )
 
   const start = (page - 1) * pageSize
-  const items = sortedDirectories.slice(start, start + pageSize).map((directory) => ({
+  const pagedDirectories = await enrichDirectories(sortedDirectories.slice(start, start + pageSize))
+  const items = pagedDirectories.map((directory) => {
+    const visibleTracks =
+      directory.directoryKind === 'root'
+        ? directory.recursiveTotalTracks
+        : directory.totalTracks
+    const visibleDuration =
+      directory.directoryKind === 'root'
+        ? directory.recursiveTotalDuration
+        : directory.totalDuration
+
+    return {
     type: 'directory',
     id: directory.id,
     title: getPathLeaf(directory.path),
-    subtitle: `${directory.totalTracks ?? 0} tracks`,
+    subtitle:
+      directory.directoryKind === 'root'
+        ? `Raiz · ${visibleTracks ?? 0} tracks`
+        : `${visibleTracks ?? 0} tracks`,
     meta: directory.path,
     actionPayload: {
       path: directory.path
     },
     path: directory.path,
     totalTracks: directory.totalTracks,
-    totalDuration: directory.totalDuration
-  }))
+    totalDuration: directory.totalDuration,
+    recursiveTotalTracks: directory.recursiveTotalTracks,
+    recursiveTotalDuration: directory.recursiveTotalDuration,
+    visibleTracks,
+    visibleDuration,
+    directoryKind: directory.directoryKind
+    }
+  })
 
   return {
     items,
@@ -1065,17 +1275,25 @@ async function searchDirectoriesPage(request = {}) {
 
 async function getRandomDirectory() {
   try {
-    const totalDirectories = await prisma.directory.count()
-    if (totalDirectories === 0) return null
-
-    const randomIndex = getRandomIndex(totalDirectories)
-
-    return await prisma.directory.findFirst({
-      skip: randomIndex,
+    const directories = await prisma.directory.findMany({
+      include: {
+        _count: {
+          select: {
+            children: true
+          }
+        }
+      },
       orderBy: {
         id: 'asc'
       }
     })
+    const normalDirectories = directories.filter((directory) => !isRootDirectoryRecord(directory))
+
+    if (normalDirectories.length === 0) return null
+
+    const randomIndex = getRandomIndex(normalDirectories.length)
+
+    return enrichDirectory(normalDirectories[randomIndex])
   } catch (error) {
     console.error('Error fetching random directory:', error)
     return null
@@ -1224,17 +1442,15 @@ export function setupFilehandlers() {
 
   ipcMain.handle('get-audio-in-directory', async (_, directoryPath) => {
     try {
-      console.log('directory', directoryPath)
-      const directory = await prisma.directory.findUnique({
-        where: { path: directoryPath }
-      })
+      const directory = await getDirectoryByPath(directoryPath)
 
       if (!directory) {
         return [] // El directorio no existe en la base de datos, devolver un array vacío
       }
 
       // Obtener todos los archivos de audio del directorio específico
-      const audioFiles = await getCachedAudioFiles(directoryPath)
+      const directoryData = await enrichDirectory(directory)
+      const audioFiles = await getDirectoryAudioFiles(directoryData)
 
       // Filtrar archivos duplicados
       const uniqueAudioFiles = Array.from(new Set(audioFiles))
@@ -1312,6 +1528,19 @@ export function setupFilehandlers() {
   // ─── delete-directory ────────────────────────────────────────────
   ipcMain.handle('delete-directory', async (event, dirPath) => {
     try {
+      const directory = await getDirectoryByPath(dirPath)
+
+      if (!directory) {
+        return { success: false, message: 'Directory not found.' }
+      }
+
+      if (getDirectoryChildrenCount(directory) > 0) {
+        return {
+          success: false,
+          message: 'Directories with imported children must be removed as a branch.'
+        }
+      }
+
       // Stop watching this directory
       await stopWatching(dirPath)
 
@@ -1327,13 +1556,52 @@ export function setupFilehandlers() {
     }
   })
 
+  ipcMain.handle('delete-directory-branch', async (event, request) => {
+    try {
+      const dirPath = typeof request === 'string' ? request : request?.path
+
+      if (!dirPath || typeof dirPath !== 'string') {
+        return { success: false, message: 'Directory path is required.' }
+      }
+
+      const directory = await getDirectoryByPath(dirPath)
+
+      if (!directory) {
+        return { success: false, message: 'Directory not found.' }
+      }
+
+      const descendants = await getDirectoryBranch(directory.id)
+      const deletedPaths = [directory.path, ...descendants.map((child) => child.path)]
+
+      for (const currentPath of deletedPaths) {
+        await stopWatching(currentPath).catch((error) => {
+          console.error(`Error stopping watcher for ${currentPath}:`, error)
+        })
+      }
+
+      await prisma.directory.delete({
+        where: { path: dirPath }
+      })
+
+      invalidateDirectoryCache(dirPath)
+
+      return {
+        success: true,
+        message: 'Directory branch removed successfully.',
+        deletedDirectories: deletedPaths.length,
+        deletedPaths
+      }
+    } catch (error) {
+      console.error('Error deleting directory branch:', error)
+      return { success: false, message: 'Error deleting directory branch.' }
+    }
+  })
+
   // ─── get-directory-by-path ───────────────────────────────────────
   // Now reads stats directly from the DB instead of recalculating.
   ipcMain.handle('get-directory-by-path', async (event, dirPath) => {
     try {
-      const directory = await prisma.directory.findUnique({
-        where: { path: dirPath }
-      })
+      const directory = await getDirectoryByPath(dirPath)
 
       if (!directory) {
         throw new Error('Directory not found')
@@ -1342,10 +1610,10 @@ export function setupFilehandlers() {
       // If never scanned, trigger a quick scan
       if (!directory.lastScannedAt) {
         const stats = await updateDirectoryStats(dirPath)
-        return { ...directory, ...stats }
+        return enrichDirectory({ ...directory, ...stats })
       }
 
-      return directory
+      return enrichDirectory(directory)
     } catch (error) {
       console.error('Error retrieving directory:', error)
       throw error
@@ -1361,7 +1629,15 @@ export function setupFilehandlers() {
       }
 
       pendingDirectoriesRequest = (async () => {
-        const directories = await prisma.directory.findMany()
+        const directories = await prisma.directory.findMany({
+          include: {
+            _count: {
+              select: {
+                children: true
+              }
+            }
+          }
+        })
 
         // For directories that have never been scanned, trigger an async scan sequentially
         const unscanned = directories.filter((d) => !d.lastScannedAt)
@@ -1377,7 +1653,7 @@ export function setupFilehandlers() {
           }
         }
 
-        return directories
+        return enrichDirectories(directories)
       })().finally(() => {
         pendingDirectoriesRequest = null
       })
@@ -1391,7 +1667,17 @@ export function setupFilehandlers() {
 
   ipcMain.handle('get-directories-number', async () => {
     try {
-      return await prisma.directory.count()
+      const directories = await prisma.directory.findMany({
+        include: {
+          _count: {
+            select: {
+              children: true
+            }
+          }
+        }
+      })
+
+      return directories.filter((directory) => !isRootDirectoryRecord(directory)).length
     } catch (error) {
       console.error('Error retrieving directories count:', error)
       throw error
@@ -1417,6 +1703,25 @@ export function setupFilehandlers() {
     } catch (error) {
       console.error('Error revealing path in explorer:', error)
       return { success: false, error: error.message || 'No se pudo abrir el explorador.' }
+    }
+  })
+
+  ipcMain.handle('open-directory-in-explorer', async (_, targetPath) => {
+    try {
+      if (!targetPath || typeof targetPath !== 'string') {
+        return { success: false, error: 'Path is required' }
+      }
+
+      const openError = await shell.openPath(targetPath)
+
+      if (openError) {
+        return { success: false, error: openError }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error opening directory in explorer:', error)
+      return { success: false, error: error.message || 'No se pudo abrir la carpeta.' }
     }
   })
 

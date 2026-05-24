@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BsFolderFill } from 'react-icons/bs'
+import { LuFolderPlus } from 'react-icons/lu'
 import { RiArrowLeftLine, RiShuffleLine } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
 import { DirItem } from '../../DirItem/DirItem'
@@ -45,7 +46,7 @@ function getParentDirectoryInfo(path = '') {
 }
 
 function DirectoriesQueueTab({ isActive }) {
-  const { directories, directoriesLoaded, directoriesLoading, getDirFiles, getDirectories } = useMini()
+  const { directories, directoriesLoaded, directoriesLoading, getDirFiles, getDirectories, addDirectory } = useMini()
   const { playQueueShuffled } = useQueue()
   const [selectedGroup, setSelectedGroup] = useState(null)
   const [selectedDirectory, setSelectedDirectory] = useState(null)
@@ -53,6 +54,26 @@ function DirectoriesQueueTab({ isActive }) {
   const [directoryCount, setDirectoryCount] = useState(null)
   const [playingRandom, setPlayingRandom] = useState(false)
   const selectedDirectoryPath = selectedDirectory?.path
+  const directoriesEmptyState =
+    directories.length === 0 ? (
+      <div className="DirectoriesQueueTab__empty">
+        <div className="DirectoriesQueueTab__empty-icon">
+          <LuFolderPlus />
+        </div>
+        <div className="DirectoriesQueueTab__empty-copy">
+          <h3>No directories added yet</h3>
+          <p>Add a music folder to start browsing and playing directories from the queue panel.</p>
+        </div>
+        <button
+          type="button"
+          className="DirectoriesQueueTab__empty-action"
+          onClick={() => void addDirectory()}
+        >
+          <LuFolderPlus />
+          <span>Import Directory</span>
+        </button>
+      </div>
+    ) : null
   const groupedDirectories = useMemo(() => {
     const groupsMap = new Map()
 
@@ -291,6 +312,7 @@ function DirectoriesQueueTab({ isActive }) {
         itemKey={(index, group) => group?.id || `directory-group-${index}`}
         renderItem={renderGroupRow}
         loading={!directoriesLoaded && directoriesLoading}
+        emptyState={directoriesEmptyState}
       />
       {showRandomButton ? (
         <button

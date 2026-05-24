@@ -51,8 +51,7 @@ async function walkAsync(dir, audioFiles, recursive) {
 // ─── Subdirectory discovery ──────────────────────────────────────────
 
 /**
- * Discover all subdirectories that contain at least one audio file.
- * The root path is included only if it contains direct audio files.
+ * Discover all subdirectories that contain audio directly or through descendants.
  * Empty directories (no audio at any level) are excluded.
  */
 export async function discoverSubdirectories(rootPath) {
@@ -89,7 +88,7 @@ async function discoverRecursive(dir, result) {
     if (childHasAudio) hasChildAudio = true
   }
 
-  if (hasDirectAudio) {
+  if (hasDirectAudio || hasChildAudio) {
     result.push(dir)
   }
 

@@ -1,5 +1,6 @@
 import { BsFolderFill, BsFolderMinus } from 'react-icons/bs'
-import { LuLink, LuUnlink } from 'react-icons/lu'
+import { LuFolderOpen, LuLink, LuUnlink } from 'react-icons/lu'
+import { Bounce, toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { formatDuration } from '../../../timeUtils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
@@ -61,7 +62,11 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   )
   const totalTracks = Number(directory.totalTracks) || 0
   const totalDuration = Number(directory.totalDuration) || 0
-  const isRootDirectory = totalTracks === 0 && totalDuration === 0
+  const recursiveTotalTracks = Number(directory.recursiveTotalTracks) || totalTracks
+  const recursiveTotalDuration = Number(directory.recursiveTotalDuration) || totalDuration
+  const isRootDirectory = directory.directoryKind === 'root'
+  const visibleTracks = isRootDirectory ? recursiveTotalTracks : totalTracks
+  const visibleDuration = isRootDirectory ? recursiveTotalDuration : totalDuration
 
   const getLastPart = (path) => {
     const parts = path.split('\\')
@@ -84,43 +89,72 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
     navigate(`/directories/${encodeURIComponent(directory.path)}/true`)
   }
 
-  const menuOptions = [
-    ...(!isRootDirectory
-      ? [
-          {
-            id: 'link-preset-list',
-            label: 'Vincular',
-            icon: <LuLink />,
-            type: 'single-select',
-            disabled: presetLists.length === 0,
-            items: [
-              {
-                id: '__unlink__',
-                label: 'Quitar vinculo',
-                icon: <LuUnlink />,
-                checked: !linkedPresetListId
-              },
-              ...orderedPresetLists.map((list) => ({
-                id: list.id,
-                label: list.name,
-                checked: list.id === linkedPresetListId
-              }))
-            ],
-            onItemSelect: (selectedId) => {
-              if (selectedId === '__unlink__') {
-                void removeSourceAssociation(directorySource)
-                return
-              }
+  const handleOpenDirectoryInExplorer = async () => {
+    const result = await window.electron.ipcRenderer.invoke(
+      'open-directory-in-explorer',
+      directory.path
+    )
 
-              void associateSourceToList(directorySource, selectedId)
-            }
-          },
-          { id: 'remove', label: 'Remove Directory', icon: <BsFolderMinus color="red" /> }
-        ]
+    if (!result?.success) {
+      toast.error(result?.error || 'No se pudo abrir la carpeta.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+    }
+  }
+
+  const menuOptions = [
+    {
+      id: 'open-directory',
+      label: 'Abrir carpeta',
+      icon: <LuFolderOpen />
+    },
+    {
+      id: 'link-preset-list',
+      label: 'Vincular',
+      icon: <LuLink />,
+      type: 'single-select',
+      disabled: presetLists.length === 0,
+      items: [
+        {
+          id: '__unlink__',
+          label: 'Quitar vinculo',
+          icon: <LuUnlink />,
+          checked: !linkedPresetListId
+        },
+        ...orderedPresetLists.map((list) => ({
+          id: list.id,
+          label: list.name,
+          checked: list.id === linkedPresetListId
+        }))
+      ],
+      onItemSelect: (selectedId) => {
+        if (selectedId === '__unlink__') {
+          void removeSourceAssociation(directorySource)
+          return
+        }
+
+        void associateSourceToList(directorySource, selectedId)
+      }
+    },
+    ...(!isRootDirectory
+      ? [{ id: 'remove', label: 'Remove Directory', icon: <BsFolderMinus color="red" /> }]
       : [])
   ]
 
   const handleMenuSelect = (optionId) => {
+    if (optionId === 'open-directory') {
+      void handleOpenDirectoryInExplorer()
+      return
+    }
+
     if (optionId === 'remove') {
       setIsConfirmVisible(true)
     }
@@ -131,15 +165,15 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
       <UndefinedItem
         cover={cover || <BsFolderFill />}
         title={getLastPart(directory.path)}
-        subtitle={isRootDirectory ? 'Raiz' : `${totalTracks} tracks`}
-        extraInfo={isRootDirectory ? '' : formatDuration(totalDuration)}
+        subtitle={isRootDirectory ? `Raiz - ${visibleTracks} tracks` : `${visibleTracks} tracks`}
+        extraInfo={visibleDuration > 0 ? formatDuration(visibleDuration) : ''}
         metaBadge={linkedPresetList?.name || null}
         onTitleClick={selectDirectory}
         onPlayClick={handlePlayClick}
         detailsTo={`/directories/${encodeURIComponent(directory.path)}/false`}
         menuOptions={menuOptions}
         onMenuSelect={handleMenuSelect}
-        className="dirItem-ui"
+        className={`dirItem-ui${isRootDirectory ? ' dirItem-ui--root' : ''}`}
         style={style}
       />
 
@@ -150,7 +184,6 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
         confirmLabel="Remove directory"
         onCancel={() => setIsConfirmVisible(false)}
         onConfirm={() => {
-          setIsConfirmVisible(false)
           void deleteDirectoryList(directory.path)
         }}
       />

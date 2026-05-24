@@ -23,6 +23,7 @@ const electron = require('electron')
 const { app, dialog, ipcMain } = electron
 const playlistCoverCache = new Map()
 const pendingPlaylistRequests = new Map()
+let deletePlaylistJobCounter = 0
 const INSIGHT_METRIC_KEYS = {
   duration: 'duration',
   shortViews: 'short_view_count',
@@ -502,19 +503,53 @@ async function incrementCounter(playlistId) {
     // Manejar el error según sea necesario
   }
 }
+function isPrismaRecordNotFound(error) {
+  return error?.code === 'P2025'
+}
+
 async function deletePlaylist(filePath) {
   try {
-    const deletedPlaylist = await prisma.playlist.delete({
+    await prisma.playlist.delete({
       where: { path: filePath }
     })
     invalidatePlaylistCache(filePath)
 
-    return { success: true, deletedPlaylist }
+    return { success: true, path: filePath }
   } catch (error) {
+    if (isPrismaRecordNotFound(error)) {
+      invalidatePlaylistCache(filePath)
+      return { success: true, path: filePath, notFound: true }
+    }
+
     console.error('Error deleting playlist:', error)
 
     return { success: false, message: 'Error deleting playlist', error: error.message }
   }
+}
+
+function queuePlaylistDelete(filePath, sender) {
+  if (typeof filePath !== 'string' || filePath.trim() === '') {
+    return { success: false, error: 'Ruta de playlist invalida.' }
+  }
+
+  const normalizedPath = filePath.trim()
+  const jobId = `delete-playlist-${Date.now()}-${++deletePlaylistJobCounter}`
+
+  setImmediate(async () => {
+    const result = await deletePlaylist(normalizedPath)
+    const payload = {
+      jobId,
+      path: normalizedPath,
+      success: Boolean(result?.success),
+      error: result?.error || result?.message || null
+    }
+
+    if (!sender?.isDestroyed?.()) {
+      sender.send('playlist-delete-completed', payload)
+    }
+  })
+
+  return { success: true, queued: true, jobId, path: normalizedPath }
 }
 async function getPlays(filePath) {
   try {
@@ -629,7 +664,9 @@ function getRandomIndex(total) {
 async function saveDialog(nombre = '') {
   let isValid = false
   let filePath
-  const suggestedFileName = normalizePlaylistFileName(nombre) || 'playlist'
+  const suggestedFileName = stripPlaylistExtension(nombre)
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
+    .replace(/[. ]+$/g, '') || 'playlist'
 
   while (!isValid) {
     const { filePath: selectedPath } = await dialog.showSaveDialog({
@@ -670,39 +707,230 @@ const saveM3uFile = async (m3uFilePath, m3uContent) => {
     await fs.promises.writeFile(m3uFilePath, m3uContent)
     return { success: true, path: m3uFilePath }
   } catch (err) {
-    return { success: false, error: err.message }
+    return {
+      success: false,
+      error: isProtectedPathError(err) ? getProtectedPathMessage() : err.message
+    }
   }
 }
 function extractPlaylistName(filePath) {
   return path.basename(filePath, path.extname(filePath))
 }
 
-function normalizePlaylistFileName(nombre = '') {
-  return Array.from(
-    String(nombre)
-      .trim()
-      .replace(/[<>:"/\\|?*]/g, '')
-  )
-    .filter((character) => character.charCodeAt(0) >= 32)
-    .join('')
+const WINDOWS_RESERVED_FILE_NAMES = new Set([
+  'CON',
+  'PRN',
+  'AUX',
+  'NUL',
+  'COM1',
+  'COM2',
+  'COM3',
+  'COM4',
+  'COM5',
+  'COM6',
+  'COM7',
+  'COM8',
+  'COM9',
+  'LPT1',
+  'LPT2',
+  'LPT3',
+  'LPT4',
+  'LPT5',
+  'LPT6',
+  'LPT7',
+  'LPT8',
+  'LPT9'
+])
+
+function stripPlaylistExtension(nombre = '') {
+  return String(nombre).trim().replace(/\.m3u$/i, '')
 }
 
-function buildPlaylistTargetPath({ targetPath = null, targetDirectory = null, nombre = '' } = {}) {
-  if (targetPath) {
-    return path.resolve(targetPath)
+function normalizePlaylistFileName(nombre = '') {
+  return stripPlaylistExtension(nombre)
+}
+
+function hasInvalidPlaylistNameCharacters(nombre = '') {
+  return /[<>:"/\\|?*]/.test(String(nombre))
+}
+
+function getPlaylistNameValidationError(nombre = '') {
+  const rawName = stripPlaylistExtension(nombre)
+
+  if (!rawName) {
+    return 'Escribe un nombre valido para la playlist.'
+  }
+
+  if (/[\x00-\x1f]/.test(rawName)) {
+    return 'El nombre de la playlist contiene caracteres no permitidos.'
+  }
+
+  if (hasInvalidPlaylistNameCharacters(rawName)) {
+    return 'El nombre de la playlist contiene caracteres no permitidos.'
+  }
+
+  if (/[. ]$/.test(rawName)) {
+    return 'El nombre de la playlist no puede terminar en punto o espacio.'
+  }
+
+  if (WINDOWS_RESERVED_FILE_NAMES.has(rawName.toUpperCase())) {
+    return 'El nombre de la playlist esta reservado por el sistema.'
   }
 
   const normalizedName = normalizePlaylistFileName(nombre)
 
   if (!normalizedName) {
-    throw new Error('Playlist name is required')
+    return 'Escribe un nombre valido para la playlist.'
   }
 
+  return null
+}
+
+function getTrackPathKey(filePath) {
+  const normalizedPath = path.normalize(filePath)
+  return process.platform === 'win32' ? normalizedPath.toLowerCase() : normalizedPath
+}
+
+function resolvePlaylistTrackPath(trackPath, baseDirectory) {
+  return path.isAbsolute(trackPath)
+    ? path.normalize(trackPath)
+    : path.resolve(baseDirectory, trackPath)
+}
+
+function sanitizePlaylistTrackPaths(filePaths = []) {
+  const uniqueTrackPaths = []
+  const seenPaths = new Set()
+
+  for (const item of filePaths) {
+    if (typeof item !== 'string') {
+      continue
+    }
+
+    const normalizedPath = item.trim()
+    const trackPathKey = getTrackPathKey(normalizedPath)
+
+    if (!normalizedPath || seenPaths.has(trackPathKey)) {
+      continue
+    }
+
+    seenPaths.add(trackPathKey)
+    uniqueTrackPaths.push(normalizedPath)
+  }
+
+  return uniqueTrackPaths
+}
+
+function hasDuplicatePlaylistTrackPaths(filePaths = []) {
+  return sanitizePlaylistTrackPaths(filePaths).length !== filePaths.length
+}
+
+function getPlaylistTrackSignature(filePaths = []) {
+  return sanitizePlaylistTrackPaths(filePaths).map(getTrackPathKey).join('\n')
+}
+
+function isProtectedPathError(error) {
+  return ['EACCES', 'EPERM', 'EROFS'].includes(error?.code)
+}
+
+function getProtectedPathMessage() {
+  return 'Ruta protegida, No se pudo crear la playlist.'
+}
+
+async function findPlaylistByNameInsensitive(playlistName) {
+  const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
+  const playlists = await prisma.playlist.findMany({
+    select: {
+      nombre: true,
+      path: true
+    }
+  })
+
+  return playlists.find(
+    (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
+  ) || null
+}
+
+async function findPlaylistsByNameInsensitive(playlistName) {
+  const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
+  const playlists = await prisma.playlist.findMany({
+    select: {
+      id: true,
+      nombre: true,
+      path: true
+    }
+  })
+
+  return playlists.filter(
+    (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
+  )
+}
+
+async function playlistNameExistsInDatabase(playlistName, filePath = null) {
+  const conflictingPlaylist = await findPlaylistByNameInsensitive(playlistName)
+
+  if (!conflictingPlaylist) {
+    return false
+  }
+
+  if (filePath && conflictingPlaylist.path === filePath) {
+    return false
+  }
+
+  return true
+}
+
+async function playlistPathExistsInDatabase(filePath) {
+  if (!filePath) {
+    return false
+  }
+
+  const conflictingPlaylist = await prisma.playlist.findUnique({
+    where: { path: path.resolve(filePath) }
+  })
+
+  return Boolean(conflictingPlaylist)
+}
+
+async function playlistIdentityExistsInDatabase(playlistName, filePath) {
+  const [conflictingName, conflictingPath] = await Promise.all([
+    playlistNameExistsInDatabase(playlistName),
+    playlistPathExistsInDatabase(filePath)
+  ])
+
+  return conflictingName || conflictingPath
+}
+
+async function resolveUniquePlaylistPath({
+  targetDirectory,
+  requestedName,
+  targetPath = null
+} = {}) {
   if (!targetDirectory) {
     throw new Error('Target directory is required')
   }
 
-  return path.join(targetDirectory, `${normalizedName}.m3u`)
+  const baseName = targetPath ? extractPlaylistName(targetPath) : requestedName
+  const validationError = getPlaylistNameValidationError(baseName)
+  if (validationError) {
+    throw new Error(validationError)
+  }
+
+  const normalizedName = normalizePlaylistFileName(baseName)
+  const resolvedDirectory = path.resolve(targetDirectory)
+  let candidateIndex = 1
+
+  while (true) {
+    const candidateName = candidateIndex === 1 ? normalizedName : `${normalizedName} (${candidateIndex})`
+    const candidatePath = path.join(resolvedDirectory, `${candidateName}.m3u`)
+    const candidateExistsOnDisk = fs.existsSync(candidatePath)
+    const candidateExistsInDb = await playlistIdentityExistsInDatabase(candidateName, candidatePath)
+
+    if (!candidateExistsOnDisk && !candidateExistsInDb) {
+      return candidatePath
+    }
+
+    candidateIndex += 1
+  }
 }
 
 function normalizeSearchQuery(value) {
@@ -725,13 +953,36 @@ async function savePlaylist(filePath, filePaths) {
   return { success: true, playlistName }
 }
 
-async function persistPlaylistRecord(filePath) {
-  const playlistName = extractPlaylistName(filePath)
-  const conflictingPlaylist = await prisma.playlist.findUnique({
-    where: { nombre: playlistName }
+async function createPlaylistRecord(filePath, playlistName, totalTracks, totalDuration = 0) {
+  const playlist = await prisma.playlist.create({
+    data: {
+      path: filePath,
+      nombre: playlistName,
+      duracion: totalDuration,
+      numElementos: totalTracks,
+      totalplays: 0
+    }
   })
 
-  if (conflictingPlaylist && conflictingPlaylist.path !== filePath) {
+  invalidatePlaylistCache(filePath)
+  return playlist
+}
+
+async function persistPlaylistRecord(filePath, { allowExistingPath = false } = {}) {
+  const playlistName = extractPlaylistName(filePath)
+  const [existingPlaylistByPath, conflictingPlaylistByName] = await Promise.all([
+    prisma.playlist.findUnique({ where: { path: filePath } }),
+    findPlaylistByNameInsensitive(playlistName)
+  ])
+
+  if (existingPlaylistByPath && !allowExistingPath) {
+    return {
+      success: false,
+      error: `Ya existe una playlist registrada en esta ruta.`
+    }
+  }
+
+  if (conflictingPlaylistByName && conflictingPlaylistByName.path !== filePath) {
     return {
       success: false,
       error: `Ya existe una playlist llamada "${playlistName}".`
@@ -755,12 +1006,21 @@ async function savePlaylistToTarget({
   targetDirectory = null,
   nombre = ''
 } = {}) {
-  const playlistPath = buildPlaylistTargetPath({
+  const normalizedFilePaths = sanitizePlaylistTrackPaths(filePaths)
+
+  if (normalizedFilePaths.length === 0) {
+    return {
+      success: false,
+      error: 'La playlist debe tener por lo menos una (1) canciones.'
+    }
+  }
+
+  const playlistPath = await resolveUniquePlaylistPath({
     targetPath,
     targetDirectory,
-    nombre
+    requestedName: nombre
   })
-  const { success, error } = await savePlaylist(playlistPath, filePaths)
+  const { success, error } = await savePlaylist(playlistPath, normalizedFilePaths)
 
   if (!success) {
     return { success: false, error }
@@ -801,37 +1061,152 @@ async function updatePlaylistByPath(path, newData) {
   }
 }
 async function getM3ufilepaths(filepath) {
+  return readPlaylistTrackPaths(filepath)
+}
+
+async function readPlaylistTrackPaths(filepath) {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
-  const absolutePaths = fileContent.split('\n').filter((line) => line.trim() !== '')
-  return absolutePaths.map((absPath) => absPath.trim())
+  const baseDirectory = path.dirname(filepath)
+  const absolutePaths = fileContent
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && !line.startsWith('#'))
+  return absolutePaths.map((trackPath) => resolvePlaylistTrackPath(trackPath, baseDirectory))
+}
+
+async function findDuplicateImportedPlaylist({ name, path: importedPath, trackSignature }) {
+  const samePathPlaylist = await prisma.playlist.findUnique({
+    where: { path: importedPath }
+  })
+
+  if (samePathPlaylist) {
+    return {
+      type: 'same-path',
+      playlist: samePathPlaylist
+    }
+  }
+
+  const sameNamePlaylists = await findPlaylistsByNameInsensitive(name)
+
+  for (const playlist of sameNamePlaylists) {
+    try {
+      const existingTrackPaths = await readPlaylistTrackPaths(playlist.path)
+      const existingTrackSignature = getPlaylistTrackSignature(existingTrackPaths)
+
+      if (existingTrackSignature === trackSignature) {
+        return {
+          type: 'same-name-and-tracks',
+          playlist
+        }
+      }
+    } catch (error) {
+      console.warn('Could not compare playlist during import:', playlist.path, error?.message)
+    }
+  }
+
+  if (sameNamePlaylists.length > 0) {
+    return {
+      type: 'same-name',
+      playlist: sameNamePlaylists[0]
+    }
+  }
+
+  return null
+}
+
+async function persistImportedPlaylistRecord(filePath, filePaths) {
+  const playlistName = extractPlaylistName(filePath)
+  const existingPlaylistByPath = await prisma.playlist.findUnique({
+    where: { path: filePath }
+  })
+
+  if (existingPlaylistByPath) {
+    return {
+      success: false,
+      error: 'Ya existe una playlist registrada en esta ruta.'
+    }
+  }
+
+  const conflictingPlaylistByName = await findPlaylistByNameInsensitive(playlistName)
+  if (conflictingPlaylistByName) {
+    return {
+      success: false,
+      error: `Ya existe una playlist llamada "${playlistName}".`
+    }
+  }
+
+  const playlist = await createPlaylistRecord(filePath, playlistName, filePaths.length, 0)
+
+  return {
+    success: true,
+    path: filePath,
+    playlistName,
+    playlist
+  }
 }
 
 export async function importPlaylistFile(filePath) {
   const resolvedFilePath = path.resolve(filePath)
-  const filePaths = await getM3ufilepaths(resolvedFilePath)
+  const playlistName = extractPlaylistName(resolvedFilePath)
+  const validationError = getPlaylistNameValidationError(playlistName)
 
-  if (filePaths.length === 0) {
+  if (validationError) {
     return {
       success: false,
-      error: 'La playlist no contiene canciones.'
+      error: validationError
     }
   }
 
-  const result = await savePlaylistToTarget({
-    filePaths,
-    targetPath: resolvedFilePath
+  const filePaths = await readPlaylistTrackPaths(resolvedFilePath)
+  const normalizedFilePaths = sanitizePlaylistTrackPaths(filePaths)
+
+  if (normalizedFilePaths.length === 0) {
+    return {
+      success: false,
+      error: 'La playlist debe tener por lo menos una (1) canciones.'
+    }
+  }
+
+  const trackSignature = getPlaylistTrackSignature(normalizedFilePaths)
+  const duplicateImport = await findDuplicateImportedPlaylist({
+    name: playlistName,
+    path: resolvedFilePath,
+    trackSignature
   })
 
-  if (!result.success) {
-    return result
+  if (duplicateImport?.type === 'same-path') {
+    return {
+      success: false,
+      error: 'Ya existe una playlist registrada en esta ruta.'
+    }
   }
 
-  return {
-    success: true,
-    path: result.path,
-    playlistName: result.playlistName,
-    playlist: result.playlist
+  if (duplicateImport?.type === 'same-name-and-tracks') {
+    return {
+      success: false,
+      error: 'Ya existe esta playlist con el mismo nombre y las mismas canciones.'
+    }
   }
+
+  const needsCleanCopy =
+    duplicateImport?.type === 'same-name' || hasDuplicatePlaylistTrackPaths(filePaths)
+
+  if (!needsCleanCopy) {
+    return persistImportedPlaylistRecord(resolvedFilePath, normalizedFilePaths)
+  }
+
+  const playlistPath = await resolveUniquePlaylistPath({
+    targetPath: resolvedFilePath,
+    targetDirectory: path.dirname(resolvedFilePath),
+    requestedName: playlistName
+  })
+  const { success, error } = await savePlaylist(playlistPath, normalizedFilePaths)
+
+  if (!success) {
+    return { success: false, error }
+  }
+
+  return persistImportedPlaylistRecord(playlistPath, normalizedFilePaths)
 }
 
 async function searchPlaylistsPage(request = {}) {
@@ -910,14 +1285,14 @@ export function setupPlaylistHandlers() {
   ipcMain.handle('load-list', async () => {
     try {
       const filePath = await selectFile()
-      if (!filePath) return []
+      if (!filePath) return { success: false, canceled: true, error: 'Import canceled' }
       const result = await importPlaylistFile(filePath)
 
       if (!result.success) {
         return { success: false, error: result.error }
       }
 
-      return result.playlist
+      return result
     } catch (err) {
       return { success: false, error: err.message }
     }
@@ -994,7 +1369,7 @@ export function setupPlaylistHandlers() {
 
   //simple
   ipcMain.handle('delete-playlist', async (event, filePath) => {
-    return deletePlaylist(filePath)
+    return queuePlaylistDelete(filePath, event.sender)
   })
 
   ipcMain.handle('change-list-name', async (event, filepath, newData) => {
@@ -1223,7 +1598,7 @@ export function setupPlaylistHandlers() {
         return { success: false, error: saveResult.error }
       }
 
-      const persistResult = await persistPlaylistRecord(playlistPath)
+      const persistResult = await persistPlaylistRecord(playlistPath, { allowExistingPath: true })
       if (!persistResult.success) {
         return persistResult
       }
@@ -1243,17 +1618,29 @@ export function setupPlaylistHandlers() {
   ipcMain.handle('save-m3u', async (event, request = {}) => {
     try {
       const { filePaths = [], targetPath = null, targetDirectory = null, nombre = '' } = request
-      const resolvedTargetPath =
-        targetPath || (await saveDialog(nombre))
+      const hasExplicitTargetPath = typeof targetPath === 'string' && targetPath.trim() !== ''
+      const hasTargetDirectory = typeof targetDirectory === 'string' && targetDirectory.trim() !== ''
+      const resolvedTargetPath = hasExplicitTargetPath
+        ? targetPath
+        : hasTargetDirectory
+          ? null
+          : await saveDialog(nombre)
 
-      if (!resolvedTargetPath) {
+      if (!resolvedTargetPath && !hasTargetDirectory) {
         return { success: false, error: 'Save canceled' }
       }
+
+      const effectiveTargetDirectory =
+        hasTargetDirectory
+          ? targetDirectory
+          : resolvedTargetPath
+            ? path.dirname(resolvedTargetPath)
+            : ''
 
       const result = await savePlaylistToTarget({
         filePaths,
         targetPath: resolvedTargetPath,
-        targetDirectory,
+        targetDirectory: effectiveTargetDirectory,
         nombre
       })
 

@@ -1,5 +1,5 @@
 import { HexColorPicker } from 'react-colorful'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   LuPalette,
   LuImage,
@@ -17,6 +17,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { useBackground } from '../../Contexts/BackgroundContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import './Settings.scss'
 
 const TABS = [
@@ -47,6 +48,72 @@ function getBackgroundDraftValue(item) {
   return item.sourceValue.startsWith('legacy-data:') ? '' : item.sourceValue
 }
 
+function getPathLeaf(path = '') {
+  const normalizedPath = String(path).replace(/\\/g, '/')
+  const parts = normalizedPath.split('/').filter(Boolean)
+  return parts[parts.length - 1] || path
+}
+
+function formatDirectoryMinutes(duration = 0) {
+  const minutes = Math.floor((Number(duration) || 0) / 60)
+  return minutes > 0 ? `${minutes} min` : '-'
+}
+
+function buildDirectoryTree(directories = []) {
+  const nodeById = new Map()
+
+  directories.forEach((directory) => {
+    nodeById.set(directory.id, {
+      ...directory,
+      children: []
+    })
+  })
+
+  const roots = []
+
+  nodeById.forEach((node) => {
+    const parent = nodeById.get(node.parentId)
+
+    if (parent) {
+      parent.children.push(node)
+      return
+    }
+
+    roots.push(node)
+  })
+
+  const sortNodes = (nodes) => {
+    nodes.sort((left, right) =>
+      getPathLeaf(left.path).localeCompare(getPathLeaf(right.path), undefined, {
+        sensitivity: 'base'
+      })
+    )
+    nodes.forEach((node) => sortNodes(node.children))
+  }
+
+  sortNodes(roots)
+  return roots
+}
+
+function getDirectoryTreeStats(directory) {
+  const hasChildren = directory.children?.length > 0
+  const tracks = hasChildren
+    ? Number(directory.recursiveTotalTracks) || Number(directory.totalTracks) || 0
+    : Number(directory.totalTracks) || 0
+  const duration = hasChildren
+    ? Number(directory.recursiveTotalDuration) || Number(directory.totalDuration) || 0
+    : Number(directory.totalDuration) || 0
+
+  return {
+    hasChildren,
+    tracks,
+    duration,
+    affectedDirectories: 1 + (directory.children || []).reduce((total, child) => {
+      return total + getDirectoryTreeStats(child).affectedDirectories
+    }, 0)
+  }
+}
+
 function Settings() {
   const {
     color,
@@ -68,8 +135,14 @@ function Settings() {
     clearBackground
   } = useBackground()
 
-  const { directories, getDirectories, addDirectory, deleteDirectory, directoriesLoading } =
-    useMini()
+  const {
+    directories,
+    getDirectories,
+    addDirectory,
+    deleteDirectory,
+    deleteDirectoryBranch,
+    directoriesLoading
+  } = useMini()
   const { openM3U } = usePlaylists()
 
   const [activeTab, setActiveTab] = useState('library')
@@ -77,6 +150,8 @@ function Settings() {
   const [isBgValidating, setIsBgValidating] = useState(false)
   const [bgError, setBgError] = useState(null)
   const [bgSuccess, setBgSuccess] = useState(null)
+  const [directoryDeleteTarget, setDirectoryDeleteTarget] = useState(null)
+  const directoryTree = useMemo(() => buildDirectoryTree(directories), [directories])
 
   useEffect(() => {
     getDirectories()
@@ -183,6 +258,80 @@ function Settings() {
     }
   }
 
+  const openDirectoryDeleteConfirm = (directory) => {
+    const stats = getDirectoryTreeStats(directory)
+    setDirectoryDeleteTarget({
+      directory,
+      mode: stats.hasChildren ? 'branch' : 'single',
+      ...stats
+    })
+  }
+
+  const closeDirectoryDeleteConfirm = () => {
+    setDirectoryDeleteTarget(null)
+  }
+
+  const confirmDirectoryDelete = async () => {
+    const target = directoryDeleteTarget
+
+    if (!target?.directory?.path) {
+      return
+    }
+
+    setDirectoryDeleteTarget(null)
+
+    if (target.mode === 'branch') {
+      await deleteDirectoryBranch(target.directory.path)
+      return
+    }
+
+    await deleteDirectory(target.directory.path)
+  }
+
+  const renderDirectoryNode = (directory, depth = 0) => {
+    const stats = getDirectoryTreeStats(directory)
+    const isRoot = directory.directoryKind === 'root'
+    const isBranch = stats.hasChildren
+
+    return (
+      <div key={directory.path} className="directory-tree-node">
+        <div
+          className={`directory-item ${isBranch ? 'is-branch' : ''} ${isRoot ? 'is-root' : ''}`}
+          style={{ '--directory-depth': depth }}
+        >
+          <div className="directory-info">
+            <LuFolderOpen className="directory-icon" />
+            <div className="directory-meta">
+              <div className="directory-title-row">
+                <span className="directory-name">{getPathLeaf(directory.path)}</span>
+                {isBranch && <span className="directory-badge">Branch</span>}
+                {isRoot && <span className="directory-badge is-root">Root</span>}
+              </div>
+              <span className="directory-path">{directory.path}</span>
+              <span className="directory-stats">
+                {stats.tracks} tracks · {formatDirectoryMinutes(stats.duration)}
+                {isBranch ? ` · ${stats.affectedDirectories} directories` : ''}
+              </span>
+            </div>
+          </div>
+          <button
+            className="settings-icon-btn danger"
+            onClick={() => openDirectoryDeleteConfirm(directory)}
+            title={isBranch ? 'Remove directory branch' : 'Remove directory'}
+          >
+            <LuTrash2 />
+          </button>
+        </div>
+
+        {isBranch && (
+          <div className="directory-children">
+            {directory.children.map((child) => renderDirectoryNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="Settings">
       <nav className="settings-tabs">
@@ -257,27 +406,7 @@ function Settings() {
                   <span>No directories added yet</span>
                 </div>
               )}
-              {directories.map((dir) => (
-                <div key={dir.path} className="directory-item">
-                  <div className="directory-info">
-                    <LuFolderOpen className="directory-icon" />
-                    <div className="directory-meta">
-                      <span className="directory-path">{dir.path}</span>
-                      <span className="directory-stats">
-                        {dir.totalTracks ?? '-'} tracks ·{' '}
-                        {dir.totalDuration ? `${Math.floor(dir.totalDuration / 60)} min` : '-'}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    className="settings-icon-btn danger"
-                    onClick={() => deleteDirectory(dir.path)}
-                    title="Remove directory"
-                  >
-                    <LuTrash2 />
-                  </button>
-                </div>
-              ))}
+              {directoryTree.map((directory) => renderDirectoryNode(directory))}
             </div>
           </section>
         )}
@@ -480,6 +609,26 @@ function Settings() {
           </section>
         )}
       </div>
+      <ConfirmActionModal
+        isVisible={Boolean(directoryDeleteTarget)}
+        title={
+          directoryDeleteTarget?.mode === 'branch'
+            ? 'Remove directory branch?'
+            : 'Remove directory?'
+        }
+        message={
+          directoryDeleteTarget?.mode === 'branch'
+            ? `This removes ${directoryDeleteTarget?.affectedDirectories || 0} directory registrations from Elevate, including all imported subdirectories under "${getPathLeaf(directoryDeleteTarget?.directory?.path)}". Your files and song stats will not be deleted.`
+            : `This removes "${getPathLeaf(directoryDeleteTarget?.directory?.path)}" from Elevate. Your files and song stats will not be deleted.`
+        }
+        confirmLabel={
+          directoryDeleteTarget?.mode === 'branch'
+            ? 'Remove directory branch'
+            : 'Remove directory'
+        }
+        onCancel={closeDirectoryDeleteConfirm}
+        onConfirm={confirmDirectoryDelete}
+      />
     </div>
   )
 }

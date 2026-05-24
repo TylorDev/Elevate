@@ -1,0 +1,117 @@
+.route-skeleton {
+  min-height: 100%;
+  padding: 1.5rem;
+  display: grid;
+  gap: 1.25rem;
+  background:
+    linear-gradient(180deg, rgba(6, 10, 18, 0.88) 0%, rgba(6, 10, 18, 0.72) 100%),
+    radial-gradient(circle at top left, rgba(94, 234, 212, 0.08), transparent 40%);
+}
+
+.route-skeleton__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(14px);
+}
+
+.route-skeleton__hero-copy {
+  flex: 1;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.route-skeleton__hero-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.route-skeleton__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.route-skeleton__metric-card,
+.route-skeleton__panel {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+}
+
+.route-skeleton__metric-card {
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.route-skeleton__panel {
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.route-skeleton__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.route-skeleton__panel-list {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.route-skeleton__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  border-radius: $border-radius;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.route-skeleton__row-copy {
+  display: grid;
+  gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .route-skeleton__hero,
+  .route-skeleton__panel-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .route-skeleton__hero-actions {
+    justify-content: flex-start;
+  }
+
+  .route-skeleton__metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .route-skeleton {
+    padding: 1rem;
+  }
+
+  .route-skeleton__row {
+    grid-template-columns: auto 1fr;
+  }
+
+  .route-skeleton__row > :last-child {
+    grid-column: 1 / -1;
+  }
+}

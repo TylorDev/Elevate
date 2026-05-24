@@ -6,12 +6,12 @@ import { useQueue } from './QueueContext'
 import {
   createLatestOnlyInvoker,
   dedupedInvoke,
-  ElectronDelete,
   ElectronGetter,
   ElectronSetter2
 } from './utils'
 
 const ContextLikes = createContext()
+const PLAYLIST_DELETE_TOAST_ID = 'playlist-delete-status'
 
 export const usePlaylists = () => useContext(ContextLikes)
 
@@ -31,6 +31,10 @@ export const PlaylistsProvider = ({ children }) => {
   const [playlistsLastLoadedAt, setPlaylistsLastLoadedAt] = useState(null)
   const playlistsRequestRef = useRef(null)
   const playlistsInvokerRef = useRef(createLatestOnlyInvoker())
+  const pendingPlaylistDeletesRef = useRef(new Map())
+  const pendingPlaylistDeleteJobsRef = useRef(new Map())
+  const processedPlaylistDeleteJobsRef = useRef(new Set())
+  const [deletingPlaylistPaths, setDeletingPlaylistPaths] = useState([])
   const allSongsRequestRef = useRef(null)
   const allSongsLoadedPagesRef = useRef(new Set())
   const [news, setNews] = useState([])
@@ -147,8 +151,60 @@ export const PlaylistsProvider = ({ children }) => {
   }, [])
 
   const openM3U = useCallback(async () => {
-    await ElectronGetter('load-list', SetAllSongs, null, 'se cargo correctamente la lista nueva')
+    let result
+
+    try {
+      result = await dedupedInvoke('load-list')
+    } catch (error) {
+      const errorMessage = error?.message || 'No se pudo importar la playlist.'
+      toast.error(errorMessage, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+      return { success: false, error: errorMessage }
+    }
+
+    if (!result || result?.canceled) {
+      return result
+    }
+
+    if (!result?.success) {
+      toast.error(result?.error || 'No se pudo importar la playlist.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+      return result
+    }
+
     await getSavedLists({ force: true })
+
+    toast.success(`Playlist importada: ${result.playlistName}`, {
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    })
+
+    return result
   }, [getSavedLists])
 
   const getRandomList = useCallback(
@@ -202,11 +258,116 @@ export const PlaylistsProvider = ({ children }) => {
     return response
   }, [])
 
-  const deletePlaylist = useCallback(async (filePath) => {
-    await ElectronDelete('delete-playlist', filePath, 'lista eliminada!')
-    setPlaylists((prevPlaylists) => prevPlaylists.filter((playlist) => playlist.path !== filePath))
-    setPlaylistsLoaded(false)
+  const removeDeletingPlaylistPath = useCallback((filePath) => {
+    setDeletingPlaylistPaths((previousPaths) => previousPaths.filter((path) => path !== filePath))
   }, [])
+
+  const addDeletingPlaylistPath = useCallback((filePath) => {
+    setDeletingPlaylistPaths((previousPaths) =>
+      previousPaths.includes(filePath) ? previousPaths : [...previousPaths, filePath]
+    )
+  }, [])
+
+  const isPlaylistDeleting = useCallback((filePath) => {
+    return pendingPlaylistDeletesRef.current.has(filePath)
+  }, [])
+
+  const showPlaylistDeleteToast = useCallback((type, message) => {
+    const toastOptions = {
+      toastId: PLAYLIST_DELETE_TOAST_ID,
+      position: 'bottom-right',
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: 'dark',
+      transition: Bounce
+    }
+
+    if (toast.isActive(PLAYLIST_DELETE_TOAST_ID)) {
+      toast.update(PLAYLIST_DELETE_TOAST_ID, {
+        ...toastOptions,
+        render: message,
+        type
+      })
+      return
+    }
+
+    const notify = type === 'error' ? toast.error : toast.success
+    notify(message, toastOptions)
+  }, [])
+
+  const restoreOptimisticPlaylistDelete = useCallback((filePath) => {
+    const deletedPlaylist = pendingPlaylistDeletesRef.current.get(filePath)
+    pendingPlaylistDeletesRef.current.delete(filePath)
+    removeDeletingPlaylistPath(filePath)
+
+    if (deletedPlaylist) {
+      setPlaylists((prevPlaylists) => {
+        if (prevPlaylists.some((playlist) => playlist.path === filePath)) {
+          return prevPlaylists
+        }
+
+        return [deletedPlaylist, ...prevPlaylists]
+      })
+    }
+
+    setPlaylistsLoaded(false)
+    void getSavedLists({ force: true })
+  }, [getSavedLists, removeDeletingPlaylistPath])
+
+  const deletePlaylist = useCallback((filePath) => {
+    const normalizedPath = typeof filePath === 'string' ? filePath.trim() : ''
+
+    if (!normalizedPath) {
+      toast.error('Ruta de playlist invalida.', {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+      return { success: false, error: 'Ruta de playlist invalida.' }
+    }
+
+    if (pendingPlaylistDeletesRef.current.has(normalizedPath)) {
+      return { success: true, queued: true, path: normalizedPath, duplicate: true }
+    }
+
+    const playlistSnapshot = playlists.find((playlist) => playlist.path === normalizedPath) || null
+
+    setPlaylists((prevPlaylists) => {
+      return prevPlaylists.filter((playlist) => playlist.path !== normalizedPath)
+    })
+
+    pendingPlaylistDeletesRef.current.set(normalizedPath, playlistSnapshot)
+
+    addDeletingPlaylistPath(normalizedPath)
+
+    void dedupedInvoke('delete-playlist', normalizedPath)
+      .then((result) => {
+        if (!result?.success) {
+          restoreOptimisticPlaylistDelete(normalizedPath)
+          showPlaylistDeleteToast('error', result?.error || 'No se pudo eliminar la playlist.')
+        }
+
+        if (result?.jobId) {
+          pendingPlaylistDeleteJobsRef.current.set(result.jobId, normalizedPath)
+        }
+      })
+      .catch((error) => {
+        restoreOptimisticPlaylistDelete(normalizedPath)
+        showPlaylistDeleteToast('error', error?.message || 'No se pudo eliminar la playlist.')
+      })
+
+    return { success: true, queued: true, path: normalizedPath }
+  }, [addDeletingPlaylistPath, playlists, restoreOptimisticPlaylistDelete, showPlaylistDeleteToast])
 
   const getUniqueList = useCallback(async (setState, filePath) => {
     await ElectronGetter('get-list', setState, filePath, 'se obtuvo los datos de la lista!')
@@ -250,12 +411,18 @@ export const PlaylistsProvider = ({ children }) => {
 
   const savePlaylistFromTracks = useCallback(
     async (tracks = [], { nombre = '', targetDirectory = '', replacePath = null } = {}) => {
-      const filePaths = tracks
-        .map((track) => track?.filePath)
-        .filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+      const uniqueFilePaths = Array.from(
+        new Set(
+          tracks
+            .map((track) => track?.filePath)
+            .filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+            .map((filePath) => filePath.trim())
+        )
+      )
 
-      if (filePaths.length === 0) {
-        toast.error('No hay canciones para guardar.', {
+      if (uniqueFilePaths.length === 0) {
+        const emptyPlaylistMessage = 'La playlist debe tener por lo menos una (1) canciones.'
+        toast.error(emptyPlaylistMessage, {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -266,20 +433,21 @@ export const PlaylistsProvider = ({ children }) => {
           theme: 'dark',
           transition: Bounce
         })
-        return { success: false, error: 'No tracks to save' }
+        return { success: false, error: emptyPlaylistMessage }
       }
 
       let result
 
       try {
         result = await dedupedInvoke('save-m3u', {
-          filePaths,
+          filePaths: uniqueFilePaths,
           targetDirectory,
           targetPath: replacePath,
           nombre
         })
       } catch (error) {
-        toast.error(error?.message || 'No se pudo guardar la playlist.', {
+        const errorMessage = error?.message || 'No se pudo guardar la playlist.'
+        toast.error(errorMessage, {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -291,7 +459,7 @@ export const PlaylistsProvider = ({ children }) => {
           transition: Bounce
         })
 
-        return { success: false, error: error?.message || 'Error saving playlist' }
+        return { success: false, error: errorMessage }
       }
 
       if (!result?.success) {
@@ -311,7 +479,7 @@ export const PlaylistsProvider = ({ children }) => {
 
       await getSavedLists({ force: true })
 
-      toast.success(`Playlist guardada: ${result.playlistName}`, {
+      toast.success(`Playlist creada: ${result.playlistName}`, {
         position: 'bottom-right',
         autoClose: 3000,
         hideProgressBar: false,
@@ -417,6 +585,22 @@ export const PlaylistsProvider = ({ children }) => {
 
   useEffect(() => {
     const handleNotification = async (message) => {
+      if (message?.type === 'toast') {
+        const notify = message.variant === 'error' ? toast.error : toast.success
+        notify(message.message || 'Completado!', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return
+      }
+
       if (message === '[new]' || message === '[directory-changed]') {
         getAllSongs(1, { reset: true })
         getDirectories({ force: true })
@@ -450,6 +634,48 @@ export const PlaylistsProvider = ({ children }) => {
     }
   }, [getAllSongs, getDirectories])
 
+  useEffect(() => {
+    const handlePlaylistDeleteCompleted = (result) => {
+      const eventJobId = result?.jobId
+      const eventPath = result?.path || pendingPlaylistDeleteJobsRef.current.get(eventJobId)
+
+      if (eventJobId && processedPlaylistDeleteJobsRef.current.has(eventJobId)) {
+        return
+      }
+
+      if (eventJobId) {
+        processedPlaylistDeleteJobsRef.current.add(eventJobId)
+        pendingPlaylistDeleteJobsRef.current.delete(eventJobId)
+      }
+
+      const deletedPlaylist = pendingPlaylistDeletesRef.current.get(eventPath)
+
+      if (result?.success) {
+        pendingPlaylistDeletesRef.current.delete(eventPath)
+        removeDeletingPlaylistPath(eventPath)
+        showPlaylistDeleteToast(
+          'success',
+          deletedPlaylist?.nombre ? `Playlist eliminada: ${deletedPlaylist.nombre}` : 'Playlist eliminada.'
+        )
+        return
+      }
+
+      if (eventPath) {
+        restoreOptimisticPlaylistDelete(eventPath)
+      } else {
+        void getSavedLists({ force: true })
+      }
+
+      showPlaylistDeleteToast('error', result?.error || 'No se pudo eliminar la playlist.')
+    }
+
+    window.electron.ipcRenderer.on('playlist-delete-completed', handlePlaylistDeleteCompleted)
+
+    return () => {
+      window.electron.ipcRenderer.off('playlist-delete-completed', handlePlaylistDeleteCompleted)
+    }
+  }, [getSavedLists, removeDeletingPlaylistPath, restoreOptimisticPlaylistDelete, showPlaylistDeleteToast])
+
   const contextValue = useMemo(
     () => ({
       allSongs,
@@ -457,12 +683,14 @@ export const PlaylistsProvider = ({ children }) => {
       allSongsHasMore,
       allSongsPage,
       playlists,
+      deletingPlaylistPaths,
       playlistsLoading,
       playlistsLoaded,
       playlistsLastLoadedAt,
       getSavedLists,
       addPlaylisthistory,
       deletePlaylist,
+      isPlaylistDeleting,
       getUniqueList,
       getAllSongs,
       openM3U,
@@ -491,12 +719,14 @@ export const PlaylistsProvider = ({ children }) => {
       allSongsPage,
       currentCover,
       deleteDirectoryList,
+      deletingPlaylistPaths,
       deletePlaylist,
       getAllSongs,
       getNews,
       getRandomList,
       getSavedLists,
       getUniqueList,
+      isPlaylistDeleting,
       news,
       openM3U,
       playlists,

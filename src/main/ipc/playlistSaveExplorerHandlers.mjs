@@ -43,8 +43,29 @@ async function resolveExistingDirectory(directoryPath) {
   return getFallbackDirectory()
 }
 
+async function resolveStrictDirectory(directoryPath) {
+  if (typeof directoryPath !== 'string' || directoryPath.trim() === '') {
+    throw new Error('Ruta de carpeta invalida.')
+  }
+
+  const resolvedPath = path.resolve(directoryPath)
+
+  let stats
+  try {
+    stats = await fs.promises.stat(resolvedPath)
+  } catch {
+    throw new Error('La carpeta indicada no existe.')
+  }
+
+  if (!stats.isDirectory()) {
+    throw new Error('La ruta indicada no es un directorio.')
+  }
+
+  return resolvedPath
+}
+
 async function getDirectorySnapshot(directoryPath) {
-  const currentPath = await resolveExistingDirectory(directoryPath)
+  const currentPath = await resolveStrictDirectory(directoryPath)
   const entries = await fs.promises.readdir(currentPath, { withFileTypes: true })
   const directories = []
   const files = []

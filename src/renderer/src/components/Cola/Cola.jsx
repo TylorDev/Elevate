@@ -14,7 +14,7 @@ import { SongItem } from '../SongItem/SongItem'
 import './Cola.scss'
 import './VirtualizedCola.scss'
 
-const DEFAULT_ROW_HEIGHT = 75
+const DEFAULT_ROW_HEIGHT = 88
 const DEFAULT_DATE_HEADER_HEIGHT = 54
 const DEFAULT_HOUR_HEADER_HEIGHT = 38
 const DEFAULT_VIRTUALIZATION_THRESHOLD = 25

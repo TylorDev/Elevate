@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Main from './Layouts/Main/Main'
 import { useArgv } from './Contexts/ArgvContext'
 import DebugOverlay from './Components/DebugOverlay/DebugOverlay'
+import RouteSkeleton from './components/RouteSkeleton/RouteSkeleton'
 
 // Lazy-loaded pages — each page loads as a separate chunk on demand
 const Feed = lazy(() => import('./Pages/Feed/Feed'))
@@ -23,11 +24,7 @@ const Settings = lazy(() => import('./Components/Settings/Settings'))
 const Lista = lazy(() => import('./Pages/Lista/Lista'))
 
 function PageLoader() {
-  return (
-    <div className="page-loader">
-      <div className="page-loader__spinner" />
-    </div>
-  )
+  return <RouteSkeleton />
 }
 
 function App() {
@@ -113,6 +110,15 @@ function App() {
 
       const droppedPaths = [...uniqueFilePaths, ...uniqueDirectoryPaths]
       if (droppedPaths.length > 0) {
+        if (droppedPlaylistPaths.length === 1 && droppedPaths.length === 1) {
+          void window.electron.ipcRenderer
+            .invoke('queue-dropped-playlist-import', droppedPlaylistPaths[0])
+            .catch((error) => {
+              console.error('Error queueing dropped playlist import:', error)
+            })
+          return
+        }
+
         void window.electron.ipcRenderer
           .invoke('process-dropped-paths', droppedPaths)
           .then((payload) => {
