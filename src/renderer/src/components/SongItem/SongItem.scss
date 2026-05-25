@@ -303,3 +303,78 @@
 .visible.is-pinned .songItem {
     background: color-mix(in srgb, $primary-color 14%, transparent);
 }
+
+@media (max-height: 500px) and (max-width: 700px) {
+    .songItem {
+        min-height: 64px;
+        grid-template-columns: minmax(0, 0.75rem) 2.5rem minmax(0, 1fr) auto auto;
+        grid-template-rows: 1fr 1fr;
+        grid-template-areas:
+            "indicator cover title  actions duration"
+            "indicator cover artist actions duration";
+        column-gap: 0.6rem;
+        padding: 0 0.85rem;
+
+        .songItem__pinIndicator {
+            svg {
+                font-size: 0.82rem;
+            }
+        }
+
+        .cover {
+            width: 2.5rem;
+            height: 2.5rem;
+
+            .ico {
+                font-size: 0.78rem;
+            }
+        }
+
+        .songdata {
+            .song-tittle {
+                align-self: end;
+                font-size: 0.88rem;
+                line-height: 1.1;
+            }
+
+            .song-artist {
+                align-self: start;
+                font-size: 0.68rem;
+            }
+
+            .song-folder {
+                display: none;
+            }
+        }
+
+        .optiones {
+            min-width: 2rem;
+
+            .btnLike {
+                padding: 6px;
+
+                svg {
+                    font-size: 0.95rem;
+                }
+            }
+        }
+
+        .stime {
+            width: 2.2rem;
+            font-size: 0.72rem;
+        }
+    }
+
+    .songItem.songItem--insight {
+        grid-template-columns: minmax(0, 0.75rem) 2.5rem minmax(0, 1fr) auto auto auto;
+        grid-template-areas:
+            "indicator cover title  insight actions duration"
+            "indicator cover artist insight actions duration";
+
+        .songItem__insightValue {
+            padding: 0 0.5rem;
+            min-height: 1.6rem;
+            font-size: 0.68rem;
+        }
+    }
+}

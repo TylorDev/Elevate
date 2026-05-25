@@ -1,6 +1,6 @@
 import { formatDuration } from '../../../timeUtils'
 import { FaTrash } from 'react-icons/fa'
-import { LuDownload, LuLink, LuPencil, LuUnlink } from 'react-icons/lu'
+import { LuDownload, LuLink, LuListMusic, LuPencil, LuUnlink } from 'react-icons/lu'
 import { useNavigate } from 'react-router-dom'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
@@ -23,6 +23,7 @@ export const PlaylistItem = memo(function PlaylistItem({
   onSelect,
   disableNavigation = false,
   showDuration = true,
+  useGenericCoverFallback = false,
   style
 }) {
   if (!playlist) {
@@ -35,7 +36,7 @@ export const PlaylistItem = memo(function PlaylistItem({
 
   const { deletePlaylist, getUniqueList, exportPlaylistTracks, updatePlaylistMetadata } =
     usePlaylists()
-  const { getCollectionCoverUrl } = useImages()
+  const { getCollectionCoverUrl, useCollectionCover } = useImages()
   const { handleQueueAndPlay } = useQueue()
   const navigate = useNavigate()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
@@ -52,6 +53,12 @@ export const PlaylistItem = memo(function PlaylistItem({
     [playlist.path]
   )
   const playlistSourceKey = useMemo(() => getSourceKey(playlistSource), [playlistSource])
+  const autoCoverKey = useMemo(
+    () => (playlist.path ? `playlist:auto:${playlist.path}` : ''),
+    [playlist.path]
+  )
+  const autoCoverSignature = playlist?.coverConfig?.customCoverHash || playlist?.customCoverHash || ''
+  const cachedAutoCoverUrl = useCollectionCover(autoCoverKey, autoCoverSignature)
   const linkedPresetListId = sourceAssociations?.[playlistSourceKey] || null
   const linkedPresetList = useMemo(
     () => presetLists.find((list) => list.id === linkedPresetListId) || null,
@@ -74,9 +81,19 @@ export const PlaylistItem = memo(function PlaylistItem({
   const back = useMemo(
     () => {
       const coverToUse = playlist.effectiveCover || playlist.cover
-      return coverToUse ? getCollectionCoverUrl(playlist.path, coverToUse) : null
+      if (coverToUse) return getCollectionCoverUrl(playlist.path, coverToUse)
+      if (cachedAutoCoverUrl && !cachedAutoCoverUrl.includes('svg')) return cachedAutoCoverUrl
+      if (useGenericCoverFallback) return <LuListMusic />
+      return null
     },
-    [getCollectionCoverUrl, playlist.cover, playlist.effectiveCover, playlist.path]
+    [
+      cachedAutoCoverUrl,
+      getCollectionCoverUrl,
+      playlist.cover,
+      playlist.effectiveCover,
+      playlist.path,
+      useGenericCoverFallback
+    ]
   )
 
   const selectPlaylist = () => {

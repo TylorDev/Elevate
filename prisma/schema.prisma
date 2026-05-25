@@ -94,6 +94,7 @@ model Playlist {
   PlaybackEvent         PlaybackEvent[]
   AppHistoryEvent       AppHistoryEvent[]
   customCoverMode       String?
+  customCoverHash       String?
   customCoverValue      String?
   customCoverSelection  String?
   customCoverUpdatedAt  DateTime?

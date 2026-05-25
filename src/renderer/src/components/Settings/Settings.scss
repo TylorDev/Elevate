@@ -748,6 +748,360 @@
   }
 }
 
+@media (max-width: 579px) {
+  .Settings {
+    padding: 1rem 0.8rem 1.25rem;
+    gap: 1rem;
+
+    .settings-tabs {
+      gap: 4px;
+      padding: 4px;
+
+      .settings-tab {
+        min-width: 0;
+        min-height: 2.75rem;
+        padding: 0.7rem;
+        gap: 0;
+
+        span {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
+        svg {
+          font-size: 1rem;
+        }
+      }
+    }
+
+    .settings-section {
+      gap: 0.9rem;
+
+      .section-header {
+        align-items: flex-start;
+        gap: 0.5rem;
+
+        h2 {
+          font-size: 1rem;
+        }
+
+        .color-badge {
+          padding: 4px 9px;
+          font-size: 0.68rem;
+        }
+      }
+
+      .section-description {
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+    }
+
+    .settings-section--library {
+      .settings-action-btn {
+        width: 100%;
+      }
+
+      .settings-card {
+        .settings-card__content {
+          width: 100%;
+        }
+      }
+
+      .toggle-switch {
+        width: 100%;
+        max-width: 3.4rem;
+      }
+
+      .directory-list {
+        margin-top: 0.1rem;
+      }
+    }
+
+    .settings-section--colors {
+      .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .settings-action-btn {
+        width: 100%;
+      }
+    }
+
+    .settings-section--background {
+      .input-group {
+        .input-row {
+          .settings-action-btn.s-btn {
+            width: 100%;
+          }
+        }
+      }
+
+      .background-history__actions {
+        flex-direction: column;
+        align-items: stretch;
+
+        .settings-icon-btn {
+          width: 100%;
+        }
+      }
+    }
+
+    .settings-section--waveform {
+      .waveform-options {
+        .waveform-option {
+          width: 100%;
+
+          .waveform-option-content {
+            min-width: 0;
+          }
+
+          .waveform-option-header {
+            justify-content: space-between;
+            width: 100%;
+          }
+        }
+      }
+    }
+
+    .settings-action-btn {
+      width: 100%;
+      min-height: 2.6rem;
+      justify-content: center;
+      padding: 0.78rem 0.95rem;
+      font-size: 0.8rem;
+      align-self: stretch;
+    }
+
+    .settings-card {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.85rem;
+      padding: 0.9rem;
+
+      .settings-card__icon {
+        width: 2.4rem;
+        height: 2.4rem;
+
+        svg {
+          font-size: 1rem;
+        }
+      }
+
+      .settings-card__content {
+        h3 {
+          font-size: 0.88rem;
+          margin-bottom: 0.2rem;
+        }
+
+        p {
+          font-size: 0.76rem;
+          line-height: 1.35;
+        }
+      }
+
+      .settings-action-btn {
+        width: 100%;
+      }
+    }
+
+    .toggle-switch {
+      align-self: flex-start;
+    }
+
+    .input-group {
+      gap: 0.45rem;
+
+      label {
+        font-size: 0.72rem;
+      }
+
+      .input-row {
+        flex-direction: column;
+        gap: 0.55rem;
+
+        .settings-input,
+        .settings-action-btn.s-btn,
+        .settings-icon-btn {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .settings-action-btn.s-btn {
+          justify-content: center;
+          padding: 0.75rem 0.95rem;
+        }
+
+        .settings-icon-btn {
+          height: 2.6rem;
+        }
+      }
+    }
+
+    .settings-input {
+      font-size: 0.8rem;
+      padding: 0.78rem 0.9rem;
+    }
+
+    .settings-icon-btn {
+      width: 2.6rem;
+      height: 2.6rem;
+    }
+
+    .image-preview {
+      max-height: 10rem;
+    }
+
+    .background-history {
+      gap: 0.7rem;
+
+      &__empty {
+        padding: 0.9rem;
+        font-size: 0.76rem;
+      }
+
+      &__grid {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+      }
+
+      &__card {
+        gap: 0.7rem;
+        padding: 0.8rem;
+      }
+
+      &__preview {
+        height: 6.5rem;
+      }
+
+      &__meta {
+        strong {
+          font-size: 0.78rem;
+        }
+
+        span {
+          font-size: 0.72rem;
+        }
+      }
+
+      &__actions {
+        width: 100%;
+      }
+    }
+
+    .waveform-options {
+      gap: 0.7rem;
+
+      .waveform-option {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+        padding: 0.9rem;
+
+        .waveform-option-content {
+          width: 100%;
+
+          .waveform-option-label {
+            font-size: 0.86rem;
+          }
+
+          .waveform-option-desc {
+            font-size: 0.74rem;
+            line-height: 1.35;
+          }
+        }
+
+        .waveform-visual {
+          width: 100%;
+          height: 2.2rem;
+        }
+      }
+    }
+
+    .directory-list,
+    .directory-tree-node,
+    .directory-children {
+      gap: 0.45rem;
+    }
+
+    .directory-children {
+      margin-left: 0.55rem;
+      padding-left: 0.65rem;
+    }
+
+    .directory-empty {
+      min-height: 8rem;
+      padding: 1.6rem 0.8rem;
+      font-size: 0.78rem;
+
+      svg {
+        font-size: 1.6rem;
+      }
+    }
+
+    .directory-item {
+      align-items: flex-start;
+      gap: 0.6rem;
+      padding: 0.75rem 0.8rem;
+      margin-left: 0;
+      justify-content: space-between;
+
+      .directory-info {
+        gap: 0.7rem;
+        min-width: 0;
+
+        .directory-icon {
+          font-size: 1.05rem;
+        }
+      }
+
+      .directory-meta {
+        gap: 0.15rem;
+
+        .directory-title-row {
+          flex-wrap: wrap;
+          gap: 0.35rem;
+          width: 100%;
+        }
+
+        .directory-name {
+          font-size: 0.8rem;
+          max-width: 100%;
+        }
+
+        .directory-badge {
+          font-size: 0.62rem;
+          padding: 2px 6px;
+        }
+
+        .directory-path {
+          font-size: 0.74rem;
+          max-width: 100%;
+        }
+
+        .directory-stats {
+          font-size: 0.68rem;
+          line-height: 1.3;
+        }
+      }
+    }
+
+    .color-picker-wrapper {
+      .react-colorful {
+        height: 150px !important;
+      }
+    }
+  }
+}
+
 @keyframes settings-fade-in {
   from {
     opacity: 0;

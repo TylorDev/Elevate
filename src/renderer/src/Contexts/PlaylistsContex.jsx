@@ -150,11 +150,20 @@ export const PlaylistsProvider = ({ children }) => {
     return request
   }, [])
 
-  const openM3U = useCallback(async () => {
+  const refreshPlaylistsInBackground = useCallback(() => {
+    void getSavedLists({ force: true }).catch((error) => {
+      console.error('Error refreshing playlists after import:', error)
+    })
+  }, [getSavedLists])
+
+  const openM3U = useCallback(async (options = {}) => {
+    const filePath = typeof options === 'string' ? options : options?.filePath
     let result
 
     try {
-      result = await dedupedInvoke('load-list')
+      result = filePath
+        ? await dedupedInvoke('load-list', filePath)
+        : await dedupedInvoke('load-list')
     } catch (error) {
       const errorMessage = error?.message || 'No se pudo importar la playlist.'
       toast.error(errorMessage, {
@@ -190,7 +199,7 @@ export const PlaylistsProvider = ({ children }) => {
       return result
     }
 
-    await getSavedLists({ force: true })
+    refreshPlaylistsInBackground()
 
     toast.success(`Playlist importada: ${result.playlistName}`, {
       position: 'bottom-right',
@@ -205,7 +214,7 @@ export const PlaylistsProvider = ({ children }) => {
     })
 
     return result
-  }, [getSavedLists])
+  }, [refreshPlaylistsInBackground])
 
   const getRandomList = useCallback(
     () => ElectronGetter('get-random-playlist', setRandomPlaylist, null, 'random list cargada'),
@@ -652,6 +661,8 @@ export const PlaylistsProvider = ({ children }) => {
 
       if (result?.success) {
         pendingPlaylistDeletesRef.current.delete(eventPath)
+        setPlaylistsLoaded(false)
+        setPlaylistsLastLoadedAt(Date.now())
         removeDeletingPlaylistPath(eventPath)
         showPlaylistDeleteToast(
           'success',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuLoaderCircle, LuPlay } from 'react-icons/lu'
+import { LuLoaderCircle, LuPlay, LuListMusic } from 'react-icons/lu'
 import { Cola } from '../Cola/Cola'
 import { useSongCover, DEFAULT_COVER } from '../../Contexts/ImagesContext'
 import { Skeleton } from '../Skeleton/Skeleton'
@@ -13,11 +13,15 @@ import {
   getInsightTrackValueLabel
 } from './collectionInsightsConfig'
 import { CollectionCard } from '../CollectionCard/CollectionCard'
+import {
+  DEFAULT_SONG_ITEM_HEIGHT,
+  useSongItemRowHeight
+} from '../SongItem/songItemLayout'
 import './CollectionInsightsPanel.scss'
 
 const DEFAULT_LIST_HEIGHT = 320
 const VIEWPORT_OFFSET = 390
-const INSIGHT_ROW_HEIGHT = 72
+const INSIGHT_ROW_HEIGHT = DEFAULT_SONG_ITEM_HEIGHT
 const DEFAULT_LOADING_ROWS = 5
 
 function getListHeight() {
@@ -29,6 +33,7 @@ function CollectionInsightCard({
   totalValue,
   totalTracks,
   isActive,
+  isEmpty,
   onClick,
   onPlay,
   playDisabled,
@@ -43,7 +48,7 @@ function CollectionInsightCard({
     coverUrl && coverUrl !== DEFAULT_COVER && !coverUrl.includes('svg') ? coverUrl : ''
   const shouldUseCollectionCover =
     mode === 'collection' && tab.id === 'duration' && Boolean(collectionCoverUrl)
-  const backgroundImage = shouldUseCollectionCover ? collectionCoverUrl : rankingCoverUrl
+  const backgroundImage = isEmpty ? '' : shouldUseCollectionCover ? collectionCoverUrl : rankingCoverUrl
   const dominantColor = useDominantColor(backgroundImage)
 
   return (
@@ -54,10 +59,11 @@ function CollectionInsightCard({
       tone={tab.tone}
       active={isActive}
       interactive
+      isEmpty={isEmpty}
       icon={<Icon />}
       label={tab.summaryLabel}
-      value={tab.formatValue(totalValue)}
-      meta={`Tracks: ${formatMetricValue(totalTracks)}`}
+      value={isEmpty ? '-' : tab.formatValue(totalValue)}
+      meta={isEmpty ? 'Sin datos' : `Tracks: ${formatMetricValue(totalTracks)}`}
       className="collection-insights__card"
       backgroundImage={backgroundImage}
       accentColor={backgroundImage ? dominantColor.hex : ''}
@@ -213,6 +219,8 @@ export function CollectionInsightsPanel({
   onLoadMoreRanking,
   onPlayRanking,
   rankingLoadingTab = '',
+  isEmptyCollection = false,
+  emptyCollectionType = 'directory',
   loading = false,
   loadingRows = DEFAULT_LOADING_ROWS,
   loadingActionCount = 0,
@@ -222,15 +230,16 @@ export function CollectionInsightsPanel({
   const defaultTabId = showAllSongsTab ? 'allSongs' : COLLECTION_INSIGHT_CARD_TABS[0]?.id || 'allSongs'
   const hasFixedVisibleRows = Number.isFinite(visibleRows) && visibleRows > 0
   const shouldFillPanelHeight = mode === 'library'
+  const responsiveSongRowHeight = useSongItemRowHeight()
   const [activeTabId, setActiveTabId] = useState(defaultTabId)
   const [playingRankingTabId, setPlayingRankingTabId] = useState('')
   const [listHeight, setListHeight] = useState(() =>
-    hasFixedVisibleRows ? visibleRows * INSIGHT_ROW_HEIGHT : getListHeight()
+    hasFixedVisibleRows ? visibleRows * responsiveSongRowHeight : getListHeight()
   )
 
   useEffect(() => {
     if (hasFixedVisibleRows) {
-      setListHeight(visibleRows * INSIGHT_ROW_HEIGHT)
+      setListHeight(visibleRows * responsiveSongRowHeight)
       return undefined
     }
 
@@ -242,7 +251,7 @@ export function CollectionInsightsPanel({
     return () => {
       window.removeEventListener('resize', handleResize)
     }
-  }, [hasFixedVisibleRows, visibleRows])
+  }, [hasFixedVisibleRows, responsiveSongRowHeight, visibleRows])
 
   useEffect(() => {
     if (!showAllSongsTab && activeTabId === 'allSongs') {
@@ -368,6 +377,7 @@ export function CollectionInsightsPanel({
               totalValue={cardTotals[tab.id]}
               totalTracks={cardTrackTotals[tab.id]}
               isActive={isActive}
+              isEmpty={isEmptyCollection}
               mode={mode}
               collectionCoverUrl={collectionCoverUrl}
               playDisabled={!onPlayRanking || !cardRows[tab.id]?.length || Boolean(playingRankingTabId)}
@@ -396,7 +406,7 @@ export function CollectionInsightsPanel({
       <div
         className={`collection-insights__board tone-${activeTab.tone}`}
         style={{
-          '--board-color': activeBoardDominantColor.hex
+          '--board-color': isEmptyCollection ? 'var(--Dynamic-color)' : activeBoardDominantColor.hex
         }}
       >
         <div className="collection-insights__board-header">
@@ -413,7 +423,29 @@ export function CollectionInsightsPanel({
         </div>
 
         {activeRows.length === 0 ? (
-          <EmptyState label={activeTab.boardLabel} />
+          isEmptyCollection ? (
+            <div className="collection-insights__empty">
+              <div className="collection-insights__empty-icon">
+                <LuListMusic />
+              </div>
+              <h2>
+                {emptyCollectionType === 'playlist'
+                  ? 'Playlist vacía'
+                  : emptyCollectionType === 'likes'
+                    ? 'No hay canciones con like'
+                    : emptyCollectionType === 'statistics'
+                      ? 'Todavía no hay canciones en la biblioteca'
+                      : 'Directorio sin canciones'}
+              </h2>
+              <p>
+                {emptyCollectionType === 'statistics'
+                  ? 'Agrega carpetas o playlists para empezar a construir tus rankings.'
+                  : 'Esta colección no tiene canciones disponibles para mostrarse todavía.'}
+              </p>
+            </div>
+          ) : (
+            <EmptyState label={activeTab.boardLabel} />
+          )
         ) : (
           <Cola
             list={activeRows}
@@ -421,7 +453,7 @@ export function CollectionInsightsPanel({
             preserveOrder
             virtualized
             virtualizationThreshold={20}
-            rowHeight={INSIGHT_ROW_HEIGHT}
+            rowHeight={responsiveSongRowHeight}
             height={shouldFillPanelHeight ? '100%' : listHeight}
             hasMore={activeHasMore}
             isLoading={isActiveRankingLoading}

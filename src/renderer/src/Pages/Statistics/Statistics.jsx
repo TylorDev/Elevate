@@ -187,26 +187,18 @@ function Statistics() {
 
   return (
     <section className="statistics-page">
-      {summary.trackCount === 0 ? (
-        <div className="statistics-empty">
-          <div className="statistics-empty__icon">
-            <LuListMusic />
-          </div>
-          <h2>Todavia no hay canciones en la biblioteca.</h2>
-          <p>Agrega carpetas o playlists para empezar a construir tus rankings.</p>
-        </div>
-      ) : (
-        <CollectionInsightsPanel
-          rankings={overview.rankings}
-          totalTrackCount={summary.trackCount || 0}
-          sourceName="Estadisticas"
-          mode="library"
-          showAllSongsTab={false}
-          rankingLoadingTab={rankingLoadingTab}
-          onLoadMoreRanking={handleLoadMoreRanking}
-          onPlayRanking={handlePlayRanking}
-        />
-      )}
+      <CollectionInsightsPanel
+        rankings={overview.rankings}
+        totalTrackCount={summary.trackCount || 0}
+        sourceName="Estadisticas"
+        mode="library"
+        showAllSongsTab={false}
+        rankingLoadingTab={rankingLoadingTab}
+        onLoadMoreRanking={handleLoadMoreRanking}
+        onPlayRanking={handlePlayRanking}
+        isEmptyCollection={summary.trackCount === 0}
+        emptyCollectionType="statistics"
+      />
     </section>
   )
 }

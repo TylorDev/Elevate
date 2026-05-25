@@ -191,6 +191,7 @@ export const OverflowMenu = memo(
                       onClick={(event) => event.stopPropagation()}
                     >
                       <input
+                        autoFocus={option.autoFocus ?? false}
                         className="overflow-input"
                         disabled={option.disabled}
                         onChange={(event) => option.onValueChange?.(event.target.value)}
@@ -222,6 +223,7 @@ export const OverflowMenu = memo(
                     key={key}
                     className={option.disabled ? 'overflow-item is-disabled' : 'overflow-item'}
                     aria-disabled={option.disabled ? 'true' : undefined}
+                    title={option.tooltip || ''}
                     onClick={(e) => {
                       e.stopPropagation()
                       if (option.disabled) {
@@ -235,7 +237,12 @@ export const OverflowMenu = memo(
                         }
 
                         activeSubmenu.onItemSelect?.(option.id)
-                        closeMenu()
+                        const shouldCloseSubmenu =
+                          option.closeOnSelect ?? activeSubmenu.closeOnSelect ?? true
+
+                        if (shouldCloseSubmenu) {
+                          closeMenu()
+                        }
                         return
                       }
 

@@ -16,6 +16,10 @@ import { AudioPlayerButton } from './AudioPlayerButton'
 import { AudioPlayerStats } from './AudioPlayerStats'
 import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
+import {
+  useIsCompactHeaderViewport,
+  useIsCompactViewportHeight
+} from '../../utils/compactViewport'
 
 export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
   const { waveformVariant, toggleStep, isStep } = useSuper()
@@ -32,6 +36,8 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const navigate = useNavigate()
+  const isCompactHeight = useIsCompactViewportHeight()
+  const isCompactWidth = useIsCompactHeaderViewport()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown'
@@ -69,7 +75,10 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   }
 
   return (
-    <div className="AudioPlayer" id="AudioPlayer">
+    <div
+      className={isCompactWidth ? 'AudioPlayer AudioPlayer--compact-mobile' : 'AudioPlayer'}
+      id="AudioPlayer"
+    >
       <AudioPlayerProgressRow
         progress={progress}
         duration={duration}
@@ -87,12 +96,14 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
       </div>
 
       <AudioPlayerMetadata title={title} artist={artist}>
-        <AudioPlayerStats
-          shortViews={shortViews}
-          repeats={repeats}
-          skips={skips}
-          containerFolderName={containerFolderName}
-        />
+        {!isCompactHeight ? (
+          <AudioPlayerStats
+            shortViews={shortViews}
+            repeats={repeats}
+            skips={skips}
+            containerFolderName={containerFolderName}
+          />
+        ) : null}
       </AudioPlayerMetadata>
 
       <div className="AudioPlayer__controls" id="controls">
@@ -127,7 +138,7 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
             {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
           </AudioPlayerButton>
 
-          <SliderVolume />
+          {!isCompactHeight ? <SliderVolume /> : null}
 
           <PlayerMenu
             isMenuOpen={isMenuOpen}

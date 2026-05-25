@@ -50,6 +50,10 @@
     }
 }
 
+.Main--compact-height {
+    --player-height: 5.25rem;
+}
+
 .Main--header-hidden {
     --header-width: 0px;
 
@@ -78,8 +82,18 @@
 }
 
 @media (max-width: 480px) {
-    .Main {
+    .Main:not(.Main--queue-hidden) {
         --queue-width: min(100vw, 22rem);
+    }
+}
+
+@media (max-width: 749px) {
+    .Main:not(.Main--queue-hidden) {
+        --queue-width: min(100vw, clamp(15.5rem, 46vw, 18.5rem));
+    }
+
+    .Main.Main--compact-height {
+        --player-height: 5.6rem;
     }
 }
 

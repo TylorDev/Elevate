@@ -15,6 +15,8 @@ function getCoverCacheDir() {
   const dir = path.join(base, 'covers')
   fs.mkdirSync(path.join(dir, 'thumb'), { recursive: true })
   fs.mkdirSync(path.join(dir, 'full'), { recursive: true })
+  fs.mkdirSync(path.join(dir, 'playlist-thumb'), { recursive: true })
+  fs.mkdirSync(path.join(dir, 'playlist-full'), { recursive: true })
   return dir
 }
 
@@ -35,6 +37,85 @@ export async function resizeCover(buffer, size = 128) {
 
 function hashBuffer(buffer) {
   return crypto.createHash('md5').update(buffer).digest('hex')
+}
+
+function getPlaylistCoverPath(coverHash, variant = 'full') {
+  const normalizedVariant = variant === 'thumb' ? 'playlist-thumb' : 'playlist-full'
+  return path.join(ensureCoverDir(), normalizedVariant, `${coverHash}.jpg`)
+}
+
+export async function savePlaylistCoverToCache(buffer) {
+  if (!buffer) {
+    return null
+  }
+
+  const normalizedBuffer = await sharp(buffer)
+    .jpeg({ quality: 85 })
+    .toBuffer()
+  const coverHash = hashBuffer(normalizedBuffer)
+  const thumbPath = getPlaylistCoverPath(coverHash, 'thumb')
+  const fullPath = getPlaylistCoverPath(coverHash, 'full')
+
+  if (!fs.existsSync(thumbPath)) {
+    const thumbBuffer = await resizeCover(normalizedBuffer, 128)
+    fs.writeFileSync(thumbPath, thumbBuffer)
+  }
+
+  if (!fs.existsSync(fullPath)) {
+    fs.writeFileSync(fullPath, normalizedBuffer)
+  }
+
+  return {
+    coverHash,
+    thumbPath,
+    fullPath
+  }
+}
+
+export async function getPlaylistCoverFromCache(coverHash, variant = 'full') {
+  if (!coverHash) return null
+
+  try {
+    const coverPath = getPlaylistCoverPath(coverHash, variant)
+    if (!fs.existsSync(coverPath)) return null
+
+    const buffer = fs.readFileSync(coverPath)
+    return {
+      data: buffer,
+      mimeType: 'image/jpeg'
+    }
+  } catch {
+    return null
+  }
+}
+
+export async function deletePlaylistCoverFromCache(coverHash) {
+  if (!coverHash) return false
+
+  const references = await prisma.playlist.count({
+    where: {
+      customCoverHash: coverHash
+    }
+  })
+
+  if (references > 0) {
+    return false
+  }
+
+  const thumbPath = getPlaylistCoverPath(coverHash, 'thumb')
+  const fullPath = getPlaylistCoverPath(coverHash, 'full')
+
+  for (const targetPath of [thumbPath, fullPath]) {
+    if (!fs.existsSync(targetPath)) continue
+
+    try {
+      fs.unlinkSync(targetPath)
+    } catch (error) {
+      console.error(`Error deleting playlist cover asset ${targetPath}:`, error)
+    }
+  }
+
+  return true
 }
 
 // getAllAudioFiles has been moved to directoryScanner.mjs (async version)

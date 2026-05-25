@@ -193,3 +193,75 @@
   }
 }
 
+@media (max-width: 749px) {
+  .PlaylistsQueueTab {
+    .PlaylistsQueueTab__list {
+      padding: 0 0.5rem;
+    }
+
+    .PlaylistsQueueTab__bar {
+      gap: 0.65rem;
+      padding: 0.55rem 0.7rem;
+
+      .back-btn {
+        width: 2rem;
+        height: 2rem;
+        font-size: 1rem;
+      }
+
+      .current-path {
+        font-size: 0.88rem;
+      }
+    }
+
+    .PlaylistItem-ui {
+      padding: 0 0.45rem;
+      margin-bottom: 2px;
+    }
+
+    .PlaylistsQueueTab__empty {
+      gap: 0.8rem;
+      padding: 1.25rem 0.85rem;
+    }
+
+    .PlaylistsQueueTab__empty-icon {
+      width: 3rem;
+      height: 3rem;
+
+      svg {
+        font-size: 1.3rem;
+      }
+    }
+
+    .PlaylistsQueueTab__empty-copy {
+      gap: 0.25rem;
+      max-width: 14rem;
+
+      h3 {
+        font-size: 0.88rem;
+      }
+
+      p {
+        font-size: 0.76rem;
+      }
+    }
+
+    .PlaylistsQueueTab__empty-action {
+      gap: 0.4rem;
+      padding: 0.62rem 0.8rem;
+      font-size: 0.8rem;
+    }
+
+    .PlaylistsQueueTab__random-fab {
+      right: 0.8rem;
+      bottom: 0.8rem;
+      width: 2.65rem;
+      height: 2.65rem;
+
+      svg {
+        font-size: 1rem;
+      }
+    }
+  }
+}
+

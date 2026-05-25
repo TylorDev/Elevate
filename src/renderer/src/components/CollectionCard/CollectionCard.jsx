@@ -12,6 +12,7 @@ export function CollectionCard({
   tone = 'acid',
   active = false,
   interactive = false,
+  isEmpty = false,
   onClick,
   actionIcon = null,
   actionLabel = '',
@@ -28,17 +29,19 @@ export function CollectionCard({
   const isInteractive = interactive || typeof onClick === 'function'
   const hasAction = typeof onActionClick === 'function'
   const Component = hasAction ? 'div' : as || (isInteractive ? 'button' : 'div')
+  const appliedTone = isEmpty ? 'neutral' : tone
   const mergedStyle = {
     ...(props.style || {}),
-    ...(accentColor ? { '--card-color': accentColor } : {}),
-    ...(accentContrastColor ? { '--card-accent-contrast': accentContrastColor } : {}),
-    ...(backgroundImage ? { '--card-background-image': `url("${backgroundImage}")` } : {})
+    ...(accentColor && !isEmpty ? { '--card-color': accentColor } : {}),
+    ...(accentContrastColor && !isEmpty ? { '--card-accent-contrast': accentContrastColor } : {}),
+    ...(backgroundImage && !isEmpty ? { '--card-background-image': `url("${backgroundImage}")` } : {})
   }
   const componentProps = {
     className: buildClassName([
       'collection-card',
-      `tone-${tone}`,
+      `tone-${appliedTone}`,
       active ? 'is-active' : '',
+      isEmpty ? 'is-empty' : '',
       isInteractive ? 'is-interactive' : '',
       hasAction ? 'has-action' : '',
       backgroundImage ? 'has-media-background' : '',

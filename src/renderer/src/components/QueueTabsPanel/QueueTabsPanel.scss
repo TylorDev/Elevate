@@ -100,3 +100,24 @@
 
   }
 }
+
+@media (max-width: 749px) {
+  .QueueTabsPanel {
+    &__header {
+      padding: 0.5rem 0.5rem 0.35rem;
+      gap: 0.7rem;
+    }
+
+    &__tabs {
+      padding: 3px;
+      gap: 1px;
+    }
+
+    &__tab {
+      .tab-icon {
+        font-size: 0.85rem;
+        padding: 0.3rem;
+      }
+    }
+  }
+}

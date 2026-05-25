@@ -15,7 +15,15 @@ function CollectionEntityItemComponent({
   style
 }) {
   const { useCollectionCover } = useImages()
-  const coverUrl = useCollectionCover(collection?.coverKey, collection?.coverSignature)
+  const coverKey =
+    collection?.type === 'playlist' && collection?.path
+      ? `playlist:auto:${collection.path}`
+      : collection?.coverKey
+  const coverSignature =
+    collection?.type === 'playlist' && collection?.path
+      ? collection?.coverSignature || ''
+      : collection?.coverSignature
+  const coverUrl = useCollectionCover(coverKey, coverSignature)
 
   if (!collection) {
     return null

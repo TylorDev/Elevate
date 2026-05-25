@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
-  LuBell,
+  LuAudioWaveform,
+  LuChartColumnIncreasing,
   LuChevronDown,
   LuCopy,
   LuMinus,
   LuPanelLeftClose,
   LuPanelRightClose,
   LuPin,
-  LuRefreshCw,
   LuSearch,
   LuSlidersHorizontal
 } from 'react-icons/lu'
 import { RxCross2 } from 'react-icons/rx'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
+import { useSuper } from '../../Contexts/SupeContext'
 import SearchOverlay from './SearchOverlay'
 import { WindowPresetPicker } from './WindowPresetPicker'
 import './StatusBar.scss'
@@ -21,6 +22,25 @@ import './StatusBar.scss'
 const developerLinks = [
   { id: 'github', label: 'GitHub' },
   { id: 'portfolio', label: 'Portfolio' }
+]
+
+const compactHeaderNavItems = [
+  {
+    to: '/feed',
+    title: 'Feed',
+    icon: LuAudioWaveform,
+    onClick: 'awaken'
+  },
+  {
+    to: '/statistics',
+    title: 'Statistics',
+    icon: LuChartColumnIncreasing
+  },
+  {
+    to: '/settings',
+    title: 'Settings',
+    icon: LuSlidersHorizontal
+  }
 ]
 
 function StatusIconButton({ title, isActive = false, onClick, children }) {
@@ -38,9 +58,15 @@ function StatusIconButton({ title, isActive = false, onClick, children }) {
   )
 }
 
-function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueue }) {
+function StatusBar({
+  isCompactHeaderMode = false,
+  isHeaderHidden,
+  isQueueHidden,
+  onToggleHeader,
+  onToggleQueue
+}) {
   const [avatarBroken, setAvatarBroken] = useState(false)
-  const navigate = useNavigate()
+  const { handleAwaken } = useSuper()
   const { isOpen, toggleSearch } = useGlobalSearch()
   const [windowState, setWindowState] = useState({
     isMaximized: false,
@@ -87,16 +113,46 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
   return (
     <header className={statusBarClassName}>
       <div className="left-buttons">
-        <StatusIconButton
-          title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
-          isActive={isHeaderHidden}
-          onClick={onToggleHeader}
-        >
-          <LuPanelLeftClose />
-        </StatusIconButton>
+        {!isCompactHeaderMode ? (
+          <StatusIconButton
+            title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
+            isActive={isHeaderHidden}
+            onClick={onToggleHeader}
+          >
+            <LuPanelLeftClose />
+          </StatusIconButton>
+        ) : null}
       </div>
 
       <div className="Center">
+        {isCompactHeaderMode ? (
+          <nav className="status-bar__compact-nav" aria-label="Navegacion principal compacta">
+            {compactHeaderNavItems.map((item) => {
+              const Icon = item.icon
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'status-bar__compact-link status-bar__compact-link--active'
+                      : 'status-bar__compact-link'
+                  }
+                  title={item.title}
+                  aria-label={item.title}
+                  onClick={() => {
+                    if (item.onClick === 'awaken') {
+                      handleAwaken(true)
+                    }
+                  }}
+                >
+                  <Icon />
+                </NavLink>
+              )
+            })}
+          </nav>
+        ) : null}
         <button
           ref={(node) => {
             searchTriggerRef.current = node
@@ -104,6 +160,7 @@ function StatusBar({ isHeaderHidden, isQueueHidden, onToggleHeader, onToggleQueu
           className={isOpen ? 'status-bar__search is-active' : 'status-bar__search'}
           type="button"
           aria-label="Abrir busqueda global"
+          title="Abrir busqueda global"
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           onClick={toggleSearch}

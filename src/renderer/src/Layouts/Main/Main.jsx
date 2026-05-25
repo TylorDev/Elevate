@@ -6,20 +6,70 @@ import { VisualizerProvider } from '../../Contexts/VisualizerContext'
 import StatusBar from '../../components/StatusBar/StatusBar'
 import './Main.scss'
 import { Outlet } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { useSuper } from '../../Contexts/SupeContext'
 import QueueTabsPanel from '../../components/QueueTabsPanel/QueueTabsPanel'
+import {
+  useIsCompactHeaderViewport,
+  useIsCompactViewportHeight
+} from '../../utils/compactViewport'
+
+const AUTO_HIDE_LAYOUT_BREAKPOINT = 950
 
 function Main() {
   const { scrollRef } = useSuper()
-  const [isHeaderHidden, setIsHeaderHidden] = useState(false)
-  const [isQueueHidden, setIsQueueHidden] = useState(false)
+  const isCompactHeight = useIsCompactViewportHeight()
+  const isCompactHeaderMode = useIsCompactHeaderViewport()
+  const [headerHiddenPreference, setHeaderHiddenPreference] = useState(null)
+  const [queueHiddenPreference, setQueueHiddenPreference] = useState(null)
+  const [shouldAutoHidePanels, setShouldAutoHidePanels] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.innerWidth < AUTO_HIDE_LAYOUT_BREAKPOINT
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia(`(max-width: ${AUTO_HIDE_LAYOUT_BREAKPOINT - 1}px)`)
+
+    const syncAutoHideState = (event) => {
+      setShouldAutoHidePanels(event.matches)
+    }
+
+    syncAutoHideState(mediaQuery)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncAutoHideState)
+
+      return () => {
+        mediaQuery.removeEventListener('change', syncAutoHideState)
+      }
+    }
+
+    mediaQuery.addListener(syncAutoHideState)
+
+    return () => {
+      mediaQuery.removeListener(syncAutoHideState)
+    }
+  }, [])
+
+  const isHeaderCollapsed =
+    isCompactHeaderMode ||
+    (headerHiddenPreference === null ? shouldAutoHidePanels : headerHiddenPreference)
+  const isQueueCollapsed =
+    queueHiddenPreference === null ? shouldAutoHidePanels : queueHiddenPreference
 
   const mainClassName = [
     'Main',
-    isHeaderHidden ? 'Main--header-hidden' : '',
-    isQueueHidden ? 'Main--queue-hidden' : 'Main--queue-visible'
+    isCompactHeight ? 'Main--compact-height' : '',
+    isHeaderCollapsed ? 'Main--header-hidden' : '',
+    isQueueCollapsed ? 'Main--queue-hidden' : 'Main--queue-visible'
   ]
     .filter(Boolean)
     .join(' ')
@@ -30,13 +80,22 @@ function Main() {
         <Background />
         <div className="Main__status">
           <StatusBar
-            isHeaderHidden={isHeaderHidden}
-            isQueueHidden={isQueueHidden}
-            onToggleHeader={() => setIsHeaderHidden((current) => !current)}
-            onToggleQueue={() => setIsQueueHidden((current) => !current)}
+            isCompactHeaderMode={isCompactHeaderMode}
+            isHeaderHidden={isHeaderCollapsed}
+            isQueueHidden={isQueueCollapsed}
+            onToggleHeader={() =>
+              setHeaderHiddenPreference((current) =>
+                current === null ? !shouldAutoHidePanels : !current
+              )
+            }
+            onToggleQueue={() =>
+              setQueueHiddenPreference((current) =>
+                current === null ? !shouldAutoHidePanels : !current
+              )
+            }
           />
         </div>
-        {!isHeaderHidden ? (
+        {!isHeaderCollapsed && !isCompactHeaderMode ? (
           <aside className="Main__header">
             <Header />
           </aside>
@@ -46,8 +105,12 @@ function Main() {
         </main>
         <div className="Main__player">
           <AudioPlayer
-            isQueueHidden={isQueueHidden}
-            onToggleQueue={() => setIsQueueHidden((current) => !current)}
+            isQueueHidden={isQueueCollapsed}
+            onToggleQueue={() =>
+              setQueueHiddenPreference((current) =>
+                current === null ? !shouldAutoHidePanels : !current
+              )
+            }
           />
         </div>
         <aside className="Main__queue">

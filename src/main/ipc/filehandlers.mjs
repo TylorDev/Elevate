@@ -468,16 +468,7 @@ function getFileStatSignature(filePath = '') {
 }
 
 function getPlaylistFeedCoverSignature(playlist) {
-  return [
-    playlist?.path || '',
-    getFileStatSignature(playlist?.path),
-    playlist?.numElementos || 0,
-    playlist?.duracion || 0,
-    playlist?.customCoverMode || '',
-    playlist?.customCoverValue || '',
-    playlist?.customCoverSelection || '',
-    playlist?.customCoverUpdatedAt?.getTime?.() || ''
-  ].join('|')
+  return playlist?.customCoverHash || ''
 }
 
 function getDirectoryFeedCoverSignature(directory, trackCount = 0) {
@@ -548,6 +539,7 @@ async function getFeedSourceSignature(scope) {
         numElementos: true,
         totalplays: true,
         customCoverMode: true,
+        customCoverHash: true,
         customCoverValue: true,
         customCoverSelection: true,
         customCoverUpdatedAt: true
@@ -940,7 +932,7 @@ async function getFeedCollectionCover(request = {}) {
   let tracks
 
   if (type === 'playlist') {
-    tracks = await processPlaylist(sourcePath, path.dirname(sourcePath), { includePicture: false })
+    return null
   } else {
     const directory = await getDirectoryByPath(sourcePath)
     const audioFiles = directory

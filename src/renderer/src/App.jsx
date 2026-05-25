@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Main from './Layouts/Main/Main'
 import { useArgv } from './Contexts/ArgvContext'
+import { usePlaylists } from './Contexts/PlaylistsContex'
 import DebugOverlay from './Components/DebugOverlay/DebugOverlay'
 import RouteSkeleton from './components/RouteSkeleton/RouteSkeleton'
 
@@ -16,9 +17,7 @@ const Statistics = lazy(() => import('./Pages/Statistics/Statistics'))
 const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
 const Directories = lazy(() => import('./Pages/Directories/Directories'))
 const Music = lazy(() => import('./Pages/Music/Music'))
-const PresetLibraryTab = lazy(
-  () => import('./components/Render/PresetLibraryTab/PresetLibraryTab')
-)
+const PresetLibraryTab = lazy(() => import('./components/Render/PresetLibraryTab/PresetLibraryTab'))
 const CollectionPage = lazy(() => import('./Pages/CollectionPage/CollectionPage'))
 const Settings = lazy(() => import('./Components/Settings/Settings'))
 const Lista = lazy(() => import('./Pages/Lista/Lista'))
@@ -29,6 +28,7 @@ function PageLoader() {
 
 function App() {
   const { handleExternalPayload } = useArgv()
+  const { openM3U } = usePlaylists()
 
   useEffect(() => {
     const getPathForFile = (file) => {
@@ -111,11 +111,7 @@ function App() {
       const droppedPaths = [...uniqueFilePaths, ...uniqueDirectoryPaths]
       if (droppedPaths.length > 0) {
         if (droppedPlaylistPaths.length === 1 && droppedPaths.length === 1) {
-          void window.electron.ipcRenderer
-            .invoke('queue-dropped-playlist-import', droppedPlaylistPaths[0])
-            .catch((error) => {
-              console.error('Error queueing dropped playlist import:', error)
-            })
+          void openM3U({ filePath: droppedPlaylistPaths[0] })
           return
         }
 
@@ -146,14 +142,15 @@ function App() {
       window.removeEventListener('dragover', handleDragOver)
       window.removeEventListener('drop', handleDrop)
     }
-  }, [handleExternalPayload])
+  }, [handleExternalPayload, openM3U])
 
   return (
     <div className="App">
       <Routes>
         <Route path="/" element={<Main />}>
+          <Route index element={<Navigate to="/statistics" replace />} />
           <Route
-            index
+            path="/feed"
             element={
               <Suspense fallback={<PageLoader />}>
                 <Feed />
@@ -308,7 +305,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-      <DebugOverlay isEnabled={false}></DebugOverlay>
+      <DebugOverlay isEnabled={true}></DebugOverlay>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LuListMusic } from 'react-icons/lu'
 import { RiShuffleLine } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
@@ -18,29 +18,81 @@ function PlaylistsQueueTab({ isActive }) {
   const {
     addPlaylisthistory,
     deletingPlaylistPaths,
-    getSavedLists,
     getUniqueList,
     isPlaylistDeleting,
     openM3U,
-    playlists,
-    playlistsLastLoadedAt,
-    playlistsLoaded,
-    playlistsLoading
+    playlistsLastLoadedAt // needed to sync external changes (import/create)
   } = usePlaylists()
   const { playQueueShuffled } = useQueue()
   const [selectedPlaylist, setSelectedPlaylist] = useState(null)
   const [currentPlaylist, setCurrentPlaylist] = useState(null)
-  const [playlistCount, setPlaylistCount] = useState(null)
   const [playingRandom, setPlayingRandom] = useState(false)
+
+  // Local state — independent from global playlists context
+  const [queuePlaylists, setQueuePlaylists] = useState([])
+  const [queuePlaylistsLoading, setQueuePlaylistsLoading] = useState(false)
+  const [queuePlaylistsLoaded, setQueuePlaylistsLoaded] = useState(false)
+  const [queuePlaylistsLastLoadedAt, setQueuePlaylistsLastLoadedAt] = useState(null)
+  const liteRequestRef = useRef(null)
+  const lastGlobalLoadRef = useRef(playlistsLastLoadedAt)
+
+  // Filter out deleting playlists optimistically so they unmount instantly
+  const displayedPlaylists = useMemo(() => {
+    return queuePlaylists.filter((p) => !deletingPlaylistPaths.includes(p.path))
+  }, [queuePlaylists, deletingPlaylistPaths])
+
+  const loadLitePlaylists = useCallback(async ({ force = false } = {}) => {
+    if (!force && queuePlaylistsLoaded) {
+      return queuePlaylists
+    }
+
+    if (liteRequestRef.current && !force) {
+      return liteRequestRef.current
+    }
+
+    setQueuePlaylistsLoading(true)
+
+    const request = dedupedInvoke('get-playlists-minimal')
+      .then((result) => {
+        if (result) {
+          setQueuePlaylists(result)
+          setQueuePlaylistsLoaded(true)
+          setQueuePlaylistsLastLoadedAt(Date.now())
+        }
+
+        return result
+      })
+      .catch((error) => {
+        console.error('Error loading lite playlists:', error)
+        throw error
+      })
+      .finally(() => {
+        if (liteRequestRef.current === request) {
+          liteRequestRef.current = null
+          setQueuePlaylistsLoading(false)
+        }
+      })
+
+    liteRequestRef.current = request
+    return request
+  }, [queuePlaylists, queuePlaylistsLoaded])
+
   const selectedPlaylistPath = selectedPlaylist?.path
   const selectedPlaylistExists = selectedPlaylistPath
-    ? playlists.some((playlist) => playlist.path === selectedPlaylistPath)
+    ? displayedPlaylists.some((playlist) => playlist.path === selectedPlaylistPath)
     : false
   const selectedPlaylistIsDeleting = selectedPlaylistPath
     ? deletingPlaylistPaths.includes(selectedPlaylistPath) || isPlaylistDeleting(selectedPlaylistPath)
     : false
+
+  const handleEmptyStateImport = async () => {
+    await openM3U()
+    // Give immediate feedback instead of waiting for the full global reload
+    void loadLitePlaylists({ force: true }).catch(() => {})
+  }
+
   const playlistsEmptyState =
-    playlists.length === 0 ? (
+    displayedPlaylists.length === 0 ? (
       <div className="PlaylistsQueueTab__empty">
         <div className="PlaylistsQueueTab__empty-icon">
           <LuListMusic />
@@ -52,7 +104,7 @@ function PlaylistsQueueTab({ isActive }) {
         <button
           type="button"
           className="PlaylistsQueueTab__empty-action"
-          onClick={() => void openM3U()}
+          onClick={handleEmptyStateImport}
         >
           <LuListMusic />
           <span>Import M3U</span>
@@ -60,11 +112,26 @@ function PlaylistsQueueTab({ isActive }) {
       </div>
     ) : null
 
+  // Load lite playlists when the tab becomes active
   useEffect(() => {
-    if (isActive && !playlistsLoaded && !playlistsLoading) {
-      getSavedLists()
+    if (isActive && !queuePlaylistsLoaded && !queuePlaylistsLoading) {
+      loadLitePlaylists()
     }
-  }, [getSavedLists, isActive, playlistsLoaded, playlistsLoading])
+  }, [isActive, loadLitePlaylists, queuePlaylistsLoaded, queuePlaylistsLoading])
+
+  // Sync with global state changes (like drag & drop, new playlist, save, etc.)
+  useEffect(() => {
+    if (playlistsLastLoadedAt !== lastGlobalLoadRef.current) {
+      lastGlobalLoadRef.current = playlistsLastLoadedAt
+      if (isActive) {
+        void loadLitePlaylists({ force: true }).catch(() => {})
+        return
+      }
+
+      // Force a reload next time the tab becomes active
+      setQueuePlaylistsLoaded(false)
+    }
+  }, [isActive, loadLitePlaylists, playlistsLastLoadedAt])
 
   useEffect(() => {
     if (!selectedPlaylistPath) return
@@ -78,15 +145,11 @@ function PlaylistsQueueTab({ isActive }) {
     getUniqueList(setCurrentPlaylist, selectedPlaylistPath)
   }, [
     getUniqueList,
-    playlistsLastLoadedAt,
+    queuePlaylistsLastLoadedAt,
     selectedPlaylistExists,
     selectedPlaylistIsDeleting,
     selectedPlaylistPath
   ])
-
-  useEffect(() => {
-    setPlaylistCount(playlists.length)
-  }, [playlists.length])
 
   const renderPlaylistRow = useCallback(
     (playlist, index, style) => (
@@ -97,6 +160,7 @@ function PlaylistsQueueTab({ isActive }) {
         index={index}
         disableNavigation
         showDuration={false}
+        useGenericCoverFallback
         onSelect={setSelectedPlaylist}
         style={style}
       />
@@ -104,7 +168,7 @@ function PlaylistsQueueTab({ isActive }) {
     [addPlaylisthistory]
   )
 
-  const showRandomButton = !selectedPlaylist && Number(playlistCount) > 0
+  const showRandomButton = !selectedPlaylist && Number(displayedPlaylists.length) > 0
 
   const handlePlayRandomPlaylist = useCallback(async () => {
     if (playingRandom) {
@@ -200,12 +264,12 @@ function PlaylistsQueueTab({ isActive }) {
     <div className="PlaylistsQueueTab">
       <VirtualizedQueueEntityList
         className="PlaylistsQueueTab__list"
-        items={playlists}
+        items={displayedPlaylists}
         itemSize={PLAYLIST_ROW_HEIGHT}
         overscanCount={PLAYLIST_OVERSCAN}
         itemKey={(index, playlist) => playlist?.path || `playlist-${index}`}
         renderItem={renderPlaylistRow}
-        loading={!playlistsLoaded && playlistsLoading}
+        loading={!queuePlaylistsLoaded && queuePlaylistsLoading}
         emptyState={playlistsEmptyState}
       />
       {showRandomButton ? (

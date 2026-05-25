@@ -34,6 +34,9 @@ const pendingSongLoads = {
   full: new Map()
 }
 const pendingCollectionLoads = new Map()
+const pendingPlaylistAutoCoverLoads = new Map()
+const pendingPlaylistCoverLoads = new Map()
+const collectionCacheSubscribers = new Set()
 
 const VALID_CACHE_SCOPES = new Set(['thumb', 'full', 'collection'])
 
@@ -155,6 +158,29 @@ function pruneCache(scope) {
   }
 }
 
+function notifyCollectionCacheSubscribers(key) {
+  for (const subscriber of collectionCacheSubscribers) {
+    subscriber(key)
+  }
+}
+
+function subscribeCollectionCache(subscriber) {
+  collectionCacheSubscribers.add(subscriber)
+  return () => {
+    collectionCacheSubscribers.delete(subscriber)
+  }
+}
+
+function getPlaylistAutoCoverKey(playlistPath) {
+  return playlistPath ? `playlist:auto:${playlistPath}` : ''
+}
+
+function getPlaylistPathFromCoverKey(coverKey = '') {
+  const prefix = 'playlist:auto:'
+  if (!coverKey.startsWith(prefix)) return ''
+  return coverKey.slice(prefix.length)
+}
+
 export function getSongCoverUrl(filePath, variant = 'thumb') {
   if (!filePath) return DEFAULT_COVER
 
@@ -244,6 +270,128 @@ export function getCollectionCoverUrl(key, data) {
   return url
 }
 
+export function getCachedCollectionCoverUrl(key, signature = undefined) {
+  if (!key) return null
+
+  const cachedEntry = getCache('collection').get(key)
+  if (!cachedEntry?.url) return null
+
+  if (signature !== undefined && cachedEntry.signature !== signature) {
+    return null
+  }
+
+  touchCacheEntry(getCache('collection'), key, cachedEntry)
+  return cachedEntry.url
+}
+
+export function setCollectionCoverBlob(key, blobOrBuffer, signature = key) {
+  if (!key || !blobOrBuffer) return null
+
+  const cache = getCache('collection')
+  const existingEntry = cache.get(key)
+
+  if (existingEntry?.signature === signature && existingEntry?.url) {
+    touchCacheEntry(cache, key, existingEntry)
+    return existingEntry.url
+  }
+
+  revokeUrl(existingEntry?.url)
+
+  const url = imageDataToUrl(blobOrBuffer, 'image/png')
+  cache.set(key, {
+    signature,
+    url
+  })
+  pruneCache('collection')
+  notifyCollectionCacheSubscribers(key)
+  return url
+}
+
+export function ensurePlaylistAutoCover(playlistPath, options = {}) {
+  const coverKey = options.coverKey || getPlaylistAutoCoverKey(playlistPath)
+  const signature = options.signature || coverKey
+
+  if (!playlistPath || !coverKey) {
+    return Promise.resolve(null)
+  }
+
+  const cachedUrl = getCachedCollectionCoverUrl(coverKey, signature)
+  if (cachedUrl) {
+    return Promise.resolve(cachedUrl)
+  }
+
+  const pendingLoad = pendingPlaylistAutoCoverLoads.get(coverKey)
+  if (pendingLoad) {
+    return pendingLoad
+  }
+
+  const loadPromise = dedupedInvoke('playlist:ensure-cover', {
+    playlistPath,
+    variant: options.variant || 'full'
+  })
+    .then((response) => {
+      if (!response?.success || !response?.cover) {
+        return null
+      }
+
+      return setCollectionCoverBlob(coverKey, response.cover, response.coverHash || signature)
+    })
+    .catch((error) => {
+      console.error('Error generating playlist cover:', error)
+      return null
+    })
+    .finally(() => {
+      pendingPlaylistAutoCoverLoads.delete(coverKey)
+    })
+
+  pendingPlaylistAutoCoverLoads.set(coverKey, loadPromise)
+  return loadPromise
+}
+
+export function preloadPlaylistCover(playlistPath, coverHash, options = {}) {
+  const coverKey = options.coverKey || getPlaylistAutoCoverKey(playlistPath)
+  const signature = coverHash || options.signature || ''
+  const variant = options.variant || 'full'
+
+  if (!playlistPath || !coverKey || !signature) {
+    return Promise.resolve(null)
+  }
+
+  const cachedUrl = getCachedCollectionCoverUrl(coverKey, signature)
+  if (cachedUrl) {
+    return Promise.resolve(cachedUrl)
+  }
+
+  const pendingKey = `${coverKey}:${signature}:${variant}`
+  const pendingLoad = pendingPlaylistCoverLoads.get(pendingKey)
+  if (pendingLoad) {
+    return pendingLoad
+  }
+
+  const loadPromise = dedupedInvoke('playlist:get-cover', {
+    playlistPath,
+    coverHash: signature,
+    variant
+  })
+    .then((response) => {
+      if (!response?.success || !response?.cover) {
+        return null
+      }
+
+      return setCollectionCoverBlob(coverKey, response.cover, response.coverHash || signature)
+    })
+    .catch((error) => {
+      console.error('Error loading persisted playlist cover:', error)
+      return null
+    })
+    .finally(() => {
+      pendingPlaylistCoverLoads.delete(pendingKey)
+    })
+
+  pendingPlaylistCoverLoads.set(pendingKey, loadPromise)
+  return loadPromise
+}
+
 export function preloadCollectionCover(coverKey, coverSignature) {
   if (!coverKey) {
     return Promise.resolve(DEFAULT_COVER)
@@ -326,6 +474,9 @@ export function revokeImage(key, scope = 'collection') {
   const entry = cache.get(key)
   cache.delete(key)
   revokeUrl(entry?.url)
+  if (normalizedScope === 'collection') {
+    notifyCollectionCacheSubscribers(key)
+  }
 }
 
 export function clearImageCache(scope = 'all') {
@@ -355,6 +506,9 @@ export function clearImageCache(scope = 'all') {
 
   if (normalizedScope === 'all' || normalizedScope === 'collection') {
     pendingCollectionLoads.clear()
+    pendingPlaylistAutoCoverLoads.clear()
+    pendingPlaylistCoverLoads.clear()
+    notifyCollectionCacheSubscribers(null)
   }
 }
 
@@ -409,6 +563,38 @@ export function useCollectionCover(coverKey, coverSignature) {
       }
     }
 
+    if (coverKey?.startsWith?.('playlist:auto:')) {
+      const playlistPath = getPlaylistPathFromCoverKey(coverKey)
+      const cachedPlaylistUrl = getCachedCollectionCoverUrl(coverKey, coverSignature)
+
+      setCoverUrl(cachedPlaylistUrl || DEFAULT_COVER)
+
+      if (!cachedPlaylistUrl && playlistPath && coverSignature) {
+        preloadPlaylistCover(playlistPath, coverSignature, {
+          coverKey,
+          signature: coverSignature
+        }).then((url) => {
+          if (isMounted && url) {
+            setCoverUrl(url)
+          }
+        })
+      }
+
+      const unsubscribe = subscribeCollectionCache((changedKey) => {
+        if (changedKey !== null && changedKey !== coverKey) return
+
+        const nextCachedUrl = getCachedCollectionCoverUrl(coverKey, coverSignature)
+        if (isMounted) {
+          setCoverUrl(nextCachedUrl || DEFAULT_COVER)
+        }
+      })
+
+      return () => {
+        isMounted = false
+        unsubscribe()
+      }
+    }
+
     const cachedEntry = getCache('collection').get(coverKey)
     if (cachedEntry?.signature === coverSignature && cachedEntry?.url) {
       touchCacheEntry(getCache('collection'), coverKey, cachedEntry)
@@ -445,11 +631,15 @@ export function ImagesProvider({ children }) {
       DEFAULT_COVER,
       clearImageCache,
       getCollectionCoverUrl,
+      getCachedCollectionCoverUrl,
       getSongCoverUrl,
       preloadCollectionCover,
+      preloadPlaylistCover,
       preloadSongCover,
       preloadVisibleSongCovers,
+      ensurePlaylistAutoCover,
       revokeImage,
+      setCollectionCoverBlob,
       useCollectionCover,
       useSongCover
     }),

@@ -5,12 +5,13 @@ import log from 'electron-log/main.js'
 import sharp from 'sharp'
 import {
   buildCollectionSummaryFromFileInfos,
+  deletePlaylistCoverFromCache,
   buildRankingPageFromTracks,
   getCoverFromCache,
-  generateCover,
-  processPlaylist,
-  processPlaylistCover,
   getOrCreateSong,
+  getPlaylistCoverFromCache,
+  processPlaylist,
+  savePlaylistCoverToCache,
   ensureCoverDir
 } from './utils/utils.mjs'
 import {
@@ -21,7 +22,6 @@ import { prisma } from '../prisma.mjs'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron
-const playlistCoverCache = new Map()
 const pendingPlaylistRequests = new Map()
 let deletePlaylistJobCounter = 0
 const INSIGHT_METRIC_KEYS = {
@@ -50,28 +50,8 @@ function normalizePageRequest(request = {}) {
   }
 }
 
-function getPlaylistCacheKey(playlistPath) {
-  try {
-    const stats = fs.statSync(playlistPath)
-    return `${playlistPath}:${stats.mtimeMs}:${stats.size}`
-  } catch {
-    return `${playlistPath}:missing`
-  }
-}
-
 function invalidatePlaylistCache(playlistPath = null) {
   pendingPlaylistRequests.clear()
-
-  if (!playlistPath) {
-    playlistCoverCache.clear()
-    return
-  }
-
-  for (const key of playlistCoverCache.keys()) {
-    if (key.startsWith(`${playlistPath}:`)) {
-      playlistCoverCache.delete(key)
-    }
-  }
 }
 
 async function getTop10SuggestedCovers(playlistPath) {
@@ -137,6 +117,7 @@ function buildCoverConfig(playlist) {
 
   return {
     customCoverMode: playlist.customCoverMode || null,
+    customCoverHash: playlist.customCoverHash || null,
     customCoverValue: playlist.customCoverValue || null,
     customCoverSelection: playlist.customCoverSelection
       ? JSON.parse(playlist.customCoverSelection)
@@ -157,6 +138,7 @@ function buildPlaylistSummary(playlist, effectiveCover = null) {
     numElementos: playlist.numElementos,
     createdAt: playlist.createdAt,
     totalplays: playlist.totalplays,
+    customCoverHash: playlist.customCoverHash || null,
     cover: effectiveCover,
     effectiveCover,
     coverConfig: buildCoverConfig(playlist)
@@ -168,10 +150,10 @@ async function getPlaylistDetail(filepath) {
   const playlistSongs = await processPlaylist(filepath, baseDir)
   const tracks = playlistSongs.map((song) => ({ ...song, picture: undefined }))
   const playlistData = await getPlaylist(filepath)
-  const cover = playlistData ? await getCachedPlaylistCover(playlistData) : null
+  const cover = null
   const suggestedCovers = await getTop10SuggestedCovers(filepath)
   const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
-  const resolvedCover = effectiveCover || (await generateCollectionCoverFromTracks(tracks))
+  const resolvedCover = effectiveCover
   const summary = buildCollectionSummary(tracks, {
     sourcePath: filepath,
     cover: resolvedCover
@@ -204,10 +186,10 @@ export async function getPlaylistOverview(filepath, request = {}) {
     picture: undefined
   }))
   const playlistData = await getPlaylist(filepath)
-  const effectiveCover = playlistData?.customCoverMode
+  const effectiveCover = playlistData?.customCoverHash || playlistData?.customCoverMode
     ? await getEffectiveCover(playlistData, false)
     : null
-  const resolvedCover = effectiveCover || (await generateCollectionCoverFromTracks(tracks))
+  const resolvedCover = effectiveCover
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
     sourcePath: filepath,
     cover: resolvedCover
@@ -259,7 +241,7 @@ export async function getPlaylistEditPayload(filepath) {
     return { success: false, error: 'Playlist no encontrada' }
   }
 
-  const cover = await getCachedPlaylistCover(playlistData)
+  const cover = null
   const suggestedCovers = await getTop10SuggestedCovers(filepath)
   const effectiveCover = await getEffectiveCover(playlistData, cover)
 
@@ -344,72 +326,190 @@ async function generatePlaylistCoverFromSelectedImages(selectedItems) {
   }
 }
 
-async function getEffectiveCover(playlist, fallbackCover = null) {
-  if (playlist?.customCoverMode && (playlist?.customCoverValue || playlist?.customCoverSelection)) {
-    try {
-      // Fast path: customCoverValue is already a data URL (most common after save)
-      if (typeof playlist.customCoverValue === 'string' && playlist.customCoverValue.startsWith('data:')) {
-        return playlist.customCoverValue
-      }
+function isSourcePathValue(value = '') {
+  return typeof value === 'string' && value !== '' && !value.startsWith('data:')
+}
 
-      let coverBuffer = null
+async function persistPlaylistCoverForMode(playlist, coverBuffer, mode, extras = {}) {
+  if (!playlist?.path || !coverBuffer) {
+    return playlist
+  }
 
-      if (playlist.customCoverMode === 'local-image') {
-        if (playlist.customCoverValue && fs.existsSync(playlist.customCoverValue)) {
-          coverBuffer = await sharp(playlist.customCoverValue)
-            .resize(500, 500, { fit: 'cover' })
-            .png()
-            .toBuffer()
-        }
-      } else if (playlist.customCoverMode === 'remote-image') {
-        const axios = (await import('axios')).default
-        const response = await axios.get(playlist.customCoverValue, { responseType: 'arraybuffer' })
-        coverBuffer = await sharp(Buffer.from(response.data))
-          .resize(500, 500, { fit: 'cover' })
-          .png()
-          .toBuffer()
-      } else if (playlist.customCoverMode === 'suggested-collage') {
-        const selection = playlist.customCoverSelection
-          ? JSON.parse(playlist.customCoverSelection)
-          : null
+  const savedCover = await savePlaylistCoverToCache(coverBuffer)
+  if (!savedCover?.coverHash) {
+    return playlist
+  }
 
-        if (selection && Array.isArray(selection) && selection.length === 4) {
-          coverBuffer = await generatePlaylistCoverFromSelectedImages(selection)
-        }
-      }
+  const oldCoverHash = playlist.customCoverHash || null
+  const nextMode = mode || playlist.customCoverMode || null
+  const updateData = {
+    customCoverMode: nextMode,
+    customCoverHash: savedCover.coverHash,
+    customCoverSelection:
+      extras.customCoverSelection !== undefined
+        ? extras.customCoverSelection
+        : playlist.customCoverSelection || null,
+    customCoverUpdatedAt: new Date()
+  }
 
-      if (coverBuffer) {
-        return coverBuffer
-      }
-    } catch (error) {
-      console.error('Error getting effective cover:', error)
+  if (extras.customCoverValue !== undefined) {
+    updateData.customCoverValue = extras.customCoverValue
+  } else if (nextMode === 'auto-generated' || nextMode === 'suggested-collage') {
+    updateData.customCoverValue = null
+  } else {
+    updateData.customCoverValue = playlist.customCoverValue || null
+  }
+
+  const updatedPlaylist = await prisma.playlist.update({
+    where: { path: playlist.path },
+    data: updateData
+  })
+
+  invalidatePlaylistCache(playlist.path)
+
+  if (oldCoverHash && oldCoverHash !== savedCover.coverHash) {
+    await deletePlaylistCoverFromCache(oldCoverHash)
+  }
+
+  return updatedPlaylist
+}
+
+async function materializeStoredPlaylistCover(playlist, { allowAutoGenerate = false } = {}) {
+  if (!playlist) {
+    return { playlist: null, cover: null }
+  }
+
+  if (playlist.customCoverHash) {
+    const cachedCover = await getPlaylistCoverFromCache(playlist.customCoverHash, 'full')
+    if (cachedCover) {
+      return { playlist, cover: cachedCover }
     }
   }
 
-  return fallbackCover ?? getCachedPlaylistCover(playlist)
+  let coverBuffer = null
+  let nextMode = playlist.customCoverMode || null
+  let nextCoverValue
+  let nextCoverSelection
+
+  if (typeof playlist.customCoverValue === 'string' && playlist.customCoverValue.startsWith('data:')) {
+    const parsed = dataUrlToBuffer(playlist.customCoverValue)
+    if (parsed?.buffer) {
+      coverBuffer = parsed.buffer
+      nextCoverValue =
+        nextMode === 'local-image' || nextMode === 'remote-image'
+          ? null
+          : nextMode === 'auto-generated' || nextMode === 'suggested-collage'
+            ? null
+            : playlist.customCoverValue
+    }
+  } else if (playlist.customCoverMode === 'local-image') {
+    if (isSourcePathValue(playlist.customCoverValue) && fs.existsSync(playlist.customCoverValue)) {
+      coverBuffer = await sharp(playlist.customCoverValue)
+        .resize(500, 500, { fit: 'cover' })
+        .png()
+        .toBuffer()
+      nextCoverValue = playlist.customCoverValue
+    }
+  } else if (playlist.customCoverMode === 'remote-image') {
+    if (isSourcePathValue(playlist.customCoverValue)) {
+      const axios = (await import('axios')).default
+      const response = await axios.get(playlist.customCoverValue, { responseType: 'arraybuffer' })
+      coverBuffer = await sharp(Buffer.from(response.data))
+        .resize(500, 500, { fit: 'cover' })
+        .png()
+        .toBuffer()
+      nextCoverValue = playlist.customCoverValue
+    }
+  } else if (playlist.customCoverMode === 'suggested-collage') {
+    const selection = playlist.customCoverSelection
+      ? JSON.parse(playlist.customCoverSelection)
+      : null
+
+    if (selection && Array.isArray(selection) && selection.length === 4) {
+      coverBuffer = await generatePlaylistCoverFromSelectedImages(selection)
+      nextCoverSelection = playlist.customCoverSelection
+      nextCoverValue = null
+    }
+  } else if (
+    allowAutoGenerate &&
+    (playlist.customCoverMode === 'auto-generated' || !playlist.customCoverMode)
+  ) {
+    const tracks = (await processPlaylist(playlist.path, path.dirname(playlist.path))).map((song) => ({
+      ...song,
+      picture: undefined
+    }))
+
+    if (tracks.length > 0) {
+      coverBuffer = await generateCollectionCoverFromTracks(tracks)
+      nextMode = 'auto-generated'
+      nextCoverValue = null
+      nextCoverSelection = null
+    }
+  }
+
+  if (!coverBuffer) {
+    return { playlist, cover: null }
+  }
+
+  const updatedPlaylist = await persistPlaylistCoverForMode(playlist, coverBuffer, nextMode, {
+    customCoverValue: nextCoverValue,
+    customCoverSelection: nextCoverSelection
+  })
+  const persistedCover = updatedPlaylist?.customCoverHash
+    ? await getPlaylistCoverFromCache(updatedPlaylist.customCoverHash, 'full')
+    : null
+
+  return {
+    playlist: updatedPlaylist,
+    cover: persistedCover
+  }
 }
 
-async function getCachedPlaylistCover(playlist) {
-  const cacheKey = getPlaylistCacheKey(playlist.path)
-  const cachedCover = playlistCoverCache.get(cacheKey)
-
-  if (cachedCover !== undefined) {
-    return cachedCover
-  }
-
-  const baseDir = path.dirname(playlist.path)
-  const songs = await processPlaylistCover(playlist.path, baseDir)
-  console.log(`Canciones procesadas: ${songs.length}`)
-
-  let cover = null
+async function getEffectiveCover(playlist, fallbackCover = null) {
   try {
-    cover = await generateCover(songs)
+    const { cover } = await materializeStoredPlaylistCover(playlist, { allowAutoGenerate: false })
+    return cover || fallbackCover || null
   } catch (error) {
-    console.error(`Error al generar el cover para la playlist ${playlist.id}:`, error)
+    console.error('Error getting effective cover:', error)
+    return fallbackCover ?? null
   }
+}
 
-  playlistCoverCache.set(cacheKey, cover)
-  return cover
+async function ensurePlaylistCover(playlistPath, { variant = 'full', allowAutoGenerate = true } = {}) {
+  try {
+    if (typeof playlistPath !== 'string' || playlistPath.trim() === '') {
+      return { success: false, error: 'playlistPath is required' }
+    }
+
+    const playlist = await getPlaylist(playlistPath.trim())
+    if (!playlist) {
+      return { success: false, error: 'Playlist no encontrada' }
+    }
+
+    const { playlist: updatedPlaylist, cover } = await materializeStoredPlaylistCover(playlist, {
+      allowAutoGenerate
+    })
+
+    if (!cover) {
+      return { success: false, error: 'No hay covers disponibles para generar la portada.' }
+    }
+
+    const coverHash = updatedPlaylist?.customCoverHash || playlist.customCoverHash || null
+    const variantCover =
+      coverHash && variant !== 'full'
+        ? await getPlaylistCoverFromCache(coverHash, variant)
+        : cover
+
+    return {
+      success: true,
+      cover: variantCover || cover,
+      coverHash,
+      coverConfig: buildCoverConfig(updatedPlaylist || playlist)
+    }
+  } catch (error) {
+    console.error('Error ensuring playlist cover:', error)
+    return { success: false, error: error.message || 'No se pudo resolver la portada.' }
+  }
 }
 
 async function removeTrack(filepath, data) {
@@ -509,10 +609,16 @@ function isPrismaRecordNotFound(error) {
 
 async function deletePlaylist(filePath) {
   try {
+    const existingPlaylist = await prisma.playlist.findUnique({
+      where: { path: filePath },
+      select: { customCoverHash: true }
+    })
+
     await prisma.playlist.delete({
       where: { path: filePath }
     })
     invalidatePlaylistCache(filePath)
+    await deletePlaylistCoverFromCache(existingPlaylist?.customCoverHash || null)
 
     return { success: true, path: filePath }
   } catch (error) {
@@ -631,6 +737,48 @@ async function getPlaylists({ take = null, skip = null } = {}) {
   return request
 }
 
+async function getPlaylistsLite() {
+  const playlists = await prisma.playlist.findMany({
+    orderBy: { totalplays: 'desc' }
+  })
+
+  return playlists.map((playlist) => {
+    return {
+      ...playlist,
+      cover: null,
+      effectiveCover: null,
+      coverConfig: buildCoverConfig(playlist)
+    }
+  })
+}
+
+async function getPlaylistsMinimal() {
+  const playlists = await prisma.playlist.findMany({
+    select: {
+      id: true,
+      path: true,
+      nombre: true,
+      numElementos: true,
+      duracion: true,
+      customCoverMode: true,
+      customCoverHash: true
+    },
+    orderBy: { totalplays: 'desc' }
+  })
+  
+  return playlists.map(playlist => ({
+    ...playlist,
+    cover: null,
+    effectiveCover: null,
+    coverConfig: {
+      customCoverMode: playlist.customCoverMode || null,
+      customCoverHash: playlist.customCoverHash || null,
+      customCoverValue: null,
+      customCoverSelection: null
+    }
+  }))
+}
+
 async function getRandomPlaylist() {
   try {
     const totalPlaylists = await prisma.playlist.count()
@@ -645,6 +793,7 @@ async function getRandomPlaylist() {
     return null
   }
 }
+
 async function selectFile() {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
@@ -1257,11 +1406,7 @@ async function searchPlaylistsPage(request = {}) {
       },
       cover: effectiveCover,
       effectiveCover,
-      coverConfig: {
-        customCoverMode: playlist.customCoverMode || null,
-        customCoverValue: playlist.customCoverValue || null,
-        customCoverSelection: playlist.customCoverSelection ? JSON.parse(playlist.customCoverSelection) : null
-      },
+      coverConfig: buildCoverConfig(playlist),
       path: playlist.path,
       nombre: playlist.nombre,
       duracion: playlist.duracion,
@@ -1282,9 +1427,12 @@ async function searchPlaylistsPage(request = {}) {
 
 ///-----------------
 export function setupPlaylistHandlers() {
-  ipcMain.handle('load-list', async () => {
+  ipcMain.handle('load-list', async (_event, explicitFilePath = null) => {
     try {
-      const filePath = await selectFile()
+      const filePath =
+        typeof explicitFilePath === 'string' && explicitFilePath.trim() !== ''
+          ? explicitFilePath.trim()
+          : await selectFile()
       if (!filePath) return { success: false, canceled: true, error: 'Import canceled' }
       const result = await importPlaylistFile(filePath)
 
@@ -1309,7 +1457,7 @@ export function setupPlaylistHandlers() {
       const playlistSongs = await processPlaylist(filepath, baseDir)
       const processedData = playlistSongs.map((song) => ({ ...song, picture: undefined }))
       const playlistData = await getPlaylist(filepath)
-      const cover = playlistData ? await getCachedPlaylistCover(playlistData) : null
+      const cover = null
       const suggestedCovers = await getTop10SuggestedCovers(filepath)
       const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
 
@@ -1344,9 +1492,35 @@ export function setupPlaylistHandlers() {
     }
   })
 
+  ipcMain.handle('playlist:ensure-cover', async (_event, request) => {
+    const playlistPath = typeof request === 'string' ? request : request?.playlistPath
+    const variant = typeof request === 'object' ? request?.variant || 'full' : 'full'
+    return ensurePlaylistCover(playlistPath, {
+      variant,
+      allowAutoGenerate: true
+    })
+  })
+
+  ipcMain.handle('playlist:get-cover', async (_event, request) => {
+    const playlistPath = typeof request === 'string' ? request : request?.playlistPath
+    const variant = typeof request === 'object' ? request?.variant || 'full' : 'full'
+    return ensurePlaylistCover(playlistPath, {
+      variant,
+      allowAutoGenerate: false
+    })
+  })
+
   //Simple
   ipcMain.handle('get-playlists', async () => {
     return await getPlaylists()
+  })
+
+  ipcMain.handle('get-playlists-lite', async () => {
+    return await getPlaylistsLite()
+  })
+
+  ipcMain.handle('get-playlists-minimal', async () => {
+    return await getPlaylistsMinimal()
   })
 
   ipcMain.handle('search-playlists-page', async (event, request) => {
@@ -1392,14 +1566,14 @@ export function setupPlaylistHandlers() {
 
       const updateData = {}
       const coverModeChanged = coverMode !== undefined
+      let updatedPlaylist = existingPlaylist
+      let oldCoverHashToDelete = null
 
       if (nombre !== undefined && nombre !== null) {
         updateData.nombre = nombre.trim()
       }
 
       if (coverModeChanged) {
-        updateData.customCoverMode = coverMode
-
         if (coverMode === 'suggested-collage') {
           if (coverSelection && Array.isArray(coverSelection) && coverSelection.length === 4) {
             const suggestedCovers = await getTop10SuggestedCovers(filepath)
@@ -1424,8 +1598,15 @@ export function setupPlaylistHandlers() {
             }
 
             const collageBuffer = await generatePlaylistCoverFromSelectedImages(selectedItems)
-            updateData.customCoverSelection = JSON.stringify(selectedItems)
-            updateData.customCoverValue = bufferToDataUrl(collageBuffer, 'image/png')
+            updatedPlaylist = await persistPlaylistCoverForMode(
+              existingPlaylist,
+              collageBuffer,
+              'suggested-collage',
+              {
+                customCoverSelection: JSON.stringify(selectedItems),
+                customCoverValue: null
+              }
+            )
           } else {
             return { success: false, error: 'Para collage sugerido se requieren exactamente 4 selecciones' }
           }
@@ -1433,27 +1614,65 @@ export function setupPlaylistHandlers() {
           if (!coverValue) {
             return { success: false, error: `Se requiere un valor para el modo ${coverMode}` }
           }
-          updateData.customCoverValue = coverValue
-          updateData.customCoverSelection = null
+          let sourceBuffer = null
+
+          if (coverMode === 'local-image') {
+            if (!fs.existsSync(coverValue)) {
+              return { success: false, error: 'No se encontro la imagen local seleccionada' }
+            }
+
+            sourceBuffer = await sharp(coverValue)
+              .resize(500, 500, { fit: 'cover' })
+              .png()
+              .toBuffer()
+          } else {
+            const axios = (await import('axios')).default
+            const response = await axios.get(coverValue, { responseType: 'arraybuffer' })
+            sourceBuffer = await sharp(Buffer.from(response.data))
+              .resize(500, 500, { fit: 'cover' })
+              .png()
+              .toBuffer()
+          }
+
+          updatedPlaylist = await persistPlaylistCoverForMode(existingPlaylist, sourceBuffer, coverMode, {
+            customCoverSelection: null,
+            customCoverValue: coverValue
+          })
         } else if (coverMode === 'auto' || coverMode === null || coverMode === '') {
+          oldCoverHashToDelete = existingPlaylist.customCoverHash || null
           updateData.customCoverMode = null
+          updateData.customCoverHash = null
           updateData.customCoverValue = null
           updateData.customCoverSelection = null
+        } else if (coverMode === 'auto-generated') {
+          updatedPlaylist = existingPlaylist
         }
       }
 
-      if (Object.keys(updateData).length > 0) {
-        updateData.customCoverUpdatedAt = new Date()
+      if (updatedPlaylist !== existingPlaylist && Object.keys(updateData).length > 0) {
+        updatedPlaylist = await prisma.playlist.update({
+          where: { path: filepath },
+          data: updateData
+        })
       }
 
-      const updatedPlaylist = await prisma.playlist.update({
-        where: { path: filepath },
-        data: updateData
-      })
+      if (Object.keys(updateData).length > 0 && updatedPlaylist === existingPlaylist) {
+        if (coverModeChanged) {
+          updateData.customCoverUpdatedAt = new Date()
+        }
+        updatedPlaylist = await prisma.playlist.update({
+          where: { path: filepath },
+          data: updateData
+        })
+        invalidatePlaylistCache(filepath)
+      }
+
+      if (oldCoverHashToDelete) {
+        await deletePlaylistCoverFromCache(oldCoverHashToDelete)
+      }
 
       // Only invalidate cover cache and regenerate if the cover mode actually changed
       if (coverModeChanged) {
-        invalidatePlaylistCache(filepath)
         const effectiveCover = await getEffectiveCover(updatedPlaylist)
 
         return {

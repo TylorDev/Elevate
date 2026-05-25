@@ -7,14 +7,16 @@ import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useQueue } from '../../Contexts/QueueContext'
 import { DEFAULT_COVER } from '../../Contexts/ImagesContext'
-import Modal from '../Modal/Modal'
 import PlaylistSaveModal from '../PlaylistSaveModal/PlaylistSaveModal'
-import { FormAddTo } from '../SongItem/FormAddTo'
 import { SongItem } from '../SongItem/SongItem'
+import {
+  DEFAULT_SONG_ITEM_HEIGHT,
+  useSongItemRowHeight
+} from '../SongItem/songItemLayout'
 import './Cola.scss'
 import './VirtualizedCola.scss'
 
-const DEFAULT_ROW_HEIGHT = 88
+const DEFAULT_ROW_HEIGHT = DEFAULT_SONG_ITEM_HEIGHT
 const DEFAULT_DATE_HEADER_HEIGHT = 54
 const DEFAULT_HOUR_HEADER_HEIGHT = 38
 const DEFAULT_VIRTUALIZATION_THRESHOLD = 25
@@ -498,7 +500,6 @@ export function Cola({
   const { latersong } = useMini()
   const { addPlaylisthistory, removeSongFromList } = usePlaylists()
   const { preloadVisibleSongCovers } = useImages()
-  const [selectedPlaylistSong, setSelectedPlaylistSong] = useState(null)
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
   const [coverUrls, setCoverUrls] = useState({})
@@ -514,6 +515,8 @@ export function Cola({
   const suppressClickRef = useRef(null)
   const isDescending = true
   const [measuredHeight, setMeasuredHeight] = useState(DEFAULT_MIN_HEIGHT)
+  const responsiveSongRowHeight = useSongItemRowHeight()
+  const effectiveRowHeight = rowHeight === DEFAULT_ROW_HEIGHT ? responsiveSongRowHeight : rowHeight
 
   const baseList = useMemo(() => {
     const uniqueList = dedupeSongsByFilePath(list)
@@ -710,11 +713,6 @@ export function Cola({
 
       if (optionId === 'add later') {
         latersong(file)
-        return
-      }
-
-      if (optionId === 'add to playlist') {
-        setSelectedPlaylistSong(file)
         return
       }
 
@@ -1107,6 +1105,14 @@ export function Cola({
     }
   }, [height])
 
+  useEffect(() => {
+    if (!shouldVirtualize) {
+      return
+    }
+
+    virtualListRef.current?.resetAfterIndex?.(0, true)
+  }, [effectiveRowHeight, shouldVirtualize])
+
   const itemData = useMemo(
     () => ({
       activeFilePath,
@@ -1162,12 +1168,12 @@ export function Cola({
       }
 
       if (row?.type === 'hour-header') {
-        return DEFAULT_HOUR_HEADER_HEIGHT
+      return DEFAULT_HOUR_HEADER_HEIGHT
       }
 
-      return rowHeight
+      return effectiveRowHeight
     },
-    [groupedRows, rowHeight]
+    [effectiveRowHeight, groupedRows]
   )
   const showScrollToActiveButtons = Boolean(activeFilePath) && !isActiveVisible
 
@@ -1205,7 +1211,7 @@ export function Cola({
             itemCount={itemCount}
             itemData={itemData}
             itemKey={(index, data) => data.songs[index]?.filePath || `loader-${index}`}
-            itemSize={rowHeight}
+            itemSize={effectiveRowHeight}
             onItemsRendered={handleItemsRendered}
             overscanCount={overscanCount}
             width="100%"
@@ -1273,12 +1279,6 @@ export function Cola({
           </button>
         </div>
       ) : null}
-
-      {selectedPlaylistSong && (
-        <Modal isVisible={Boolean(selectedPlaylistSong)} closeModal={() => setSelectedPlaylistSong(null)}>
-          <FormAddTo file={selectedPlaylistSong} />
-        </Modal>
-      )}
 
       <PlaylistSaveModal
         isVisible={isSavePlaylistVisible}

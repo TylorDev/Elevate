@@ -19,7 +19,7 @@ const Header = memo(function Header() {
       <div className="nav-sec">
         <div className="sec-i">
           <NavLink
-            to="/"
+            to="/feed"
             className={getActiveClass}
             title="Feed"
             onClick={() => {

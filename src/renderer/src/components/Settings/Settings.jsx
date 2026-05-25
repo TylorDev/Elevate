@@ -338,8 +338,11 @@ function Settings() {
         {TABS.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             className={`settings-tab ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
+            title={tab.label}
+            aria-label={tab.label}
           >
             {tab.icon}
             <span>{tab.label}</span>
@@ -349,7 +352,7 @@ function Settings() {
 
       <div className="settings-content">
         {activeTab === 'library' && (
-          <section className="settings-section">
+          <section className="settings-section settings-section--library">
             <div className="section-header">
               <h2>Music Directories</h2>
             </div>
@@ -412,7 +415,7 @@ function Settings() {
         )}
 
         {activeTab === 'colors' && (
-          <section className="settings-section">
+          <section className="settings-section settings-section--colors">
             <div className="section-header">
               <h2>Accent Color</h2>
               <span className="color-badge" style={{ background: color || 'var(--Dynamic-color)' }}>
@@ -432,7 +435,7 @@ function Settings() {
         )}
 
         {activeTab === 'background' && (
-          <section className="settings-section">
+          <section className="settings-section settings-section--background">
             <div className="section-header">
               <h2>Page Background</h2>
             </div>
@@ -554,7 +557,7 @@ function Settings() {
         )}
 
         {activeTab === 'waveform' && (
-          <section className="settings-section">
+          <section className="settings-section settings-section--waveform">
             <div className="section-header">
               <h2>Waveform Style</h2>
             </div>

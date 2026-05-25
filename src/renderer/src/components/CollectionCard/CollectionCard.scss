@@ -206,3 +206,13 @@
 .collection-card.tone-ash {
   --card-color: #d7dbdd;
 }
+
+.collection-card.is-empty {
+  --card-color: var(--Dynamic-color);
+  border-color: color-mix(in srgb, var(--Dynamic-color), transparent 60%);
+}
+
+.collection-card.is-empty .collection-card__label,
+.collection-card.is-empty .collection-card__meta {
+  color: color-mix(in srgb, var(--Dynamic-color), transparent 20%);
+}
