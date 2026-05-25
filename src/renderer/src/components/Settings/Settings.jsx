@@ -37,6 +37,11 @@ const WAVEFORM_OPTIONS = [
     value: 'oscilloscope',
     label: 'Oscilloscope',
     description: 'Real-time audio waveform line'
+  },
+  {
+    value: 'simple',
+    label: 'Simple',
+    description: 'Lightweight progress bar with thumb'
   }
 ]
 
@@ -595,7 +600,7 @@ function Settings() {
                           }}
                         />
                       ))
-                    ) : (
+                    ) : option.value === 'oscilloscope' ? (
                       <svg viewBox="0 0 100 40" preserveAspectRatio="none">
                         <path
                           d="M0,20 Q10,5 20,20 T40,20 T60,20 T80,20 T100,20"
@@ -604,6 +609,12 @@ function Settings() {
                           strokeWidth="2"
                         />
                       </svg>
+                    ) : (
+                      <>
+                        <div className="simple-track" />
+                        <div className="simple-progress" />
+                        <div className="simple-thumb" />
+                      </>
                     )}
                   </div>
                 </button>

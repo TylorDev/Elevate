@@ -7,7 +7,7 @@ import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 
-const WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
+const CANVAS_WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
 const SEEK_COLOR = '#ffffff'
 const BARS_COUNT = 72
 const BAR_GAP = 3
@@ -33,6 +33,8 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     mutedColor: '#6f6f6f'
   })
   const progressRatio = duration ? Math.min(progress / duration, 1) : 0
+  const normalizedVariant = normalizeVariant(variant)
+  const isSimpleVariant = normalizedVariant === 'simple'
 
   useEffect(() => {
     progressRatioRef.current = progressRatio
@@ -71,6 +73,8 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
 
   // Cache canvas dimensions — only recalculate on resize
   useEffect(() => {
+    if (isSimpleVariant) return undefined
+
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -89,9 +93,16 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
     resizeObserver.observe(canvas)
 
     return () => resizeObserver.disconnect()
-  }, [])
+  }, [isSimpleVariant])
 
   useEffect(() => {
+    if (isSimpleVariant) {
+      analyserRef.current = null
+      dataRef.current = null
+      frozenDataRef.current = null
+      return undefined
+    }
+
     const canvas = canvasRef.current
 
     if (!canvas) return undefined
@@ -186,9 +197,8 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       if (animationRef.current) window.cancelAnimationFrame(animationRef.current)
       media?.removeEventListener('play', resumeAudioContext)
     }
-  }, [currentFile?.filePath, duration, mediaElement])
+  }, [currentFile?.filePath, duration, isSimpleVariant, mediaElement])
 
-  const normalizedVariant = normalizeVariant(variant)
   const updateSeekPreview = (event) => {
     seekPreviewRatioRef.current = getPointerRatio(event)
   }
@@ -211,7 +221,21 @@ export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
       aria-valuemax={Math.floor(duration || 0)}
       aria-valuenow={Math.floor(progress || 0)}
     >
-      <canvas ref={canvasRef} />
+      {isSimpleVariant ? (
+        <>
+          <div className="waveform__simple-track" />
+          <div
+            className="waveform__simple-progress"
+            style={{ width: `${progressRatio * 100}%` }}
+          />
+          <div
+            className="waveform__simple-thumb"
+            style={{ left: `${progressRatio * 100}%` }}
+          />
+        </>
+      ) : (
+        <canvas ref={canvasRef} />
+      )}
     </div>
   )
 }
@@ -225,7 +249,8 @@ function getPointerRatio(event) {
 
 function normalizeVariant(variant) {
   if (variant === 'scilloscope') return 'oscilloscope'
-  return WAVEFORM_VARIANTS.has(variant) ? variant : 'mirrored'
+  if (variant === 'simple') return 'simple'
+  return CANVAS_WAVEFORM_VARIANTS.has(variant) ? variant : 'mirrored'
 }
 
 function drawWaveform({

@@ -77,7 +77,7 @@ function Music() {
 
   const [showCover, setShowCover] = useState(true)
   const [enableVisualizer, setEnableVisualizer] = useState(false)
-  const [controlsHidden, setControlsHidden] = useState(false)
+  const [controlsHidden, setControlsHidden] = useState(true)
   const [pendingSaveListIds, setPendingSaveListIds] = useState([])
   const menuRef = useRef(null)
   const visualizerCanvasRef = useRef(null)

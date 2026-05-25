@@ -9,6 +9,7 @@ export function CollectionCard({
   label,
   value,
   meta = null,
+  variant = 'default',
   tone = 'acid',
   active = false,
   interactive = false,
@@ -26,25 +27,29 @@ export function CollectionCard({
   accentContrastColor = '',
   ...props
 }) {
+  const isMini = variant === 'mini'
   const isInteractive = interactive || typeof onClick === 'function'
-  const hasAction = typeof onActionClick === 'function'
+  const hasAction = !isMini && typeof onActionClick === 'function'
   const Component = hasAction ? 'div' : as || (isInteractive ? 'button' : 'div')
   const appliedTone = isEmpty ? 'neutral' : tone
   const mergedStyle = {
     ...(props.style || {}),
     ...(accentColor && !isEmpty ? { '--card-color': accentColor } : {}),
     ...(accentContrastColor && !isEmpty ? { '--card-accent-contrast': accentContrastColor } : {}),
-    ...(backgroundImage && !isEmpty ? { '--card-background-image': `url("${backgroundImage}")` } : {})
+    ...(!isMini && backgroundImage && !isEmpty
+      ? { '--card-background-image': `url("${backgroundImage}")` }
+      : {})
   }
   const componentProps = {
     className: buildClassName([
       'collection-card',
+      isMini ? 'collection-card--mini' : '',
       `tone-${appliedTone}`,
       active ? 'is-active' : '',
       isEmpty ? 'is-empty' : '',
       isInteractive ? 'is-interactive' : '',
       hasAction ? 'has-action' : '',
-      backgroundImage ? 'has-media-background' : '',
+      !isMini && backgroundImage ? 'has-media-background' : '',
       className
     ]),
     style: mergedStyle,
@@ -93,9 +98,9 @@ export function CollectionCard({
   return (
     <Component {...componentProps}>
       {icon ? <span className="collection-card__icon">{icon}</span> : null}
-      <span className="collection-card__label">{label}</span>
-      <strong className="collection-card__value">{value}</strong>
-      {meta ? <span className="collection-card__meta">{meta}</span> : null}
+      {!isMini ? <span className="collection-card__label">{label}</span> : null}
+      {!isMini ? <strong className="collection-card__value">{value}</strong> : null}
+      {!isMini && meta ? <span className="collection-card__meta">{meta}</span> : null}
     </Component>
   )
 }

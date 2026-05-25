@@ -8,12 +8,7 @@ function formatMetricNumber(value) {
   return new Intl.NumberFormat('es').format(Number(value) || 0)
 }
 
-function CollectionEntityItemComponent({
-  collection,
-  insightValueLabel = '',
-  onOpen,
-  style
-}) {
+function CollectionEntityItemComponent({ collection, insightValueLabel = '', onOpen, style }) {
   const { useCollectionCover } = useImages()
   const coverKey =
     collection?.type === 'playlist' && collection?.path

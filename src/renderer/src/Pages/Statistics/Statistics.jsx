@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
 import { LuListMusic } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
 
@@ -39,11 +40,15 @@ function mergeRankingPage(currentRanking, nextRanking) {
 }
 
 function Statistics() {
-  const { PlayQueue } = useQueue()
+  const outletContext = useOutletContext() || {}
+  const { PlayQueue, playQueueShuffled } = useQueue()
   const [overview, setOverview] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [rankingLoadingTab, setRankingLoadingTab] = useState('')
+  const [hydratingLibraryTracks, setHydratingLibraryTracks] = useState(false)
+  const [shufflingLibrary, setShufflingLibrary] = useState(false)
+  const allTracksCacheRef = useRef(null)
 
   useEffect(() => {
     let alive = true
@@ -152,22 +157,77 @@ function Statistics() {
         throw new Error('Este ranking no tiene canciones para reproducir.')
       }
 
-      PlayQueue(rankingTracks, `statistics:${tabId}`, 0)
+      playQueueShuffled(rankingTracks, `statistics:${tabId}`)
     } catch (rankingError) {
       toastLoadError(rankingError?.message || 'No se pudo reproducir el ranking.')
     }
-  }, [PlayQueue])
+  }, [playQueueShuffled])
+
+  const loadAllLibraryTracks = useCallback(async () => {
+    if (allTracksCacheRef.current) {
+      return allTracksCacheRef.current
+    }
+
+    setHydratingLibraryTracks(true)
+
+    try {
+      const tracks = await window.electron.ipcRenderer.invoke('get-all-audio-files')
+      const normalizedTracks = Array.isArray(tracks) ? tracks : []
+      allTracksCacheRef.current = normalizedTracks
+      return normalizedTracks
+    } catch (loadError) {
+      throw new Error(loadError?.message || 'No se pudo cargar la biblioteca completa.')
+    } finally {
+      setHydratingLibraryTracks(false)
+    }
+  }, [])
 
   const summary = overview?.summary || {
     trackCount: 0
   }
 
+  const handlePlayLibraryShuffled = useCallback(async () => {
+    if ((summary.trackCount || 0) === 0 || shufflingLibrary) return
+
+    setShufflingLibrary(true)
+
+    try {
+      const tracks = await loadAllLibraryTracks()
+
+      if (tracks.length === 0) {
+        return
+      }
+
+      playQueueShuffled(tracks, 'statistics')
+    } catch (shuffleError) {
+      toastLoadError(shuffleError?.message || 'No se pudo reproducir la biblioteca en aleatorio.')
+    } finally {
+      setShufflingLibrary(false)
+    }
+  }, [loadAllLibraryTracks, playQueueShuffled, shufflingLibrary, summary.trackCount])
+  const shouldUseHorizontalCollectionLayout = Boolean(
+    outletContext.shouldUseCollectionHorizontalMobileLayout
+  )
+  const shouldUseMobileCollectionLayout = Boolean(outletContext.shouldUseCollectionMobileLayout)
+  const collectionCompactLayout = shouldUseHorizontalCollectionLayout
+    ? 'horizontal'
+    : shouldUseMobileCollectionLayout
+      ? 'vertical'
+      : 'default'
+  const statisticsPageClassName = `statistics-page ${
+    collectionCompactLayout === 'vertical' ? 'statistics-page--movil' : ''
+  } ${
+    collectionCompactLayout === 'horizontal' ? 'statistics-page--movil-horizontal' : ''
+  }`.trim()
+
   if (loading) {
     return (
-      <section className="statistics-page statistics-page--loading">
+      <section className={`${statisticsPageClassName} statistics-page--loading`}>
         <CollectionInsightsPanel
           loading
           mode="library"
+          compactLayout={collectionCompactLayout}
+          loadingActionCount={1}
           showAllSongsTab={false}
           loadingRows={5}
           loadingTitle="Biblioteca completa"
@@ -179,14 +239,14 @@ function Statistics() {
 
   if (error) {
     return (
-      <section className="statistics-page">
+      <section className={statisticsPageClassName}>
         <div className="statistics-error">{error}</div>
       </section>
     )
   }
 
   return (
-    <section className="statistics-page">
+    <section className={statisticsPageClassName}>
       <CollectionInsightsPanel
         rankings={overview.rankings}
         totalTrackCount={summary.trackCount || 0}
@@ -194,6 +254,11 @@ function Statistics() {
         mode="library"
         showAllSongsTab={false}
         rankingLoadingTab={rankingLoadingTab}
+        compactLayout={collectionCompactLayout}
+        onPlayCollectionShuffled={handlePlayLibraryShuffled}
+        shuffleActionDisabled={summary.trackCount === 0 || hydratingLibraryTracks}
+        shuffleActionLoading={shufflingLibrary}
+        shuffleActionLabel="Reproducir toda la biblioteca en aleatorio"
         onLoadMoreRanking={handleLoadMoreRanking}
         onPlayRanking={handlePlayRanking}
         isEmptyCollection={summary.trackCount === 0}

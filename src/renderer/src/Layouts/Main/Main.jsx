@@ -11,6 +11,8 @@ import { useEffect, useState } from 'react'
 import { useSuper } from '../../Contexts/SupeContext'
 import QueueTabsPanel from '../../components/QueueTabsPanel/QueueTabsPanel'
 import {
+  useIsCollectionHorizontalViewport,
+  useIsCollectionMovilEligibleViewport,
   useIsCompactHeaderViewport,
   useIsCompactViewportHeight
 } from '../../utils/compactViewport'
@@ -21,6 +23,8 @@ function Main() {
   const { scrollRef } = useSuper()
   const isCompactHeight = useIsCompactViewportHeight()
   const isCompactHeaderMode = useIsCompactHeaderViewport()
+  const isCollectionHorizontalViewport = useIsCollectionHorizontalViewport()
+  const isCollectionMovilEligibleViewport = useIsCollectionMovilEligibleViewport()
   const [headerHiddenPreference, setHeaderHiddenPreference] = useState(null)
   const [queueHiddenPreference, setQueueHiddenPreference] = useState(null)
   const [shouldAutoHidePanels, setShouldAutoHidePanels] = useState(() => {
@@ -64,6 +68,9 @@ function Main() {
     (headerHiddenPreference === null ? shouldAutoHidePanels : headerHiddenPreference)
   const isQueueCollapsed =
     queueHiddenPreference === null ? shouldAutoHidePanels : queueHiddenPreference
+  const shouldUseCollectionHorizontalMobileLayout = isCollectionHorizontalViewport
+  const shouldUseCollectionMobileLayout =
+    isCompactHeaderMode || (isCollectionMovilEligibleViewport && !isQueueCollapsed)
 
   const mainClassName = [
     'Main',
@@ -101,7 +108,15 @@ function Main() {
           </aside>
         ) : null}
         <main className="outlet" ref={scrollRef}>
-          <Outlet />
+          <Outlet
+            context={{
+              isHeaderHidden: isHeaderCollapsed,
+              isQueueHidden: isQueueCollapsed,
+              isCompactHeaderMode,
+              shouldUseCollectionMobileLayout,
+              shouldUseCollectionHorizontalMobileLayout
+            }}
+          />
         </main>
         <div className="Main__player">
           <AudioPlayer

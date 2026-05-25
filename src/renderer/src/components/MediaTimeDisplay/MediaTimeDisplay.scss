@@ -23,6 +23,46 @@
     }
 }
 
+.waveform-simple {
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+
+    .waveform__simple-track,
+    .waveform__simple-progress {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        height: 4px;
+        border-radius: 999px;
+        transform: translateY(-50%);
+    }
+
+    .waveform__simple-track {
+        width: 100%;
+        background: color-mix(in srgb, var(--text-secondary, #6f6f6f), transparent 18%);
+        opacity: 0.55;
+    }
+
+    .waveform__simple-progress {
+        background: var(--Dynamic-color, #baff00);
+        max-width: 100%;
+    }
+
+    .waveform__simple-thumb {
+        position: absolute;
+        top: 50%;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2px solid var(--Dynamic-color, #baff00);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+    }
+}
+
 .waveform-oscilloscope {
     height: 2rem;
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { LuLoaderCircle, LuPlay, LuListMusic } from 'react-icons/lu'
+import { LuLoaderCircle, LuPlay, LuListMusic, LuShuffle } from 'react-icons/lu'
 import { Cola } from '../Cola/Cola'
 import { useSongCover, DEFAULT_COVER } from '../../Contexts/ImagesContext'
 import { Skeleton } from '../Skeleton/Skeleton'
@@ -13,10 +13,9 @@ import {
   getInsightTrackValueLabel
 } from './collectionInsightsConfig'
 import { CollectionCard } from '../CollectionCard/CollectionCard'
-import {
-  DEFAULT_SONG_ITEM_HEIGHT,
-  useSongItemRowHeight
-} from '../SongItem/songItemLayout'
+import { Button } from '../Button/Button'
+import { DEFAULT_SONG_ITEM_HEIGHT, useSongItemRowHeight } from '../SongItem/songItemLayout'
+import { useIsCompactHeaderViewport } from '../../utils/compactViewport'
 import './CollectionInsightsPanel.scss'
 
 const DEFAULT_LIST_HEIGHT = 320
@@ -32,6 +31,8 @@ function CollectionInsightCard({
   tab,
   totalValue,
   totalTracks,
+  variant = 'default',
+  className = '',
   isActive,
   isEmpty,
   onClick,
@@ -48,7 +49,11 @@ function CollectionInsightCard({
     coverUrl && coverUrl !== DEFAULT_COVER && !coverUrl.includes('svg') ? coverUrl : ''
   const shouldUseCollectionCover =
     mode === 'collection' && tab.id === 'duration' && Boolean(collectionCoverUrl)
-  const backgroundImage = isEmpty ? '' : shouldUseCollectionCover ? collectionCoverUrl : rankingCoverUrl
+  const backgroundImage = isEmpty
+    ? ''
+    : shouldUseCollectionCover
+      ? collectionCoverUrl
+      : rankingCoverUrl
   const dominantColor = useDominantColor(backgroundImage)
 
   return (
@@ -56,6 +61,7 @@ function CollectionInsightCard({
       as="button"
       role="tab"
       aria-selected={isActive}
+      variant={variant}
       tone={tab.tone}
       active={isActive}
       interactive
@@ -64,12 +70,12 @@ function CollectionInsightCard({
       label={tab.summaryLabel}
       value={isEmpty ? '-' : tab.formatValue(totalValue)}
       meta={isEmpty ? 'Sin datos' : `Tracks: ${formatMetricValue(totalTracks)}`}
-      className="collection-insights__card"
+      className={`collection-insights__card ${className}`.trim()}
       backgroundImage={backgroundImage}
       accentColor={backgroundImage ? dominantColor.hex : ''}
       accentContrastColor={backgroundImage ? dominantColor.contrastHex : ''}
       actionIcon={playLoading ? <LuLoaderCircle /> : <LuPlay />}
-      actionLabel={`Reproducir ranking ${tab.summaryLabel}`}
+      actionLabel={`Reproducir ranking ${tab.summaryLabel} en aleatorio`}
       actionDisabled={playDisabled}
       actionLoading={playLoading}
       onActionClick={onPlay || undefined}
@@ -89,7 +95,9 @@ function EmptyState({ label }) {
 
 function CollectionInsightCardSkeleton({ tone = 'neutral', className = '' }) {
   return (
-    <div className={`collection-card tone-${tone} collection-insights__card--skeleton ${className}`.trim()}>
+    <div
+      className={`collection-card tone-${tone} collection-insights__card--skeleton ${className}`.trim()}
+    >
       <span className="collection-card__icon">
         <Skeleton width="22px" height="22px" borderRadius="999px" />
       </span>
@@ -139,22 +147,27 @@ export function CollectionInsightsLoadingShell({
   loadingTitle = 'Cargando ranking',
   loadingEyebrow = 'Ranking activo',
   showSecondaryTabs = false,
+  compactLayout = 'default',
+  isCompactMobile = false,
   cardsClassName = '',
   cardClassName = '',
-  boardClassName = ''
+  boardClassName = '',
+  loadingHeaderSide = null
 }) {
+  const resolvedCompactLayout =
+    compactLayout !== 'default' ? compactLayout : isCompactMobile ? 'vertical' : 'default'
+
   return (
-    <section className={`collection-insights collection-insights--${mode}`}>
-      <div
-        className={`collection-insights__cards ${cardsClassName}`.trim()}
-        aria-hidden="true"
-      >
+    <section
+      className={`collection-insights collection-insights--${mode} ${
+        resolvedCompactLayout === 'vertical' ? 'collection-insights--vertical-mobile' : ''
+      } ${resolvedCompactLayout === 'horizontal' ? 'collection-insights--horizontal-mobile' : ''} ${
+        showSecondaryTabs ? 'collection-insights--has-secondary-tabs' : ''
+      }`.trim()}
+    >
+      <div className={`collection-insights__cards ${cardsClassName}`.trim()} aria-hidden="true">
         {cards.map((tab) => (
-          <CollectionInsightCardSkeleton
-            key={tab.id}
-            tone={tab.tone}
-            className={cardClassName}
-          />
+          <CollectionInsightCardSkeleton key={tab.id} tone={tab.tone} className={cardClassName} />
         ))}
       </div>
 
@@ -175,21 +188,25 @@ export function CollectionInsightsLoadingShell({
             <span>{loadingEyebrow}</span>
             <h2>{loadingTitle}</h2>
           </div>
-          <div className="collection-insights__board-header-side">
-            <Skeleton width="110px" height="32px" />
-            {loadingActionCount > 0 ? (
-              <div className="collection-insights__board-actions collection-insights__board-actions--skeleton">
-                {Array.from({ length: loadingActionCount }).map((_, index) => (
-                  <Skeleton
-                    key={`collection-insights-action-skeleton-${index}`}
-                    width="52px"
-                    height="52px"
-                    borderRadius="12px"
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
+          {loadingHeaderSide ? (
+            loadingHeaderSide
+          ) : (
+            <div className="collection-insights__board-header-side">
+              <Skeleton width="110px" height="32px" />
+              {loadingActionCount > 0 ? (
+                <div className="collection-insights__board-actions collection-insights__board-actions--skeleton">
+                  {Array.from({ length: loadingActionCount }).map((_, index) => (
+                    <Skeleton
+                      key={`collection-insights-action-skeleton-${index}`}
+                      width="52px"
+                      height="52px"
+                      borderRadius="12px"
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
 
         <div className="collection-insights__list-skeleton">
@@ -214,6 +231,10 @@ export function CollectionInsightsPanel({
   collectionDisplayName = '',
   sourceTypeLabel = '',
   headerActions = null,
+  onPlayCollectionShuffled,
+  shuffleActionDisabled = false,
+  shuffleActionLoading = false,
+  shuffleActionLabel = 'Reproducir toda la coleccion en aleatorio',
   showAllSongsTab = true,
   visibleRows,
   onLoadMoreRanking,
@@ -225,9 +246,17 @@ export function CollectionInsightsPanel({
   loadingRows = DEFAULT_LOADING_ROWS,
   loadingActionCount = 0,
   loadingTitle = 'Cargando ranking',
-  loadingEyebrow = 'Ranking activo'
+  loadingEyebrow = 'Ranking activo',
+  forceCompactMobile,
+  compactLayout
 }) {
-  const defaultTabId = showAllSongsTab ? 'allSongs' : COLLECTION_INSIGHT_CARD_TABS[0]?.id || 'allSongs'
+  const isCompactHeaderViewport = useIsCompactHeaderViewport()
+  const resolvedCompactLayout =
+    compactLayout || ((forceCompactMobile ?? isCompactHeaderViewport) ? 'vertical' : 'default')
+  const isCompactMobile = resolvedCompactLayout !== 'default'
+  const defaultTabId = showAllSongsTab
+    ? 'allSongs'
+    : COLLECTION_INSIGHT_CARD_TABS[0]?.id || 'allSongs'
   const hasFixedVisibleRows = Number.isFinite(visibleRows) && visibleRows > 0
   const shouldFillPanelHeight = mode === 'library'
   const responsiveSongRowHeight = useSongItemRowHeight()
@@ -265,7 +294,8 @@ export function CollectionInsightsPanel({
   )
   const rankings = providedRankings || fallbackRankings || {}
   const activeTab = useMemo(
-    () => COLLECTION_INSIGHT_TABS.find((tab) => tab.id === activeTabId) || COLLECTION_INSIGHT_TABS[0],
+    () =>
+      COLLECTION_INSIGHT_TABS.find((tab) => tab.id === activeTabId) || COLLECTION_INSIGHT_TABS[0],
     [activeTabId]
   )
   const activeRanking = rankings[activeTab.id]
@@ -277,7 +307,9 @@ export function CollectionInsightsPanel({
   const activeTopTrack = activeRows[0]
   const activeBoardCoverUrl = useSongCover(activeTopTrack?.filePath, 'thumb')
   const activeBoardDominantColor = useDominantColor(
-    activeBoardCoverUrl && activeBoardCoverUrl !== DEFAULT_COVER && !activeBoardCoverUrl.includes('svg')
+    activeBoardCoverUrl &&
+      activeBoardCoverUrl !== DEFAULT_COVER &&
+      !activeBoardCoverUrl.includes('svg')
       ? activeBoardCoverUrl
       : ''
   )
@@ -289,7 +321,11 @@ export function CollectionInsightsPanel({
     () =>
       COLLECTION_INSIGHT_CARD_TABS.reduce((totals, tab) => {
         const ranking = rankings[tab.id]
-        const rows = Array.isArray(ranking?.items) ? ranking.items : Array.isArray(ranking) ? ranking : []
+        const rows = Array.isArray(ranking?.items)
+          ? ranking.items
+          : Array.isArray(ranking)
+            ? ranking
+            : []
         totals[tab.id] = ranking?.totalValue ?? getInsightAggregateValue(tab, rows)
         return totals
       }, {}),
@@ -360,12 +396,23 @@ export function CollectionInsightsPanel({
         loadingTitle={loadingTitle}
         loadingEyebrow={loadingEyebrow}
         showSecondaryTabs={showAllSongsTab}
+        compactLayout={resolvedCompactLayout}
+        isCompactMobile={isCompactMobile}
+        cardsClassName={isCompactMobile ? 'collection-insights__cards--compact-mobile' : ''}
+        cardClassName={isCompactMobile ? 'collection-insights__card--compact-mobile' : ''}
+        boardClassName={isCompactMobile ? 'collection-insights__board--compact-mobile' : ''}
       />
     )
   }
 
   return (
-    <section className={`collection-insights collection-insights--${mode}`}>
+    <section
+      className={`collection-insights collection-insights--${mode} ${
+        resolvedCompactLayout === 'vertical' ? 'collection-insights--vertical-mobile' : ''
+      } ${resolvedCompactLayout === 'horizontal' ? 'collection-insights--horizontal-mobile' : ''} ${
+        showAllSongsTab ? 'collection-insights--has-secondary-tabs' : ''
+      }`.trim()}
+    >
       <div className="collection-insights__cards" role="tablist" aria-label="Rankings de coleccion">
         {COLLECTION_INSIGHT_CARD_TABS.map((tab) => {
           const isActive = activeTab.id === tab.id
@@ -376,13 +423,22 @@ export function CollectionInsightsPanel({
               tab={{ ...tab, rows: cardRows[tab.id] }}
               totalValue={cardTotals[tab.id]}
               totalTracks={cardTrackTotals[tab.id]}
+              variant={isCompactMobile ? 'mini' : 'default'}
               isActive={isActive}
               isEmpty={isEmptyCollection}
               mode={mode}
-              collectionCoverUrl={collectionCoverUrl}
-              playDisabled={!onPlayRanking || !cardRows[tab.id]?.length || Boolean(playingRankingTabId)}
-              playLoading={playingRankingTabId === tab.id}
-              onPlay={onPlayRanking ? () => void handlePlayRanking(tab.id) : undefined}
+              collectionCoverUrl={isCompactMobile ? '' : collectionCoverUrl}
+              className={isCompactMobile ? 'collection-insights__card--compact-mobile' : ''}
+              playDisabled={
+                isCompactMobile ||
+                !onPlayRanking ||
+                !cardRows[tab.id]?.length ||
+                Boolean(playingRankingTabId)
+              }
+              playLoading={!isCompactMobile && playingRankingTabId === tab.id}
+              onPlay={
+                !isCompactMobile && onPlayRanking ? () => void handlePlayRanking(tab.id) : undefined
+              }
               onClick={() => setActiveTabId(tab.id)}
             />
           )
@@ -404,7 +460,9 @@ export function CollectionInsightsPanel({
       ) : null}
 
       <div
-        className={`collection-insights__board tone-${activeTab.tone}`}
+        className={`collection-insights__board tone-${activeTab.tone} ${
+          isCompactMobile ? 'collection-insights__board--compact-mobile' : ''
+        }`.trim()}
         style={{
           '--board-color': isEmptyCollection ? 'var(--Dynamic-color)' : activeBoardDominantColor.hex
         }}
@@ -416,6 +474,19 @@ export function CollectionInsightsPanel({
           </div>
           <div className="collection-insights__board-header-side">
             <strong>{activeTab.formatValue(aggregateValue, activeRows)}</strong>
+            {onPlayCollectionShuffled ? (
+              <Button
+                className="collection-insights__board-shuffle"
+                type="button"
+                title={shuffleActionLabel}
+                aria-label={shuffleActionLabel}
+                aria-busy={shuffleActionLoading ? 'true' : undefined}
+                disabled={shuffleActionDisabled || shuffleActionLoading}
+                onClick={() => void onPlayCollectionShuffled()}
+              >
+                {shuffleActionLoading ? <LuLoaderCircle /> : <LuShuffle />}
+              </Button>
+            ) : null}
             {headerActions ? (
               <div className="collection-insights__board-actions">{headerActions}</div>
             ) : null}
@@ -463,8 +534,6 @@ export function CollectionInsightsPanel({
           />
         )}
       </div>
-
-
     </section>
   )
 }

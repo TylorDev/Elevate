@@ -559,6 +559,42 @@
             height: 100%;
           }
         }
+
+        &--simple {
+          position: relative;
+
+          .simple-track,
+          .simple-progress {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            top: 50%;
+            height: 4px;
+            border-radius: 999px;
+            transform: translateY(-50%);
+          }
+
+          .simple-track {
+            background: rgba(255, 255, 255, 0.18);
+          }
+
+          .simple-progress {
+            right: 38px;
+            background: $primary-color;
+          }
+
+          .simple-thumb {
+            position: absolute;
+            top: 50%;
+            right: 28px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid $primary-color;
+            transform: translateY(-50%);
+          }
+        }
       }
 
       &.active .waveform-visual {

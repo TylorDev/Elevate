@@ -13,11 +13,31 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  aspect-ratio: 1/1;
+
+ 
 }
 
 .collection-card.has-action {
   padding: 0;
+}
+
+// Mini cards are variant-driven by parent layout logic, not by local viewport breakpoints.
+.collection-card--mini {
+  aspect-ratio: auto;
+  min-height: 3rem;
+  padding: 0.7rem;
+  place-items: center;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--card-color), transparent 84%), transparent 68%),
+    rgba(18, 20, 20, 0.92);
+
+  .collection-card__icon {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+  
+  
+  margin-top: 0.4rem;
 }
 
 .collection-card.has-media-background {
@@ -72,6 +92,13 @@
 .collection-card:not(.has-media-background).is-interactive:hover,
 .collection-card:not(.has-media-background).is-interactive.is-active {
   background: rgba(18, 20, 20, 0.92);
+}
+
+.collection-card--mini.is-interactive:hover,
+.collection-card--mini.is-interactive.is-active {
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--card-color), transparent 76%), transparent 62%),
+    rgba(24, 26, 26, 0.96);
 }
 
 .collection-card__main {

@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 
 export const COMPACT_VIEWPORT_MAX_HEIGHT = 500
 export const COMPACT_VIEWPORT_MAX_WIDTH = 940
-export const COMPACT_HEADER_MAX_WIDTH = 749
+export const COMPACT_HEADER_MAX_WIDTH = 750
+export const COLLECTION_HORIZONTAL_MAX_HEIGHT = 620
+export const COLLECTION_MOVIL_MIN_WIDTH = COMPACT_HEADER_MAX_WIDTH + 1
+export const COLLECTION_MOVIL_MAX_WIDTH = 1039
 
 export function isCompactViewportHeight() {
   if (typeof window === 'undefined') {
@@ -89,4 +92,95 @@ export function useIsCompactHeaderViewport() {
   }, [])
 
   return isCompactHeader
+}
+
+export function isCollectionHorizontalViewport() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.innerHeight <= COLLECTION_HORIZONTAL_MAX_HEIGHT
+}
+
+export function useIsCollectionHorizontalViewport() {
+  const [isCollectionHorizontalViewportMatch, setIsCollectionHorizontalViewportMatch] = useState(() =>
+    isCollectionHorizontalViewport()
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia(`(max-height: ${COLLECTION_HORIZONTAL_MAX_HEIGHT}px)`)
+    const syncCollectionHorizontalViewport = (event) => {
+      setIsCollectionHorizontalViewportMatch(event.matches)
+    }
+
+    syncCollectionHorizontalViewport(mediaQuery)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncCollectionHorizontalViewport)
+
+      return () => {
+        mediaQuery.removeEventListener('change', syncCollectionHorizontalViewport)
+      }
+    }
+
+    mediaQuery.addListener(syncCollectionHorizontalViewport)
+
+    return () => {
+      mediaQuery.removeListener(syncCollectionHorizontalViewport)
+    }
+  }, [])
+
+  return isCollectionHorizontalViewportMatch
+}
+
+export function isCollectionMovilEligibleViewport() {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return (
+    window.innerWidth >= COLLECTION_MOVIL_MIN_WIDTH &&
+    window.innerWidth <= COLLECTION_MOVIL_MAX_WIDTH
+  )
+}
+
+export function useIsCollectionMovilEligibleViewport() {
+  const [isCollectionMovilEligibleViewportMatch, setIsCollectionMovilEligibleViewportMatch] = useState(() =>
+    isCollectionMovilEligibleViewport()
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia(
+      `(min-width: ${COLLECTION_MOVIL_MIN_WIDTH}px) and (max-width: ${COLLECTION_MOVIL_MAX_WIDTH}px)`
+    )
+    const syncCollectionMovilEligibleViewport = (event) => {
+      setIsCollectionMovilEligibleViewportMatch(event.matches)
+    }
+
+    syncCollectionMovilEligibleViewport(mediaQuery)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncCollectionMovilEligibleViewport)
+
+      return () => {
+        mediaQuery.removeEventListener('change', syncCollectionMovilEligibleViewport)
+      }
+    }
+
+    mediaQuery.addListener(syncCollectionMovilEligibleViewport)
+
+    return () => {
+      mediaQuery.removeListener(syncCollectionMovilEligibleViewport)
+    }
+  }, [])
+
+  return isCollectionMovilEligibleViewportMatch
 }
