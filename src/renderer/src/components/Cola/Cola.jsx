@@ -503,6 +503,7 @@ export function Cola({
   const { latersong } = useMini()
   const { addPlaylisthistory, removeSongFromList } = usePlaylists()
   const { preloadVisibleSongCovers } = useImages()
+  const { t } = useI18n()
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
   const [coverUrls, setCoverUrls] = useState({})
@@ -1311,4 +1312,3 @@ function LoadingCola({ isLoading = false }) {
 }
 
 export default Cola
-  const { t } = useI18n()

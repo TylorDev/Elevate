@@ -29,14 +29,6 @@ export const PlaylistItem = memo(function PlaylistItem({
   useGenericCoverFallback = false,
   style
 }) {
-  if (!playlist) {
-    return (
-      <li className="PlaylistItem loading" id="LoadPlaylistItem" style={style}>
-        <Skeleton height="60px" borderRadius="12px" />
-      </li>
-    )
-  }
-
   const {
     deletePlaylist,
     getUniqueList,
@@ -56,17 +48,18 @@ export const PlaylistItem = memo(function PlaylistItem({
   const [isExportLoading, setIsExportLoading] = useState(false)
   const { presetLists, sourceAssociations } = useVisualizerSources()
   const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
+  const playlistPath = playlist?.path || ''
   const playlistSource = useMemo(
     () => ({
       type: 'playlist',
-      id: playlist.path
+      id: playlistPath
     }),
-    [playlist.path]
+    [playlistPath]
   )
   const playlistSourceKey = useMemo(() => getSourceKey(playlistSource), [playlistSource])
   const autoCoverKey = useMemo(
-    () => (playlist.path ? `playlist:auto:${playlist.path}` : ''),
-    [playlist.path]
+    () => (playlistPath ? `playlist:auto:${playlistPath}` : ''),
+    [playlistPath]
   )
   const autoCoverSignature = playlist?.coverConfig?.customCoverHash || playlist?.customCoverHash || ''
   const cachedAutoCoverUrl = useCollectionCover(autoCoverKey, autoCoverSignature)
@@ -91,8 +84,8 @@ export const PlaylistItem = memo(function PlaylistItem({
 
   const back = useMemo(
     () => {
-      const coverToUse = playlist.effectiveCover || playlist.cover
-      if (coverToUse) return getCollectionCoverUrl(playlist.path, coverToUse)
+      const coverToUse = playlist?.effectiveCover || playlist?.cover
+      if (coverToUse) return getCollectionCoverUrl(playlistPath, coverToUse)
       if (cachedAutoCoverUrl && !cachedAutoCoverUrl.includes('svg')) return cachedAutoCoverUrl
       if (useGenericCoverFallback) return <LuListMusic />
       return null
@@ -100,12 +93,20 @@ export const PlaylistItem = memo(function PlaylistItem({
     [
       cachedAutoCoverUrl,
       getCollectionCoverUrl,
-      playlist.cover,
-      playlist.effectiveCover,
-      playlist.path,
+      playlist?.cover,
+      playlist?.effectiveCover,
+      playlistPath,
       useGenericCoverFallback
     ]
   )
+
+  if (!playlist) {
+    return (
+      <li className="PlaylistItem loading" id="LoadPlaylistItem" style={style}>
+        <Skeleton height="60px" borderRadius="12px" />
+      </li>
+    )
+  }
 
   const selectPlaylist = () => {
     if (disableNavigation) {

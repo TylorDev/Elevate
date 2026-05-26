@@ -18,7 +18,7 @@ import { I18nProvider } from './Contexts/I18nContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <HashRouter>
+    <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <I18nProvider>
         <QueueProvider>
           <PlaybackProvider>

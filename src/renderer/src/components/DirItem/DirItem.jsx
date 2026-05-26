@@ -17,14 +17,6 @@ import {
 } from '../Render/useVisualizerPresets'
 
 export const DirItem = memo(function DirItem({ directory, onSelect, disableNavigation = false, style }) {
-  if (!directory) {
-    return (
-      <div className="dirItem loading" style={style}>
-        <Skeleton height="60px" borderRadius="12px" />
-      </div>
-    )
-  }
-
   const navigate = useNavigate()
   const { t } = useI18n()
   const { deleteDirectoryList } = usePlaylists()
@@ -32,12 +24,13 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const { presetLists, sourceAssociations } = useVisualizerSources()
   const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
+  const directoryPath = directory?.path || ''
   const directorySource = useMemo(
     () => ({
       type: 'directory',
-      id: directory.path
+      id: directoryPath
     }),
-    [directory.path]
+    [directoryPath]
   )
   const directorySourceKey = useMemo(() => getSourceKey(directorySource), [directorySource])
   const linkedPresetListId = sourceAssociations?.[directorySourceKey] || null
@@ -59,16 +52,24 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
     })
   }, [linkedPresetListId, presetLists])
   const cover = useMemo(
-    () => (directory.cover ? getCollectionCoverUrl(directory.path, directory.cover) : null),
-    [directory.cover, directory.path, getCollectionCoverUrl]
+    () => (directory?.cover ? getCollectionCoverUrl(directoryPath, directory.cover) : null),
+    [directory?.cover, directoryPath, getCollectionCoverUrl]
   )
-  const totalTracks = Number(directory.totalTracks) || 0
-  const totalDuration = Number(directory.totalDuration) || 0
-  const recursiveTotalTracks = Number(directory.recursiveTotalTracks) || totalTracks
-  const recursiveTotalDuration = Number(directory.recursiveTotalDuration) || totalDuration
-  const isRootDirectory = directory.directoryKind === 'root'
+  const totalTracks = Number(directory?.totalTracks) || 0
+  const totalDuration = Number(directory?.totalDuration) || 0
+  const recursiveTotalTracks = Number(directory?.recursiveTotalTracks) || totalTracks
+  const recursiveTotalDuration = Number(directory?.recursiveTotalDuration) || totalDuration
+  const isRootDirectory = directory?.directoryKind === 'root'
   const visibleTracks = isRootDirectory ? recursiveTotalTracks : totalTracks
   const visibleDuration = isRootDirectory ? recursiveTotalDuration : totalDuration
+
+  if (!directory) {
+    return (
+      <div className="dirItem loading" style={style}>
+        <Skeleton height="60px" borderRadius="12px" />
+      </div>
+    )
+  }
 
   const getLastPart = (path) => {
     const parts = path.split('\\')

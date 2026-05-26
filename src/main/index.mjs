@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
+import { prisma as prismaClient, initializePrisma } from './prisma.mjs'
 import {
   initDiscordPresence,
   setPresence,
@@ -11,6 +12,13 @@ import {
   getStatus as getDiscordStatus,
   shutdownDiscordPresence
 } from './discordPresence.mjs'
+import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
+import { setupPlaylistHandlers } from './ipc/playlistHandlers.mjs'
+import { setupFilehandlers } from './ipc/filehandlers.mjs'
+import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.mjs'
+import { setupImageSourceHandlers } from './ipc/imageSourceHandlers.mjs'
+import { setupVisualizerHandlers } from './ipc/visualizerHandlers.mjs'
+import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.mjs'
 
 let mainWin
 let prisma
@@ -22,6 +30,9 @@ const windowStateChannel = 'window:state-changed'
 const appCommandChannel = 'app:command'
 let tray = null
 let hasShutdownStarted = false
+let devToolsToggleInProgress = false
+let nativeDevToolsUnavailable = false
+let mainRendererWebContentsId = null
 const mainDir = fileURLToPath(new URL('.', import.meta.url))
 const rendererDir = fileURLToPath(new URL('../renderer', import.meta.url))
 let taskbarPlayerState = {
@@ -77,12 +88,6 @@ try {
 
 const hardwareAccelerationDisabled =
   process.env.ELECTRON_DISABLE_HARDWARE_ACCELERATION?.trim() === '1'
-const remoteDebuggingPort = process.env.ELECTRON_REMOTE_DEBUGGING_PORT?.trim()
-
-if (!app.isPackaged && remoteDebuggingPort) {
-  app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
-  app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1')
-}
 
 if (process.platform === 'win32') {
   // On some Windows/driver combinations Chromium's separate GPU process can
@@ -196,6 +201,11 @@ function sendAppCommand(command) {
 
 function toggleMainWindowDevTools() {
   try {
+    if (nativeDevToolsUnavailable) {
+      log.warn('Native DevTools are unavailable in this process. Renderer console is being captured in main logs.')
+      return false
+    }
+
     if (!mainWin || mainWin.isDestroyed()) {
       log.warn('Cannot toggle DevTools: main window is not available.')
       return false
@@ -209,19 +219,72 @@ function toggleMainWindowDevTools() {
     }
 
     if (webContents.isDevToolsOpened()) {
+      devToolsToggleInProgress = true
       webContents.closeDevTools()
+      setTimeout(() => {
+        devToolsToggleInProgress = false
+      }, 1500)
       return true
     }
 
-    webContents.openDevTools({ mode: 'right', activate: true })
+    devToolsToggleInProgress = true
+    webContents.openDevTools({ mode: 'bottom', activate: true })
+    setTimeout(() => {
+      devToolsToggleInProgress = false
+    }, 1500)
     return true
   } catch (error) {
+    devToolsToggleInProgress = false
     log.error('Failed to toggle DevTools:', error?.message || error)
     if (error?.stack) {
       log.error('DevTools toggle stack:', error.stack)
     }
     return false
   }
+}
+
+function getConsoleLogMethod(level) {
+  if (level >= 3) return 'error'
+  if (level === 2) return 'warn'
+  if (level === 1) return 'info'
+  return 'debug'
+}
+
+function registerRendererDiagnostics(windowInstance) {
+  const { webContents } = windowInstance
+  mainRendererWebContentsId = webContents.id
+
+  webContents.on('console-message', (event) => {
+    const level = event?.level ?? 0
+    const message = event?.message ?? ''
+    const line = event?.lineNumber ?? event?.line ?? 0
+    const sourceId = event?.sourceId ?? ''
+    const logMethod = getConsoleLogMethod(level)
+
+    log[logMethod]('[renderer console]', JSON.stringify({
+      level,
+      message,
+      line,
+      sourceId,
+      webContentsId: webContents.id
+    }))
+  })
+
+  webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    log.error('[renderer did-fail-load]', JSON.stringify({
+      errorCode,
+      errorDescription,
+      validatedURL,
+      isMainFrame,
+      webContentsId: webContents.id
+    }))
+  })
+
+  webContents.on('unresponsive', () => {
+    log.error('[renderer unresponsive]', JSON.stringify({
+      webContentsId: webContents.id
+    }))
+  })
 }
 
 function isDevToolsShortcut(input = {}) {
@@ -411,8 +474,7 @@ async function shutdownApp() {
   }
 
   try {
-    const { stopAll } = await import('./ipc/utils/directoryWatcher.mjs')
-    await stopAll()
+    await stopDirectoryWatchers()
   } catch (err) {
     log.error('Error stopping watchers:', err)
   }
@@ -602,6 +664,7 @@ function createWindow() {
   })
 
   mainWin = mainWindow
+  registerRendererDiagnostics(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     if (savedState?.isMaximized) {
@@ -611,8 +674,6 @@ function createWindow() {
     } else {
       mainWindow.show()
     }
-
-    toggleMainWindowDevTools()
 
     sendWindowState()
     updateTaskbarControls()
@@ -688,26 +749,8 @@ if (!gotTheLock) {
   app.setAppUserModelId('com.electron')
   console.log(process.versions.node)
 
-  const prismaModule = await import('./prisma.mjs')
-  const [
-    { setupLikeSongHandlers, setupMusicHandlers },
-    { setupPlaylistHandlers },
-    { setupFilehandlers },
-    { setupPlaylistSaveExplorerHandlers },
-    { setupImageSourceHandlers },
-    { setupVisualizerHandlers }
-  ] =
-    await Promise.all([
-      import('./ipc/likehandlers.mjs'),
-      import('./ipc/playlistHandlers.mjs'),
-      import('./ipc/filehandlers.mjs'),
-      import('./ipc/playlistSaveExplorerHandlers.mjs'),
-      import('./ipc/imageSourceHandlers.mjs'),
-      import('./ipc/visualizerHandlers.mjs')
-    ])
-
-  prisma = prismaModule.prisma
-  await prismaModule.initializePrisma()
+  prisma = prismaClient
+  await initializePrisma()
 
   log.info('App started, version:', process.versions.node)
 
@@ -738,7 +781,6 @@ if (!gotTheLock) {
   void initDiscordPresence()
 
   // Initialize directory watchers for all existing directories
-  const { initializeWatchers } = await import('./ipc/utils/directoryWatcher.mjs')
   await initializeWatchers()
 
   createTray()
@@ -755,11 +797,24 @@ if (!gotTheLock) {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 
-  app.on('render-process-gone', (event, details) => {
+  app.on('render-process-gone', (event, webContents, details = {}) => {
+    const webContentsId = webContents?.id
+    const target =
+      webContentsId && webContentsId === mainRendererWebContentsId
+        ? 'main-renderer'
+        : 'devtools-or-secondary'
+
+    if (target === 'devtools-or-secondary' && devToolsToggleInProgress) {
+      nativeDevToolsUnavailable = true
+    }
+
     log.error('Render process gone:', JSON.stringify({
       reason: details?.reason,
       exitCode: details?.exitCode,
-      devToolsOpened: Boolean(mainWin?.webContents && !mainWin.webContents.isDestroyed() && mainWin.webContents.isDevToolsOpened())
+      webContentsId,
+      target,
+      devToolsOpened: Boolean(mainWin?.webContents && !mainWin.webContents.isDestroyed() && mainWin.webContents.isDevToolsOpened()),
+      duringDevToolsToggle: devToolsToggleInProgress
     }))
   })
 

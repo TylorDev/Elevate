@@ -70,6 +70,33 @@ export function GlobalSearchProvider({ children }) {
   const playlistsRequestRef = useRef(0)
   const directoriesRequestRef = useRef(0)
 
+  const settingItems = useMemo(() => [
+    {
+      type: 'setting',
+      id: 'change-background',
+      title: t('search.changeBackground'),
+      subtitle: t('search.openVisualSettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    },
+    {
+      type: 'setting',
+      id: 'primary-color',
+      title: t('search.primaryColor'),
+      subtitle: t('search.openColorSettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    },
+    {
+      type: 'setting',
+      id: 'add-directory',
+      title: t('search.addDirectory'),
+      subtitle: t('search.openLibrarySettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    }
+  ], [t])
+
   const closeSearch = useCallback(() => {
     setIsOpen(false)
   }, [])
@@ -439,29 +466,3 @@ export function useGlobalSearch() {
 
   return context
 }
-  const settingItems = useMemo(() => [
-    {
-      type: 'setting',
-      id: 'change-background',
-      title: t('search.changeBackground'),
-      subtitle: t('search.openVisualSettings'),
-      meta: '/settings',
-      actionPayload: { route: '/settings' }
-    },
-    {
-      type: 'setting',
-      id: 'primary-color',
-      title: t('search.primaryColor'),
-      subtitle: t('search.openColorSettings'),
-      meta: '/settings',
-      actionPayload: { route: '/settings' }
-    },
-    {
-      type: 'setting',
-      id: 'add-directory',
-      title: t('search.addDirectory'),
-      subtitle: t('search.openLibrarySettings'),
-      meta: '/settings',
-      actionPayload: { route: '/settings' }
-    }
-  ], [t])
