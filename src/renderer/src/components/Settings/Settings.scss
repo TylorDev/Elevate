@@ -244,6 +244,22 @@
       cursor: not-allowed;
       transform: none;
     }
+
+    &.danger {
+      border-color: rgba(255, 80, 80, 0.2);
+      background: rgba(255, 80, 80, 0.07);
+      color: rgba(255, 210, 210, 0.9);
+
+      svg {
+        color: #ff6868;
+      }
+
+      &:hover {
+        border-color: rgba(255, 80, 80, 0.38);
+        background: rgba(255, 80, 80, 0.12);
+        color: #fff;
+      }
+    }
   }
 
   // Input Groups
@@ -329,6 +345,22 @@
       background: $hover;
       border-color: rgba(255, 80, 80, 0.3);
       color: #ff5050;
+    }
+  }
+
+  .settings-section--reset {
+    margin-top: 0.25rem;
+  }
+
+  .settings-reset-card {
+    border-color: rgba(255, 80, 80, 0.12);
+    background:
+      linear-gradient(90deg, rgba(255, 80, 80, 0.08), transparent 62%),
+      rgba(255, 255, 255, 0.03);
+
+    .settings-card__icon {
+      background: rgba(255, 80, 80, 0.1);
+      color: #ff6868;
     }
   }
 

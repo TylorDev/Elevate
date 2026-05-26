@@ -30,6 +30,7 @@ import path from 'path'
 import crypto from 'crypto'
 import { sendNotification } from '../index.mjs'
 import { prisma } from '../prisma.mjs'
+import { getStoragePaths } from '../storagePaths.mjs'
 import { setBraveVolume } from './audio.mjs'
 import { addDirectoryToLibrary } from './utils/libraryIngestion.mjs'
 import {
@@ -98,8 +99,7 @@ for (const scope of FEED_CACHE_SCOPES) {
 }
 
 function getFeedCacheDir() {
-  const baseDir = app.getPath('userData')
-  const cacheDir = path.join(baseDir, 'feed-cache-v1')
+  const cacheDir = getStoragePaths().feedCacheRoot
   fs.mkdirSync(cacheDir, { recursive: true })
   fs.mkdirSync(path.join(cacheDir, 'covers'), { recursive: true })
   return cacheDir
@@ -1297,8 +1297,7 @@ export function setupFilehandlers() {
   setNotifyRenderer((message) => sendNotification(message))
 
   // Signal file watcher (for Brave volume control)
-  const signalFilePath =
-    process.env.ELEVATE_SIGNAL_FILE || path.join(app.getPath('userData'), 'signal.txt')
+  const signalFilePath = getStoragePaths().signalFilePath
   if (fs.existsSync(signalFilePath)) {
     log.info('File exists, starting watch:', signalFilePath)
 

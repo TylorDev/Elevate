@@ -101,6 +101,8 @@ function Music() {
   const visualizerCanvasRef = useRef(null)
   const savePresetInitialIdsRef = useRef([])
   const savePresetWasPausedRef = useRef(true)
+  const wasVisualizerEnabledRef = useRef(enableVisualizer)
+  const shuffleManuallyDisabledRef = useRef(false)
 
   const {
     currentPresetName: rawCurrentPresetName,
@@ -119,6 +121,7 @@ function Music() {
     activePresetList,
     cycleDurationMs,
     effectivePresetList,
+    effectivePresetSource,
     presetLists,
     presetSource,
     sourceAssociations
@@ -144,6 +147,23 @@ function Music() {
       setVisualizerCyclingVisibility(false)
     }
   }, [enableVisualizer, setVisualizerCyclingVisibility])
+
+  useEffect(() => {
+    const wasVisualizerEnabled = wasVisualizerEnabledRef.current
+    wasVisualizerEnabledRef.current = enableVisualizer
+
+    if (!enableVisualizer || wasVisualizerEnabled) {
+      return
+    }
+
+    if (effectivePresetSource?.mode === 'favorites' || shuffleManuallyDisabledRef.current) {
+      return
+    }
+
+    if (!isShuffled) {
+      setShuffleEnabled(true)
+    }
+  }, [effectivePresetSource?.mode, enableVisualizer, isShuffled, setShuffleEnabled])
 
   useEffect(() => {
     if (!rightClickHintDisabled) {
@@ -189,6 +209,12 @@ function Music() {
       return nextEnableVisualizer
     })
   }, [])
+
+  const handleShuffleToggle = useCallback(() => {
+    shuffleManuallyDisabledRef.current = isShuffled
+    toggleShuffle()
+  }, [isShuffled, toggleShuffle])
+
   const handleOpenSongHistory = useCallback(
     (event) => {
       event.stopPropagation()
@@ -682,7 +708,7 @@ function Music() {
           <div className="visualizer-controls-panel">
             <button
               className={`visualizer-control-btn ${isShuffled ? 'is-active' : ''}`}
-              onClick={toggleShuffle}
+              onClick={handleShuffleToggle}
               type="button"
             >
               <LuShuffle />

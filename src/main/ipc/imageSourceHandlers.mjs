@@ -1,16 +1,22 @@
-import { app, ipcMain, dialog, BrowserWindow } from 'electron'
+import { ipcMain, dialog, BrowserWindow } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { createHash, randomUUID } from 'node:crypto'
+import { getStoragePaths } from '../storagePaths.mjs'
 
 const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 const MAX_BACKGROUND_HISTORY_ITEMS = 20
-const BACKGROUND_STORAGE_DIR = path.join(app.getPath('userData'), 'background-images')
-const BACKGROUND_ASSETS_DIR = path.join(BACKGROUND_STORAGE_DIR, 'assets')
-const BACKGROUND_CONFIG_PATH = path.join(BACKGROUND_STORAGE_DIR, 'background-config.json')
 
 function ensureBackgroundStorage() {
-  fs.mkdirSync(BACKGROUND_ASSETS_DIR, { recursive: true })
+  fs.mkdirSync(getStoragePaths().backgroundAssetsRoot, { recursive: true })
+}
+
+function getBackgroundAssetsDir() {
+  return getStoragePaths().backgroundAssetsRoot
+}
+
+function getBackgroundConfigPath() {
+  return getStoragePaths().backgroundConfigPath
 }
 
 function defaultBackgroundConfig() {
@@ -24,11 +30,13 @@ function readBackgroundConfig() {
   ensureBackgroundStorage()
 
   try {
-    if (!fs.existsSync(BACKGROUND_CONFIG_PATH)) {
+    const backgroundConfigPath = getBackgroundConfigPath()
+
+    if (!fs.existsSync(backgroundConfigPath)) {
       return defaultBackgroundConfig()
     }
 
-    const raw = fs.readFileSync(BACKGROUND_CONFIG_PATH, 'utf8')
+    const raw = fs.readFileSync(backgroundConfigPath, 'utf8')
     const parsed = JSON.parse(raw)
 
     return {
@@ -44,7 +52,7 @@ function readBackgroundConfig() {
 
 function writeBackgroundConfig(config) {
   ensureBackgroundStorage()
-  fs.writeFileSync(BACKGROUND_CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8')
+  fs.writeFileSync(getBackgroundConfigPath(), JSON.stringify(config, null, 2), 'utf8')
 }
 
 function normalizeItems(items) {
@@ -211,7 +219,7 @@ function readLocalImageFile(filePath) {
 function writeAssetBuffer(itemId, mimeType, buffer) {
   ensureBackgroundStorage()
   const extension = getExtensionFromMimeType(mimeType) || 'png'
-  const targetPath = path.join(BACKGROUND_ASSETS_DIR, `${itemId}.${extension}`)
+  const targetPath = path.join(getBackgroundAssetsDir(), `${itemId}.${extension}`)
   fs.writeFileSync(targetPath, buffer)
   return targetPath
 }

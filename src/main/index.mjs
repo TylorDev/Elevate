@@ -5,6 +5,7 @@ import fs from 'fs'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
 import { prisma as prismaClient, initializePrisma } from './prisma.mjs'
+import { getStorageDiagnostics, getStoragePaths } from './storagePaths.mjs'
 import {
   initDiscordPresence,
   setPresence,
@@ -122,7 +123,7 @@ process.on('unhandledRejection', (reason, promise) => {
   log.error('Reason:', reason)
 })
 
-const getConfigPath = () => join(app.getPath('userData'), 'window-state.json')
+const getConfigPath = () => getStoragePaths().windowStatePath
 
 const loadWindowState = () => {
   try {
@@ -591,6 +592,7 @@ function setupWindowControlHandlers() {
   })
 
   ipcMain.handle('window:get-state', () => getWindowStatePayload())
+  ipcMain.handle('app:get-storage-paths', () => getStorageDiagnostics())
   ipcMain.handle('window:toggle-always-on-top', () => {
     if (!mainWin || mainWin.isDestroyed()) {
       return

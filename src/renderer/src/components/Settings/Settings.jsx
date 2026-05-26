@@ -11,7 +11,8 @@ import {
   LuFolderPlus,
   LuLibrary,
   LuListMusic,
-  LuMessageSquare
+  LuMessageSquare,
+  LuRotateCcw
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 import { useBackground } from '../../Contexts/BackgroundContext'
@@ -158,6 +159,7 @@ function Settings() {
   const [bgError, setBgError] = useState(null)
   const [bgSuccess, setBgSuccess] = useState(null)
   const [directoryDeleteTarget, setDirectoryDeleteTarget] = useState(null)
+  const [showResetPreferencesConfirm, setShowResetPreferencesConfirm] = useState(false)
   const directoryTree = useMemo(() => buildDirectoryTree(directories), [directories])
 
   useEffect(() => {
@@ -293,6 +295,14 @@ function Settings() {
     }
 
     await deleteDirectory(target.directory.path)
+  }
+
+  const confirmResetPreferences = () => {
+    try {
+      window.localStorage.clear()
+    } finally {
+      window.location.reload()
+    }
   }
 
   const renderDirectoryNode = (directory, depth = 0) => {
@@ -644,6 +654,30 @@ function Settings() {
           </section>
         )}
       </div>
+
+      <section className="settings-section settings-section--reset">
+        <div className="settings-card settings-reset-card">
+          <div className="settings-card__icon">
+            <LuRotateCcw />
+          </div>
+          <div className="settings-card__content">
+            <h3>Restablecer preferencias</h3>
+            <p>
+              Borra solo las preferencias guardadas en este dispositivo. No elimina datos de la
+              base de datos ni el cache de covers.
+            </p>
+          </div>
+          <button
+            className="settings-action-btn danger"
+            onClick={() => setShowResetPreferencesConfirm(true)}
+            type="button"
+          >
+            <LuRotateCcw />
+            <span>Restablecer preferencias</span>
+          </button>
+        </div>
+      </section>
+
       <ConfirmActionModal
         isVisible={Boolean(directoryDeleteTarget)}
         title={
@@ -663,6 +697,14 @@ function Settings() {
         }
         onCancel={closeDirectoryDeleteConfirm}
         onConfirm={confirmDirectoryDelete}
+      />
+      <ConfirmActionModal
+        isVisible={showResetPreferencesConfirm}
+        title="Restablecer preferencias?"
+        message="Esto borrara solo los datos de localStorage y recargara la app. Tus listas, favoritos, datos de la base de datos y cache de covers no se eliminaran."
+        confirmLabel="Restablecer preferencias"
+        onCancel={() => setShowResetPreferencesConfirm(false)}
+        onConfirm={confirmResetPreferences}
       />
     </div>
   )

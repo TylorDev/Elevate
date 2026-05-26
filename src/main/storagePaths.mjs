@@ -54,7 +54,7 @@ function findTemplateDatabasePath() {
 function getUpdaterCachePath() {
   const localAppData =
     process.env.LOCALAPPDATA ||
-    join(dirname(getResolvedUserDataRoot()), 'Local')
+    join(dirname(app.getPath('appData')), 'Local')
 
   return join(localAppData, UPDATER_CACHE_DIR_NAME)
 }
