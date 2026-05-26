@@ -1,4 +1,3 @@
-import chokidar from 'chokidar'
 import path from 'path'
 import { prisma } from '../../prisma.mjs'
 import { getOrCreateSong } from './utils.mjs'
@@ -15,6 +14,15 @@ const pendingChanges = new Map()
 
 let debounceTimer = null
 let notifyRenderer = null
+let chokidarModulePromise = null
+
+async function getChokidar() {
+  if (!chokidarModulePromise) {
+    chokidarModulePromise = import('chokidar').then((module) => module.default || module)
+  }
+
+  return chokidarModulePromise
+}
 
 function uniquePaths(paths) {
   return [...new Set(paths.map((currentPath) => path.normalize(currentPath)))]
@@ -49,9 +57,10 @@ export function setSendProgress(fn) {
  * Start watching a directory recursively.
  * Idempotent — calling with an already-watched path is a no-op.
  */
-export function startWatching(dirPath) {
+export async function startWatching(dirPath) {
   if (watchers.has(dirPath)) return
 
+  const chokidar = await getChokidar()
   const watcher = chokidar.watch(dirPath, {
     persistent: true,
     ignoreInitial: true,
@@ -109,7 +118,7 @@ export async function initializeWatchers() {
     })
 
     for (const dir of directories) {
-      startWatching(dir.path)
+      await startWatching(dir.path)
     }
 
     console.debug(`[watcher] Initialized ${directories.length} root watchers`)

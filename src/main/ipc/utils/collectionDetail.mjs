@@ -1,5 +1,14 @@
-import sharp from 'sharp'
 import { getCoverFromCache } from './utils.mjs'
+
+let sharpModulePromise = null
+
+async function getSharp() {
+  if (!sharpModulePromise) {
+    sharpModulePromise = import('sharp').then((module) => module.default)
+  }
+
+  return sharpModulePromise
+}
 
 function toNumber(value) {
   const numericValue = Number(value)
@@ -77,6 +86,7 @@ export async function generateCollectionCoverFromTracks(tracks = []) {
   const tileSize = 250
   const gridSize = Math.max(1, Math.ceil(Math.sqrt(imageBuffers.length)))
   const totalSize = gridSize * tileSize
+  const sharp = await getSharp()
 
   const resizedImages = await Promise.all(
     imageBuffers.map((buffer) => sharp(buffer).resize(tileSize, tileSize, { fit: 'cover' }).toBuffer())

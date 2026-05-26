@@ -8,7 +8,6 @@ import {
   useState
 } from 'react'
 import { useLocation } from 'react-router-dom'
-import MINI from 'butterchurn-presets/lib/elevate.min.js'
 import { usePlayback } from './PlaybackContext'
 import { useMini } from './MiniContext'
 import { usePlaylists } from './PlaylistsContex'
@@ -39,8 +38,21 @@ export {
   normalizePresetSource
 }
 
-const PRESET_CATALOG = MINI.default || MINI
-const ALL_PRESET_KEYS = Object.keys(PRESET_CATALOG)
+let PRESET_CATALOG = {}
+let ALL_PRESET_KEYS = []
+let presetCatalogPromise = null
+
+async function loadPresetCatalog() {
+  if (!presetCatalogPromise) {
+    presetCatalogPromise = import('butterchurn-presets/lib/elevate.min.js').then((module) => {
+      PRESET_CATALOG = module.default || module
+      ALL_PRESET_KEYS = Object.keys(PRESET_CATALOG)
+      return PRESET_CATALOG
+    })
+  }
+
+  return presetCatalogPromise
+}
 
 const VisualizerStoreContext = createContext(null)
 const VisualizerStoreApiContext = createContext(null)
@@ -79,6 +91,7 @@ function VisualizerStoreProvider({ children }) {
   const [presetLists, setPresetLists] = useState([])
   const [sourceAssociations, setSourceAssociations] = useState({})
   const [visualizerLoaded, setVisualizerLoaded] = useState(false)
+  const [presetCatalogVersion, setPresetCatalogVersion] = useState(0)
 
   const applyPersistedState = useCallback((rawState) => {
     const nextState = normalizeVisualizerState(rawState)
@@ -115,6 +128,24 @@ function VisualizerStoreProvider({ children }) {
     }
   }, [applyPersistedState])
 
+  useEffect(() => {
+    let isMounted = true
+
+    loadPresetCatalog()
+      .then(() => {
+        if (isMounted) {
+          setPresetCatalogVersion((currentVersion) => currentVersion + 1)
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to load visualizer preset catalog:', error)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   const storeValue = useMemo(
     () => ({
       favorites,
@@ -123,12 +154,14 @@ function VisualizerStoreProvider({ children }) {
       presetSource,
       presetLists,
       sourceAssociations,
-      visualizerLoaded
+      visualizerLoaded,
+      presetCatalogVersion
     }),
     [
       cycleDurationMs,
       favorites,
       presetCovers,
+      presetCatalogVersion,
       presetLists,
       presetSource,
       sourceAssociations,
@@ -159,7 +192,7 @@ function VisualizerStoreProvider({ children }) {
 }
 
 function VisualizerCatalogProvider({ children }) {
-  const { favorites, presetCovers } = useRequiredContext(
+  const { favorites, presetCovers, presetCatalogVersion } = useRequiredContext(
     VisualizerStoreContext,
     'VisualizerCatalogProvider'
   )
@@ -176,7 +209,7 @@ function VisualizerCatalogProvider({ children }) {
         isFavorite: favoritePresetNamesSet.has(name),
         Cover: presetCovers[name] || null
       })),
-    [favoritePresetNamesSet, presetCovers]
+    [favoritePresetNamesSet, presetCatalogVersion, presetCovers]
   )
 
   const presetByName = useMemo(() => createPresetByNameMap(allPresetItems), [allPresetItems])
@@ -216,6 +249,7 @@ function VisualizerCatalogProvider({ children }) {
     effectivePresetSource.listId,
     effectivePresetSource.mode,
     favoritePresetNames,
+    presetCatalogVersion,
     presetByName,
     selectedPresetSourceList
   ])

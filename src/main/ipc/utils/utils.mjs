@@ -1,10 +1,28 @@
-import { parseFile } from 'music-metadata'
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { prisma } from '../../prisma.mjs'
-import sharp from 'sharp'
 import { getStoragePaths } from '../../storagePaths.mjs'
+
+let sharpModulePromise = null
+let musicMetadataModulePromise = null
+
+async function getSharp() {
+  if (!sharpModulePromise) {
+    sharpModulePromise = import('sharp').then((module) => module.default)
+  }
+
+  return sharpModulePromise
+}
+
+async function parseAudioFile(filePath) {
+  if (!musicMetadataModulePromise) {
+    musicMetadataModulePromise = import('music-metadata')
+  }
+
+  const { parseFile } = await musicMetadataModulePromise
+  return parseFile(filePath)
+}
 
 // ─── Cover cache directory ───────────────────────────────────────────
 function getCoverCacheDir() {
@@ -25,6 +43,7 @@ export function ensureCoverDir() {
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 export async function resizeCover(buffer, size = 128) {
+  const sharp = await getSharp()
   return sharp(buffer)
     .resize(size, size, { fit: 'cover' })
     .jpeg({ quality: 78, mozjpeg: true })
@@ -45,6 +64,7 @@ export async function savePlaylistCoverToCache(buffer) {
     return null
   }
 
+  const sharp = await getSharp()
   const normalizedBuffer = await sharp(buffer)
     .jpeg({ quality: 85 })
     .toBuffer()
@@ -135,7 +155,7 @@ export async function getOrCreateSong(filepath, filename) {
   let metadata = {}
   try {
     const stats = fs.statSync(filepath)
-    const { common, format } = await parseFile(filepath)
+    const { common, format } = await parseAudioFile(filepath)
 
     // Extract cover hash if cover exists
     let coverHash = null
@@ -154,6 +174,7 @@ export async function getOrCreateSong(filepath, filename) {
       }
       if (!fs.existsSync(fullPath)) {
         // Save full cover as-is (jpeg compressed for consistency)
+        const sharp = await getSharp()
         const fullBuffer = await sharp(Buffer.from(picture.data))
           .jpeg({ quality: 85 })
           .toBuffer()
@@ -517,7 +538,7 @@ export async function extractAudioCover(filePath) {
     }
 
     // Fallback: parse the file (rare case — new file not yet indexed)
-    const { common } = await parseFile(filePath)
+    const { common } = await parseAudioFile(filePath)
     const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
 
     if (!picture) {
@@ -641,6 +662,7 @@ export async function generateCover(files) {
   const imageBuffers = topImages.map((item) => Buffer.from(item.picture[0].data))
 
   try {
+    const sharp = await getSharp()
     const resizePromises = imageBuffers.map((buffer) =>
       sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
     )
@@ -681,8 +703,24 @@ export async function generateCover(files) {
 
 // ─── BPM fetching ────────────────────────────────────────────────────
 
-import axios from 'axios'
-import { load } from 'cheerio'
+let axiosModulePromise = null
+let cheerioModulePromise = null
+
+async function getAxios() {
+  if (!axiosModulePromise) {
+    axiosModulePromise = import('axios').then((module) => module.default)
+  }
+
+  return axiosModulePromise
+}
+
+async function getCheerioLoad() {
+  if (!cheerioModulePromise) {
+    cheerioModulePromise = import('cheerio').then((module) => module.load)
+  }
+
+  return cheerioModulePromise
+}
 
 const fechtBPM = async (query) => {
   if (!query || query.trim() === '') {
@@ -690,6 +728,8 @@ const fechtBPM = async (query) => {
   }
 
   try {
+    const axios = await getAxios()
+    const load = await getCheerioLoad()
     const response = await axios.get(
       `https://songdata.io/search?query=${encodeURIComponent(query)}`
     )

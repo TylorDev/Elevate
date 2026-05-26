@@ -1,8 +1,7 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'react-toastify'
 import './Music.scss'
 
-import Render from '../../components/Render/Render'
 import { OverflowMenu } from '../../components/OverflowMenu/OverflowMenu'
 import {
   Select,
@@ -50,6 +49,7 @@ const RIGHT_CLICK_HINT_HEIGHT = 34
 const RIGHT_CLICK_HINT_OFFSET_X = 18
 const RIGHT_CLICK_HINT_OFFSET_Y = 18
 const RIGHT_CLICK_HINT_STORAGE_KEY = 'music.rightClickHintDismissed'
+const Render = lazy(() => import('../../components/Render/Render'))
 
 const STATIC_CONTEXT_MENU_OPTIONS = [
   { id: 'go-to-admin-presets', label: 'Go to Admin Presets', icon: <LuLayoutGrid /> }
@@ -652,11 +652,13 @@ function Music() {
 
       {enableVisualizer && audioEl && (
         <div className="visualizer-background">
-          <Render
-            audioElement={audioEl}
-            canvasRefExternal={visualizerCanvasRef}
-            presetName={currentPresetName}
-          />
+          <Suspense fallback={null}>
+            <Render
+              audioElement={audioEl}
+              canvasRefExternal={visualizerCanvasRef}
+              presetName={currentPresetName}
+            />
+          </Suspense>
         </div>
       )}
 

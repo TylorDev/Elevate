@@ -140,7 +140,7 @@ export async function addDirectoryToLibrary(
 
   await registerDirectoryTree(normalizedRootPath, dirsToRegister)
   invalidateDirectoryCache()
-  startWatching(normalizedRootPath)
+  void startWatching(normalizedRootPath)
   startBackgroundIndexing(dirsToRegister, notifyRenderer)
 
   const songs = await getFileInfos(recursiveAudioFiles)

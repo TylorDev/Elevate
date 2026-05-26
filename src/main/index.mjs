@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
-import { prisma as prismaClient, initializePrisma } from './prisma.mjs'
+import { getPrismaStatus, initializePrisma, prisma } from './prisma.mjs'
 import { getStorageDiagnostics, getStoragePaths } from './storagePaths.mjs'
 import {
   initDiscordPresence,
@@ -22,7 +22,6 @@ import { setupVisualizerHandlers } from './ipc/visualizerHandlers.mjs'
 import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.mjs'
 
 let mainWin
-let prisma
 let isQuitting = false
 const require = createRequire(import.meta.url)
 const electron = require('electron')
@@ -487,7 +486,7 @@ async function shutdownApp() {
   }
 
   try {
-    if (prisma) {
+    if (getPrismaStatus().isReady) {
       await prisma.$disconnect()
     }
   } catch (error) {
@@ -593,6 +592,7 @@ function setupWindowControlHandlers() {
 
   ipcMain.handle('window:get-state', () => getWindowStatePayload())
   ipcMain.handle('app:get-storage-paths', () => getStorageDiagnostics())
+  ipcMain.handle('app:get-database-status', () => getPrismaStatus())
   ipcMain.handle('window:toggle-always-on-top', () => {
     if (!mainWin || mainWin.isDestroyed()) {
       return
@@ -758,12 +758,12 @@ if (!gotTheLock) {
   })
 
   app.whenReady().then(async () => {
+  console.time('startup:app-ready')
   app.setAppUserModelId('com.electron')
   log.info('App started, version:', process.versions.node)
 
   // ── Phase 1: Initialize Prisma (lazy — fast now, no module-scope overhead) ──
-  await initializePrisma()
-  prisma = prismaClient
+  // Deferred to background after the first BrowserWindow starts loading.
 
   // ── Phase 2: Register all IPC handlers (no I/O, just registration) ──
   ipcMain.on('ping', () => log.info('pong'))
@@ -790,10 +790,29 @@ if (!gotTheLock) {
   })
 
   // ── Phase 3: Create tray + window ASAP (renderer starts loading) ──
+  console.time('startup:create-window')
   createTray()
   createWindow()
+  console.timeEnd('startup:create-window')
 
   // ── Phase 4: Non-blocking background initialization ──
+  console.time('startup:prisma-init')
+  initializePrisma()
+    .then(() => {
+      console.timeEnd('startup:prisma-init')
+      log.info('Prisma initialized successfully:', JSON.stringify(getPrismaStatus()))
+      if (mainWin && !mainWin.isDestroyed()) {
+        mainWin.webContents.send('database:ready', getPrismaStatus())
+      }
+    })
+    .catch((err) => {
+      console.timeEnd('startup:prisma-init')
+      log.error('Prisma initialization failed:', err)
+      if (mainWin && !mainWin.isDestroyed()) {
+        mainWin.webContents.send('database:error', getPrismaStatus())
+      }
+    })
+
   // Initialize Discord Rich Presence (non-blocking)
   void initDiscordPresence()
 
@@ -808,6 +827,7 @@ if (!gotTheLock) {
     notifyRenderer: sendNotification,
     batchWindowMs: 0
   })
+  console.timeEnd('startup:app-ready')
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

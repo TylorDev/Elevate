@@ -2,7 +2,6 @@ import { createRequire } from 'node:module'
 import path from 'path'
 import fs from 'fs'
 import log from 'electron-log/main.js'
-import sharp from 'sharp'
 import {
   buildCollectionSummaryFromFileInfos,
   deletePlaylistCoverFromCache,
@@ -24,6 +23,16 @@ const electron = require('electron')
 const { app, dialog, ipcMain } = electron
 const pendingPlaylistRequests = new Map()
 let deletePlaylistJobCounter = 0
+let sharpModulePromise = null
+
+async function getSharp() {
+  if (!sharpModulePromise) {
+    sharpModulePromise = import('sharp').then((module) => module.default)
+  }
+
+  return sharpModulePromise
+}
+
 const INSIGHT_METRIC_KEYS = {
   duration: 'duration',
   shortViews: 'short_view_count',
@@ -297,6 +306,7 @@ async function generatePlaylistCoverFromSelectedImages(selectedItems) {
       throw new Error('Could not fetch the 4 images for the collage')
     }
 
+    const sharp = await getSharp()
     const resizedImages = await Promise.all(
       imageBuffers.slice(0, 4).map((buffer) =>
         sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
@@ -404,6 +414,7 @@ async function materializeStoredPlaylistCover(playlist, { allowAutoGenerate = fa
     }
   } else if (playlist.customCoverMode === 'local-image') {
     if (isSourcePathValue(playlist.customCoverValue) && fs.existsSync(playlist.customCoverValue)) {
+      const sharp = await getSharp()
       coverBuffer = await sharp(playlist.customCoverValue)
         .resize(500, 500, { fit: 'cover' })
         .png()
@@ -412,6 +423,7 @@ async function materializeStoredPlaylistCover(playlist, { allowAutoGenerate = fa
     }
   } else if (playlist.customCoverMode === 'remote-image') {
     if (isSourcePathValue(playlist.customCoverValue)) {
+      const sharp = await getSharp()
       const axios = (await import('axios')).default
       const response = await axios.get(playlist.customCoverValue, { responseType: 'arraybuffer' })
       coverBuffer = await sharp(Buffer.from(response.data))
@@ -1680,11 +1692,13 @@ export function setupPlaylistHandlers() {
               return { success: false, error: 'No se encontro la imagen local seleccionada' }
             }
 
+            const sharp = await getSharp()
             sourceBuffer = await sharp(coverValue)
               .resize(500, 500, { fit: 'cover' })
               .png()
               .toBuffer()
           } else {
+            const sharp = await getSharp()
             const axios = (await import('axios')).default
             const response = await axios.get(coverValue, { responseType: 'arraybuffer' })
             sourceBuffer = await sharp(Buffer.from(response.data))

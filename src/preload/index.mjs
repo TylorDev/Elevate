@@ -75,7 +75,8 @@ const electronAPI = {
     getStatus: () => ipcRenderer.invoke('discord-presence:get-status')
   },
   appDiagnostics: {
-    getStoragePaths: () => ipcRenderer.invoke('app:get-storage-paths')
+    getStoragePaths: () => ipcRenderer.invoke('app:get-storage-paths'),
+    getDatabaseStatus: () => ipcRenderer.invoke('app:get-database-status')
   }
 }
 
