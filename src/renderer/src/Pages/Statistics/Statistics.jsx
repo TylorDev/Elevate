@@ -154,7 +154,7 @@ function Statistics() {
       }
 
       if (rankingTracks.length === 0) {
-        throw new Error('Este ranking no tiene canciones para reproducir.')
+        throw new Error('This ranking has no songs to play.')
       }
 
       playQueueShuffled(rankingTracks, `statistics:${tabId}`)
@@ -258,7 +258,7 @@ function Statistics() {
         onPlayCollectionShuffled={handlePlayLibraryShuffled}
         shuffleActionDisabled={summary.trackCount === 0 || hydratingLibraryTracks}
         shuffleActionLoading={shufflingLibrary}
-        shuffleActionLabel="Reproducir toda la biblioteca en aleatorio"
+        shuffleActionLabel="Play the full library shuffled"
         onLoadMoreRanking={handleLoadMoreRanking}
         onPlayRanking={handlePlayRanking}
         isEmptyCollection={summary.trackCount === 0}

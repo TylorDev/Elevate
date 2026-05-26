@@ -10,8 +10,8 @@ export const SONG_MENU_IDS = {
 const BASE_SONG_MENU_OPTIONS = [
   { id: SONG_MENU_IDS.ADD_TO_QUEUE, label: 'Add to queue', icon: <FaPlusCircle /> },
   { id: SONG_MENU_IDS.ADD_TO_PLAYLIST, label: 'Add to playlist', icon: <FaListUl /> },
-  { id: SONG_MENU_IDS.SAVE_AS_PLAYLIST, label: 'Guardar como playlist', icon: <FaRegSave /> },
-  { id: SONG_MENU_IDS.REMOVE, label: 'Eliminar', icon: <FaTrash /> }
+  { id: SONG_MENU_IDS.SAVE_AS_PLAYLIST, label: 'Save as playlist', icon: <FaRegSave /> },
+  { id: SONG_MENU_IDS.REMOVE, label: 'Remove', icon: <FaTrash /> }
 ]
 
 export function createSongMenuOptions({ removeDisabled = false, extraOptions = [] } = {}) {

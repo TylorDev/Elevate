@@ -14,6 +14,7 @@ import {
 } from 'react-icons/lu'
 import { RxCross2 } from 'react-icons/rx'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
+import { useI18n } from '../../Contexts/I18nContext'
 import { useSuper } from '../../Contexts/SupeContext'
 import SearchOverlay from './SearchOverlay'
 import { WindowPresetPicker } from './WindowPresetPicker'
@@ -68,6 +69,7 @@ function StatusBar({
   const [avatarBroken, setAvatarBroken] = useState(false)
   const { handleAwaken } = useSuper()
   const { isOpen, toggleSearch } = useGlobalSearch()
+  const { t } = useI18n()
   const [windowState, setWindowState] = useState({
     isMaximized: false,
     isMinimized: false,
@@ -104,7 +106,9 @@ function StatusBar({
   }, [])
 
   const isWindows = windowState.platform === 'win32'
-  const maximizeLabel = windowState.isMaximized ? 'Restaurar ventana' : 'Maximizar ventana'
+  const maximizeLabel = windowState.isMaximized
+    ? t('actions.restoreWindow')
+    : t('actions.maximizeWindow')
   const statusBarClassName = [
     'status-bar',
     isHeaderHidden && isQueueHidden ? 'status-bar--solid' : 'status-bar--transparent'
@@ -115,7 +119,7 @@ function StatusBar({
       <div className="left-buttons">
         {!isCompactHeaderMode ? (
           <StatusIconButton
-            title={isHeaderHidden ? 'Mostrar header' : 'Ocultar header'}
+            title={isHeaderHidden ? t('actions.showHeader') : t('actions.hideHeader')}
             isActive={isHeaderHidden}
             onClick={onToggleHeader}
           >
@@ -126,7 +130,7 @@ function StatusBar({
 
       <div className="Center">
         {isCompactHeaderMode ? (
-          <nav className="status-bar__compact-nav" aria-label="Navegacion principal compacta">
+          <nav className="status-bar__compact-nav" aria-label={t('navigation.compactMain')}>
             {compactHeaderNavItems.map((item) => {
               const Icon = item.icon
 
@@ -159,15 +163,15 @@ function StatusBar({
           }}
           className={isOpen ? 'status-bar__search is-active' : 'status-bar__search'}
           type="button"
-          aria-label="Abrir busqueda global"
-          title="Abrir busqueda global"
+          aria-label={t('actions.openGlobalSearch')}
+          title={t('actions.openGlobalSearch')}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           onClick={toggleSearch}
         >
           <LuSearch />
           <span className="status-bar__search-placeholder">
-            Search songs, playlists, directories...
+            {t('statusBar.searchPlaceholder')}
           </span>
         </button>
         <SearchOverlay triggerRef={searchTriggerRef} />
@@ -175,25 +179,29 @@ function StatusBar({
 
       <div className="RightButtons">
         <StatusIconButton
-          title={windowState.isAlwaysOnTop ? 'Disable always on top' : 'Enable always on top'}
+          title={
+            windowState.isAlwaysOnTop
+              ? t('actions.disableAlwaysOnTop')
+              : t('actions.enableAlwaysOnTop')
+          }
           isActive={windowState.isAlwaysOnTop}
           onClick={() => void window.electron.windowControls.toggleAlwaysOnTop()}
         >
           <LuPin />
         </StatusIconButton>
         <StatusIconButton
-          title={isQueueHidden ? 'Mostrar queue panel' : 'Ocultar queue panel'}
+          title={isQueueHidden ? t('actions.showQueuePanel') : t('actions.hideQueuePanel')}
           isActive={isQueueHidden}
           onClick={onToggleQueue}
         >
           <LuPanelRightClose />
         </StatusIconButton>
 
-        <div className="status-bar__profile" aria-label="Redes del desarrollador">
+        <div className="status-bar__profile" aria-label={t('navigation.developerSocials')}>
           <button
             className="status-bar__profile-trigger"
             type="button"
-            title="Redes del desarrollador"
+            title={t('navigation.developerSocials')}
             aria-haspopup="true"
           >
             {avatarBroken ? (
@@ -212,7 +220,7 @@ function StatusBar({
           <div
             className="status-bar__profile-menu"
             role="menu"
-            aria-label="Enlaces del desarrollador"
+            aria-label={t('navigation.developerLinks')}
           >
             {developerLinks.map((link) => (
               <button key={link.id} className="status-bar__menu-item" type="button" role="menuitem">
@@ -223,7 +231,7 @@ function StatusBar({
         </div>
 
         {isWindows ? (
-          <div className="status-bar__window-controls" aria-label="Controles de ventana">
+          <div className="status-bar__window-controls" aria-label={t('navigation.windowControls')}>
             <WindowPresetPicker
               isOpen={isWindowPresetOpen}
               onToggle={() => setIsWindowPresetOpen((current) => !current)}
@@ -232,8 +240,8 @@ function StatusBar({
             <button
               className="status-bar__window-button"
               type="button"
-              title="Minimizar ventana"
-              aria-label="Minimizar ventana"
+              title={t('actions.minimizeWindow')}
+              aria-label={t('actions.minimizeWindow')}
               onClick={() => void window.electron.windowControls.minimize()}
             >
               <LuMinus />
@@ -250,8 +258,8 @@ function StatusBar({
             <button
               className="status-bar__window-button status-bar__window-button--close"
               type="button"
-              title="Cerrar ventana"
-              aria-label="Cerrar ventana"
+              title={t('actions.closeWindow')}
+              aria-label={t('actions.closeWindow')}
               onClick={() => void window.electron.windowControls.close()}
             >
               <RxCross2 />

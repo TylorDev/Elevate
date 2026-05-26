@@ -4,6 +4,7 @@ import { LuFolderPlus } from 'react-icons/lu'
 import { RiArrowLeftLine, RiShuffleLine } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
 import { DirItem } from '../../DirItem/DirItem'
+import { useI18n } from '../../../Contexts/I18nContext'
 import { useMini } from '../../../Contexts/MiniContext'
 import { useQueue } from '../../../Contexts/QueueContext'
 import { dedupedInvoke } from '../../../Contexts/utils'
@@ -46,6 +47,7 @@ function getParentDirectoryInfo(path = '') {
 }
 
 function DirectoriesQueueTab({ isActive }) {
+  const { t } = useI18n()
   const { directories, directoriesLoaded, directoriesLoading, getDirFiles, getDirectories, addDirectory } = useMini()
   const { playQueueShuffled } = useQueue()
   const [selectedGroup, setSelectedGroup] = useState(null)
@@ -172,7 +174,7 @@ function DirectoriesQueueTab({ isActive }) {
       const randomDirectory = await dedupedInvoke('get-random-directory')
 
       if (!randomDirectory?.path) {
-        toast.error('No hay directorios disponibles para reproducir.', {
+        toast.error(t('queue.directoryUnavailable'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -189,7 +191,7 @@ function DirectoriesQueueTab({ isActive }) {
       const tracks = await dedupedInvoke('get-audio-in-directory', randomDirectory.path)
 
       if (!Array.isArray(tracks) || tracks.length === 0) {
-        toast.error('El directorio aleatorio no tiene canciones disponibles.', {
+        toast.error(t('queue.directoryEmpty'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -206,7 +208,7 @@ function DirectoriesQueueTab({ isActive }) {
       playQueueShuffled(tracks, `folder:${randomDirectory.path}`)
     } catch (error) {
       console.error('Error playing random directory:', error)
-      toast.error(error?.message || 'No se pudo reproducir un directorio aleatorio.', {
+      toast.error(error?.message || t('queue.directoryRandomError'), {
         position: 'bottom-right',
         autoClose: 3000,
         hideProgressBar: false,
@@ -220,14 +222,14 @@ function DirectoriesQueueTab({ isActive }) {
     } finally {
       setPlayingRandom(false)
     }
-  }, [playQueueShuffled, playingRandom])
+  }, [playQueueShuffled, playingRandom, t])
   const renderGroupRow = useCallback(
     (group, index, style) => (
       <UndefinedItem
         key={group?.id || index}
         cover={<BsFolderFill />}
         title={group?.name || 'Directory Group'}
-        subtitle={`${group?.totalDirectories || 0} directorios`}
+        subtitle={`${group?.totalDirectories || 0} directories`}
         extraInfo={group?.path || ''}
         onTitleClick={() => setSelectedGroup(group)}
         onPlayClick={() => setSelectedGroup(group)}

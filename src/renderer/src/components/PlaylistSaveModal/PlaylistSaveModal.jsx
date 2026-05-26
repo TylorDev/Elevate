@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuArrowLeft, LuArrowRight, LuFolderOpen, LuMoveUp } from 'react-icons/lu'
 import Modal from '../Modal/Modal'
+import { useI18n } from '../../Contexts/I18nContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import ExploremItem from './ExploremItem'
 import './PlaylistSaveModal.scss'
@@ -58,27 +59,27 @@ const WINDOWS_RESERVED_FILE_NAMES = new Set([
   'LPT9'
 ])
 
-function getPlaylistNameValidationError(name = '') {
+function getPlaylistNameValidationError(name = '', t = (key) => key) {
   const trimmedName = String(name).trim()
 
   if (!trimmedName) {
-    return 'Escribe un nombre valido para la playlist.'
+    return t('modals.playlistSave.invalidName')
   }
 
   if (/[\x00-\x1f]/.test(trimmedName)) {
-    return 'El nombre de la playlist contiene caracteres no permitidos.'
+    return t('modals.playlistSave.invalidControlCharacter')
   }
 
   if (/[<>:"/\\|?*]/.test(trimmedName)) {
-    return 'El nombre de la playlist contiene caracteres no permitidos.'
+    return t('modals.playlistSave.invalidControlCharacter')
   }
 
   if (/[. ]$/.test(trimmedName)) {
-    return 'El nombre de la playlist no puede terminar en punto o espacio.'
+    return t('modals.playlistSave.invalidTrailingCharacter')
   }
 
   if (WINDOWS_RESERVED_FILE_NAMES.has(trimmedName.toUpperCase())) {
-    return 'El nombre de la playlist esta reservado por el sistema.'
+    return t('modals.playlistSave.reservedName')
   }
 
   return ''
@@ -119,6 +120,7 @@ export function PlaylistSaveModal({
   titleOverride = '',
   modeLabel = ''
 }) {
+  const { t } = useI18n()
   const { resolvePlaylistSaveDirectory, listPlaylistSaveDirectory, savePlaylistFromTracks } =
     usePlaylists()
   const [currentDirectory, setCurrentDirectory] = useState('')
@@ -137,15 +139,15 @@ export function PlaylistSaveModal({
   const canGoBack = historyIndex > 0
   const canGoForward = historyIndex >= 0 && historyIndex < navigationHistory.length - 1
   const browserEntries = useMemo(() => buildBrowserEntries(directoryState), [directoryState])
-  const modalTitle = titleOverride || 'Guardar playlist'
-  const submitButtonLabel = isSaving ? 'Saving...' : submitLabel
+  const modalTitle = titleOverride || t('modals.playlistSave.saveTitle')
+  const submitButtonLabel = isSaving ? t('common.saving') : submitLabel
 
   const loadDirectory = useCallback(
     async (directoryPath, options = {}) => {
       const { preserveSelection = false, preserveName = false, updateHistory = true } = options
 
       if (typeof directoryPath !== 'string' || directoryPath.trim() === '') {
-        setNavigationError('No hay una carpeta valida para abrir.')
+        setNavigationError(t('modals.playlistSave.noFolderToOpen'))
         return false
       }
 
@@ -182,13 +184,13 @@ export function PlaylistSaveModal({
         return true
       } catch (loadError) {
         console.error('Error loading playlist save directory:', loadError)
-        setNavigationError(loadError?.message || 'No se pudo abrir esta carpeta.')
+        setNavigationError(loadError?.message || t('modals.playlistSave.openFolderFailed'))
         return false
       } finally {
         setIsLoading(false)
       }
     },
-    [historyIndex, listPlaylistSaveDirectory, navigationHistory]
+    [historyIndex, listPlaylistSaveDirectory, navigationHistory, t]
   )
 
   useEffect(() => {
@@ -231,7 +233,7 @@ export function PlaylistSaveModal({
       } catch (loadError) {
         console.error('Error initializing playlist save modal:', loadError)
         if (isMounted) {
-          setError('No se pudo abrir el explorador de playlists.')
+          setError(t('modals.playlistSave.openExplorerFailed'))
           setNavigationError(loadError?.message || '')
         }
       } finally {
@@ -246,7 +248,7 @@ export function PlaylistSaveModal({
     return () => {
       isMounted = false
     }
-  }, [isVisible, listPlaylistSaveDirectory, resolvePlaylistSaveDirectory, sourceName])
+  }, [isVisible, listPlaylistSaveDirectory, resolvePlaylistSaveDirectory, sourceName, t])
 
   const handleFileSelect = useCallback((filePath) => {
     setSelectedFilePath(filePath)
@@ -272,7 +274,7 @@ export function PlaylistSaveModal({
     const trimmedAddress = addressInput.trim()
 
     if (!trimmedAddress) {
-      setNavigationError('Escribe una ruta para navegar.')
+      setNavigationError(t('modals.playlistSave.navigationPathRequired'))
       return
     }
 
@@ -281,7 +283,7 @@ export function PlaylistSaveModal({
       preserveSelection: false,
       updateHistory: true
     })
-  }, [addressInput, loadDirectory])
+  }, [addressInput, loadDirectory, t])
 
   const handleGoBack = useCallback(async () => {
     if (!canGoBack) return
@@ -330,7 +332,7 @@ export function PlaylistSaveModal({
       event.preventDefault()
 
       const normalizedName = normalizePlaylistName(nombre)
-      const validationError = getPlaylistNameValidationError(normalizedName)
+      const validationError = getPlaylistNameValidationError(normalizedName, t)
 
       if (validationError) {
         setError(validationError)
@@ -338,7 +340,7 @@ export function PlaylistSaveModal({
       }
 
       if (!currentDirectory) {
-        setError('No hay una carpeta seleccionada.')
+        setError(t('modals.playlistSave.selectedFolderRequired'))
         return
       }
 
@@ -364,12 +366,12 @@ export function PlaylistSaveModal({
           return
         }
 
-        setError(result?.error || 'No se pudo guardar la playlist.')
+        setError(result?.error || t('playlists.saveFailed'))
       } finally {
         setIsSaving(false)
       }
     },
-    [currentDirectory, nombre, onClose, onSubmitSave, savePlaylistFromTracks, selectedFilePath, tracks]
+    [currentDirectory, nombre, onClose, onSubmitSave, savePlaylistFromTracks, selectedFilePath, t, tracks]
   )
 
   return (
@@ -382,14 +384,14 @@ export function PlaylistSaveModal({
           </div>
         </div>
 
-        <section className="playlist-save-modal__browser" aria-label="Explorador de playlists">
+        <section className="playlist-save-modal__browser" aria-label={t('modals.playlistSave.browserLabel')}>
           <div className="playlist-save-modal__toolbar">
             <button
               type="button"
               className="playlist-save-modal__nav-button"
               onClick={() => void handleGoBack()}
               disabled={!canGoBack || isLoading}
-              aria-label="Previous"
+              aria-label={t('common.previous')}
             >
               <LuArrowLeft />
             </button>
@@ -399,7 +401,7 @@ export function PlaylistSaveModal({
               className="playlist-save-modal__nav-button"
               onClick={() => void handleGoForward()}
               disabled={!canGoForward || isLoading}
-              aria-label="Next"
+              aria-label={t('common.next')}
             >
               <LuArrowRight />
             </button>
@@ -409,7 +411,7 @@ export function PlaylistSaveModal({
               className="playlist-save-modal__nav-button"
               onClick={() => void handleGoUp()}
               disabled={!directoryState.parentPath || isLoading}
-              aria-label="Up"
+              aria-label={t('common.up')}
             >
               <LuMoveUp />
             </button>
@@ -429,10 +431,10 @@ export function PlaylistSaveModal({
                     void handleAddressSubmit()
                   }
                 }}
-                placeholder="Pega una direccion absoluta"
+                placeholder={t('modals.playlistSave.absolutePathPlaceholder')}
                 spellCheck={false}
                 disabled={isLoading}
-                aria-label="Direccion de carpeta"
+                aria-label={t('modals.playlistSave.folderAddress')}
               />
             </div>
           </div>
@@ -476,7 +478,7 @@ export function PlaylistSaveModal({
 
               {!isLoading && browserEntries.length === 0 && (
                 <div className="playlist-save-modal__empty">
-                  No hay carpetas ni archivos <code>.m3u</code> en esta ubicacion.
+                  {t('modals.playlistSave.emptyDirectory')}
                 </div>
               )}
             </section>
@@ -497,7 +499,7 @@ export function PlaylistSaveModal({
             </label>
             <div className="playlist-save-modal__actions">
               <button type="button" onClick={onClose} disabled={isSaving}>
-                Cancel
+                {t('common.cancel')}
               </button>
               <button type="submit" disabled={isSaving || isLoading || trackCount === 0}>
                 {submitButtonLabel}

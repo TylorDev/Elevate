@@ -14,35 +14,38 @@ import { AudioProvider } from './Contexts/AudioContext'
 import { PlaylistsProvider } from './Contexts/PlaylistsContex'
 import { ArgvProvider } from './Contexts/ArgvContext'
 import { GlobalSearchProvider } from './Contexts/GlobalSearchContext'
+import { I18nProvider } from './Contexts/I18nContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HashRouter>
-      <QueueProvider>
-        <PlaybackProvider>
-          <PlaybackProgressProvider>
-            <BackgroundProvider>
-              <ImagesProvider>
-                <SuperProvider>
-                  <MiniProvider>
-                    <PlaylistsProvider>
-                      <ArgvProvider>
-                        <GlobalSearchProvider>
-                          <LikesProvider>
-                            <AudioProvider>
-                              <App />
-                            </AudioProvider>
-                          </LikesProvider>
-                        </GlobalSearchProvider>
-                      </ArgvProvider>
-                    </PlaylistsProvider>
-                  </MiniProvider>
-                </SuperProvider>
-              </ImagesProvider>
-            </BackgroundProvider>
-          </PlaybackProgressProvider>
-        </PlaybackProvider>
-      </QueueProvider>
+      <I18nProvider>
+        <QueueProvider>
+          <PlaybackProvider>
+            <PlaybackProgressProvider>
+              <BackgroundProvider>
+                <ImagesProvider>
+                  <SuperProvider>
+                    <MiniProvider>
+                      <PlaylistsProvider>
+                        <ArgvProvider>
+                          <GlobalSearchProvider>
+                            <LikesProvider>
+                              <AudioProvider>
+                                <App />
+                              </AudioProvider>
+                            </LikesProvider>
+                          </GlobalSearchProvider>
+                        </ArgvProvider>
+                      </PlaylistsProvider>
+                    </MiniProvider>
+                  </SuperProvider>
+                </ImagesProvider>
+              </BackgroundProvider>
+            </PlaybackProgressProvider>
+          </PlaybackProvider>
+        </QueueProvider>
+      </I18nProvider>
     </HashRouter>
   </React.StrictMode>
 )

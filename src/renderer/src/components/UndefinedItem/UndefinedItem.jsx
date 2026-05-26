@@ -1,5 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
+import { LuInfo } from 'react-icons/lu'
+import { useI18n } from '../../Contexts/I18nContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import './UndefinedItem.scss'
 
@@ -16,13 +18,15 @@ export function UndefinedItem({
   to,
   detailsTo,
   onDetailsClick,
-  detailsLabel = 'Detalles',
+  detailsLabel,
   className = '',
   style,
   isLoading = false,
   loadingComponent
 }) {
   const navigate = useNavigate()
+  const { t } = useI18n()
+  const resolvedDetailsLabel = detailsLabel || t('common.details')
 
   if (isLoading) {
     return loadingComponent || <div className="UndefinedItem loading">Loading...</div>
@@ -34,10 +38,10 @@ export function UndefinedItem({
     }
 
     return [
-      { id: '__details__', label: detailsLabel },
+      { id: '__details__', label: resolvedDetailsLabel, icon: <LuInfo /> },
       ...menuOptions
     ]
-  }, [detailsLabel, detailsTo, menuOptions, onDetailsClick])
+  }, [detailsTo, menuOptions, onDetailsClick, resolvedDetailsLabel])
 
   const handleMenuAction = (optionId) => {
     if (optionId === '__details__') {

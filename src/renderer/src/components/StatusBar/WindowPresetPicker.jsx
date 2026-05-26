@@ -3,17 +3,17 @@ import { LuLayoutGrid } from 'react-icons/lu'
 import './WindowPresetPicker.scss'
 
 const GRID_CELLS = [
-  { id: 'top-left', area: 'tl', label: 'Superior izquierda' },
-  { id: 'top-right', area: 'tr', label: 'Superior derecha' },
-  { id: 'bottom-left', area: 'bl', label: 'Inferior izquierda' },
-  { id: 'bottom-right', area: 'br', label: 'Inferior derecha' }
+  { id: 'top-left', area: 'tl', label: 'Top left' },
+  { id: 'top-right', area: 'tr', label: 'Top right' },
+  { id: 'bottom-left', area: 'bl', label: 'Bottom left' },
+  { id: 'bottom-right', area: 'br', label: 'Bottom right' }
 ]
 
 const HALF_PRESETS = [
-  { id: 'top', area: 'top', cells: ['top-left', 'top-right'], label: 'Superior' },
-  { id: 'left', area: 'left', cells: ['top-left', 'bottom-left'], label: 'Izquierdo' },
-  { id: 'right', area: 'right', cells: ['top-right', 'bottom-right'], label: 'Derecho' },
-  { id: 'bottom', area: 'bottom', cells: ['bottom-left', 'bottom-right'], label: 'Inferior' }
+  { id: 'top', area: 'top', cells: ['top-left', 'top-right'], label: 'Top' },
+  { id: 'left', area: 'left', cells: ['top-left', 'bottom-left'], label: 'Left' },
+  { id: 'right', area: 'right', cells: ['top-right', 'bottom-right'], label: 'Right' },
+  { id: 'bottom', area: 'bottom', cells: ['bottom-left', 'bottom-right'], label: 'Bottom' }
 ]
 
 export function WindowPresetPicker({ isOpen, onToggle, onClose }) {
@@ -73,8 +73,8 @@ export function WindowPresetPicker({ isOpen, onToggle, onClose }) {
       <button
         className={triggerClassName}
         type="button"
-        title="Áreas"
-        aria-label="Áreas"
+        title="Areas"
+        aria-label="Areas"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         onClick={onToggle}
@@ -86,7 +86,7 @@ export function WindowPresetPicker({ isOpen, onToggle, onClose }) {
         <div
           className="window-preset-picker__panel"
           role="dialog"
-          aria-label="Selector de áreas de ventana"
+          aria-label="Window area picker"
         >
           <div className="window-preset-picker__layout">
             {HALF_PRESETS.map((preset) => (

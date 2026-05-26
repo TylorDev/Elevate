@@ -4,6 +4,7 @@ import { Bounce, toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { formatDuration } from '../../../timeUtils'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useI18n } from '../../Contexts/I18nContext'
 import { Skeleton } from '../Skeleton/Skeleton'
 import { UndefinedItem } from '../UndefinedItem/UndefinedItem'
 import { useImages } from '../../Contexts/ImagesContext'
@@ -25,6 +26,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   }
 
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { deleteDirectoryList } = usePlaylists()
   const { getCollectionCoverUrl } = useImages()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
@@ -96,7 +98,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
     )
 
     if (!result?.success) {
-      toast.error(result?.error || 'No se pudo abrir la carpeta.', {
+      toast.error(result?.error || t('directories.openFailed'), {
         position: 'bottom-right',
         autoClose: 3000,
         hideProgressBar: false,
@@ -113,19 +115,19 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   const menuOptions = [
     {
       id: 'open-directory',
-      label: 'Abrir carpeta',
+      label: t('actions.openFolder'),
       icon: <LuFolderOpen />
     },
     {
       id: 'link-preset-list',
-      label: 'Vincular',
+      label: 'Link',
       icon: <LuLink />,
       type: 'single-select',
       disabled: presetLists.length === 0,
       items: [
         {
           id: '__unlink__',
-          label: 'Quitar vinculo',
+          label: t('actions.removeLink'),
           icon: <LuUnlink />,
           checked: !linkedPresetListId
         },
@@ -165,7 +167,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
       <UndefinedItem
         cover={cover || <BsFolderFill />}
         title={getLastPart(directory.path)}
-        subtitle={isRootDirectory ? `Raiz - ${visibleTracks} tracks` : `${visibleTracks} tracks`}
+        subtitle={isRootDirectory ? `Root - ${visibleTracks} tracks` : `${visibleTracks} tracks`}
         extraInfo={visibleDuration > 0 ? formatDuration(visibleDuration) : ''}
         metaBadge={linkedPresetList?.name || null}
         onTitleClick={selectDirectory}

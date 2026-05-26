@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { RiPlayFill } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
+import { useI18n } from '../../../Contexts/I18nContext'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import { useQueue } from '../../../Contexts/QueueContext'
 import { dedupedInvoke } from '../../../Contexts/utils'
@@ -10,6 +11,7 @@ import './AllSongsQueueTab.scss'
 const TRACKS_PAGE_SIZE = 100
 
 function AllSongsQueueTab({ isActive }) {
+  const { t } = useI18n()
   const { allSongs, allSongsHasMore, allSongsLoading, allSongsPage, getAllSongs } = usePlaylists()
   const { playQueueShuffled } = useQueue()
   const [playingAll, setPlayingAll] = useState(false)
@@ -37,7 +39,7 @@ function AllSongsQueueTab({ isActive }) {
       const tracks = await dedupedInvoke('get-all-audio-files')
 
       if (!Array.isArray(tracks) || tracks.length === 0) {
-        toast.error('No hay canciones disponibles para reproducir.', {
+        toast.error(t('queue.allSongsUnavailable'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -54,7 +56,7 @@ function AllSongsQueueTab({ isActive }) {
       playQueueShuffled(tracks, 'tracks')
     } catch (error) {
       console.error('Error playing all songs:', error)
-      toast.error(error?.message || 'No se pudo reproducir toda la biblioteca.', {
+      toast.error(error?.message || 'Could not play the full library.', {
         position: 'bottom-right',
         autoClose: 3000,
         hideProgressBar: false,
@@ -68,7 +70,7 @@ function AllSongsQueueTab({ isActive }) {
     } finally {
       setPlayingAll(false)
     }
-  }, [playQueueShuffled, playingAll])
+  }, [playQueueShuffled, playingAll, t])
 
   return (
     <div className="AllSongsQueueTab">
@@ -84,8 +86,8 @@ function AllSongsQueueTab({ isActive }) {
         type="button"
         className="AllSongsQueueTab__play-all-fab"
         onClick={() => void handlePlayAll()}
-        title="Reproducir todo"
-        aria-label="Reproducir toda la biblioteca"
+        title="Play all"
+        aria-label="Play the full library"
         disabled={playingAll}
       >
         <RiPlayFill />

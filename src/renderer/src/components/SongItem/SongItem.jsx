@@ -3,6 +3,7 @@ import { FaPlay, FaEye } from 'react-icons/fa'
 import { Bounce, toast } from 'react-toastify'
 import { LuFolder, LuHeart, LuHeartOff, LuPin } from 'react-icons/lu'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useI18n } from '../../Contexts/I18nContext'
 import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { Button } from './../Button/Button'
@@ -85,7 +86,8 @@ export const SongItemView = memo(function SongItemView({
   onPointerDown,
   onPointerUp,
   onPointerLeave,
-  onPointerCancel
+  onPointerCancel,
+  unknownArtistLabel = 'Unknown'
 }) {
   return (
     <li
@@ -130,7 +132,7 @@ export const SongItemView = memo(function SongItemView({
         <div className="songdata">
           <span className="song-tittle">{title}</span>
           <span className="song-artist">
-            {artist || 'Unknow'} -{' '}
+            {artist || unknownArtistLabel} -{' '}
             <span className="song-views">
               <FaEye /> {shortViewCount}
             </span>
@@ -196,13 +198,14 @@ function SongItemContainer({
     resolvePlaylistSaveDirectory,
     savePlaylistFromTracks
   } = usePlaylists()
+  const { t } = useI18n()
   const menuRef = useRef(null)
   const playlistSubmitLockRef = useRef(false)
   const [playlistQuery, setPlaylistQuery] = useState('')
   const [isPlaylistSubmitting, setIsPlaylistSubmitting] = useState(false)
 
   if (!file) {
-    return <div className="songItem loading">Cargando...</div>
+    return <div className="songItem loading">{t('common.loading')}</div>
   }
 
   const normalizedPlaylistQuery = useMemo(
@@ -272,7 +275,7 @@ function SongItemContainer({
       const playlist = playlists.find((item) => item?.path === playlistPath)
 
       if (!playlist) {
-        showMenuToast('error', 'No se encontro la playlist seleccionada.')
+        showMenuToast('error', t('playlists.notFound'))
         return
       }
 
@@ -283,13 +286,16 @@ function SongItemContainer({
         const result = await appendTracksToPlaylist(playlistPath, [file])
 
         if (!result?.success) {
-          showMenuToast('error', result?.error || 'No se pudo agregar la cancion a la playlist.')
+          showMenuToast('error', result?.error || t('modals.addToPlaylist.addFailed'))
           return
         }
 
         showMenuToast(
           'success',
-          `Agregada a ${playlist.nombre}${result.skippedCount ? ` - ${result.skippedCount} repetida` : ''}`
+          t('playlists.addedToPlaylist', {
+            name: playlist.nombre,
+            suffix: result.skippedCount ? ` - ${result.skippedCount} repeated` : ''
+          })
         )
         closeMenu()
       } finally {
@@ -297,7 +303,7 @@ function SongItemContainer({
         setIsPlaylistSubmitting(false)
       }
     },
-    [appendTracksToPlaylist, closeMenu, file, playlists]
+    [appendTracksToPlaylist, closeMenu, file, playlists, t]
   )
 
   const handleCreatePlaylist = useCallback(async () => {
@@ -314,7 +320,7 @@ function SongItemContainer({
       const targetDirectory = await resolvePlaylistSaveDirectory(file?.filePath || '')
 
       if (!targetDirectory) {
-        showMenuToast('error', 'No se pudo resolver una carpeta para guardar la playlist.')
+        showMenuToast('error', t('playlists.saveDirectoryError'))
         return
       }
 
@@ -332,7 +338,7 @@ function SongItemContainer({
       playlistSubmitLockRef.current = false
       setIsPlaylistSubmitting(false)
     }
-  }, [closeMenu, file, playlistQuery, resolvePlaylistSaveDirectory, savePlaylistFromTracks])
+  }, [closeMenu, file, playlistQuery, resolvePlaylistSaveDirectory, savePlaylistFromTracks, t])
 
   const handlePlaylistInputSubmit = useCallback(async () => {
     if (exactPlaylistMatch?.path) {
@@ -349,7 +355,7 @@ function SongItemContainer({
         id: PLAYLIST_MENU_SEARCH_ID,
         type: 'input',
         value: playlistQuery,
-        placeholder: 'Buscar o crear playlist',
+        placeholder: t('playlists.searchOrCreate'),
         autoFocus: true,
         disabled: isPlaylistSubmitting,
         onValueChange: setPlaylistQuery,
@@ -362,7 +368,7 @@ function SongItemContainer({
     if (isPlaylistSubmitting) {
       items.push({
         id: PLAYLIST_MENU_LOADING_ID,
-        label: 'Guardando...',
+        label: t('common.saving'),
         disabled: true
       })
       return items
@@ -371,7 +377,7 @@ function SongItemContainer({
     if (playlistsLoading && !playlistsLoaded && playlists.length === 0) {
       items.push({
         id: PLAYLIST_MENU_LOADING_ID,
-        label: 'Cargando playlists...',
+        label: t('playlists.loadingPlaylists'),
         disabled: true
       })
       return items
@@ -381,20 +387,20 @@ function SongItemContainer({
       items.push(
         ...filteredPlaylists.map((playlist) => ({
           id: playlist.path,
-          label: playlist.nombre || 'Playlist sin nombre',
+          label: playlist.nombre || t('playlists.unnamed'),
           closeOnSelect: false
         }))
       )
     } else if (normalizedPlaylistQuery) {
       items.push({
         id: PLAYLIST_MENU_NO_MATCHES_ID,
-        label: 'Sin coincidencias',
+        label: t('playlists.noMatches'),
         disabled: true
       })
     } else {
       items.push({
         id: PLAYLIST_MENU_EMPTY_ID,
-        label: 'No hay playlists disponibles',
+        label: t('playlists.empty'),
         disabled: true
       })
     }
@@ -402,8 +408,8 @@ function SongItemContainer({
     if (normalizedPlaylistQuery && !exactPlaylistMatch) {
       items.push({
         id: CREATE_PLAYLIST_OPTION_ID,
-        label: `Crear playlist rapida "${normalizedPlaylistQuery}"`,
-        tooltip: 'Esto creara una playlist rapida en la ruta de la cancion seleccionada',
+        label: t('playlists.createQuickPlaylist', { name: normalizedPlaylistQuery }),
+        tooltip: t('playlists.createQuickPlaylistTooltip'),
         closeOnSelect: false
       })
     }
@@ -418,7 +424,8 @@ function SongItemContainer({
     playlistQuery,
     playlists.length,
     playlistsLoaded,
-    playlistsLoading
+    playlistsLoading,
+    t
   ])
 
   const handlePlaylistSubmenuSelect = useCallback(
@@ -507,6 +514,7 @@ function SongItemContainer({
       isPinned={isPinned}
       isPinEnabled={isPinEnabled}
       isLiked={isLiked}
+      unknownArtistLabel={t('common.unknown')}
       style={style}
       menuOptions={resolvedMenuOptions}
       onPlay={() => onPlay?.(file, index)}
@@ -527,6 +535,7 @@ function areSongItemViewPropsEqual(prevProps, nextProps) {
   return (
     prevProps.title === nextProps.title &&
     prevProps.artist === nextProps.artist &&
+    prevProps.unknownArtistLabel === nextProps.unknownArtistLabel &&
     prevProps.shortViewCount === nextProps.shortViewCount &&
     prevProps.containerFolderName === nextProps.containerFolderName &&
     prevProps.durationText === nextProps.durationText &&

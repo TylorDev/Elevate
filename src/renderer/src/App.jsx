@@ -305,7 +305,7 @@ function App() {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
-      <DebugOverlay isEnabled={true}></DebugOverlay>
+      <DebugOverlay isEnabled={false}></DebugOverlay>
     </div>
   )
 }

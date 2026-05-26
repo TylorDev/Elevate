@@ -24,16 +24,11 @@ function Main() {
   const { scrollRef } = useSuper()
   const navigate = useNavigate()
   const location = useLocation()
-  const outletMeasureRef = useRef(null)
   const queueNavigationRedirectRef = useRef(false)
   const isCompactHeight = useIsCompactViewportHeight()
   const isCompactHeaderMode = useIsCompactHeaderViewport()
   const isCollectionHorizontalViewport = useIsCollectionHorizontalViewport()
   const isCollectionMovilEligibleViewport = useIsCollectionMovilEligibleViewport()
-  const [outletDimensions, setOutletDimensions] = useState({
-    width: 0,
-    height: 0
-  })
   const [headerHiddenPreference, setHeaderHiddenPreference] = useState(null)
   const [queueHiddenPreference, setQueueHiddenPreference] = useState(null)
   const [isMobileQueueRedirectViewport, setIsMobileQueueRedirectViewport] = useState(() => {
@@ -107,62 +102,8 @@ function Main() {
     }
   }, [])
 
-  const updateOutletDimensions = useCallback(() => {
-    const outletNode = outletMeasureRef.current
-
-    if (!outletNode) {
-      return
-    }
-
-    const nextDimensions = {
-      width: Math.round(outletNode.clientWidth),
-      height: Math.round(outletNode.clientHeight)
-    }
-
-    setOutletDimensions((currentDimensions) =>
-      currentDimensions.width === nextDimensions.width &&
-      currentDimensions.height === nextDimensions.height
-        ? currentDimensions
-        : nextDimensions
-    )
-  }, [])
-
-  useEffect(() => {
-    updateOutletDimensions()
-
-    if (typeof window === 'undefined') {
-      return undefined
-    }
-
-    const outletNode = outletMeasureRef.current
-
-    if (!outletNode) {
-      return undefined
-    }
-
-    if (typeof window.ResizeObserver !== 'function') {
-      window.addEventListener('resize', updateOutletDimensions)
-
-      return () => {
-        window.removeEventListener('resize', updateOutletDimensions)
-      }
-    }
-
-    const resizeObserver = new window.ResizeObserver(() => {
-      updateOutletDimensions()
-    })
-
-    resizeObserver.observe(outletNode)
-
-    return () => {
-      resizeObserver.disconnect()
-    }
-  }, [updateOutletDimensions])
-
   const handleOutletRef = useCallback(
     (node) => {
-      outletMeasureRef.current = node
-
       if (typeof scrollRef === 'function') {
         scrollRef(node)
         return
@@ -260,13 +201,6 @@ function Main() {
             }}
           />
         </main>
-        <div className="Main__outlet-debug" aria-hidden="true">
-          <span className="Main__outlet-debug-label">OUTLET WIDTH</span>
-          <strong className="Main__outlet-debug-value">{outletDimensions.width}px</strong>
-          <div className="Main__outlet-debug-divider" />
-          <span className="Main__outlet-debug-label">OUTLET HEIGHT</span>
-          <strong className="Main__outlet-debug-value">{outletDimensions.height}px</strong>
-        </div>
         <div className="Main__player">
           <AudioPlayer
             isQueueHidden={isQueueCollapsed}

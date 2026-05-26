@@ -69,13 +69,13 @@ function CollectionInsightCard({
       icon={<Icon />}
       label={tab.summaryLabel}
       value={isEmpty ? '-' : tab.formatValue(totalValue)}
-      meta={isEmpty ? 'Sin datos' : `Tracks: ${formatMetricValue(totalTracks)}`}
+      meta={isEmpty ? 'No data' : `Tracks: ${formatMetricValue(totalTracks)}`}
       className={`collection-insights__card ${className}`.trim()}
       backgroundImage={backgroundImage}
       accentColor={backgroundImage ? dominantColor.hex : ''}
       accentContrastColor={backgroundImage ? dominantColor.contrastHex : ''}
       actionIcon={playLoading ? <LuLoaderCircle /> : <LuPlay />}
-      actionLabel={`Reproducir ranking ${tab.summaryLabel} en aleatorio`}
+      actionLabel={`Play ${tab.summaryLabel} ranking shuffled`}
       actionDisabled={playDisabled}
       actionLoading={playLoading}
       onActionClick={onPlay || undefined}
@@ -87,8 +87,8 @@ function CollectionInsightCard({
 function EmptyState({ label }) {
   return (
     <div className="collection-insights__empty">
-      <h2>Sin datos para este ranking.</h2>
-      <p>{label} aparecera aqui cuando la coleccion tenga reproducciones registradas.</p>
+      <h2>No data for this ranking.</h2>
+      <p>{label} will appear here once the collection has playback history.</p>
     </div>
   )
 }
@@ -144,8 +144,8 @@ export function CollectionInsightsLoadingShell({
   cards = COLLECTION_INSIGHT_CARD_TABS,
   loadingRows = DEFAULT_LOADING_ROWS,
   loadingActionCount = 0,
-  loadingTitle = 'Cargando ranking',
-  loadingEyebrow = 'Ranking activo',
+  loadingTitle = 'Loading ranking',
+  loadingEyebrow = 'Active ranking',
   showSecondaryTabs = false,
   compactLayout = 'default',
   isCompactMobile = false,
@@ -234,7 +234,7 @@ export function CollectionInsightsPanel({
   onPlayCollectionShuffled,
   shuffleActionDisabled = false,
   shuffleActionLoading = false,
-  shuffleActionLabel = 'Reproducir toda la coleccion en aleatorio',
+  shuffleActionLabel = 'Play the full collection shuffled',
   showAllSongsTab = true,
   visibleRows,
   onLoadMoreRanking,
@@ -245,8 +245,8 @@ export function CollectionInsightsPanel({
   loading = false,
   loadingRows = DEFAULT_LOADING_ROWS,
   loadingActionCount = 0,
-  loadingTitle = 'Cargando ranking',
-  loadingEyebrow = 'Ranking activo',
+  loadingTitle = 'Loading ranking',
+  loadingEyebrow = 'Active ranking',
   forceCompactMobile,
   compactLayout
 }) {
@@ -413,7 +413,7 @@ export function CollectionInsightsPanel({
         showAllSongsTab ? 'collection-insights--has-secondary-tabs' : ''
       }`.trim()}
     >
-      <div className="collection-insights__cards" role="tablist" aria-label="Rankings de coleccion">
+      <div className="collection-insights__cards" role="tablist" aria-label="Collection rankings">
         {COLLECTION_INSIGHT_CARD_TABS.map((tab) => {
           const isActive = activeTab.id === tab.id
 
@@ -501,17 +501,17 @@ export function CollectionInsightsPanel({
               </div>
               <h2>
                 {emptyCollectionType === 'playlist'
-                  ? 'Playlist vacía'
+                  ? 'Empty playlist'
                   : emptyCollectionType === 'likes'
-                    ? 'No hay canciones con like'
+                    ? 'No liked songs'
                     : emptyCollectionType === 'statistics'
-                      ? 'Todavía no hay canciones en la biblioteca'
-                      : 'Directorio sin canciones'}
+                      ? 'There are no songs in the library yet'
+                      : 'Directory has no songs'}
               </h2>
               <p>
                 {emptyCollectionType === 'statistics'
-                  ? 'Agrega carpetas o playlists para empezar a construir tus rankings.'
-                  : 'Esta colección no tiene canciones disponibles para mostrarse todavía.'}
+                  ? 'Add folders or playlists to start building your rankings.'
+                  : 'This collection does not have any songs available yet.'}
               </p>
             </div>
           ) : (

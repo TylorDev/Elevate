@@ -4,6 +4,7 @@ import { RiShuffleLine } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
 import { RiArrowLeftLine } from 'react-icons/ri'
 import { PlaylistItem } from '../../../Pages/Playlists/PlaylistItem'
+import { useI18n } from '../../../Contexts/I18nContext'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import { useQueue } from '../../../Contexts/QueueContext'
 import { dedupedInvoke } from '../../../Contexts/utils'
@@ -15,6 +16,7 @@ const PLAYLIST_ROW_HEIGHT = 76
 const PLAYLIST_OVERSCAN = 6
 
 function PlaylistsQueueTab({ isActive }) {
+  const { t } = useI18n()
   const {
     addPlaylisthistory,
     deletingPlaylistPaths,
@@ -181,7 +183,7 @@ function PlaylistsQueueTab({ isActive }) {
       const randomPlaylist = await dedupedInvoke('get-random-playlist')
 
       if (!randomPlaylist?.path) {
-        toast.error('No hay playlists disponibles para reproducir.', {
+        toast.error(t('queue.playlistUnavailable'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -199,7 +201,7 @@ function PlaylistsQueueTab({ isActive }) {
       const tracks = playlistData?.processedData || []
 
       if (tracks.length === 0) {
-        toast.error('La playlist aleatoria no tiene canciones disponibles.', {
+        toast.error(t('queue.playlistEmpty'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -217,7 +219,7 @@ function PlaylistsQueueTab({ isActive }) {
       addPlaylisthistory(randomPlaylist.path)
     } catch (error) {
       console.error('Error playing random playlist:', error)
-      toast.error(error?.message || 'No se pudo reproducir una playlist aleatoria.', {
+      toast.error(error?.message || 'Could not play a random playlist.', {
         position: 'bottom-right',
         autoClose: 3000,
         hideProgressBar: false,
@@ -231,7 +233,7 @@ function PlaylistsQueueTab({ isActive }) {
     } finally {
       setPlayingRandom(false)
     }
-  }, [addPlaylisthistory, playQueueShuffled, playingRandom])
+  }, [addPlaylisthistory, playQueueShuffled, playingRandom, t])
 
   if (selectedPlaylist) {
     return (

@@ -177,7 +177,7 @@ function Settings() {
       const result = await applyRemoteBackground(bgDraft.trim())
       if (result?.success) {
         setBgDraft(getBackgroundDraftValue(result.current) || bgDraft.trim())
-        setBgSuccess('Imagen cargada con exito')
+        setBgSuccess('Image loaded successfully')
       } else if (result?.errorCode !== 'canceled') {
         setBgError(result?.errorMessage || 'No se pudo aplicar la imagen')
       }
@@ -198,7 +198,7 @@ function Settings() {
       const result = await pickLocalBackground()
       if (result?.success) {
         setBgDraft(getBackgroundDraftValue(result.current))
-        setBgSuccess('Imagen cargada con exito')
+        setBgSuccess('Image loaded successfully')
       } else if (result?.errorCode !== 'canceled') {
         setBgError(result?.errorMessage || 'No se pudo cargar la imagen')
       }
@@ -234,7 +234,7 @@ function Settings() {
       const result = await selectBackgroundFromHistory(itemId)
       if (result?.success) {
         setBgDraft(getBackgroundDraftValue(result.current))
-        setBgSuccess('Imagen reutilizada con exito')
+        setBgSuccess('Image reused successfully')
       } else {
         setBgError(result?.errorMessage || 'No se pudo reutilizar la imagen')
       }
@@ -253,7 +253,7 @@ function Settings() {
     try {
       const result = await removeBackgroundHistoryItem(itemId)
       if (result?.success) {
-        setBgSuccess('Imagen eliminada del historial')
+        setBgSuccess('Image removed from history')
       } else {
         setBgError(result?.errorMessage || 'No se pudo eliminar la imagen')
       }

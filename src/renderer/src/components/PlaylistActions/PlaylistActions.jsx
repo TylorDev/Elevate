@@ -21,7 +21,7 @@ export function PlaylistActions({ name }) {
           setIsSavePlaylistVisible(true)
         }}
       >
-        Guardar playlist
+        Save playlist
       </button>
 
       <button type="button" onClick={openM3U}>Upload list</button>

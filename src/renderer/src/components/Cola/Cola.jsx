@@ -1,7 +1,10 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedSizeList, VariableSizeList } from 'react-window'
 import { RiFocus3Line } from 'react-icons/ri'
+import { FaListUl, FaPlusCircle, FaRegSave, FaTrash } from 'react-icons/fa'
+import { LuClock3 } from 'react-icons/lu'
 import { useLikes } from '../../Contexts/LikeContext'
+import { useI18n } from '../../Contexts/I18nContext'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
@@ -602,11 +605,11 @@ export function Cola({
 
   const menuOptions = useMemo(() => {
     const options = [
-      { id: 'add to queue', label: 'Add to queue' },
-      { id: 'add later', label: 'Add later' },
-      { id: 'add to playlist', label: 'Add to playlist' },
-      { id: 'save as playlist', label: 'Guardar como playlist' },
-      { id: 'remove', label: 'Eliminar', disabled: isDirectorySource }
+      { id: 'add to queue', label: t('actions.addToQueue'), icon: <FaPlusCircle /> },
+      { id: 'add later', label: t('actions.addLater'), icon: <LuClock3 /> },
+      { id: 'add to playlist', label: t('actions.addToPlaylist'), icon: <FaListUl /> },
+      { id: 'save as playlist', label: t('actions.saveAsPlaylist'), icon: <FaRegSave /> },
+      { id: 'remove', label: t('actions.remove'), icon: <FaTrash />, disabled: isDirectorySource }
     ]
 
     if (actions) {
@@ -616,7 +619,7 @@ export function Cola({
     }
 
     return options
-  }, [actions, isDirectorySource])
+  }, [actions, isDirectorySource, t])
 
   const commitMovedList = useCallback(
     (nextList) => {
@@ -1308,3 +1311,4 @@ function LoadingCola({ isLoading = false }) {
 }
 
 export default Cola
+  const { t } = useI18n()

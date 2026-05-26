@@ -122,7 +122,7 @@ export function PlayerMenu({
           className={!isQueueHidden ? 'is-active' : ''}
           aria-pressed={!isQueueHidden}
           onClick={onToggleQueue}
-          title={isQueueHidden ? 'Mostrar queue panel' : 'Ocultar queue panel'}
+          title={isQueueHidden ? 'Show queue panel' : 'Hide queue panel'}
         >
           <LuListVideo />
           <span>Queue</span>

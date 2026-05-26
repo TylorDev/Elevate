@@ -16,7 +16,6 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
-import { useLikes } from '../../Contexts/LikeContext'
 import { useNavigate } from 'react-router-dom'
 import {
   useVisualizerCatalog,
@@ -72,7 +71,6 @@ function Music() {
   const { currentFile } = useQueue()
   const { mediaElement, togglePlayPause } = usePlayback()
   const { currentCover } = usePlaylists()
-  const { likeState, toggleLike } = useLikes()
   const [audioEl, setAudioEl] = useState(null)
 
   const [showCover, setShowCover] = useState(true)
@@ -115,16 +113,6 @@ function Music() {
       setAudioEl(mediaElement)
     }
   }, [mediaElement])
-
-  const handleLikeClick = useCallback(
-    (event) => {
-      event.stopPropagation()
-      if (currentFile) {
-        toggleLike(currentFile)
-      }
-    },
-    [currentFile, toggleLike]
-  )
 
   const handleBackgroundClick = useCallback(
     (event) => {
@@ -357,7 +345,7 @@ function Music() {
         toast.success(`Preset eliminado de ${effectivePresetList.name}`)
       } catch (error) {
         console.error('Failed to remove preset from current list:', error)
-        toast.error('No se pudo eliminar el preset de la lista actual')
+        toast.error('Could not remove the preset from the current list')
       }
     },
     [canRemoveCurrentPresetFromList, currentPresetName, effectivePresetList, togglePresetInList]
@@ -473,34 +461,6 @@ function Music() {
     [openPresetManagerPage, toggleCover, toggleVisualizerEnabled]
   )
 
-  const title = currentFile?.title || currentFile?.fileName || 'Unknown Title'
-  const artist = currentFile?.artist || 'Unknown Artist'
-  const songStats = useMemo(
-    () => [
-      {
-        label: 'Horas',
-        value: formatListeningHours(currentFile?.active_listening_seconds)
-      },
-      {
-        label: 'Cortas',
-        value: currentFile?.short_view_count || 0
-      },
-      {
-        label: 'Largas',
-        value: currentFile?.long_view_count || 0
-      },
-      {
-        label: 'Repeticiones',
-        value: currentFile?.consecutive_repeat_count || 0
-      },
-      {
-        label: 'Skips',
-        value: currentFile?.skip_count || 0
-      }
-    ],
-    [currentFile]
-  )
-
   const coverBackgroundStyle = useMemo(
     () => (currentCover ? { backgroundImage: `url(${currentCover})` } : undefined),
     [currentCover]
@@ -540,27 +500,6 @@ function Music() {
                 <div className="no-cover">No Cover</div>
               )}
             </div>
-            <div className="track-info-overlay">
-              <h1 className="title">{title}</h1>
-              <h2 className="artist">{artist}</h2>
-              <div className="stats">
-                <div className="song-stat-grid">
-                  {songStats.map((stat) => (
-                    <span className="song-stat-pill" key={stat.label}>
-                      <strong>{stat.value}</strong>
-                      <small>{stat.label}</small>
-                    </span>
-                  ))}
-                </div>
-                <button
-                  className={`like-btn ${likeState.currentLike ? 'liked' : ''}`}
-                  onClick={handleLikeClick}
-                  disabled={!currentFile}
-                >
-                  {likeState.currentLike ? <LuHeart fill="currentColor" /> : <LuHeartOff />}
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>
@@ -594,22 +533,6 @@ function Music() {
               {isPresetPaused ? <LuPlay /> : <LuPause />}
             </button>
 
-            <button
-              className={`visualizer-control-btn ${captureState !== 'idle' ? `is-${captureState}` : ''}`.trim()}
-              disabled={!canCapturePresetFrame}
-              onClick={handleCapturePresetFrame}
-              type="button"
-            >
-              <LuCamera />
-              <span>
-                {captureState === 'saved'
-                  ? 'Frame capturado'
-                  : captureState === 'error'
-                    ? 'Error al capturar'
-                    : 'Capturar frame'}
-              </span>
-            </button>
-
             <div className="visualizer-duration-select">
               <Select
                 value={String(cycleDurationMs)}
@@ -640,7 +563,7 @@ function Music() {
                 <button
                   className="current-preset-name__remove"
                   onClick={handleRemovePresetFromCurrentList}
-                  title={`Quitar de ${effectivePresetList?.name || 'la lista actual'}`}
+                  title={`Remove from ${effectivePresetList?.name || 'the current list'}`}
                   type="button"
                 >
                   <LuTrash2 />

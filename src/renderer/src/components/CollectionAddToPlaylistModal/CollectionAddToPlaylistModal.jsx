@@ -29,7 +29,7 @@ export function CollectionAddToPlaylistModal({
       const result = await appendTracksToPlaylist(playlistPath, tracks)
 
       if (!result?.success) {
-        toast.error(result?.error || 'No se pudieron agregar las canciones.', {
+        toast.error(result?.error || 'Could not add the songs.', {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -44,7 +44,9 @@ export function CollectionAddToPlaylistModal({
       }
 
       toast.success(
-        `Agregadas ${result.addedCount || 0} canciones a ${playlistName}${result.skippedCount ? ` · ${result.skippedCount} repetidas` : ''}`,
+        `Added ${result.addedCount || 0} songs to ${playlistName}${
+          result.skippedCount ? ` - ${result.skippedCount} repeated` : ''
+        }`,
         {
           position: 'bottom-right',
           autoClose: 3000,
@@ -73,7 +75,7 @@ export function CollectionAddToPlaylistModal({
         <div className="collection-add-to-playlist-modal__header">
           <div>
             <span>Collection routing</span>
-            <h2>Añadir a playlist</h2>
+            <h2>Add to playlist</h2>
           </div>
           <button
             type="button"
@@ -81,19 +83,19 @@ export function CollectionAddToPlaylistModal({
             onClick={() => setIsSaveModalVisible(true)}
           >
             <LuPlus />
-            Crear nueva playlist
+            Create new playlist
           </button>
         </div>
 
         <div className="collection-add-to-playlist-modal__summary">
           <LuListPlus />
-          <span>{tracks.length} canciones listas para añadirse</span>
+          <span>{tracks.length} songs ready to add</span>
         </div>
 
         <div className="collection-add-to-playlist-modal__list">
           {eligiblePlaylists.length === 0 ? (
             <div className="collection-add-to-playlist-modal__empty">
-              No hay playlists disponibles para reutilizar.
+              No playlists available to reuse.
             </div>
           ) : (
             eligiblePlaylists.map((playlist) => (
@@ -116,7 +118,7 @@ export function CollectionAddToPlaylistModal({
         {isSavingToExisting && (
           <div className="collection-add-to-playlist-modal__loading">
             <LuRefreshCw />
-            Agregando canciones...
+            Adding songs...
           </div>
         )}
       </Modal>

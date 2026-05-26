@@ -24,15 +24,15 @@ export function formatAccumulatedDuration(seconds) {
 }
 
 export function formatMetricValue(value) {
-  return new Intl.NumberFormat('es').format(toNumber(value))
+  return new Intl.NumberFormat('en').format(toNumber(value))
 }
 
 export const COLLECTION_INSIGHT_TABS = [
   {
     id: 'allSongs',
     label: 'All Songs',
-    boardLabel: 'Todas las canciones',
-    summaryLabel: 'Coleccion completa',
+    boardLabel: 'All songs',
+    summaryLabel: 'Full collection',
     metricKey: null,
     icon: LuListMusic,
     tone: 'neutral',
@@ -74,9 +74,9 @@ export const COLLECTION_INSIGHT_TABS = [
   },
   {
     id: 'accumulatedDuration',
-    label: 'Duracion Acumulada',
-    boardLabel: 'Top Duracion Acumulada',
-    summaryLabel: 'Duracion Acumulada',
+    label: 'Accumulated Duration',
+    boardLabel: 'Top Accumulated Duration',
+    summaryLabel: 'Accumulated Duration',
     metricKey: 'active_listening_seconds',
     icon: LuClock3,
     tone: 'violet',
@@ -85,9 +85,9 @@ export const COLLECTION_INSIGHT_TABS = [
   },
   {
     id: 'repeats',
-    label: 'Repeticiones',
-    boardLabel: 'Top Repeticiones',
-    summaryLabel: 'Repeticiones',
+    label: 'Repetitions',
+    boardLabel: 'Top Repetitions',
+    summaryLabel: 'Repetitions',
     metricKey: 'consecutive_repeat_count',
     icon: LuRepeat2,
     tone: 'rose',
@@ -96,9 +96,9 @@ export const COLLECTION_INSIGHT_TABS = [
   },
   {
     id: 'skips',
-    label: 'Skips Totales',
+    label: 'Total Skips',
     boardLabel: 'Top Skips',
-    summaryLabel: 'Skips Totales',
+    summaryLabel: 'Total Skips',
     metricKey: 'skip_count',
     icon: LuSkipForward,
     tone: 'ash',

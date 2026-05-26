@@ -141,7 +141,7 @@ async function downloadRemoteImage(url) {
       return {
         success: false,
         errorCode: 'http_error',
-        errorMessage: `El servidor respondió con estado ${response.status}`
+        errorMessage: `The server responded with status ${response.status}`
       }
     }
 
@@ -153,7 +153,7 @@ async function downloadRemoteImage(url) {
       return {
         success: false,
         errorCode: 'html_response',
-        errorMessage: 'La URL devolvió una página HTML en lugar de una imagen.'
+        errorMessage: 'The URL returned an HTML page instead of an image.'
       }
     }
 
@@ -557,7 +557,7 @@ export function setupImageSourceHandlers() {
     const result = await pickLocalImageFile(event)
 
     if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, errorCode: 'canceled', errorMessage: 'Operación cancelada' }
+      return { success: false, errorCode: 'canceled', errorMessage: 'Operation canceled' }
     }
 
     const filePath = result.filePaths[0]
@@ -614,7 +614,7 @@ export function setupImageSourceHandlers() {
     const result = await pickLocalImageFile(event)
 
     if (result.canceled || result.filePaths.length === 0) {
-      return { success: false, errorCode: 'canceled', errorMessage: 'Operación cancelada' }
+      return { success: false, errorCode: 'canceled', errorMessage: 'Operation canceled' }
     }
 
     const filePath = result.filePaths[0]
@@ -682,7 +682,7 @@ export function setupImageSourceHandlers() {
       return {
         success: false,
         errorCode: 'active_item',
-        errorMessage: 'No puedes eliminar la imagen que está activa.'
+        errorMessage: 'You cannot delete the active image.'
       }
     }
 

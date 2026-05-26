@@ -120,7 +120,7 @@ function PresetLibraryTab() {
                 className={`preset-library-tab__status ${hasSelectedList ? 'is-active' : ''}`.trim()}
               >
                 {hasSelectedList ? <LuCheck /> : <LuList />}
-                <span>{hasSelectedList ? 'Lista activa' : 'Selecciona una preset list'}</span>
+                <span>{hasSelectedList ? 'Active list' : 'Select a preset list'}</span>
               </div>
             </div>
           }
@@ -129,7 +129,7 @@ function PresetLibraryTab() {
           {!hasSelectedList ? (
             <EmptyState
               icon={LuList}
-              title="No hay preset list seleccionada."
+              title="No preset list selected."
               description="Carga o crea una preset list activa para empezar a curar presets aqui."
             />
           ) : selectedPresetItems.length === 0 ? (
@@ -153,9 +153,9 @@ function PresetLibraryTab() {
                       event.stopPropagation()
                       togglePresetInList(selectedList.id, preset.name)
                     }}
-                    title="Quitar de la lista"
+                    title="Remove from list"
                   >
-                    Quitar
+                    Remove
                   </Button>
                   <Button
                     className={preset.isFavorite ? 'preset-button--active' : ''}
@@ -163,7 +163,7 @@ function PresetLibraryTab() {
                       event.stopPropagation()
                       toggleFavorite(preset.name)
                     }}
-                    title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
+                    title={preset.isFavorite ? 'Remove favorite' : 'Mark as favorite'}
                     variant="icon"
                   >
                     <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />
@@ -189,7 +189,7 @@ function PresetLibraryTab() {
         >
 
           {availableCatalogItems.length === 0 ? (
-            <EmptyState icon={LuSearch} title="No hay presets para esa busqueda." description="" />
+            <EmptyState icon={LuSearch} title="No presets for that search." description="" />
           ) : (
             <PresetList
               activePresetName={currentPresetName}
@@ -225,7 +225,7 @@ function PresetLibraryTab() {
                         event.stopPropagation()
                         toggleFavorite(preset.name)
                       }}
-                      title={preset.isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
+                      title={preset.isFavorite ? 'Remove favorite' : 'Mark as favorite'}
                       variant="icon"
                     >
                       <LuHeart fill={preset.isFavorite ? 'currentColor' : 'none'} />

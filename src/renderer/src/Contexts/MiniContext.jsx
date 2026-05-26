@@ -7,16 +7,18 @@ import {
   ElectronSetter
 } from './utils'
 import { useImages } from './ImagesContext'
+import { useI18n } from './I18nContext'
 
 // Crear el contexto
 const MiniContext = createContext()
 
 // Proveedor del contexto
 export const MiniProvider = ({ children }) => {
+  const { t } = useI18n()
   const [recents, setRecents] = useState([])
   const getRecents = useCallback(
-    () => ElectronGetter('get-recents', setRecents, null, 'Recientes obtenidos!'),
-    []
+    () => ElectronGetter('get-recents', setRecents, null, t('toasts.recentsLoaded')),
+    [t]
   )
 
   const [most, setMost] = useState([])
@@ -90,7 +92,7 @@ export const MiniProvider = ({ children }) => {
   }, [directories, directoriesLoaded])
 
   const deleteDirectory = useCallback(async (path) => {
-    const result = await ElectronDelete('delete-directory', path, 'directorio eliminado!')
+    const result = await ElectronDelete('delete-directory', path, t('directories.removed'))
 
     if (result?.success === false) {
       return result
@@ -99,7 +101,7 @@ export const MiniProvider = ({ children }) => {
     setDiretories((preDir) => preDir.filter((dir) => dir.path !== path))
     setDirectoriesLoaded(false)
     return result
-  }, [])
+  }, [t])
 
   const deleteDirectoryBranch = useCallback(async (path) => {
     const result = await ElectronDelete('delete-directory-branch', path, 'rama de directorios eliminada!')
@@ -122,7 +124,7 @@ export const MiniProvider = ({ children }) => {
       'add-directory',
       null,
       normalizedPath,
-      'Directorio agregado!'
+      'Directory added!'
     )
 
     if (result) {
@@ -154,7 +156,7 @@ export const MiniProvider = ({ children }) => {
   }, [])
 
   const getHistory = useCallback((page = 1) =>
-    ElectronGetter('get-history', setHistory, page, 'se obtuvo el historial')
+    ElectronGetter('get-history', setHistory, page, 'History loaded')
   , [])
 
   const getlatersongs = useCallback(async () => {

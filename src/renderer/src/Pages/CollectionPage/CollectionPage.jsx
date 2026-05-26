@@ -41,15 +41,15 @@ const RANKING_PLAY_PAGE_SIZE = 200
 
 function buildCollectionMenuOptions(type) {
   const sharedOptions = [
-    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Anadir a la cola', icon: <LuListPlus /> },
+    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Add to queue', icon: <LuListPlus /> },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-      label: 'Anadir a playlist nueva',
+      label: 'Add to new playlist',
       icon: <LuListMusic />
     },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-      label: 'Anadir a playlist existente',
+      label: 'Add to existing playlist',
       icon: <LuListPlus />
     }
   ]
@@ -62,12 +62,12 @@ function buildCollectionMenuOptions(type) {
     ...sharedOptions,
     {
       id: COLLECTION_MENU_IDS.REVEAL_IN_EXPLORER,
-      label: 'Mostrar en el explorador',
+      label: 'Show in explorer',
       icon: <LuFolderOpen />
     },
     {
       id: COLLECTION_MENU_IDS.DELETE,
-      label: type === 'playlist' ? 'Eliminar playlist' : 'Eliminar directorio',
+      label: type === 'playlist' ? 'Delete playlist' : 'Delete directory',
       icon: <LuTrash2 />
     }
   ]
@@ -78,10 +78,10 @@ function buildCollectionMenuOptions(type) {
 function ErrorState({ message, onRetry }) {
   return (
     <div className="collection-error">
-      <strong>No se pudo cargar la coleccion.</strong>
+      <strong>Could not load the collection.</strong>
       <p>{message}</p>
       <button type="button" onClick={onRetry}>
-        Reintentar
+        Retry
       </button>
     </div>
   )
@@ -174,7 +174,7 @@ function CollectionPage() {
 
   const loadDetail = useCallback(async () => {
     if (type !== 'likes' && !sourcePath) {
-      setError('No se encontro la ruta de la coleccion.')
+      setError('Collection path not found.')
       setLoading(false)
       return
     }
@@ -193,7 +193,7 @@ function CollectionPage() {
       })
 
       if (!response?.success) {
-        setError(response?.error || 'No se pudo cargar la coleccion.')
+        setError(response?.error || 'Could not load the collection.')
         setDetail(null)
         return
       }
@@ -206,7 +206,7 @@ function CollectionPage() {
       })
     } catch (loadError) {
       console.error('Error loading collection overview:', loadError)
-      setError(loadError?.message || 'No se pudo cargar la coleccion.')
+      setError(loadError?.message || 'Could not load the collection.')
       setDetail(null)
     } finally {
       setLoading(false)
@@ -246,7 +246,7 @@ function CollectionPage() {
         })
 
         if (response?.success === false) {
-          throw new Error(response.error || 'No se pudieron cargar las canciones.')
+          throw new Error(response.error || 'Could not load songs.')
         }
 
         hydratedTracks.push(...(response?.items || []))
@@ -374,7 +374,7 @@ function CollectionPage() {
 
       PlayQueue(hydratedTracks, `folder:${sourcePath}`, 0)
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'No se pudieron cargar las canciones.')
+      toastLoadError(tracksError?.message || 'Could not load songs.')
     }
   }, [PlayQueue, addPlaylisthistory, hasTracks, loadAllTracks, sourcePath, type])
 
@@ -403,7 +403,7 @@ function CollectionPage() {
 
       playQueueShuffled(hydratedTracks, `folder:${sourcePath}`)
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'No se pudieron cargar las canciones.')
+      toastLoadError(tracksError?.message || 'Could not load songs.')
     } finally {
       setShufflingCollection(false)
     }
@@ -432,14 +432,14 @@ function CollectionPage() {
       return
     }
 
-    toastLoadError(response?.error || 'No se pudo cargar la playlist.')
+    toastLoadError(response?.error || 'Could not load the playlist.')
   }, [playlistEditPayload, sourcePath, type])
 
   const handleRevealInExplorer = useCallback(async () => {
     const result = await window.electron.ipcRenderer.invoke('reveal-path-in-explorer', sourcePath)
 
     if (!result?.success) {
-      toastLoadError(result?.error || 'No se pudo abrir el explorador.')
+      toastLoadError(result?.error || 'Could not open the explorer.')
     }
   }, [sourcePath])
 
@@ -458,7 +458,7 @@ function CollectionPage() {
     try {
       return await loadAllTracks()
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'No se pudieron cargar las canciones.')
+      toastLoadError(tracksError?.message || 'Could not load songs.')
       return []
     }
   }, [loadAllTracks])
@@ -475,7 +475,7 @@ function CollectionPage() {
       })
 
       if (!result?.success && result?.error !== 'Save canceled') {
-        toastLoadError(result?.error || 'No se pudo crear la playlist.')
+        toastLoadError(result?.error || 'Could not create the playlist.')
       }
       return
     }
@@ -518,7 +518,7 @@ function CollectionPage() {
       })
 
       if (!response?.success) {
-        throw new Error(response?.error || 'No se pudo cargar el ranking.')
+        throw new Error(response?.error || 'Could not load the ranking.')
       }
 
       setDetail((currentDetail) => ({
@@ -529,7 +529,7 @@ function CollectionPage() {
         }
       }))
     } catch (rankingError) {
-      toastLoadError(rankingError?.message || 'No se pudo cargar el ranking.')
+      toastLoadError(rankingError?.message || 'Could not load the ranking.')
     } finally {
       setRankingLoadingTab('')
     }
@@ -552,7 +552,7 @@ function CollectionPage() {
         })
 
         if (!response?.success) {
-          throw new Error(response?.error || 'No se pudo cargar el ranking.')
+          throw new Error(response?.error || 'Could not load the ranking.')
         }
 
         const ranking = response.rankings?.[tabId]
@@ -563,12 +563,12 @@ function CollectionPage() {
       }
 
       if (rankingTracks.length === 0) {
-        throw new Error('Este ranking no tiene canciones para reproducir.')
+        throw new Error('This ranking has no songs to play.')
       }
 
       playQueueShuffled(rankingTracks, `${collectionSourceName}:${tabId}`)
     } catch (rankingError) {
-      toastLoadError(rankingError?.message || 'No se pudo reproducir el ranking.')
+      toastLoadError(rankingError?.message || 'Could not play the ranking.')
     }
   }, [collectionSourceName, playQueueShuffled, sourcePath, type])
 
@@ -612,7 +612,7 @@ function CollectionPage() {
   if (!detail) {
     return (
       <section className={collectionPageClassName}>
-        <ErrorState message="No se encontro la coleccion solicitada." onRetry={() => navigate(routeBack)} />
+        <ErrorState message="The requested collection was not found." onRetry={() => navigate(routeBack)} />
       </section>
     )
   }
@@ -633,7 +633,7 @@ function CollectionPage() {
           onPlayCollectionShuffled={handlePlayCollectionShuffled}
           shuffleActionDisabled={!hasTracks || hydratingTracks}
           shuffleActionLoading={shufflingCollection}
-          shuffleActionLabel="Reproducir toda la coleccion en aleatorio"
+          shuffleActionLabel="Play the full collection shuffled"
           headerActions={
             <>
               <Button
@@ -687,13 +687,13 @@ function CollectionPage() {
       {type !== 'likes' && (
         <ConfirmActionModal
           isVisible={isDeleteVisible}
-          title={type === 'playlist' ? 'Eliminar playlist?' : 'Eliminar directorio?'}
+          title={type === 'playlist' ? 'Delete playlist?' : 'Delete directory?'}
           message={
             type === 'playlist'
-              ? 'Se eliminara esta playlist de Elevate.'
-              : 'Se eliminara este directorio de la biblioteca de Elevate.'
+              ? 'This playlist will be removed from Elevate.'
+              : 'This directory will be removed from the Elevate library.'
           }
-          confirmLabel={type === 'playlist' ? 'Eliminar playlist' : 'Eliminar directorio'}
+          confirmLabel={type === 'playlist' ? 'Delete playlist' : 'Delete directory'}
           onCancel={() => setIsDeleteVisible(false)}
           onConfirm={() => {
             void handleDeleteCollection()

@@ -4,6 +4,7 @@ import { LuDownload, LuLink, LuListMusic, LuPencil, LuUnlink } from 'react-icons
 import { Bounce, toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { useImages } from '../../Contexts/ImagesContext'
+import { useI18n } from '../../Contexts/I18nContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { memo, useMemo, useState } from 'react'
@@ -45,6 +46,7 @@ export const PlaylistItem = memo(function PlaylistItem({
   const { getCollectionCoverUrl, useCollectionCover } = useImages()
   const { handleQueueAndPlay } = useQueue()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
   const [isEditVisible, setIsEditVisible] = useState(false)
   const [isEditLoading, setIsEditLoading] = useState(false)
@@ -121,14 +123,14 @@ export const PlaylistItem = memo(function PlaylistItem({
   const menuOptions = [
     {
       id: 'link-preset-list',
-      label: 'Vincular',
+      label: 'Link',
       icon: <LuLink />,
       type: 'single-select',
       disabled: presetLists.length === 0,
       items: [
         {
           id: '__unlink__',
-          label: 'Quitar vinculo',
+          label: t('actions.removeLink'),
           icon: <LuUnlink />,
           checked: !linkedPresetListId
         },
@@ -147,9 +149,9 @@ export const PlaylistItem = memo(function PlaylistItem({
         void associateSourceToList(playlistSource, selectedId)
       }
     },
-    { id: 'edit', label: 'Edit Playlist', icon: <LuPencil /> },
-    { id: 'export', label: 'Export as M3U', icon: <LuDownload />, disabled: isExportLoading },
-    { id: 'delete', label: 'Delete Playlist', icon: <FaTrash color="#ff4444" /> }
+    { id: 'edit', label: t('actions.editPlaylist'), icon: <LuPencil /> },
+    { id: 'export', label: t('actions.exportAsM3u'), icon: <LuDownload />, disabled: isExportLoading },
+    { id: 'delete', label: t('actions.deletePlaylist'), icon: <FaTrash color="#ff4444" /> }
   ]
 
   const handleMenuSelect = async (optionId) => {
@@ -184,7 +186,7 @@ export const PlaylistItem = memo(function PlaylistItem({
         const tracks = playlistData?.processedData || []
 
         if (tracks.length === 0) {
-          toast.error('No hay canciones para exportar.', {
+          toast.error(t('playlists.exportEmpty'), {
             position: 'bottom-right',
             autoClose: 3000,
             hideProgressBar: false,
@@ -202,7 +204,7 @@ export const PlaylistItem = memo(function PlaylistItem({
         setIsExportVisible(true)
       } catch (error) {
         console.error('Error loading playlist for export:', error)
-        toast.error(error?.message || 'No se pudo preparar la playlist para exportar.', {
+        toast.error(error?.message || t('playlists.saveFailed'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -230,7 +232,7 @@ export const PlaylistItem = memo(function PlaylistItem({
         }}
       >
         {isEditLoading || !editPayload?.playlistData ? (
-          <div style={{ padding: '1.5rem', color: '#fff' }}>Cargando editor...</div>
+          <div style={{ padding: '1.5rem', color: '#fff' }}>{t('playlists.loadingEditor')}</div>
         ) : (
           <PlaylistForm
             playlist={editPayload.playlistData}

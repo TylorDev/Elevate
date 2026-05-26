@@ -6,7 +6,7 @@ function FeedRankingRail({
   title,
   songs,
   railId,
-  emptyMessage = 'Todavía no hay datos para este ranking'
+  emptyMessage = 'There is no data for this ranking yet'
 }) {
   return (
     <div className="feed-ranking-rail">

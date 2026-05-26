@@ -257,7 +257,7 @@ export async function getPlaylistEditPayload(filepath) {
 
 async function generatePlaylistCoverFromSelectedImages(selectedItems) {
   if (!selectedItems || selectedItems.length !== 4) {
-    throw new Error('Se requieren exactamente 4 imágenes para el collage')
+    throw new Error('Exactly 4 images are required for the collage')
   }
 
   try {
@@ -294,7 +294,7 @@ async function generatePlaylistCoverFromSelectedImages(selectedItems) {
     }
 
     if (imageBuffers.length < 4) {
-      throw new Error('No se pudieron obtener las 4 imágenes para el collage')
+      throw new Error('Could not fetch the 4 images for the collage')
     }
 
     const resizedImages = await Promise.all(
@@ -491,7 +491,7 @@ async function ensurePlaylistCover(playlistPath, { variant = 'full', allowAutoGe
     })
 
     if (!cover) {
-      return { success: false, error: 'No hay covers disponibles para generar la portada.' }
+      return { success: false, error: 'There are no covers available to generate the cover.' }
     }
 
     const coverHash = updatedPlaylist?.customCoverHash || playlist.customCoverHash || null
@@ -635,7 +635,7 @@ async function deletePlaylist(filePath) {
 
 function queuePlaylistDelete(filePath, sender) {
   if (typeof filePath !== 'string' || filePath.trim() === '') {
-    return { success: false, error: 'Ruta de playlist invalida.' }
+    return { success: false, error: 'Invalid playlist path.' }
   }
 
   const normalizedPath = filePath.trim()
@@ -821,12 +821,12 @@ async function saveDialog(nombre = '') {
     const { filePath: selectedPath } = await dialog.showSaveDialog({
       title: 'Save list',
       defaultPath: path.join(app.getPath('documents'), `${suggestedFileName}.m3u`),
-      filters: [{ name: 'Listas de reproducción', extensions: ['m3u'] }]
+      filters: [{ name: 'Playlists', extensions: ['m3u'] }]
     })
 
     if (!selectedPath) {
       // Si el usuario cancela el diálogo
-      console.log('El diálogo fue cancelado')
+      console.log('The dialog was canceled')
       return null // O lanza una excepción si prefieres
     }
 
@@ -839,7 +839,7 @@ async function saveDialog(nombre = '') {
     } else {
       console.debug(fileName)
       console.log(
-        'El nombre del archivo debe tener más de 5 y menos de 15 caracteres. Intenta de nuevo.'
+        'The file name must be more than 5 and fewer than 15 characters. Try again.'
       )
     }
   }
@@ -907,7 +907,7 @@ function getPlaylistNameValidationError(nombre = '') {
   const rawName = stripPlaylistExtension(nombre)
 
   if (!rawName) {
-    return 'Escribe un nombre valido para la playlist.'
+    return 'Enter a valid playlist name.'
   }
 
   if (/[\x00-\x1f]/.test(rawName)) {
@@ -929,7 +929,7 @@ function getPlaylistNameValidationError(nombre = '') {
   const normalizedName = normalizePlaylistFileName(nombre)
 
   if (!normalizedName) {
-    return 'Escribe un nombre valido para la playlist.'
+    return 'Enter a valid playlist name.'
   }
 
   return null
@@ -1160,7 +1160,7 @@ async function savePlaylistToTarget({
   if (normalizedFilePaths.length === 0) {
     return {
       success: false,
-      error: 'La playlist debe tener por lo menos una (1) canciones.'
+      error: 'A playlist must have at least one song.'
     }
   }
 
@@ -1190,7 +1190,7 @@ async function exportPlaylistToTarget({
   if (normalizedFilePaths.length === 0) {
     return {
       success: false,
-      error: 'La playlist debe tener por lo menos una (1) canciones.'
+      error: 'A playlist must have at least one song.'
     }
   }
 
@@ -1206,7 +1206,7 @@ async function exportPlaylistToTarget({
   if (!normalizedTargetDirectory) {
     return {
       success: false,
-      error: 'No hay una carpeta de destino valida.'
+      error: 'There is no valid destination folder.'
     }
   }
 
@@ -1371,7 +1371,7 @@ export async function importPlaylistFile(filePath) {
   if (normalizedFilePaths.length === 0) {
     return {
       success: false,
-      error: 'La playlist debe tener por lo menos una (1) canciones.'
+      error: 'A playlist must have at least one song.'
     }
   }
 
@@ -1392,7 +1392,7 @@ export async function importPlaylistFile(filePath) {
   if (duplicateImport?.type === 'same-name-and-tracks') {
     return {
       success: false,
-      error: 'Ya existe esta playlist con el mismo nombre y las mismas canciones.'
+      error: 'A playlist with the same name and songs already exists.'
     }
   }
 
@@ -1844,7 +1844,7 @@ export function setupPlaylistHandlers() {
         .map((item) => item.trim())
 
       if (normalizedIncomingPaths.length === 0) {
-        return { success: false, error: 'No hay canciones para agregar.' }
+        return { success: false, error: 'There are no songs to add.' }
       }
 
       const existingSet = new Set(existingPaths)
@@ -1889,7 +1889,7 @@ export function setupPlaylistHandlers() {
       }
     } catch (error) {
       console.error('Error appending tracks to playlist:', error)
-      return { success: false, error: error.message || 'No se pudieron agregar las canciones.' }
+      return { success: false, error: error.message || 'Could not add the songs.' }
     }
   })
 

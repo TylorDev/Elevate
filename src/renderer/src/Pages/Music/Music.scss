@@ -61,11 +61,15 @@
       position: relative;
       width: 100%;
       max-width: 60vh;
-      transform: scale(0.8);
+      transform: scale(0.72);
       aspect-ratio: 1 / 1;
       border-radius: $border-radius;
       overflow: hidden;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+      border-radius: $border-radius;
+      transition:
+        transform 220ms ease,
+        box-shadow 220ms ease;
 
       .cover-container {
         width: 100%;
@@ -89,103 +93,9 @@
         }
       }
 
-      .track-info-overlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.75);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        text-align: center;
-        padding: 2rem;
-
-        .title {
-          font-size: 2.5rem;
-          font-weight: 800;
-          margin: 0;
-          color: $text-primary;
-        }
-
-        .artist {
-          font-size: 1.2rem;
-          color: #aaa;
-          font-weight: 400;
-          margin: 0;
-          margin-top: 0.5rem;
-        }
-
-        .stats {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 1rem;
-          margin-top: 2rem;
-
-          .song-stat-grid {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(72px, 1fr));
-            gap: 0.55rem;
-            max-width: min(100%, 560px);
-          }
-
-          .song-stat-pill {
-            display: grid;
-            gap: 0.15rem;
-            padding: 0.62rem 0.7rem;
-            border: 1px solid rgba(186, 255, 0, 0.22);
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.08);
-            color: #ddd;
-            backdrop-filter: blur(10px);
-
-            strong {
-              color: #baff00;
-              font-size: 1rem;
-              line-height: 1;
-            }
-
-            small {
-              color: rgba(255, 255, 255, 0.62);
-              font-size: 0.66rem;
-              font-weight: 800;
-              letter-spacing: 0.08em;
-              text-transform: uppercase;
-            }
-          }
-
-          .like-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: $text-primary;
-            width: 50px;
-            height: 50px;
-            border-radius: $border-radius;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            cursor: pointer;
-
-            &:hover {
-              background: $hover;
-            }
-
-            &.liked {
-              color: #ff4b4b;
-              border-color: rgba(255, 75, 75, 0.3);
-              background: rgba(255, 75, 75, 0.1);
-            }
-          }
-        }
-      }
-
       &:hover {
-        .track-info-overlay {
-          opacity: 1;
-        }
+        transform: scale(0.76);
+        box-shadow: 0 30px 64px rgba(0, 0, 0, 0.9);
       }
     }
   }

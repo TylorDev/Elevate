@@ -571,7 +571,7 @@ function Feed() {
       {error ? <div className="feed-ranking-board__error">{error}</div> : null}
 
       {activeRows.length === 0 ? (
-        <div className="feed-ranking-board__empty">No hay colecciones para este ranking.</div>
+        <div className="feed-ranking-board__empty">No collections for this ranking.</div>
       ) : (
         <div ref={listWrapRef} className="feed-ranking-board__listWrap">
           <FixedSizeList
@@ -599,7 +599,7 @@ function Feed() {
           disabled={rankingLoadingTab === activeTab.id}
           onClick={() => void handleLoadMoreRanking()}
         >
-          {rankingLoadingTab === activeTab.id ? 'Cargando...' : 'Cargar mas'}
+          {rankingLoadingTab === activeTab.id ? 'Loading...' : 'Load more'}
         </button>
       ) : null}
     </div>

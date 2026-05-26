@@ -45,7 +45,7 @@ async function resolveExistingDirectory(directoryPath) {
 
 async function resolveStrictDirectory(directoryPath) {
   if (typeof directoryPath !== 'string' || directoryPath.trim() === '') {
-    throw new Error('Ruta de carpeta invalida.')
+    throw new Error('Invalid folder path.')
   }
 
   const resolvedPath = path.resolve(directoryPath)
@@ -54,11 +54,11 @@ async function resolveStrictDirectory(directoryPath) {
   try {
     stats = await fs.promises.stat(resolvedPath)
   } catch {
-    throw new Error('La carpeta indicada no existe.')
+    throw new Error('The selected folder does not exist.')
   }
 
   if (!stats.isDirectory()) {
-    throw new Error('La ruta indicada no es un directorio.')
+    throw new Error('The selected path is not a directory.')
   }
 
   return resolvedPath

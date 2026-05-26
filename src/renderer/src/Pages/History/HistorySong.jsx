@@ -106,7 +106,7 @@ function HistoryChart({ records = [] }) {
     return (
       <div className="history-song-chart history-song-chart--empty">
         <LuChartLine />
-        <span>No hay registros suficientes para graficar.</span>
+        <span>There are not enough records to chart yet.</span>
       </div>
     )
   }
@@ -230,7 +230,7 @@ function HistorySong() {
     () => [
       {
         id: 'library-added',
-        label: 'Agregada a biblioteca',
+        label: 'Added to library',
         timestamp: timeline?.libraryAddedAt
       },
       ...events.map((timestamp, index) => ({
@@ -247,7 +247,7 @@ function HistorySong() {
       <section className="HistorySongPage HistorySongPage--centered">
         <div className="history-song-loading">
           <LuRefreshCw />
-          Cargando historial...
+          Loading history...
         </div>
       </section>
     )

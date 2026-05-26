@@ -127,7 +127,7 @@ function queueDroppedPlaylistImport(filePath, sender) {
   const normalizedPath = normalizeExistingPath(filePath, process.cwd())
 
   if (!normalizedPath || !isPlaylistFile(normalizedPath)) {
-    return { success: false, error: 'Playlist invalida para importar.' }
+    return { success: false, error: 'Invalid playlist to import.' }
   }
 
   const pendingJob = pendingDroppedPlaylistImports.get(normalizedPath)

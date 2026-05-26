@@ -29,6 +29,6 @@ export async function setBraveVolume(volume) {
     await audioMixer.setAudioSessionVolumeLevelScalar(chromeSession.pid, volume)
     console.log('El volumen de Chrome se ha establecido al', volume * 100, '%')
   } else {
-    console.log('Ni Brave ni Google Chrome están ejecutándose.')
+    console.log('Neither Brave nor Google Chrome is running.')
   }
 }

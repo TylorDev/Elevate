@@ -2,21 +2,23 @@ import { useEffect, useMemo, useRef } from 'react'
 import { LuCheck, LuFolderOpen, LuListMusic, LuSearch, LuSettings2, LuUserRoundSearch } from 'react-icons/lu'
 import { Cola } from '../Cola/Cola'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
+import { useI18n } from '../../Contexts/I18nContext'
 import SearchEntityList from './SearchEntityList'
 
 const FILTERS = [
-  { id: 'directory', label: 'Directory', icon: <LuFolderOpen /> },
-  { id: 'playlist', label: 'Playlist', icon: <LuListMusic /> },
-  { id: 'artist', label: 'Artist', icon: <LuUserRoundSearch /> },
-  { id: 'name', label: 'Name', icon: <LuSearch /> },
-  { id: 'configuration', label: 'Configuracion', icon: <LuSettings2 /> }
+  { id: 'directory', labelKey: 'search.directory', icon: <LuFolderOpen /> },
+  { id: 'playlist', labelKey: 'search.playlist', icon: <LuListMusic /> },
+  { id: 'artist', labelKey: 'search.artist', icon: <LuUserRoundSearch /> },
+  { id: 'name', labelKey: 'search.name', icon: <LuSearch /> },
+  { id: 'configuration', labelKey: 'search.configuration', icon: <LuSettings2 /> }
 ]
 
 function SearchSection({
   section,
   hasQuery,
   onSongSelect,
-  onEntitySelect
+  onEntitySelect,
+  emptyResultsLabel
 }) {
   if (!section.enabled) {
     return null
@@ -54,7 +56,7 @@ function SearchSection({
           hasMore={section.hasMore}
           onLoadMore={section.onLoadMore}
           onSelect={onEntitySelect}
-          emptyState={<div className="search-overlay__empty-inline">No se encontraron resultados.</div>}
+          emptyState={<div className="search-overlay__empty-inline">{emptyResultsLabel}</div>}
         />
       )}
     </section>
@@ -62,6 +64,7 @@ function SearchSection({
 }
 
 export function SearchOverlay({ triggerRef }) {
+  const { t } = useI18n()
   const {
     isOpen,
     closeSearch,
@@ -162,11 +165,11 @@ export function SearchOverlay({ triggerRef }) {
             type="text"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Busca canciones, playlists, directorios o accesos rapidos..."
+            placeholder={t('search.placeholder')}
           />
         </div>
 
-        <div className="search-overlay__filters" role="toolbar" aria-label="Filtros de busqueda">
+        <div className="search-overlay__filters" role="toolbar" aria-label={t('search.filters')}>
           {FILTERS.map((filter) => (
             <button
               key={filter.id}
@@ -176,7 +179,7 @@ export function SearchOverlay({ triggerRef }) {
               onClick={() => toggleFilter(filter.id)}
             >
               {filter.icon}
-              <span>{filter.label}</span>
+              <span>{t(filter.labelKey)}</span>
               {filters[filter.id] ? <LuCheck /> : null}
             </button>
           ))}
@@ -185,10 +188,10 @@ export function SearchOverlay({ triggerRef }) {
         <div className="search-overlay__content">
           {!hasQuery ? (
             <div className="search-overlay__empty-state">
-              <p>Escribe para buscar sin salir de la vista actual.</p>
+              <p>Type to search without leaving the current view.</p>
               <span>
-                `Name` y `Artist` ya estan activos. Activa mas filtros si quieres incluir
-                playlists, directorios o configuracion.
+                `Name` and `Artist` are already active. Enable more filters to include
+                playlists, directories, or configuration.
               </span>
             </div>
           ) : null}
@@ -199,6 +202,7 @@ export function SearchOverlay({ triggerRef }) {
               section={section}
               hasQuery={hasQuery}
               onSongSelect={handleSongSelect}
+              emptyResultsLabel="No results found."
               onEntitySelect={(item) => {
                 if (section.id === 'playlists') {
                   void handlePlaylistSelect(item)
@@ -217,8 +221,8 @@ export function SearchOverlay({ triggerRef }) {
 
           {hasQuery && hasActiveCategories && visibleSections.length === 0 ? (
             <div className="search-overlay__empty-state">
-              <p>No se encontraron resultados.</p>
-              <span>Prueba otra busqueda o activa mas filtros para ampliar resultados.</span>
+              <p>No results found.</p>
+              <span>{t('search.noResults')}</span>
             </div>
           ) : null}
         </div>

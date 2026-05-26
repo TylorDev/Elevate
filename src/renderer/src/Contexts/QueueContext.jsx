@@ -9,6 +9,7 @@ import {
   toShuffle
 } from './utilControls'
 import { electronInvoke } from './utils'
+import { useI18n } from './I18nContext'
 
 const QueueContext = createContext(null)
 
@@ -52,6 +53,7 @@ function getOriginalQueue(queueState) {
 
 export const QueueProvider = ({ children }) => {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [queueState, setQueueState] = useState(() =>
     readStorageValue('queueState', EMPTY_QUEUE_STATE)
   )
@@ -287,7 +289,7 @@ export const QueueProvider = ({ children }) => {
           }
         }
 
-        toast.success('Eliminada correctamente!', {
+        toast.success(t('queue.removed'), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -306,7 +308,7 @@ export const QueueProvider = ({ children }) => {
         }
       })
     },
-    [currentFile?.filePath, currentIndex]
+    [currentFile?.filePath, currentIndex, t]
   )
 
   const openDirectoryQueue = useCallback(
@@ -460,7 +462,7 @@ export const QueueProvider = ({ children }) => {
         })
 
         setTimeout(() => {
-          toast.success('Eliminada correctamente!', {
+          toast.success(t('queue.removed'), {
             position: 'bottom-right',
             autoClose: 3000,
             hideProgressBar: false,
@@ -474,7 +476,7 @@ export const QueueProvider = ({ children }) => {
         }, 1000)
       }
     },
-    [currentFile?.filePath, currentIndex]
+    [currentFile?.filePath, currentIndex, t]
   )
 
   const addSong = useCallback(
@@ -498,7 +500,7 @@ export const QueueProvider = ({ children }) => {
             originalQueue: nextOriginalQueue
           }
         })
-        toast.success(`Agregada: ${result.songName}`, {
+        toast.success(t('queue.songAdded', { name: result.songName }), {
           position: 'bottom-right',
           autoClose: 3000,
           hideProgressBar: false,
@@ -511,7 +513,7 @@ export const QueueProvider = ({ children }) => {
         })
       }
     },
-    [currentFile, isShuffled]
+    [currentFile, isShuffled, t]
   )
 
   const handleSongClick = useCallback(

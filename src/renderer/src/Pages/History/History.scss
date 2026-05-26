@@ -5,12 +5,16 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  max-width: 1200px;
+  
   margin: 0 auto;
   height: 100%;
   overflow: hidden;
-  background-color: $background;
 
+  
+ backdrop-filter: blur(15px);
+  background-color: rgba(0, 0, 0, 0.596);
+
+  
   .history-header {
     display: flex;
     flex-direction: column;

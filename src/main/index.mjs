@@ -77,6 +77,12 @@ try {
 
 const hardwareAccelerationDisabled =
   process.env.ELECTRON_DISABLE_HARDWARE_ACCELERATION?.trim() === '1'
+const remoteDebuggingPort = process.env.ELECTRON_REMOTE_DEBUGGING_PORT?.trim()
+
+if (!app.isPackaged && remoteDebuggingPort) {
+  app.commandLine.appendSwitch('remote-debugging-port', remoteDebuggingPort)
+  app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1')
+}
 
 if (process.platform === 'win32') {
   // On some Windows/driver combinations Chromium's separate GPU process can
@@ -186,6 +192,71 @@ function sendAppCommand(command) {
   }
 
   mainWin.webContents.send(appCommandChannel, command)
+}
+
+function toggleMainWindowDevTools() {
+  try {
+    if (!mainWin || mainWin.isDestroyed()) {
+      log.warn('Cannot toggle DevTools: main window is not available.')
+      return false
+    }
+
+    const { webContents } = mainWin
+
+    if (!webContents || webContents.isDestroyed()) {
+      log.warn('Cannot toggle DevTools: webContents is not available.')
+      return false
+    }
+
+    if (webContents.isDevToolsOpened()) {
+      webContents.closeDevTools()
+      return true
+    }
+
+    webContents.openDevTools({ mode: 'right', activate: true })
+    return true
+  } catch (error) {
+    log.error('Failed to toggle DevTools:', error?.message || error)
+    if (error?.stack) {
+      log.error('DevTools toggle stack:', error.stack)
+    }
+    return false
+  }
+}
+
+function isDevToolsShortcut(input = {}) {
+  if (input.key === 'F12') {
+    return true
+  }
+
+  const isCtrlOrMeta = Boolean(input.control || input.meta)
+  return isCtrlOrMeta && input.shift && String(input.key).toLowerCase() === 'i'
+}
+
+function registerDevToolsShortcuts(windowInstance) {
+  const toggleDevTools = () => {
+    toggleMainWindowDevTools()
+  }
+
+  const f12Registered = globalShortcut.register('F12', toggleDevTools)
+  const inspectorRegistered = globalShortcut.register('CommandOrControl+Shift+I', toggleDevTools)
+
+  if (!f12Registered) {
+    log.warn('Global shortcut F12 was not registered; using webContents fallback.')
+  }
+
+  if (!inspectorRegistered) {
+    log.warn('Global shortcut CommandOrControl+Shift+I was not registered; using webContents fallback.')
+  }
+
+  windowInstance.webContents.on('before-input-event', (event, input) => {
+    if (!isDevToolsShortcut(input)) {
+      return
+    }
+
+    event.preventDefault()
+    toggleMainWindowDevTools()
+  })
 }
 
 const GRID_PRESET_CELLS = {
@@ -541,27 +612,13 @@ function createWindow() {
       mainWindow.show()
     }
 
-    mainWindow.webContents.openDevTools()
-
-    globalShortcut.register('F12', () => {
-      if (mainWindow.webContents.isDevToolsOpened()) {
-        mainWindow.webContents.closeDevTools()
-      } else {
-        mainWindow.webContents.openDevTools()
-      }
-    })
-
-    globalShortcut.register('CommandOrControl+Shift+I', () => {
-      if (mainWindow.webContents.isDevToolsOpened()) {
-        mainWindow.webContents.closeDevTools()
-      } else {
-        mainWindow.webContents.openDevTools()
-      }
-    })
+    toggleMainWindowDevTools()
 
     sendWindowState()
     updateTaskbarControls()
   })
+
+  registerDevToolsShortcuts(mainWindow)
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
@@ -699,8 +756,11 @@ if (!gotTheLock) {
   })
 
   app.on('render-process-gone', (event, details) => {
-    log.error('Render process gone:', details.reason)
-    log.error('Exit code:', details.exitCode)
+    log.error('Render process gone:', JSON.stringify({
+      reason: details?.reason,
+      exitCode: details?.exitCode,
+      devToolsOpened: Boolean(mainWin?.webContents && !mainWin.webContents.isDestroyed() && mainWin.webContents.isDevToolsOpened())
+    }))
   })
 
   app.on('child-process-gone', (event, details) => {

@@ -1239,7 +1239,7 @@ async function searchDirectoriesPage(request = {}) {
     title: getPathLeaf(directory.path),
     subtitle:
       directory.directoryKind === 'root'
-        ? `Raiz · ${visibleTracks ?? 0} tracks`
+        ? `Root - ${visibleTracks ?? 0} tracks`
         : `${visibleTracks ?? 0} tracks`,
     meta: directory.path,
     actionPayload: {
@@ -1459,7 +1459,7 @@ export function setupFilehandlers() {
       return await getDirectoryDetail(directoryPath)
     } catch (error) {
       console.error('Error retrieving directory detail:', error)
-      return { success: false, error: error.message || 'No se pudo cargar el directorio.' }
+      return { success: false, error: error.message || 'Could not load the directory.' }
     }
   })
 
@@ -1468,7 +1468,7 @@ export function setupFilehandlers() {
       return await getCollectionOverview(request)
     } catch (error) {
       console.error('Error retrieving collection overview:', error)
-      return { success: false, error: error.message || 'No se pudo cargar la coleccion.' }
+      return { success: false, error: error.message || 'Could not load the collection.' }
     }
   })
 
@@ -1477,7 +1477,7 @@ export function setupFilehandlers() {
       return await getCollectionTracksPage(request)
     } catch (error) {
       console.error('Error retrieving collection tracks page:', error)
-      return { success: false, error: error.message || 'No se pudieron cargar las canciones.' }
+      return { success: false, error: error.message || 'Could not load songs.' }
     }
   })
 
@@ -1694,7 +1694,7 @@ export function setupFilehandlers() {
       return { success: true }
     } catch (error) {
       console.error('Error revealing path in explorer:', error)
-      return { success: false, error: error.message || 'No se pudo abrir el explorador.' }
+      return { success: false, error: error.message || 'Could not open the explorer.' }
     }
   })
 
@@ -1713,7 +1713,7 @@ export function setupFilehandlers() {
       return { success: true }
     } catch (error) {
       console.error('Error opening directory in explorer:', error)
-      return { success: false, error: error.message || 'No se pudo abrir la carpeta.' }
+      return { success: false, error: error.message || 'Could not open the folder.' }
     }
   })
 

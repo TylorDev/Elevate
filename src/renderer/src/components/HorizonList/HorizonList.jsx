@@ -81,7 +81,7 @@ export const HorizonList = forwardRef((props, ref) => {
           />
         ))}
         {topTracks.length === 0 && (
-          <p className="no-data">No hay datos de reproducción aún.</p>
+          <p className="no-data">There is no playback data yet.</p>
         )}
       </div>
     </div>

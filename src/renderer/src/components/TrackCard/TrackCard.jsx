@@ -64,7 +64,7 @@ export const TrackCard = memo(function TrackCard({ song, index, list, isFocused 
   const menuOptions = useMemo(
     () => [
       { id: 'add-queue', label: 'Agregar a cola actual', icon: <FaPlusCircle /> },
-      { id: 'add-later', label: 'Agregar a ver más tarde', icon: <FaClock /> },
+      { id: 'add-later', label: 'Add later', icon: <FaClock /> },
       { id: 'add-playlist', label: 'Agregar a playlist', icon: <FaListUl /> }
     ],
     []

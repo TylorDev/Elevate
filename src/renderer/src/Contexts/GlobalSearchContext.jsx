@@ -9,39 +9,13 @@ import {
 } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useQueue } from './QueueContext'
+import { useI18n } from './I18nContext'
 
 const GlobalSearchContext = createContext(null)
 
 const SONGS_PAGE_SIZE = 50
 const PLAYLISTS_PAGE_SIZE = 30
 const DIRECTORIES_PAGE_SIZE = 30
-
-const SETTING_ITEMS = [
-  {
-    type: 'setting',
-    id: 'change-background',
-    title: 'Cambiar Fondo',
-    subtitle: 'Abrir ajustes visuales',
-    meta: '/settings',
-    actionPayload: { route: '/settings' }
-  },
-  {
-    type: 'setting',
-    id: 'primary-color',
-    title: 'Color Principal',
-    subtitle: 'Abrir ajustes de color',
-    meta: '/settings',
-    actionPayload: { route: '/settings' }
-  },
-  {
-    type: 'setting',
-    id: 'add-directory',
-    title: 'Anadir un directorio',
-    subtitle: 'Abrir ajustes de libreria',
-    meta: '/settings',
-    actionPayload: { route: '/settings' }
-  }
-]
 
 function normalizeSearchQuery(value) {
   if (typeof value !== 'string') {
@@ -61,13 +35,13 @@ function createCategoryState() {
   }
 }
 
-function filterSettingItems(query) {
+function filterSettingItems(query, settingItems) {
   if (!query) {
-    return SETTING_ITEMS
+    return settingItems
   }
 
   const loweredQuery = query.toLocaleLowerCase()
-  return SETTING_ITEMS.filter((item) =>
+  return settingItems.filter((item) =>
     `${item.title} ${item.subtitle}`.toLocaleLowerCase().includes(loweredQuery)
   )
 }
@@ -75,6 +49,7 @@ function filterSettingItems(query) {
 export function GlobalSearchProvider({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useI18n()
   const { appendToQueueAndPlay, handleQueueAndPlay, openDirectoryQueue } = useQueue()
 
   const [isOpen, setIsOpen] = useState(false)
@@ -345,15 +320,15 @@ export function GlobalSearchProvider({ children }) {
       return []
     }
 
-    return filterSettingItems(debouncedQuery)
-  }, [debouncedQuery, filters.configuration])
+    return filterSettingItems(debouncedQuery, settingItems)
+  }, [debouncedQuery, filters.configuration, settingItems])
 
   const hasQuery = Boolean(debouncedQuery)
 
   const sections = useMemo(() => ([
     {
       id: 'songs',
-      title: 'Songs',
+      title: t('search.songs'),
       enabled: filters.name || filters.artist,
       items: songs.items,
       loading: songs.loading,
@@ -363,7 +338,7 @@ export function GlobalSearchProvider({ children }) {
     },
     {
       id: 'playlists',
-      title: 'Playlists',
+      title: t('search.playlists'),
       enabled: filters.playlist && hasQuery,
       items: playlists.items,
       loading: playlists.loading,
@@ -373,7 +348,7 @@ export function GlobalSearchProvider({ children }) {
     },
     {
       id: 'directories',
-      title: 'Directories',
+      title: t('search.directories'),
       enabled: filters.directory && hasQuery,
       items: directories.items,
       loading: directories.loading,
@@ -383,7 +358,7 @@ export function GlobalSearchProvider({ children }) {
     },
     {
       id: 'configuration',
-      title: 'Configuracion',
+      title: t('search.configuration'),
       enabled: filters.configuration,
       items: settingsItems,
       loading: false,
@@ -413,7 +388,8 @@ export function GlobalSearchProvider({ children }) {
     songs.hasMore,
     songs.items,
     songs.loading,
-    songs.total
+    songs.total,
+    t
   ])
 
   const value = useMemo(() => ({
@@ -463,3 +439,29 @@ export function useGlobalSearch() {
 
   return context
 }
+  const settingItems = useMemo(() => [
+    {
+      type: 'setting',
+      id: 'change-background',
+      title: t('search.changeBackground'),
+      subtitle: t('search.openVisualSettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    },
+    {
+      type: 'setting',
+      id: 'primary-color',
+      title: t('search.primaryColor'),
+      subtitle: t('search.openColorSettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    },
+    {
+      type: 'setting',
+      id: 'add-directory',
+      title: t('search.addDirectory'),
+      subtitle: t('search.openLibrarySettings'),
+      meta: '/settings',
+      actionPayload: { route: '/settings' }
+    }
+  ], [t])
