@@ -12,7 +12,7 @@ const SEEK_COLOR = '#ffffff'
 const BARS_COUNT = 72
 const BAR_GAP = 3
 
-export const MediaTimeDisplay = ({ variant = 'mirrored' }) => {
+export const MediaTimeDisplay = ({ variant = 'oscilloscope' }) => {
   const { currentFile } = useQueue()
   const { isPlaying, mediaElement } = usePlayback()
   const { progress, duration, handleTimelineClick } = usePlaybackProgress()
@@ -250,7 +250,7 @@ function getPointerRatio(event) {
 function normalizeVariant(variant) {
   if (variant === 'scilloscope') return 'oscilloscope'
   if (variant === 'simple') return 'simple'
-  return CANVAS_WAVEFORM_VARIANTS.has(variant) ? variant : 'mirrored'
+  return CANVAS_WAVEFORM_VARIANTS.has(variant) ? variant : 'oscilloscope'
 }
 
 function drawWaveform({

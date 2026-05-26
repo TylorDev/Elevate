@@ -46,7 +46,7 @@ export const SuperProvider = ({ children }) => {
   const [isAwaken, setIsAwaken] = useState(false)
   const [isStep, setIsStep] = useState(() => readStoredBoolean(AUDIO_STORAGE_KEYS.step, false))
   const [waveformVariant, setWaveformVariant] = useState(
-    () => localStorage.getItem('waveformVariant') || 'mirrored'
+    () => localStorage.getItem('waveformVariant') || 'oscilloscope'
   )
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(() =>
     readStoredBoolean('settings.discordRpc', true)
