@@ -1,6 +1,7 @@
 import { formatDuration } from '../../../timeUtils'
 import { FaTrash } from 'react-icons/fa'
 import { LuDownload, LuLink, LuListMusic, LuPencil, LuUnlink } from 'react-icons/lu'
+import { Bounce, toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
@@ -11,6 +12,7 @@ import { UndefinedItem } from '../../Components/UndefinedItem/UndefinedItem'
 import ConfirmActionModal from '../../components/ConfirmActionModal/ConfirmActionModal'
 import Modal from '../../components/Modal/Modal'
 import PlaylistForm from '../../components/PlaylistForm/PlaylistForm'
+import PlaylistSaveModal from '../../components/PlaylistSaveModal/PlaylistSaveModal'
 import {
   getSourceKey,
   useVisualizerListActions,
@@ -179,9 +181,38 @@ export const PlaylistItem = memo(function PlaylistItem({
         const playlistData = await new Promise((resolve) => {
           getUniqueList(resolve, playlist.path)
         })
+        const tracks = playlistData?.processedData || []
 
-        setExportTracks(playlistData?.processedData || [])
+        if (tracks.length === 0) {
+          toast.error('No hay canciones para exportar.', {
+            position: 'bottom-right',
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+            theme: 'dark',
+            transition: Bounce
+          })
+          return
+        }
+
+        setExportTracks(tracks)
         setIsExportVisible(true)
+      } catch (error) {
+        console.error('Error loading playlist for export:', error)
+        toast.error(error?.message || 'No se pudo preparar la playlist para exportar.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
       } finally {
         setIsExportLoading(false)
       }
