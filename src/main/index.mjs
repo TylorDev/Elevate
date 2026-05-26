@@ -540,6 +540,9 @@ function createWindow() {
     } else {
       mainWindow.show()
     }
+
+    mainWindow.webContents.openDevTools()
+
     globalShortcut.register('F12', () => {
       if (mainWindow.webContents.isDevToolsOpened()) {
         mainWindow.webContents.closeDevTools()

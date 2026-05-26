@@ -1178,6 +1178,65 @@ async function savePlaylistToTarget({
   invalidatePlaylistCache(playlistPath)
   return persistPlaylistRecord(playlistPath)
 }
+
+async function exportPlaylistToTarget({
+  filePaths,
+  targetPath = null,
+  targetDirectory = null,
+  nombre = ''
+} = {}) {
+  const normalizedFilePaths = sanitizePlaylistTrackPaths(filePaths)
+
+  if (normalizedFilePaths.length === 0) {
+    return {
+      success: false,
+      error: 'La playlist debe tener por lo menos una (1) canciones.'
+    }
+  }
+
+  const normalizedTargetPath =
+    typeof targetPath === 'string' && targetPath.trim() !== '' ? path.resolve(targetPath) : null
+  const normalizedTargetDirectory =
+    typeof targetDirectory === 'string' && targetDirectory.trim() !== ''
+      ? path.resolve(targetDirectory)
+      : normalizedTargetPath
+        ? path.dirname(normalizedTargetPath)
+        : ''
+
+  if (!normalizedTargetDirectory) {
+    return {
+      success: false,
+      error: 'No hay una carpeta de destino valida.'
+    }
+  }
+
+  const baseName = normalizedTargetPath ? extractPlaylistName(normalizedTargetPath) : nombre
+  const validationError = getPlaylistNameValidationError(baseName)
+
+  if (validationError) {
+    return { success: false, error: validationError }
+  }
+
+  const exportPath = normalizedTargetPath
+    ? normalizedTargetPath
+    : path.join(
+        normalizedTargetDirectory,
+        `${normalizePlaylistFileName(baseName)}.m3u`
+      )
+
+  const { success, error } = await savePlaylist(exportPath, normalizedFilePaths)
+
+  if (!success) {
+    return { success: false, error }
+  }
+
+  return {
+    success: true,
+    path: exportPath,
+    playlistName: extractPlaylistName(exportPath)
+  }
+}
+
 async function getPlaylistDetails(playlistPath) {
   const m3uDirectory = path.dirname(playlistPath)
   const tracks = await processPlaylist(playlistPath, m3uDirectory)
@@ -1836,7 +1895,13 @@ export function setupPlaylistHandlers() {
 
   ipcMain.handle('save-m3u', async (event, request = {}) => {
     try {
-      const { filePaths = [], targetPath = null, targetDirectory = null, nombre = '' } = request
+      const {
+        filePaths = [],
+        targetPath = null,
+        targetDirectory = null,
+        nombre = '',
+        persist = true
+      } = request
       const hasExplicitTargetPath = typeof targetPath === 'string' && targetPath.trim() !== ''
       const hasTargetDirectory = typeof targetDirectory === 'string' && targetDirectory.trim() !== ''
       const resolvedTargetPath = hasExplicitTargetPath
@@ -1856,14 +1921,21 @@ export function setupPlaylistHandlers() {
             ? path.dirname(resolvedTargetPath)
             : ''
 
-      const result = await savePlaylistToTarget({
+      if (persist) {
+        return savePlaylistToTarget({
+          filePaths,
+          targetPath: resolvedTargetPath,
+          targetDirectory: effectiveTargetDirectory,
+          nombre
+        })
+      }
+
+      return exportPlaylistToTarget({
         filePaths,
         targetPath: resolvedTargetPath,
         targetDirectory: effectiveTargetDirectory,
         nombre
       })
-
-      return result
     } catch (err) {
       return { success: false, error: err.message }
     }

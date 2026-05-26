@@ -90,7 +90,7 @@ export const SongItemView = memo(function SongItemView({
   return (
     <li
       ref={itemRef}
-      className={isPinned ? 'visible is-pinned' : 'visible'}
+      className={isPinned ? 'songItem-container visible is-pinned' : 'songItem-container visible'}
       style={style}
       onClick={onPlay}
       onContextMenu={onOpenMenu}

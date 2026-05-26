@@ -34,8 +34,12 @@ export const PlaylistItem = memo(function PlaylistItem({
     )
   }
 
-  const { deletePlaylist, getUniqueList, exportPlaylistTracks, updatePlaylistMetadata } =
-    usePlaylists()
+  const {
+    deletePlaylist,
+    getUniqueList,
+    updatePlaylistMetadata,
+    exportPlaylistTracksToDirectory
+  } = usePlaylists()
   const { getCollectionCoverUrl, useCollectionCover } = useImages()
   const { handleQueueAndPlay } = useQueue()
   const navigate = useNavigate()
@@ -43,6 +47,9 @@ export const PlaylistItem = memo(function PlaylistItem({
   const [isEditVisible, setIsEditVisible] = useState(false)
   const [isEditLoading, setIsEditLoading] = useState(false)
   const [editPayload, setEditPayload] = useState(null)
+  const [isExportVisible, setIsExportVisible] = useState(false)
+  const [exportTracks, setExportTracks] = useState([])
+  const [isExportLoading, setIsExportLoading] = useState(false)
   const { presetLists, sourceAssociations } = useVisualizerSources()
   const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
   const playlistSource = useMemo(
@@ -139,7 +146,7 @@ export const PlaylistItem = memo(function PlaylistItem({
       }
     },
     { id: 'edit', label: 'Edit Playlist', icon: <LuPencil /> },
-    { id: 'export', label: 'Export as M3U', icon: <LuDownload /> },
+    { id: 'export', label: 'Export as M3U', icon: <LuDownload />, disabled: isExportLoading },
     { id: 'delete', label: 'Delete Playlist', icon: <FaTrash color="#ff4444" /> }
   ]
 
@@ -167,13 +174,17 @@ export const PlaylistItem = memo(function PlaylistItem({
     }
 
     if (optionId === 'export') {
-      const playlistData = await new Promise((resolve) => {
-        getUniqueList(resolve, playlist.path)
-      })
+      setIsExportLoading(true)
+      try {
+        const playlistData = await new Promise((resolve) => {
+          getUniqueList(resolve, playlist.path)
+        })
 
-      await exportPlaylistTracks(playlistData?.processedData || [], {
-        suggestedName: playlist.nombre
-      })
+        setExportTracks(playlistData?.processedData || [])
+        setIsExportVisible(true)
+      } finally {
+        setIsExportLoading(false)
+      }
     }
   }
 
@@ -204,6 +215,27 @@ export const PlaylistItem = memo(function PlaylistItem({
           />
         )}
       </Modal>
+
+      <PlaylistSaveModal
+        isVisible={isExportVisible}
+        onClose={() => {
+          setIsExportVisible(false)
+          setExportTracks([])
+          setIsExportLoading(false)
+        }}
+        tracks={exportTracks}
+        sourceName={playlist.path}
+        onSubmitSave={({ tracks, targetDirectory, nombre, replacePath }) =>
+          exportPlaylistTracksToDirectory(tracks, {
+            targetDirectory,
+            nombre,
+            replacePath
+          })
+        }
+        submitLabel="Export"
+        titleOverride="Exportar playlist como M3U"
+        modeLabel="Export M3U"
+      />
 
       <UndefinedItem
         cover={back}

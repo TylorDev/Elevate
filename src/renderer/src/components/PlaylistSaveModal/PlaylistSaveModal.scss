@@ -1,7 +1,8 @@
 .playlist-save-modal {
-
+  width: min(96vw, 1120px);
   max-height: min(88vh, 920px);
- 
+  height: min(88vh, 920px);
+  min-height: 0;
   padding: 0.5rem;
   background:
     radial-gradient(
@@ -14,14 +15,15 @@
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   transition: height 0.3s ease;
-
 }
 
 .playlist-save-modal__form {
   display: flex;
   flex-direction: column;
- 
+  gap: 0.75rem;
   width: 100%;
+  height: 100%;
+  min-height: 0;
   color: $text-primary;
 }
 
@@ -68,12 +70,14 @@
 .playlist-save-modal__browser {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0.8rem;
+  flex: 1 1 auto;
   min-height: 0;
-  padding: 18px;
+  padding: 1rem;
   border-radius: $border-radius;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
 }
 
 .playlist-save-modal__toolbar {
@@ -154,15 +158,19 @@
 }
 
 .playlist-save-modal__content {
-  display: block;
+  display: flex;
+  flex: 1 1 auto;
   min-height: 0;
+  overflow: hidden;
 }
 
 .playlist-save-modal__section {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   min-height: 0;
-  gap: 14px;
+  gap: 0.75rem;
+  overflow: hidden;
 }
 
 .playlist-save-modal__section-head {
@@ -193,19 +201,25 @@
 
 .playlist-save-modal__browser-grid {
   display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.5rem;
+  align-content: start;
+  padding-right: 0.2rem;
 }
 
 .playlist-save-modal__footer {
   display: block;
+  flex: 0 0 auto;
 }
 
 .playlist-save-modal__footer-bar {
   display: flex;
   align-items: flex-end;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 0.8rem 0.9rem;
   border-radius: $border-radius;
   background: rgba(255, 255, 255, 0.04);
 }
@@ -310,10 +324,17 @@
   margin-top: -4px;
 }
 
+@media (max-width: 1100px) {
+  .playlist-save-modal__browser-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .playlist-save-modal {
-    min-width: 96vw;
-    padding: 20px 16px;
+    width: min(97vw, 900px);
+    height: min(90vh, 840px);
+    padding: 0.75rem;
   }
 
   .playlist-save-modal__toolbar {
@@ -339,20 +360,49 @@
 }
 
 @media (max-width: 640px) {
+  .playlist-save-modal {
+    width: min(98vw, 640px);
+    height: min(92vh, 760px);
+    padding: 0.65rem;
+  }
+
+  .playlist-save-modal__browser {
+    padding: 0.75rem;
+    gap: 0.65rem;
+  }
+
   .playlist-save-modal__header {
     flex-direction: column;
   }
 
   .playlist-save-modal__toolbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
   }
 
   .playlist-save-modal__nav-button {
-    justify-content: flex-start;
+    min-height: 40px;
+    padding: 0;
+  }
+
+  .playlist-save-modal__address {
+    grid-column: 1 / -1;
+    min-height: 42px;
+    padding: 0 0.75rem;
+
+    input {
+      font-size: 0.88rem;
+    }
   }
 
   .playlist-save-modal__browser-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .playlist-save-modal__footer-bar {
+    gap: 0.75rem;
+    padding: 0.7rem 0.75rem;
   }
 
   .playlist-save-modal__actions {
@@ -361,5 +411,47 @@
     button {
       width: 100%;
     }
+  }
+}
+
+@media (max-width: 460px) {
+  .playlist-save-modal {
+    width: 99vw;
+    height: 94vh;
+    padding: 0.5rem;
+  }
+
+  .playlist-save-modal__browser {
+    padding: 0.65rem;
+  }
+
+  .playlist-save-modal__browser-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 720px) {
+  .playlist-save-modal {
+    height: min(94vh, 700px);
+  }
+
+  .playlist-save-modal__browser {
+    padding: 0.75rem;
+  }
+
+  .playlist-save-modal__footer-bar {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .playlist-save-modal__name-field {
+    gap: 0.4rem;
+
+    input {
+      min-height: 44px;
+    }
+  }
+
+  .playlist-save-modal__actions button {
+    min-height: 40px;
   }
 }

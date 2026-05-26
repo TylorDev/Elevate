@@ -580,6 +580,84 @@ export const PlaylistsProvider = ({ children }) => {
     return result
   }, [])
 
+  const exportPlaylistTracksToDirectory = useCallback(
+    async (tracks = [], { targetDirectory = '', nombre = '', replacePath = null } = {}) => {
+      const filePaths = tracks
+        .map((track) => track?.filePath)
+        .filter((filePath) => typeof filePath === 'string' && filePath.trim() !== '')
+
+      if (filePaths.length === 0) {
+        toast.error('No hay canciones para exportar.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return { success: false, error: 'No tracks to export' }
+      }
+
+      let result
+
+      try {
+        result = await dedupedInvoke('save-m3u', {
+          filePaths,
+          targetDirectory,
+          targetPath: replacePath,
+          nombre,
+          persist: false
+        })
+      } catch (error) {
+        toast.error(error?.message || 'No se pudo exportar la playlist.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return { success: false, error: error?.message || 'Error exporting playlist' }
+      }
+
+      if (!result?.success) {
+        toast.error(result?.error || 'No se pudo exportar la playlist.', {
+          position: 'bottom-right',
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: 'dark',
+          transition: Bounce
+        })
+        return result
+      }
+
+      toast.success(`Playlist exportada: ${result.playlistName}`, {
+        position: 'bottom-right',
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: 'dark',
+        transition: Bounce
+      })
+
+      return result
+    },
+    []
+  )
+
   const deleteDirectoryList = useCallback(async (path) => {
     await deleteDirectory(path)
     SetAllSongs([])
@@ -716,6 +794,7 @@ export const PlaylistsProvider = ({ children }) => {
       appendTracksToPlaylist,
       deleteDirectoryList,
       exportPlaylistTracks,
+      exportPlaylistTracksToDirectory,
       resolvePlaylistSaveDirectory,
       listPlaylistSaveDirectory,
       savePlaylistFromTracks
@@ -747,6 +826,7 @@ export const PlaylistsProvider = ({ children }) => {
       randomPlaylist,
       removeSongFromList,
       exportPlaylistTracks,
+      exportPlaylistTracksToDirectory,
       resolvePlaylistSaveDirectory,
       listPlaylistSaveDirectory,
       savePlaylistFromTracks,

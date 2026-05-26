@@ -20,7 +20,11 @@ import { CollectionEntityItem } from './components/CollectionEntityItem'
 import './Feed.scss'
 
 const FEED_PAGE_SIZE = 30
-const FEED_ROW_HEIGHT = 86
+const FEED_ROW_HEIGHTS = {
+  default: 86,
+  vertical: 76,
+  horizontal: 60
+}
 const FEED_OVERSCAN_COUNT = 6
 const FEED_LIST_MIN_HEIGHT = 86
 
@@ -179,6 +183,7 @@ const CollectionEntityRow = memo(function CollectionEntityRow({ index, style, da
   return (
     <CollectionEntityItem
       collection={collection}
+      compactLayout={data.compactLayout}
       insightValueLabel={data.activeTab.formatItemValue(collection)}
       onOpen={() => data.onOpenCollection(collection)}
       style={style}
@@ -210,6 +215,7 @@ function Feed() {
       ? 'vertical'
       : 'default'
   const shouldUseCompactFeedCards = feedCompactLayout !== 'default'
+  const feedRowHeight = FEED_ROW_HEIGHTS[feedCompactLayout] || FEED_ROW_HEIGHTS.default
   const feedClassName = `Feed${feedCompactLayout === 'vertical' ? ' Feed--movil' : ''}${
     feedCompactLayout === 'horizontal' ? ' Feed--movil-horizontal' : ''
   }`
@@ -449,10 +455,11 @@ function Feed() {
   const virtualListData = useMemo(
     () => ({
       items: activeRows,
+      compactLayout: feedCompactLayout,
       activeTab,
       onOpenCollection: handleOpenCollection
     }),
-    [activeRows, activeTab, handleOpenCollection]
+    [activeRows, activeTab, feedCompactLayout, handleOpenCollection]
   )
 
   const renderRankingCards = () => (
@@ -576,7 +583,7 @@ function Feed() {
               const collection = data.items[index]
               return collection ? `${collection.type}:${collection.path}` : `collection-${index}`
             }}
-            itemSize={FEED_ROW_HEIGHT}
+            itemSize={feedRowHeight}
             overscanCount={FEED_OVERSCAN_COUNT}
             width="100%"
           >

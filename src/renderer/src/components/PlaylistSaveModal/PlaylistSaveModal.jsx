@@ -109,7 +109,16 @@ function buildBrowserEntries(directoryState) {
   ]
 }
 
-export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName = '' }) {
+export function PlaylistSaveModal({
+  isVisible,
+  onClose,
+  tracks = [],
+  sourceName = '',
+  onSubmitSave = null,
+  submitLabel = 'Save',
+  titleOverride = '',
+  modeLabel = ''
+}) {
   const { resolvePlaylistSaveDirectory, listPlaylistSaveDirectory, savePlaylistFromTracks } =
     usePlaylists()
   const [currentDirectory, setCurrentDirectory] = useState('')
@@ -128,6 +137,8 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
   const canGoBack = historyIndex > 0
   const canGoForward = historyIndex >= 0 && historyIndex < navigationHistory.length - 1
   const browserEntries = useMemo(() => buildBrowserEntries(directoryState), [directoryState])
+  const modalTitle = titleOverride || 'Guardar playlist'
+  const submitButtonLabel = isSaving ? 'Saving...' : submitLabel
 
   const loadDirectory = useCallback(
     async (directoryPath, options = {}) => {
@@ -335,11 +346,18 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
       setError('')
 
       try {
-        const result = await savePlaylistFromTracks(tracks, {
-          nombre: normalizedName,
-          targetDirectory: currentDirectory,
-          replacePath: selectedFilePath
-        })
+        const result = onSubmitSave
+          ? await onSubmitSave({
+              tracks,
+              nombre: normalizedName,
+              targetDirectory: currentDirectory,
+              replacePath: selectedFilePath
+            })
+          : await savePlaylistFromTracks(tracks, {
+              nombre: normalizedName,
+              targetDirectory: currentDirectory,
+              replacePath: selectedFilePath
+            })
 
         if (result?.success) {
           onClose()
@@ -351,12 +369,19 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
         setIsSaving(false)
       }
     },
-    [currentDirectory, nombre, onClose, savePlaylistFromTracks, selectedFilePath, tracks]
+    [currentDirectory, nombre, onClose, onSubmitSave, savePlaylistFromTracks, selectedFilePath, tracks]
   )
 
   return (
     <Modal isVisible={isVisible} closeModal={onClose} contentClassName="playlist-save-modal">
       <form className="playlist-save-modal__form" onSubmit={handleSubmit}>
+        <div className="playlist-save-modal__header">
+          <div className="playlist-save-modal__header-copy">
+            {modeLabel ? <span className="playlist-save-modal__eyebrow">{modeLabel}</span> : null}
+            <h2>{modalTitle}</h2>
+          </div>
+        </div>
+
         <section className="playlist-save-modal__browser" aria-label="Explorador de playlists">
           <div className="playlist-save-modal__toolbar">
             <button
@@ -367,7 +392,6 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
               aria-label="Previous"
             >
               <LuArrowLeft />
-              <span>Previous</span>
             </button>
 
             <button
@@ -378,7 +402,6 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
               aria-label="Next"
             >
               <LuArrowRight />
-              <span>Next</span>
             </button>
 
             <button
@@ -389,7 +412,6 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
               aria-label="Up"
             >
               <LuMoveUp />
-              <span>Up</span>
             </button>
 
             <div className="playlist-save-modal__address">
@@ -478,7 +500,7 @@ export function PlaylistSaveModal({ isVisible, onClose, tracks = [], sourceName 
                 Cancel
               </button>
               <button type="submit" disabled={isSaving || isLoading || trackCount === 0}>
-                {isSaving ? 'Saving...' : 'Save'}
+                {submitButtonLabel}
               </button>
             </div>
           </div>

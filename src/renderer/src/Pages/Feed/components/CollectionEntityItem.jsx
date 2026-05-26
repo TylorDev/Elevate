@@ -8,8 +8,15 @@ function formatMetricNumber(value) {
   return new Intl.NumberFormat('es').format(Number(value) || 0)
 }
 
-function CollectionEntityItemComponent({ collection, insightValueLabel = '', onOpen, style }) {
+function CollectionEntityItemComponent({
+  collection,
+  insightValueLabel = '',
+  onOpen,
+  style,
+  compactLayout = 'default'
+}) {
   const { useCollectionCover } = useImages()
+
   const coverKey =
     collection?.type === 'playlist' && collection?.path
       ? `playlist:auto:${collection.path}`
@@ -25,9 +32,10 @@ function CollectionEntityItemComponent({ collection, insightValueLabel = '', onO
   }
 
   const Icon = collection.type === 'playlist' ? LuListMusic : LuFolderOpen
+  const itemClassName = `collection-entity-item collection-entity-item--${compactLayout}`
 
   return (
-    <div className="collection-entity-item" style={style}>
+    <div className={itemClassName} style={style}>
       <button type="button" className="collection-entity-item__button" onClick={onOpen}>
         <div className="collection-entity-item__cover">
           <img src={coverUrl} loading="lazy" alt="" />

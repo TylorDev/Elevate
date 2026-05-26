@@ -5,8 +5,8 @@ import Background from '../../Components/Background/Background'
 import { VisualizerProvider } from '../../Contexts/VisualizerContext'
 import StatusBar from '../../components/StatusBar/StatusBar'
 import './Main.scss'
-import { Outlet } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useSuper } from '../../Contexts/SupeContext'
 import QueueTabsPanel from '../../components/QueueTabsPanel/QueueTabsPanel'
@@ -18,15 +18,31 @@ import {
 } from '../../utils/compactViewport'
 
 const AUTO_HIDE_LAYOUT_BREAKPOINT = 950
+const MOBILE_QUEUE_REDIRECT_BREAKPOINT = 700
 
 function Main() {
   const { scrollRef } = useSuper()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const outletMeasureRef = useRef(null)
+  const queueNavigationRedirectRef = useRef(false)
   const isCompactHeight = useIsCompactViewportHeight()
   const isCompactHeaderMode = useIsCompactHeaderViewport()
   const isCollectionHorizontalViewport = useIsCollectionHorizontalViewport()
   const isCollectionMovilEligibleViewport = useIsCollectionMovilEligibleViewport()
+  const [outletDimensions, setOutletDimensions] = useState({
+    width: 0,
+    height: 0
+  })
   const [headerHiddenPreference, setHeaderHiddenPreference] = useState(null)
   const [queueHiddenPreference, setQueueHiddenPreference] = useState(null)
+  const [isMobileQueueRedirectViewport, setIsMobileQueueRedirectViewport] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false
+    }
+
+    return window.innerWidth <= MOBILE_QUEUE_REDIRECT_BREAKPOINT
+  })
   const [shouldAutoHidePanels, setShouldAutoHidePanels] = useState(() => {
     if (typeof window === 'undefined') {
       return false
@@ -63,6 +79,102 @@ function Main() {
     }
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_QUEUE_REDIRECT_BREAKPOINT}px)`)
+
+    const syncViewportState = (event) => {
+      setIsMobileQueueRedirectViewport(event.matches)
+    }
+
+    syncViewportState(mediaQuery)
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncViewportState)
+
+      return () => {
+        mediaQuery.removeEventListener('change', syncViewportState)
+      }
+    }
+
+    mediaQuery.addListener(syncViewportState)
+
+    return () => {
+      mediaQuery.removeListener(syncViewportState)
+    }
+  }, [])
+
+  const updateOutletDimensions = useCallback(() => {
+    const outletNode = outletMeasureRef.current
+
+    if (!outletNode) {
+      return
+    }
+
+    const nextDimensions = {
+      width: Math.round(outletNode.clientWidth),
+      height: Math.round(outletNode.clientHeight)
+    }
+
+    setOutletDimensions((currentDimensions) =>
+      currentDimensions.width === nextDimensions.width &&
+      currentDimensions.height === nextDimensions.height
+        ? currentDimensions
+        : nextDimensions
+    )
+  }, [])
+
+  useEffect(() => {
+    updateOutletDimensions()
+
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const outletNode = outletMeasureRef.current
+
+    if (!outletNode) {
+      return undefined
+    }
+
+    if (typeof window.ResizeObserver !== 'function') {
+      window.addEventListener('resize', updateOutletDimensions)
+
+      return () => {
+        window.removeEventListener('resize', updateOutletDimensions)
+      }
+    }
+
+    const resizeObserver = new window.ResizeObserver(() => {
+      updateOutletDimensions()
+    })
+
+    resizeObserver.observe(outletNode)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [updateOutletDimensions])
+
+  const handleOutletRef = useCallback(
+    (node) => {
+      outletMeasureRef.current = node
+
+      if (typeof scrollRef === 'function') {
+        scrollRef(node)
+        return
+      }
+
+      if (scrollRef && typeof scrollRef === 'object') {
+        scrollRef.current = node
+      }
+    },
+    [scrollRef]
+  )
+
   const isHeaderCollapsed =
     isCompactHeaderMode ||
     (headerHiddenPreference === null ? shouldAutoHidePanels : headerHiddenPreference)
@@ -81,6 +193,40 @@ function Main() {
     .filter(Boolean)
     .join(' ')
 
+  const handleToggleQueue = useCallback(() => {
+    const nextQueueHidden =
+      queueHiddenPreference === null ? !shouldAutoHidePanels : !queueHiddenPreference
+
+    setQueueHiddenPreference(nextQueueHidden)
+
+    if (!nextQueueHidden && isMobileQueueRedirectViewport && location.pathname !== '/music') {
+      queueNavigationRedirectRef.current = true
+      navigate('/music')
+    }
+  }, [
+    isMobileQueueRedirectViewport,
+    location.pathname,
+    navigate,
+    queueHiddenPreference,
+    shouldAutoHidePanels
+  ])
+
+  useEffect(() => {
+    if (queueNavigationRedirectRef.current && location.pathname === '/music') {
+      queueNavigationRedirectRef.current = false
+      return
+    }
+
+    if (
+      isMobileQueueRedirectViewport &&
+      !isQueueCollapsed &&
+      location.pathname !== '/music'
+    ) {
+      queueNavigationRedirectRef.current = false
+      setQueueHiddenPreference(true)
+    }
+  }, [isMobileQueueRedirectViewport, isQueueCollapsed, location.pathname])
+
   return (
     <div className={mainClassName}>
       <VisualizerProvider>
@@ -95,11 +241,7 @@ function Main() {
                 current === null ? !shouldAutoHidePanels : !current
               )
             }
-            onToggleQueue={() =>
-              setQueueHiddenPreference((current) =>
-                current === null ? !shouldAutoHidePanels : !current
-              )
-            }
+            onToggleQueue={handleToggleQueue}
           />
         </div>
         {!isHeaderCollapsed && !isCompactHeaderMode ? (
@@ -107,7 +249,7 @@ function Main() {
             <Header />
           </aside>
         ) : null}
-        <main className="outlet" ref={scrollRef}>
+        <main className="outlet" ref={handleOutletRef}>
           <Outlet
             context={{
               isHeaderHidden: isHeaderCollapsed,
@@ -118,14 +260,17 @@ function Main() {
             }}
           />
         </main>
+        <div className="Main__outlet-debug" aria-hidden="true">
+          <span className="Main__outlet-debug-label">OUTLET WIDTH</span>
+          <strong className="Main__outlet-debug-value">{outletDimensions.width}px</strong>
+          <div className="Main__outlet-debug-divider" />
+          <span className="Main__outlet-debug-label">OUTLET HEIGHT</span>
+          <strong className="Main__outlet-debug-value">{outletDimensions.height}px</strong>
+        </div>
         <div className="Main__player">
           <AudioPlayer
             isQueueHidden={isQueueCollapsed}
-            onToggleQueue={() =>
-              setQueueHiddenPreference((current) =>
-                current === null ? !shouldAutoHidePanels : !current
-              )
-            }
+            onToggleQueue={handleToggleQueue}
           />
         </div>
         <aside className="Main__queue">
