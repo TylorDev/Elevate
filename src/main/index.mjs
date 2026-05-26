@@ -573,6 +573,15 @@ function setupWindowControlHandlers() {
     mainWin.close()
   })
 
+  ipcMain.handle('window:open-external', (_, url) => {
+    if (typeof url !== 'string' || !url.trim()) {
+      return false
+    }
+
+    shell.openExternal(url)
+    return true
+  })
+
   ipcMain.handle('window:restore', () => {
     restoreMainWindow()
   })
@@ -651,6 +660,7 @@ function createWindow() {
     show: false,
     autoHideMenuBar: true,
     frame: false,
+    title: 'Elevate Music Player',
     titleBarStyle: 'hidden',
     backgroundColor: '#000000',
     icon: iconPath || undefined,

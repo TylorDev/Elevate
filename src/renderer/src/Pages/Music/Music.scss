@@ -47,6 +47,26 @@
     opacity: 0.4;
   }
 
+  .music-right-click-hint {
+    position: absolute;
+    z-index: 3;
+    min-width: 108px;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.84);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    transform: translate3d(0, 0, 0);
+  }
+
   .Player-main {
     flex: 1;
     width: 100%;
@@ -63,13 +83,24 @@
       max-width: 60vh;
       transform: scale(0.72);
       aspect-ratio: 1 / 1;
+      padding: 0;
+      border: 0;
       border-radius: $border-radius;
       overflow: hidden;
+      background: transparent;
       box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
       border-radius: $border-radius;
       transition:
         transform 220ms ease,
         box-shadow 220ms ease;
+
+      &.is-clickable {
+        cursor: pointer;
+      }
+
+      &:disabled {
+        cursor: default;
+      }
 
       .cover-container {
         width: 100%;
@@ -93,7 +124,7 @@
         }
       }
 
-      &:hover {
+      &.is-clickable:hover {
         transform: scale(0.76);
         box-shadow: 0 30px 64px rgba(0, 0, 0, 0.9);
       }

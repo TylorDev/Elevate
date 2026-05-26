@@ -5,6 +5,7 @@ import { Bounce, toast } from 'react-toastify'
 
 import { useQueue } from '../../Contexts/QueueContext'
 import { CollectionInsightsPanel } from '../../components/CollectionInsights/CollectionInsightsPanel'
+import { useI18n } from '../../Contexts/I18nContext'
 import './Statistics.scss'
 
 const RANKING_PLAY_PAGE_SIZE = 200
@@ -40,6 +41,7 @@ function mergeRankingPage(currentRanking, nextRanking) {
 }
 
 function Statistics() {
+  const { t } = useI18n()
   const outletContext = useOutletContext() || {}
   const { PlayQueue, playQueueShuffled } = useQueue()
   const [overview, setOverview] = useState(null)
@@ -66,7 +68,7 @@ function Statistics() {
         if (!alive) return
 
         if (!result?.success) {
-          setError(result?.error || 'No se pudo cargar la biblioteca completa.')
+          setError(result?.error || t('statistics.loadFailed'))
           setOverview(null)
           return
         }
@@ -78,7 +80,7 @@ function Statistics() {
         })
       } catch (loadError) {
         if (alive) {
-          setError(loadError?.message || 'No se pudo cargar la biblioteca completa.')
+          setError(loadError?.message || t('statistics.loadFailed'))
           setOverview(null)
         }
       } finally {
@@ -110,7 +112,7 @@ function Statistics() {
       })
 
       if (!response?.success) {
-        throw new Error(response?.error || 'No se pudo cargar el ranking.')
+        throw new Error(response?.error || t('rankings.loadFailed'))
       }
 
       setOverview((currentOverview) => ({
@@ -121,7 +123,7 @@ function Statistics() {
         }
       }))
     } catch (rankingError) {
-      setError(rankingError?.message || 'No se pudo cargar el ranking.')
+      setError(rankingError?.message || t('rankings.loadFailed'))
     } finally {
       setRankingLoadingTab('')
     }
@@ -143,7 +145,7 @@ function Statistics() {
         })
 
         if (!response?.success) {
-          throw new Error(response?.error || 'No se pudo cargar el ranking.')
+          throw new Error(response?.error || t('rankings.loadFailed'))
         }
 
         const ranking = response.ranking
@@ -154,14 +156,14 @@ function Statistics() {
       }
 
       if (rankingTracks.length === 0) {
-        throw new Error('This ranking has no songs to play.')
+        throw new Error(t('rankings.noSongsToPlay'))
       }
 
       playQueueShuffled(rankingTracks, `statistics:${tabId}`)
     } catch (rankingError) {
-      toastLoadError(rankingError?.message || 'No se pudo reproducir el ranking.')
+      toastLoadError(rankingError?.message || t('rankings.playFailed'))
     }
-  }, [playQueueShuffled])
+  }, [playQueueShuffled, t])
 
   const loadAllLibraryTracks = useCallback(async () => {
     if (allTracksCacheRef.current) {
@@ -176,7 +178,7 @@ function Statistics() {
       allTracksCacheRef.current = normalizedTracks
       return normalizedTracks
     } catch (loadError) {
-      throw new Error(loadError?.message || 'No se pudo cargar la biblioteca completa.')
+      throw new Error(loadError?.message || t('statistics.loadFailed'))
     } finally {
       setHydratingLibraryTracks(false)
     }
@@ -200,7 +202,7 @@ function Statistics() {
 
       playQueueShuffled(tracks, 'statistics')
     } catch (shuffleError) {
-      toastLoadError(shuffleError?.message || 'No se pudo reproducir la biblioteca en aleatorio.')
+      toastLoadError(shuffleError?.message || t('statistics.shuffleFailed'))
     } finally {
       setShufflingLibrary(false)
     }
@@ -230,8 +232,8 @@ function Statistics() {
           loadingActionCount={1}
           showAllSongsTab={false}
           loadingRows={5}
-          loadingTitle="Biblioteca completa"
-          loadingEyebrow="Biblioteca global"
+          loadingTitle={t('statistics.fullLibrary')}
+          loadingEyebrow={t('statistics.globalLibrary')}
         />
       </section>
     )
@@ -250,7 +252,7 @@ function Statistics() {
       <CollectionInsightsPanel
         rankings={overview.rankings}
         totalTrackCount={summary.trackCount || 0}
-        sourceName="Estadisticas"
+        sourceName={t('statistics.statistics')}
         mode="library"
         showAllSongsTab={false}
         rankingLoadingTab={rankingLoadingTab}
@@ -258,7 +260,7 @@ function Statistics() {
         onPlayCollectionShuffled={handlePlayLibraryShuffled}
         shuffleActionDisabled={summary.trackCount === 0 || hydratingLibraryTracks}
         shuffleActionLoading={shufflingLibrary}
-        shuffleActionLabel="Play the full library shuffled"
+        shuffleActionLabel={t('statistics.playFullShuffled')}
         onLoadMoreRanking={handleLoadMoreRanking}
         onPlayRanking={handlePlayRanking}
         isEmptyCollection={summary.trackCount === 0}

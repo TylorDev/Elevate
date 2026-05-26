@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import {
   LuArrowLeft,
   LuCalendarDays,
@@ -10,6 +10,7 @@ import {
   LuTrophy
 } from 'react-icons/lu'
 import { useSongCover } from '../../Contexts/ImagesContext'
+import { useI18n } from '../../Contexts/I18nContext'
 import './HistorySong.scss'
 
 function safeDecodeParam(value = '') {
@@ -20,11 +21,11 @@ function safeDecodeParam(value = '') {
   }
 }
 
-function formatDateTime(value) {
+function formatDateTime(value, t) {
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return 'Sin fecha'
+    return t ? t('historySong.noDate') : 'Sin fecha'
   }
 
   return new Intl.DateTimeFormat(navigator.language, {
@@ -36,11 +37,11 @@ function formatDateTime(value) {
   }).format(date)
 }
 
-function formatDay(value) {
+function formatDay(value, t) {
   const date = new Date(`${value}T00:00:00`)
 
   if (Number.isNaN(date.getTime())) {
-    return 'Sin fecha'
+    return t ? t('historySong.noDate') : 'Sin fecha'
   }
 
   return new Intl.DateTimeFormat(navigator.language, {
@@ -99,23 +100,31 @@ function buildChartGeometry(records = []) {
   }
 }
 
-function HistoryChart({ records = [] }) {
+function HistoryChart({ records = [], t }) {
   const geometry = useMemo(() => buildChartGeometry(records), [records])
+  const [activePoint, setActivePoint] = useState(null)
 
   if (records.length === 0) {
     return (
       <div className="history-song-chart history-song-chart--empty">
         <LuChartLine />
-        <span>There are not enough records to chart yet.</span>
+        <span>{t('historySong.notEnoughRecords')}</span>
       </div>
     )
   }
 
   const firstDay = records[0]?.date
   const lastDay = records[records.length - 1]?.date
+  const handlePointHover = (point) => {
+    setActivePoint(point)
+  }
+
+  const handlePointLeave = () => {
+    setActivePoint(null)
+  }
 
   return (
-    <div className="history-song-chart" aria-label="Grafico de registros historicos por dia">
+    <div className="history-song-chart" aria-label={t('historySong.chartAria')}>
       <svg viewBox={`0 0 ${geometry.width} ${geometry.height}`} role="img">
         <defs>
           <linearGradient id="historySongArea" x1="0" x2="0" y1="0" y2="1">
@@ -133,7 +142,13 @@ function HistoryChart({ records = [] }) {
         />
 
         {geometry.points.map((point) => (
-          <g key={point.date}>
+          <g
+            key={point.date}
+            className={activePoint?.date === point.date ? 'is-active' : undefined}
+            onMouseEnter={() => handlePointHover(point)}
+            onMouseMove={() => handlePointHover(point)}
+            onMouseLeave={handlePointLeave}
+          >
             <rect
               className="history-song-chart__bar"
               x={point.barX}
@@ -143,6 +158,14 @@ function HistoryChart({ records = [] }) {
               rx="2"
             />
             <circle className="history-song-chart__dot" cx={point.x} cy={point.y} r="4" />
+            <rect
+              className="history-song-chart__hit-area"
+              x={point.barX - 8}
+              y={Math.max(point.y - 18, 0)}
+              width={point.barWidth + 16}
+              height={geometry.padding.top + geometry.plotHeight - Math.max(point.y - 18, 0)}
+              rx="8"
+            />
           </g>
         ))}
 
@@ -152,9 +175,22 @@ function HistoryChart({ records = [] }) {
         <polyline className="history-song-chart__line" points={geometry.linePoints} />
       </svg>
 
+      {activePoint ? (
+        <div
+          className="history-song-chart__tooltip"
+          style={{
+            left: `${(activePoint.x / geometry.width) * 100}%`,
+            top: `${Math.max(((activePoint.y - 16) / geometry.height) * 100, 4)}%`
+          }}
+        >
+          <strong>{activePoint.count}</strong>
+          <span>{formatDay(activePoint.date, t)}</span>
+        </div>
+      ) : null}
+
       <div className="history-song-chart__labels">
-        <span>{formatDay(firstDay)}</span>
-        <span>{formatDay(lastDay)}</span>
+        <span>{formatDay(firstDay, t)}</span>
+        <span>{formatDay(lastDay, t)}</span>
       </div>
     </div>
   )
@@ -171,6 +207,8 @@ function StatTile({ icon, label, value }) {
 }
 
 function HistorySong() {
+  const { t } = useI18n()
+  const location = useLocation()
   const navigate = useNavigate()
   const params = useParams()
   const filePath = useMemo(() => safeDecodeParam(params.filePath), [params.filePath])
@@ -178,6 +216,14 @@ function HistorySong() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const coverUrl = useSongCover(timeline?.song?.filePath, 'full')
+  const handleGoBack = useCallback(() => {
+    if (window.history.length > 1 && location.key !== 'default') {
+      navigate(-1)
+      return
+    }
+
+    navigate('/history', { replace: true })
+  }, [location.key, navigate])
 
   useEffect(() => {
     let alive = true
@@ -197,7 +243,7 @@ function HistorySong() {
 
         if (!response?.success) {
           setTimeline(null)
-          setError(response?.error || 'No se pudo cargar el historial de esta cancion.')
+          setError(response?.error || t('historySong.loadFailed'))
           return
         }
 
@@ -205,7 +251,7 @@ function HistorySong() {
       } catch (loadError) {
         if (alive) {
           setTimeline(null)
-          setError(loadError?.message || 'No se pudo cargar el historial de esta cancion.')
+          setError(loadError?.message || t('historySong.loadFailed'))
         }
       } finally {
         if (alive) {
@@ -222,24 +268,24 @@ function HistorySong() {
   }, [filePath])
 
   const song = timeline?.song
-  const title = song?.title || song?.fileName || 'Cancion desconocida'
-  const artist = song?.artist || 'Artista desconocido'
+  const title = song?.title || song?.fileName || t('historySong.unknownSong')
+  const artist = song?.artist || t('historySong.unknownArtist')
   const dailyRecords = Array.isArray(timeline?.dailyRecords) ? timeline.dailyRecords : []
   const events = Array.isArray(timeline?.events) ? timeline.events : []
   const timelineEntries = useMemo(
     () => [
       {
         id: 'library-added',
-        label: 'Added to library',
+        label: t('historySong.addedToLibrary'),
         timestamp: timeline?.libraryAddedAt
       },
       ...events.map((timestamp, index) => ({
         id: `${timestamp}-${index}`,
-        label: `Registro #${index + 1}`,
+        label: t('historySong.recordNum', { num: index + 1 }),
         timestamp
       }))
     ].filter((entry) => entry.timestamp),
-    [events, timeline?.libraryAddedAt]
+    [events, timeline?.libraryAddedAt, t]
   )
 
   if (isLoading) {
@@ -247,7 +293,7 @@ function HistorySong() {
       <section className="HistorySongPage HistorySongPage--centered">
         <div className="history-song-loading">
           <LuRefreshCw />
-          Loading history...
+          {t('historySong.loading')}
         </div>
       </section>
     )
@@ -258,11 +304,11 @@ function HistorySong() {
       <section className="HistorySongPage HistorySongPage--centered">
         <div className="history-song-error">
           <LuDisc3 />
-          <h1>No se pudo abrir la cancion</h1>
+          <h1>{t('historySong.openFailed')}</h1>
           <p>{error}</p>
-          <button type="button" onClick={() => navigate('/history')}>
+          <button type="button" onClick={handleGoBack}>
             <LuArrowLeft />
-            Volver al historial
+            {t('historySong.backToHistory')}
           </button>
         </div>
       </section>
@@ -275,9 +321,9 @@ function HistorySong() {
         <button
           type="button"
           className="history-song-back"
-          onClick={() => navigate('/history')}
-          aria-label="Volver al historial"
-          title="Volver al historial"
+          onClick={handleGoBack}
+          aria-label={t('historySong.backToHistory')}
+          title={t('historySong.backToHistory')}
         >
           <LuArrowLeft />
         </button>
@@ -285,35 +331,35 @@ function HistorySong() {
         <img className="history-song-cover" src={coverUrl} alt="" />
 
         <div className="history-song-title">
-          <span>Historial de cancion</span>
+          <span>{t('historySong.songHistory')}</span>
           <h1>{title}</h1>
           <p>{artist}</p>
         </div>
       </header>
 
-      <div className="history-song-stats" aria-label="Resumen historico">
+      <div className="history-song-stats" aria-label={t('historySong.songHistory')}>
         <StatTile
           icon={<LuChartLine />}
-          label="Registros"
+          label={t('historySong.records')}
           value={timeline.totalRecords || 0}
         />
         <StatTile
           icon={<LuCalendarDays />}
-          label="En biblioteca"
-          value={formatDateTime(timeline.libraryAddedAt)}
+          label={t('historySong.inLibrary')}
+          value={formatDateTime(timeline.libraryAddedAt, t)}
         />
         <StatTile
           icon={<LuClock3 />}
-          label="Ultima vez"
-          value={timeline.lastPlayedAt ? formatDateTime(timeline.lastPlayedAt) : 'Sin registros'}
+          label={t('historySong.lastTime')}
+          value={timeline.lastPlayedAt ? formatDateTime(timeline.lastPlayedAt, t) : t('historySong.noRecords')}
         />
         <StatTile
           icon={<LuTrophy />}
-          label="Dia mas alto"
+          label={t('historySong.highestDay')}
           value={
             timeline.peakDay
-              ? `${formatDay(timeline.peakDay.date)} (${timeline.peakDay.count})`
-              : 'Sin registros'
+              ? `${formatDay(timeline.peakDay.date, t)} (${timeline.peakDay.count})`
+              : t('historySong.noRecords')
           }
         />
       </div>
@@ -322,19 +368,19 @@ function HistorySong() {
         <section className="history-song-panel history-song-panel--chart">
           <div className="history-song-panel__header">
             <div>
-              <span>Registro historico</span>
-              <h2>Reproducciones por dia</h2>
+              <span>{t('historySong.historicalRecord')}</span>
+              <h2>{t('historySong.playsPerDay')}</h2>
             </div>
-            <strong>{dailyRecords.length} dias</strong>
+            <strong>{t('historySong.days', { count: dailyRecords.length })}</strong>
           </div>
-          <HistoryChart records={dailyRecords} />
+          <HistoryChart records={dailyRecords} t={t} />
         </section>
 
         <section className="history-song-panel history-song-panel--timeline">
           <div className="history-song-panel__header">
             <div>
-              <span>Linea de tiempo</span>
-              <h2>Desde la biblioteca</h2>
+              <span>{t('historySong.timeline')}</span>
+              <h2>{t('historySong.sinceLibrary')}</h2>
             </div>
             <strong>{timelineEntries.length}</strong>
           </div>
@@ -346,13 +392,13 @@ function HistorySong() {
                   <span className="history-song-timeline__marker" />
                   <div>
                     <strong>{entry.label}</strong>
-                    <span>{formatDateTime(entry.timestamp)}</span>
+                    <span>{formatDateTime(entry.timestamp, t)}</span>
                   </div>
                 </li>
               ))}
             </ol>
           ) : (
-            <div className="history-song-empty">Todavia no hay eventos para esta cancion.</div>
+            <div className="history-song-empty">{t('historySong.noEventsYet')}</div>
           )}
         </section>
       </main>

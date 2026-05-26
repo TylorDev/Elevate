@@ -22,7 +22,19 @@ function isInputOption(option) {
 
 export const OverflowMenu = memo(
   forwardRef(function OverflowMenu(
-    { options, onSelect, className = '', showButton = true },
+    {
+      options,
+      onSelect,
+      className = '',
+      showButton = true,
+      anchorRef = null,
+      menuClassName = '',
+      onMenuMouseEnter,
+      onMenuMouseLeave,
+      onOpenChange,
+      horizontalAlign = 'default',
+      menuWidth = 240
+    },
     ref
   ) {
     const [isOpen, setIsOpen] = useState(false)
@@ -41,16 +53,17 @@ export const OverflowMenu = memo(
 
       setActiveSubmenuId(null)
       setIsOpen(false)
-    }, [activeSubmenu])
+      onOpenChange?.(false)
+    }, [activeSubmenu, onOpenChange])
 
     const openMenu = useCallback(
       (e) => {
-        if (e.type === 'contextmenu') {
+        if (e?.type === 'contextmenu') {
           e.preventDefault()
           e.stopPropagation()
 
           const menuHeight = options.length * 42 + 16
-          const menuWidth = 240
+          const resolvedMenuWidth = Number(menuWidth) || 240
 
           let top = e.clientY
           let left = e.clientX
@@ -58,38 +71,44 @@ export const OverflowMenu = memo(
           if (top + menuHeight > window.innerHeight) {
             top = window.innerHeight - menuHeight - 10
           }
-          if (left + menuWidth > window.innerWidth) {
-            left = window.innerWidth - menuWidth - 10
+          if (left + resolvedMenuWidth > window.innerWidth) {
+            left = window.innerWidth - resolvedMenuWidth - 10
           }
 
           setMenuPos({ top, left })
           setActiveSubmenuId(null)
           setIsOpen(true)
+          onOpenChange?.(true)
           return
         }
 
-        if (btnRef.current) {
-          const rect = btnRef.current.getBoundingClientRect()
+        const anchorElement = anchorRef?.current || btnRef.current
+
+        if (anchorElement) {
+          const rect = anchorElement.getBoundingClientRect()
           const spaceBelow = window.innerHeight - rect.bottom
           const menuHeight = options.length * 42 + 16
+          const resolvedMenuWidth = Number(menuWidth) || 240
 
           let top = rect.bottom + 5
-          let left = rect.left - 190
+          let left =
+            horizontalAlign === 'end' ? rect.right - resolvedMenuWidth : rect.left - 190
 
           if (spaceBelow < menuHeight && rect.top > menuHeight) {
             top = rect.top - menuHeight - 5
           }
 
           if (left < 10) left = 10
-          const rightBoundary = window.innerWidth - 230
+          const rightBoundary = window.innerWidth - resolvedMenuWidth - 10
           if (left > rightBoundary) left = rightBoundary
 
           setMenuPos({ top, left })
           setActiveSubmenuId(null)
           setIsOpen(true)
+          onOpenChange?.(true)
         }
       },
-      [options.length]
+      [anchorRef, horizontalAlign, menuWidth, onOpenChange, options.length]
     )
 
     const toggleMenu = useCallback(
@@ -119,7 +138,9 @@ export const OverflowMenu = memo(
 
     useEffect(() => {
       const handleClickOutside = (event) => {
-        if (menuRef.current && !menuRef.current.contains(event.target)) {
+        const clickedAnchor = anchorRef?.current?.contains?.(event.target)
+
+        if (menuRef.current && !menuRef.current.contains(event.target) && !clickedAnchor) {
           closeMenu()
         }
       }
@@ -139,7 +160,7 @@ export const OverflowMenu = memo(
         window.removeEventListener('resize', handleViewportChange)
         window.removeEventListener('scroll', handleViewportChange, true)
       }
-    }, [closeMenu, isOpen])
+    }, [anchorRef, closeMenu, isOpen])
 
     const renderedOptions = activeSubmenu?.items || options
 
@@ -160,7 +181,7 @@ export const OverflowMenu = memo(
         {isOpen &&
           createPortal(
             <div
-              className={`overflow-dropdown ${activeSubmenu ? 'is-submenu' : ''}`}
+              className={`overflow-dropdown ${activeSubmenu ? 'is-submenu' : ''} ${menuClassName}`.trim()}
               ref={menuRef}
               style={{
                 position: 'fixed',
@@ -169,6 +190,8 @@ export const OverflowMenu = memo(
                 zIndex: 9999
               }}
               onClick={(e) => e.stopPropagation()}
+              onMouseEnter={onMenuMouseEnter}
+              onMouseLeave={onMenuMouseLeave}
             >
               {activeSubmenu && (
                 <div className="overflow-submenu-header">

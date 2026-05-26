@@ -34,6 +34,7 @@ const electronAPI = {
     toggleMaximize: () => ipcRenderer.invoke('window:toggle-maximize'),
     restore: () => ipcRenderer.invoke('window:restore'),
     close: () => ipcRenderer.invoke('window:close'),
+    openExternal: (url) => ipcRenderer.invoke('window:open-external', url),
     quit: () => ipcRenderer.invoke('window:quit'),
     getState: () => ipcRenderer.invoke('window:get-state'),
     toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),

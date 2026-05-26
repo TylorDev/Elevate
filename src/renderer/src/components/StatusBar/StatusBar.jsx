@@ -13,6 +13,7 @@ import {
   LuSlidersHorizontal
 } from 'react-icons/lu'
 import { RxCross2 } from 'react-icons/rx'
+import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
 import { useI18n } from '../../Contexts/I18nContext'
 import { useSuper } from '../../Contexts/SupeContext'
@@ -21,9 +22,10 @@ import { WindowPresetPicker } from './WindowPresetPicker'
 import './StatusBar.scss'
 
 const developerLinks = [
-  { id: 'github', label: 'GitHub' },
-  { id: 'portfolio', label: 'Portfolio' }
+  { id: 'github', label: 'GitHub', url: 'https://github.com/TylorDev' },
+  { id: 'updates', label: 'Updates', url: 'https://github.com/TylorDev/Elevate/releases' }
 ]
+const PROFILE_MENU_CLOSE_DELAY_MS = 3000
 
 const compactHeaderNavItems = [
   {
@@ -77,7 +79,61 @@ function StatusBar({
     platform: 'unknown'
   })
   const [isWindowPresetOpen, setIsWindowPresetOpen] = useState(false)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const searchTriggerRef = useRef(null)
+  const profileMenuRef = useRef(null)
+  const profileContainerRef = useRef(null)
+  const profileTriggerRef = useRef(null)
+  const profileMenuCloseTimeoutRef = useRef(null)
+  const profileMenuModeRef = useRef(null)
+  const isProfileMenuOpenRef = useRef(false)
+
+  const clearProfileMenuCloseTimer = () => {
+    if (profileMenuCloseTimeoutRef.current) {
+      clearTimeout(profileMenuCloseTimeoutRef.current)
+      profileMenuCloseTimeoutRef.current = null
+    }
+  }
+
+  const syncProfileMenuOpenState = (nextOpen) => {
+    isProfileMenuOpenRef.current = nextOpen
+    setIsProfileMenuOpen(nextOpen)
+
+    if (!nextOpen) {
+      profileMenuModeRef.current = null
+      clearProfileMenuCloseTimer()
+    }
+  }
+
+  const openProfileMenu = (mode, event) => {
+    clearProfileMenuCloseTimer()
+    profileMenuModeRef.current = mode
+
+    if (!isProfileMenuOpenRef.current) {
+      profileMenuRef.current?.open(event)
+      return
+    }
+
+    syncProfileMenuOpenState(true)
+  }
+
+  const closeProfileMenu = () => {
+    clearProfileMenuCloseTimer()
+    profileMenuModeRef.current = null
+    profileMenuRef.current?.close()
+    syncProfileMenuOpenState(false)
+  }
+
+  const scheduleProfileMenuClose = () => {
+    if (!isProfileMenuOpenRef.current || profileMenuModeRef.current !== 'hover') {
+      return
+    }
+
+    clearProfileMenuCloseTimer()
+    profileMenuCloseTimeoutRef.current = setTimeout(() => {
+      closeProfileMenu()
+    }, PROFILE_MENU_CLOSE_DELAY_MS)
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -105,10 +161,25 @@ function StatusBar({
     }
   }, [])
 
+  useEffect(() => () => clearProfileMenuCloseTimer(), [])
+
   const isWindows = windowState.platform === 'win32'
   const maximizeLabel = windowState.isMaximized
     ? t('actions.restoreWindow')
     : t('actions.maximizeWindow')
+  const profileMenuOptions = developerLinks.map((link) => ({
+    id: link.id,
+    label: link.label
+  }))
+  const handleProfileMenuSelect = (selectedId) => {
+    const selectedLink = developerLinks.find((link) => link.id === selectedId)
+
+    if (!selectedLink?.url) {
+      return
+    }
+
+    void window.electron?.windowControls?.openExternal?.(selectedLink.url)
+  }
   const statusBarClassName = [
     'status-bar',
     isHeaderHidden && isQueueHidden ? 'status-bar--solid' : 'status-bar--transparent'
@@ -197,12 +268,38 @@ function StatusBar({
           <LuPanelRightClose />
         </StatusIconButton>
 
-        <div className="status-bar__profile" aria-label={t('navigation.developerSocials')}>
+        <div
+          ref={profileContainerRef}
+          className="status-bar__profile"
+          aria-label={t('navigation.developerSocials')}
+          onMouseEnter={() => {
+            clearProfileMenuCloseTimer()
+
+            if (profileMenuModeRef.current === 'click') {
+              return
+            }
+
+            openProfileMenu('hover')
+          }}
+          onMouseLeave={scheduleProfileMenuClose}
+        >
           <button
-            className="status-bar__profile-trigger"
+            ref={profileTriggerRef}
+            className={isProfileMenuOpen ? 'status-bar__profile-trigger is-open' : 'status-bar__profile-trigger'}
             type="button"
             title={t('navigation.developerSocials')}
-            aria-haspopup="true"
+            aria-haspopup="menu"
+            aria-expanded={isProfileMenuOpen}
+            onClick={(event) => {
+              event.stopPropagation()
+
+              if (isProfileMenuOpenRef.current && profileMenuModeRef.current === 'click') {
+                closeProfileMenu()
+                return
+              }
+
+              openProfileMenu('click', event)
+            }}
           >
             {avatarBroken ? (
               <span className="status-bar__avatar-fallback">TD</span>
@@ -217,17 +314,19 @@ function StatusBar({
             <LuChevronDown />
           </button>
 
-          <div
-            className="status-bar__profile-menu"
-            role="menu"
-            aria-label={t('navigation.developerLinks')}
-          >
-            {developerLinks.map((link) => (
-              <button key={link.id} className="status-bar__menu-item" type="button" role="menuitem">
-                {link.label}
-              </button>
-            ))}
-          </div>
+          <OverflowMenu
+            ref={profileMenuRef}
+            anchorRef={profileContainerRef}
+            options={profileMenuOptions}
+            onSelect={handleProfileMenuSelect}
+            showButton={false}
+            horizontalAlign="end"
+            menuWidth={176}
+            menuClassName="status-bar__profile-overflow"
+            onMenuMouseEnter={clearProfileMenuCloseTimer}
+            onMenuMouseLeave={scheduleProfileMenuClose}
+            onOpenChange={syncProfileMenuOpenState}
+          />
         </div>
 
         {isWindows ? (

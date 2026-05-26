@@ -1,4 +1,5 @@
 import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import Background from '../../Components/Background/Background'
@@ -211,7 +212,20 @@ function Main() {
           <QueueTabsPanel />
         </aside>
       </VisualizerProvider>
-      <ToastContainer />
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="dark"
+        className="Main__toast-container"
+        toastClassName="Main__toast"
+        bodyClassName="Main__toast-body"
+        progressClassName="Main__toast-progress"
+      />
     </div>
   )
 }

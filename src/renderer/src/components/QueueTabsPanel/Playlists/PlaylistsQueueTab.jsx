@@ -253,6 +253,7 @@ function PlaylistsQueueTab({ isActive }) {
           height="100%"
           list={currentPlaylist?.processedData || []}
           name={selectedPlaylist.path}
+          redirectActiveToMusic
           preserveOrder
           enablePinMove
           pinMoveScope="source-local"

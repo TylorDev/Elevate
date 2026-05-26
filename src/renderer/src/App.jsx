@@ -5,6 +5,7 @@ import Main from './Layouts/Main/Main'
 import { useArgv } from './Contexts/ArgvContext'
 import { usePlaylists } from './Contexts/PlaylistsContex'
 import DebugOverlay from './Components/DebugOverlay/DebugOverlay'
+import MusicRouteSkeleton from './components/MusicRouteSkeleton/MusicRouteSkeleton'
 import RouteSkeleton from './components/RouteSkeleton/RouteSkeleton'
 
 // Lazy-loaded pages — each page loads as a separate chunk on demand
@@ -148,7 +149,7 @@ function App() {
     <div className="App">
       <Routes>
         <Route path="/" element={<Main />}>
-          <Route index element={<Navigate to="/statistics" replace />} />
+          <Route index element={<Navigate to="/music" replace />} />
           <Route
             path="/feed"
             element={
@@ -273,7 +274,7 @@ function App() {
           <Route
             path="/music"
             element={
-              <Suspense fallback={<PageLoader />}>
+              <Suspense fallback={<MusicRouteSkeleton />}>
                 <Music />
               </Suspense>
             }

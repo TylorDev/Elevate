@@ -57,7 +57,7 @@ function QueueTabsPanel() {
           id={`queue-tab-${activeTabConfig.id}`}
           aria-labelledby={`queue-tab-button-${activeTabConfig.id}`}
         >
-          <ActiveComponent isActive />
+          <ActiveComponent isActive onSelectTab={setActiveTab} />
         </section>
       </div>
     </aside>

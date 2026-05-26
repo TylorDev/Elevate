@@ -9,6 +9,9 @@ const SuperContext = createContext()
 const AUDIO_STORAGE_KEYS = {
   step: 'audioControls.step'
 }
+const UI_STORAGE_KEYS = {
+  rightClickHintDisabled: 'settings.disableRightClickHint'
+}
 
 function readStoredBoolean(key, fallback = false) {
   try {
@@ -48,6 +51,9 @@ export const SuperProvider = ({ children }) => {
   const [discordRpcEnabled, setDiscordRpcEnabled] = useState(() =>
     readStoredBoolean('settings.discordRpc', true)
   )
+  const [rightClickHintDisabled, setRightClickHintDisabled] = useState(() =>
+    readStoredBoolean(UI_STORAGE_KEYS.rightClickHintDisabled, false)
+  )
 
   const handleWaveformVariantChange = (variant) => {
     setWaveformVariant(variant)
@@ -61,6 +67,14 @@ export const SuperProvider = ({ children }) => {
       if (!next) {
         void window.electron?.discordPresence?.clear?.()
       }
+      return next
+    })
+  }, [])
+
+  const toggleRightClickHintDisabled = useCallback(() => {
+    setRightClickHintDisabled((prev) => {
+      const next = !prev
+      localStorage.setItem(UI_STORAGE_KEYS.rightClickHintDisabled, JSON.stringify(next))
       return next
     })
   }, [])
@@ -284,7 +298,9 @@ export const SuperProvider = ({ children }) => {
       waveformVariant,
       handleWaveformVariantChange,
       discordRpcEnabled,
-      toggleDiscordRpc
+      toggleDiscordRpc,
+      rightClickHintDisabled,
+      toggleRightClickHintDisabled
     }),
     [
       color,
@@ -293,7 +309,9 @@ export const SuperProvider = ({ children }) => {
       toggleStep,
       waveformVariant,
       discordRpcEnabled,
-      toggleDiscordRpc
+      toggleDiscordRpc,
+      rightClickHintDisabled,
+      toggleRightClickHintDisabled
     ]
   )
 

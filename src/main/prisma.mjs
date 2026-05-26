@@ -1,40 +1,16 @@
 import 'dotenv/config'
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { PrismaClient } from './generated/prisma/client.ts'
+import { getStoragePaths } from './storagePaths.mjs'
 
 const require = createRequire(import.meta.url)
 const { app } = require('electron')
-const __dirname = dirname(fileURLToPath(import.meta.url))
 
 function toFileUrl(path) {
   return `file:${path.replace(/\\/g, '/')}`
-}
-
-function getPortableDataDir() {
-  if (process.env.ELEVATE_PORTABLE_DATA_DIR) {
-    return resolve(process.env.ELEVATE_PORTABLE_DATA_DIR)
-  }
-
-  if (!app.isPackaged) {
-    return null
-  }
-
-  const exeDir = dirname(app.getPath('exe'))
-
-  if (exeDir.includes('unpacked')) {
-    const unpackedDataDir = join(exeDir, 'data')
-    if (!existsSync(unpackedDataDir)) {
-      mkdirSync(unpackedDataDir, { recursive: true })
-    }
-    return unpackedDataDir
-  }
-
-  const executableDataDir = join(exeDir, 'data')
-  return existsSync(executableDataDir) ? executableDataDir : null
 }
 
 function getDatabasePath() {
@@ -46,23 +22,7 @@ function getDatabasePath() {
     return resolve(process.env.DATABASE_URL.replace(/^file:/, ''))
   }
 
-  if (!app.isPackaged) {
-    return resolve('prisma/dev.db')
-  }
-
-  const portableDataDir = getPortableDataDir()
-  return join(portableDataDir || app.getPath('userData'), 'elevate.db')
-}
-
-function findTemplateDatabase() {
-  const candidates = [
-    resolve('prisma/template.db'),
-    join(app.getAppPath(), 'prisma/template.db'),
-    join(process.resourcesPath || '', 'prisma/template.db'),
-    join(__dirname, '../../prisma/template.db')
-  ]
-
-  return candidates.find((candidate) => existsSync(candidate))
+  return getStoragePaths().databasePath
 }
 
 function ensureDatabaseFile(databasePath) {
@@ -72,7 +32,7 @@ function ensureDatabaseFile(databasePath) {
 
   mkdirSync(dirname(databasePath), { recursive: true })
 
-  const templateDatabase = findTemplateDatabase()
+  const templateDatabase = getStoragePaths().templateDatabasePath
   if (templateDatabase) {
     copyFileSync(templateDatabase, databasePath)
   }

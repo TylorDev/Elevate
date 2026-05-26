@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
-import { RiPlayFill } from 'react-icons/ri'
+import { RiFolderMusicFill, RiPlayFill } from 'react-icons/ri'
 import { Bounce, toast } from 'react-toastify'
 import { useI18n } from '../../../Contexts/I18nContext'
 import { usePlaylists } from '../../../Contexts/PlaylistsContex'
 import { useQueue } from '../../../Contexts/QueueContext'
 import { dedupedInvoke } from '../../../Contexts/utils'
 import { VirtualizedCola } from '../../Cola/VirtualizedCola'
+import QueueEmptyState from '../QueueEmptyState'
 import './AllSongsQueueTab.scss'
 
 const TRACKS_PAGE_SIZE = 100
 
-function AllSongsQueueTab({ isActive }) {
+function AllSongsQueueTab({ isActive, onSelectTab }) {
   const { t } = useI18n()
-  const { allSongs, allSongsHasMore, allSongsLoading, allSongsPage, getAllSongs } = usePlaylists()
+  const { allSongs, allSongsHasMore, allSongsLoading, allSongsPage, getAllSongs } =
+    usePlaylists()
   const { playQueueShuffled } = useQueue()
   const [playingAll, setPlayingAll] = useState(false)
 
@@ -72,26 +74,42 @@ function AllSongsQueueTab({ isActive }) {
     }
   }, [playQueueShuffled, playingAll, t])
 
+  const isInitialAllSongsLoading = allSongs.length === 0 && allSongsHasMore
+  const emptyState = (
+    <QueueEmptyState
+      icon={<RiFolderMusicFill />}
+      title={t('queue.emptyAllTitle')}
+      description={t('queue.emptyAllDescription')}
+      actionLabel={t('queue.goToDirectories')}
+      actionIcon={<RiFolderMusicFill />}
+      onAction={() => onSelectTab?.('directories')}
+    />
+  )
+
   return (
     <div className="AllSongsQueueTab">
       <VirtualizedCola
         height="100%"
         list={allSongs}
         name="tracks"
+        redirectActiveToMusic
         hasMore={allSongsHasMore}
-        isLoading={allSongsLoading}
+        isLoading={allSongsLoading || isInitialAllSongsLoading}
         onLoadMore={loadMoreTracks}
+        emptyState={emptyState}
       />
-      <button
-        type="button"
-        className="AllSongsQueueTab__play-all-fab"
-        onClick={() => void handlePlayAll()}
-        title="Play all"
-        aria-label="Play the full library"
-        disabled={playingAll}
-      >
-        <RiPlayFill />
-      </button>
+      {allSongs.length > 0 ? (
+        <button
+          type="button"
+          className="AllSongsQueueTab__play-all-fab"
+          onClick={() => void handlePlayAll()}
+          title={t('queue.playAll')}
+          aria-label={t('queue.playAllLibrary')}
+          disabled={playingAll}
+        >
+          <RiPlayFill />
+        </button>
+      ) : null}
     </div>
   )
 }

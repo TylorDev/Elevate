@@ -16,6 +16,7 @@ import { formatDuration } from '../../../timeUtils'
 import { CollectionCard } from '../../components/CollectionCard/CollectionCard'
 import { CollectionInsightsLoadingShell } from '../../components/CollectionInsights/CollectionInsightsPanel'
 import { Skeleton } from '../../components/Skeleton/Skeleton'
+import { useI18n } from '../../Contexts/I18nContext'
 import { CollectionEntityItem } from './components/CollectionEntityItem'
 import './Feed.scss'
 
@@ -28,91 +29,7 @@ const FEED_ROW_HEIGHTS = {
 const FEED_OVERSCAN_COUNT = 6
 const FEED_LIST_MIN_HEIGHT = 86
 
-const SCOPE_OPTIONS = [
-  { id: 'mixed', label: 'Mixto', icon: LuLayoutGrid },
-  { id: 'playlists', label: 'Playlists', icon: LuListMusic },
-  { id: 'directories', label: 'Directorios', icon: LuFolderOpen }
-]
-
-const RANKING_TABS = [
-  {
-    id: 'recent',
-    label: 'Actividad reciente',
-    boardLabel: 'Actividad reciente',
-    summaryLabel: 'Reciente',
-    icon: LuActivity,
-    tone: 'acid',
-    metricKey: 'recentActivityAt',
-    formatValue: (_, rows = []) => formatMetricValue(rows.length),
-    formatItemValue: (item) => formatRecentActivity(item?.recentActivityAt)
-  },
-  {
-    id: 'shortViews',
-    label: 'Short Views',
-    boardLabel: 'Top Short Views',
-    summaryLabel: 'Short Views',
-    icon: LuEye,
-    tone: 'gold',
-    metricKey: 'totalShortViews',
-    formatValue: (value) => formatMetricValue(value),
-    formatItemValue: (item) => formatMetricValue(item?.totalShortViews)
-  },
-  {
-    id: 'longViews',
-    label: 'Long Views',
-    boardLabel: 'Top Long Views',
-    summaryLabel: 'Long Views',
-    icon: LuListMusic,
-    tone: 'blue',
-    metricKey: 'totalLongViews',
-    formatValue: (value) => formatMetricValue(value),
-    formatItemValue: (item) => formatMetricValue(item?.totalLongViews)
-  },
-  {
-    id: 'duration',
-    label: 'Duration Total',
-    boardLabel: 'Top Duration Total',
-    summaryLabel: 'Duration Total',
-    icon: LuClock3,
-    tone: 'neutral',
-    metricKey: 'totalDuration',
-    formatValue: (value) => formatDuration(Number(value) || 0),
-    formatItemValue: (item) => formatDuration(Number(item?.totalDuration) || 0)
-  },
-  {
-    id: 'accumulatedDuration',
-    label: 'Duracion Acumulada',
-    boardLabel: 'Top Duracion Acumulada',
-    summaryLabel: 'Duracion Acumulada',
-    icon: LuClock3,
-    tone: 'violet',
-    metricKey: 'totalAccumulatedDuration',
-    formatValue: (value) => formatAccumulatedDuration(value),
-    formatItemValue: (item) => formatAccumulatedDuration(item?.totalAccumulatedDuration)
-  },
-  {
-    id: 'repeats',
-    label: 'Repeticiones',
-    boardLabel: 'Top Repeticiones',
-    summaryLabel: 'Repeticiones',
-    icon: LuRepeat2,
-    tone: 'rose',
-    metricKey: 'totalRepeats',
-    formatValue: (value) => formatMetricValue(value),
-    formatItemValue: (item) => formatMetricValue(item?.totalRepeats)
-  },
-  {
-    id: 'skips',
-    label: 'Skips',
-    boardLabel: 'Top Skips',
-    summaryLabel: 'Skips',
-    icon: LuSkipForward,
-    tone: 'ash',
-    metricKey: 'totalSkips',
-    formatValue: (value) => formatMetricValue(value),
-    formatItemValue: (item) => formatMetricValue(item?.totalSkips)
-  }
-]
+// Moved SCOPE_OPTIONS and RANKING_TABS to useMemo inside the Feed component
 
 function toNumber(value) {
   const numericValue = Number(value)
@@ -134,15 +51,15 @@ function formatAccumulatedDuration(seconds) {
   return `${Math.round(totalSeconds / 60)} min`
 }
 
-function formatRecentActivity(value) {
+function formatRecentActivity(value, t) {
   if (!value) {
-    return 'Sin actividad'
+    return t('feed.noActivity')
   }
 
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return 'Sin actividad'
+    return t('feed.noActivity')
   }
 
   return new Intl.DateTimeFormat(navigator.language, {
@@ -220,6 +137,100 @@ function Feed() {
     feedCompactLayout === 'horizontal' ? ' Feed--movil-horizontal' : ''
   }`
 
+  const { t } = useI18n()
+
+  const SCOPE_OPTIONS = useMemo(
+    () => [
+      { id: 'mixed', label: t('feed.mixed'), icon: LuLayoutGrid },
+      { id: 'playlists', label: t('feed.playlists'), icon: LuListMusic },
+      { id: 'directories', label: t('feed.directories'), icon: LuFolderOpen }
+    ],
+    [t]
+  )
+
+  const RANKING_TABS = useMemo(
+    () => [
+      {
+        id: 'recent',
+        label: t('rankings.recentActivity'),
+        boardLabel: t('rankings.recentActivity'),
+        summaryLabel: t('rankings.recentActivity'),
+        icon: LuActivity,
+        tone: 'acid',
+        metricKey: 'recentActivityAt',
+        formatValue: (_, rows = []) => formatMetricValue(rows.length),
+        formatItemValue: (item) => formatRecentActivity(item?.recentActivityAt, t)
+      },
+      {
+        id: 'shortViews',
+        label: t('rankings.shortViews'),
+        boardLabel: t('rankings.topShortViews'),
+        summaryLabel: t('rankings.shortViews'),
+        icon: LuEye,
+        tone: 'gold',
+        metricKey: 'totalShortViews',
+        formatValue: (value) => formatMetricValue(value),
+        formatItemValue: (item) => formatMetricValue(item?.totalShortViews)
+      },
+      {
+        id: 'longViews',
+        label: t('rankings.longViews'),
+        boardLabel: t('rankings.topLongViews'),
+        summaryLabel: t('rankings.longViews'),
+        icon: LuListMusic,
+        tone: 'blue',
+        metricKey: 'totalLongViews',
+        formatValue: (value) => formatMetricValue(value),
+        formatItemValue: (item) => formatMetricValue(item?.totalLongViews)
+      },
+      {
+        id: 'duration',
+        label: t('rankings.durationTotal'),
+        boardLabel: t('rankings.topDurationTotal'),
+        summaryLabel: t('rankings.durationTotal'),
+        icon: LuClock3,
+        tone: 'neutral',
+        metricKey: 'totalDuration',
+        formatValue: (value) => formatDuration(Number(value) || 0),
+        formatItemValue: (item) => formatDuration(Number(item?.totalDuration) || 0)
+      },
+      {
+        id: 'accumulatedDuration',
+        label: t('rankings.accumulatedDuration'),
+        boardLabel: t('rankings.topAccumulatedDuration'),
+        summaryLabel: t('rankings.accumulatedDuration'),
+        icon: LuClock3,
+        tone: 'violet',
+        metricKey: 'totalAccumulatedDuration',
+        formatValue: (value) => formatAccumulatedDuration(value),
+        formatItemValue: (item) => formatAccumulatedDuration(item?.totalAccumulatedDuration)
+      },
+      {
+        id: 'repeats',
+        label: t('rankings.repeats'),
+        boardLabel: t('rankings.topRepeats'),
+        summaryLabel: t('rankings.repeats'),
+        icon: LuRepeat2,
+        tone: 'rose',
+        metricKey: 'totalRepeats',
+        formatValue: (value) => formatMetricValue(value),
+        formatItemValue: (item) => formatMetricValue(item?.totalRepeats)
+      },
+      {
+        id: 'skips',
+        label: t('rankings.skips'),
+        boardLabel: t('rankings.topSkips'),
+        summaryLabel: t('rankings.skips'),
+        icon: LuSkipForward,
+        tone: 'ash',
+        metricKey: 'totalSkips',
+        formatValue: (value) => formatMetricValue(value),
+        formatItemValue: (item) => formatMetricValue(item?.totalSkips)
+      }
+    ],
+    [t]
+  )
+
   useEffect(() => {
     let alive = true
 
@@ -250,7 +261,7 @@ function Feed() {
         if (!alive) return
 
         if (!response?.success) {
-          setError(response?.error || 'No se pudo cargar el Feed.')
+          setError(response?.error || t('feed.loadFailed'))
           setOverview(null)
           return
         }
@@ -266,7 +277,7 @@ function Feed() {
         setRefreshing(Boolean(response.refreshing))
       } catch (loadError) {
         if (alive) {
-          setError(loadError?.message || 'No se pudo cargar el Feed.')
+          setError(loadError?.message || t('feed.loadFailed'))
           setOverview(null)
         }
       } finally {
@@ -306,7 +317,7 @@ function Feed() {
           setSwitchingScope(false)
         }
       } catch (updateError) {
-        setError(updateError?.message || 'No se pudo recargar el Feed.')
+        setError(updateError?.message || t('feed.refreshFailed'))
       }
     },
     [scope]
@@ -341,7 +352,7 @@ function Feed() {
   const activeTotalValue =
     activeRanking?.totalValue ??
     activeRows.reduce((total, item) => total + toNumber(item?.[activeTab.metricKey]), 0)
-  const scopeLabel = SCOPE_OPTIONS.find((option) => option.id === scope)?.label || 'Mixto'
+  const scopeLabel = SCOPE_OPTIONS.find((option) => option.id === scope)?.label || t('feed.mixed')
 
   useEffect(() => {
     const listWrap = listWrapRef.current
@@ -389,7 +400,7 @@ function Feed() {
       })
 
       if (!response?.success) {
-        throw new Error(response?.error || 'No se pudo cargar el ranking.')
+        throw new Error(response?.error || t('rankings.loadFailed'))
       }
 
       setOverview((currentOverview) => {
@@ -409,7 +420,7 @@ function Feed() {
         return nextOverview
       })
     } catch (rankingError) {
-      setError(rankingError?.message || 'No se pudo cargar el ranking.')
+      setError(rankingError?.message || t('rankings.loadFailed'))
     } finally {
       setRankingLoadingTab('')
     }
@@ -430,10 +441,10 @@ function Feed() {
       )
 
       if (!response?.success) {
-        throw new Error(response?.error || 'No se pudo actualizar el Feed.')
+        throw new Error(response?.error || t('feed.refreshFailed'))
       }
     } catch (refreshError) {
-      setError(refreshError?.message || 'No se pudo actualizar el Feed.')
+      setError(refreshError?.message || t('feed.refreshFailed'))
       setRefreshing(false)
     }
   }, [refreshing, scope])
@@ -491,7 +502,7 @@ function Feed() {
             icon={<Icon />}
             label={tab.summaryLabel}
             value={tab.formatValue(totalValue, rows)}
-            meta={`${formatMetricValue(ranking?.total || rows.length)} colecciones`}
+            meta={t('feed.collectionsCount', { count: formatMetricValue(ranking?.total || rows.length) })}
             className="feed-ranking-card"
             onClick={() => setActiveTabId(tab.id)}
           />
@@ -520,7 +531,7 @@ function Feed() {
           <button
             type="button"
             className={`feed-refresh-button${refreshing ? ' is-refreshing' : ''}`}
-            aria-label="Actualizar Feed"
+            aria-label={t('feed.updateFeed')}
             aria-busy={refreshing}
             disabled={refreshing}
             onClick={() => void handleRefreshFeed()}
@@ -528,7 +539,7 @@ function Feed() {
             <LuRefreshCw aria-hidden="true" />
           </button>
 
-          <div className="feed-scope-switch" role="tablist" aria-label="Filtrar colecciones">
+          <div className="feed-scope-switch" role="tablist" aria-label={t('feed.filterCollections')}>
             {SCOPE_OPTIONS.map((option) => {
               const ScopeIcon = option.icon
 
@@ -571,7 +582,7 @@ function Feed() {
       {error ? <div className="feed-ranking-board__error">{error}</div> : null}
 
       {activeRows.length === 0 ? (
-        <div className="feed-ranking-board__empty">No collections for this ranking.</div>
+        <div className="feed-ranking-board__empty">{t('feed.emptyRanking')}</div>
       ) : (
         <div ref={listWrapRef} className="feed-ranking-board__listWrap">
           <FixedSizeList
@@ -599,7 +610,7 @@ function Feed() {
           disabled={rankingLoadingTab === activeTab.id}
           onClick={() => void handleLoadMoreRanking()}
         >
-          {rankingLoadingTab === activeTab.id ? 'Loading...' : 'Load more'}
+          {rankingLoadingTab === activeTab.id ? t('rankings.loading') : t('rankings.loadMore')}
         </button>
       ) : null}
     </div>
@@ -616,8 +627,8 @@ function Feed() {
           mode="library"
           cards={RANKING_TABS}
           loadingRows={6}
-          loadingTitle="Directorios y Playlists"
-          loadingEyebrow="Collection Feed"
+          loadingTitle={t('feed.directoriesAndPlaylists')}
+          loadingEyebrow={t('feed.collectionFeed')}
           compactLayout={feedCompactLayout === 'horizontal' ? 'horizontal' : 'default'}
           cardsClassName={`feed-ranking-cards feed-ranking-cards--skeleton ${
             shouldUseCompactFeedCards ? 'feed-ranking-cards--movil' : ''
@@ -665,8 +676,8 @@ function Feed() {
             mode="library"
             cards={RANKING_TABS}
             loadingRows={6}
-            loadingTitle="Directorios y Playlists"
-            loadingEyebrow="Collection Feed"
+            loadingTitle={t('feed.directoriesAndPlaylists')}
+            loadingEyebrow={t('feed.collectionFeed')}
             compactLayout={feedCompactLayout === 'horizontal' ? 'horizontal' : 'default'}
             cardsClassName={`feed-ranking-cards feed-ranking-cards--skeleton ${
               shouldUseCompactFeedCards ? 'feed-ranking-cards--movil' : ''

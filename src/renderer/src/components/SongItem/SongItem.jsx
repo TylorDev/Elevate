@@ -8,7 +8,6 @@ import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { OverflowMenu } from '../OverflowMenu/OverflowMenu'
 import { Button } from './../Button/Button'
 import './SongItem.scss'
-import 'react-toastify/dist/ReactToastify.css'
 
 const ADD_TO_PLAYLIST_OPTION_ID = 'add to playlist'
 const CREATE_PLAYLIST_OPTION_ID = '__create_playlist__'

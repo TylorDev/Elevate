@@ -4,15 +4,11 @@ import fs from 'fs'
 import crypto from 'crypto'
 import { prisma } from '../../prisma.mjs'
 import sharp from 'sharp'
+import { getStoragePaths } from '../../storagePaths.mjs'
 
 // ─── Cover cache directory ───────────────────────────────────────────
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
-const { app } = require('electron')
-
 function getCoverCacheDir() {
-  const base = app.isPackaged ? app.getPath('userData') : path.resolve('.')
-  const dir = path.join(base, 'covers')
+  const dir = getStoragePaths().coverCacheRoot
   fs.mkdirSync(path.join(dir, 'thumb'), { recursive: true })
   fs.mkdirSync(path.join(dir, 'full'), { recursive: true })
   fs.mkdirSync(path.join(dir, 'playlist-thumb'), { recursive: true })

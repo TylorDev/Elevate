@@ -248,6 +248,7 @@
 }
 
 .history-song-chart {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 280px;
@@ -277,14 +278,18 @@
   &__axis {
     stroke: rgba(255, 255, 255, 0.16);
     stroke-width: 1;
+    pointer-events: none;
   }
 
   &__bar {
     fill: color-mix(in srgb, $primary-color 34%, transparent);
+    pointer-events: none;
+    transition: fill 160ms ease;
   }
 
   &__area {
     fill: url('#historySongArea');
+    pointer-events: none;
   }
 
   &__line {
@@ -293,12 +298,64 @@
     stroke-linecap: round;
     stroke-linejoin: round;
     stroke-width: 4;
+    pointer-events: none;
   }
 
   &__dot {
     fill: $background;
+    pointer-events: none;
     stroke: currentColor;
     stroke-width: 3;
+    transition:
+      fill 160ms ease,
+      transform 160ms ease;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  &__hit-area {
+    fill: transparent;
+    pointer-events: all;
+    cursor: pointer;
+  }
+
+  g.is-active &__bar {
+    fill: color-mix(in srgb, $primary-color 56%, transparent);
+  }
+
+  g.is-active &__dot {
+    fill: color-mix(in srgb, $primary-color 22%, $background);
+    transform: scale(1.18);
+  }
+
+  &__tooltip {
+    position: absolute;
+    z-index: 2;
+    display: grid;
+    gap: 0.12rem;
+    min-width: 4.25rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    background: rgba(10, 10, 10, 0.94);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.34);
+    color: $text-primary;
+    pointer-events: none;
+    transform: translate(-50%, -100%);
+    white-space: nowrap;
+
+    strong {
+      color: $primary-color;
+      font-size: 0.9rem;
+      font-weight: 750;
+      line-height: 1;
+    }
+
+    span {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.74rem;
+      line-height: 1.1;
+    }
   }
 
   &__labels {

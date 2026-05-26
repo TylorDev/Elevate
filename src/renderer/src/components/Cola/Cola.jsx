@@ -1,4 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FixedSizeList, VariableSizeList } from 'react-window'
 import { RiFocus3Line } from 'react-icons/ri'
 import { FaListUl, FaPlusCircle, FaRegSave, FaTrash } from 'react-icons/fa'
@@ -474,6 +475,7 @@ export function Cola({
   actions,
   preserveOrder = false,
   onPlayOverride,
+  redirectActiveToMusic = false,
   playbackMode = 'list',
   groupByTime = false,
   virtualized,
@@ -489,7 +491,8 @@ export function Cola({
   sourceKey,
   onMoveCommit,
   insightMode = false,
-  insightValueResolver = null
+  insightValueResolver = null,
+  emptyState = null
 }) {
   const {
     handleSongClick,
@@ -504,6 +507,7 @@ export function Cola({
   const { addPlaylisthistory, removeSongFromList } = usePlaylists()
   const { preloadVisibleSongCovers } = useImages()
   const { t } = useI18n()
+  const navigate = useNavigate()
   const [isSavePlaylistVisible, setIsSavePlaylistVisible] = useState(false)
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 })
   const [coverUrls, setCoverUrls] = useState({})
@@ -671,6 +675,11 @@ export function Cola({
         return
       }
 
+      if (redirectActiveToMusic && file?.filePath && file.filePath === activeFilePath) {
+        navigate('/music')
+        return
+      }
+
       if (onPlayOverride) {
         onPlayOverride(file, index, displayedList, name)
         return
@@ -694,9 +703,12 @@ export function Cola({
       displayedList,
       handleSongClick,
       name,
+      navigate,
       onPlayOverride,
       playbackMode,
-      pinnedSongPath
+      pinnedSongPath,
+      redirectActiveToMusic,
+      activeFilePath
     ]
   )
 
@@ -1258,7 +1270,7 @@ export function Cola({
           </ul>
         )
       ) : (
-        <LoadingCola isLoading={isLoading} />
+        <LoadingCola isLoading={isLoading} emptyState={emptyState} />
       )}
 
       {showScrollToActiveButtons ? (
@@ -1294,9 +1306,9 @@ export function Cola({
   )
 }
 
-function LoadingCola({ isLoading = false }) {
+function LoadingCola({ isLoading = false, emptyState = null }) {
   if (!isLoading) {
-    return <div className="VirtualizedCola__empty">No tracks found.</div>
+    return emptyState || <div className="VirtualizedCola__empty">No tracks found.</div>
   }
 
   return (

@@ -22,6 +22,7 @@ import { CollectionAddToPlaylistModal } from '../../components/CollectionAddToPl
 import Modal from '../../components/Modal/Modal'
 import { OverflowMenu } from '../../components/OverflowMenu/OverflowMenu'
 import PlaylistForm from '../../components/PlaylistForm/PlaylistForm'
+import { useI18n } from '../../Contexts/I18nContext'
 import './CollectionPage.scss'
 
 function getCollectionKind(pathname = '') {
@@ -39,17 +40,17 @@ const COLLECTION_MENU_IDS = {
 }
 const RANKING_PLAY_PAGE_SIZE = 200
 
-function buildCollectionMenuOptions(type) {
+function buildCollectionMenuOptions(type, t) {
   const sharedOptions = [
-    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: 'Add to queue', icon: <LuListPlus /> },
+    { id: COLLECTION_MENU_IDS.ADD_TO_QUEUE, label: t('actions.addToQueue', {}, 'Add to queue'), icon: <LuListPlus /> },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_NEW_PLAYLIST,
-      label: 'Add to new playlist',
+      label: t('actions.addToNewPlaylist', {}, 'Add to new playlist'),
       icon: <LuListMusic />
     },
     {
       id: COLLECTION_MENU_IDS.ADD_TO_EXISTING_PLAYLIST,
-      label: 'Add to existing playlist',
+      label: t('actions.addToPlaylist', {}, 'Add to existing playlist'),
       icon: <LuListPlus />
     }
   ]
@@ -62,12 +63,12 @@ function buildCollectionMenuOptions(type) {
     ...sharedOptions,
     {
       id: COLLECTION_MENU_IDS.REVEAL_IN_EXPLORER,
-      label: 'Show in explorer',
+      label: t('actions.showInExplorer', {}, 'Show in explorer'),
       icon: <LuFolderOpen />
     },
     {
       id: COLLECTION_MENU_IDS.DELETE,
-      label: type === 'playlist' ? 'Delete playlist' : 'Delete directory',
+      label: type === 'playlist' ? t('actions.deletePlaylist', {}, 'Delete playlist') : t('actions.deleteDirectory', {}, 'Delete directory'),
       icon: <LuTrash2 />
     }
   ]
@@ -75,13 +76,13 @@ function buildCollectionMenuOptions(type) {
 
 
 
-function ErrorState({ message, onRetry }) {
+function ErrorState({ message, onRetry, t }) {
   return (
     <div className="collection-error">
-      <strong>Could not load the collection.</strong>
+      <strong>{t('collectionPage.loadFailed')}</strong>
       <p>{message}</p>
       <button type="button" onClick={onRetry}>
-        Retry
+        {t('collectionPage.retry')}
       </button>
     </div>
   )
@@ -142,10 +143,12 @@ function CollectionPage() {
     collectionCompactLayout === 'horizontal' ? 'collection-page--movil-horizontal' : ''
   }`.trim()
   const loadingActionCount = type === 'playlist' ? 4 : 3
+  const { t } = useI18n()
+
   const loadingCollectionTitle =
-    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
+    type === 'playlist' ? t('collectionPage.playlist') : type === 'likes' ? t('collectionPage.favourites') : t('collectionPage.directory')
   const loadingSourceTypeLabel =
-    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
+    type === 'playlist' ? t('collectionPage.playlist') : type === 'likes' ? t('collectionPage.favourites') : t('collectionPage.directory')
 
   const { ensurePlaylistAutoCover, getCachedCollectionCoverUrl, getCollectionCoverUrl } = useImages()
   const { PlayQueue, appendManyToCurrentQueue, playQueueShuffled } = useQueue()
@@ -174,7 +177,7 @@ function CollectionPage() {
 
   const loadDetail = useCallback(async () => {
     if (type !== 'likes' && !sourcePath) {
-      setError('Collection path not found.')
+      setError(t('collectionPage.notFoundPath'))
       setLoading(false)
       return
     }
@@ -193,7 +196,7 @@ function CollectionPage() {
       })
 
       if (!response?.success) {
-        setError(response?.error || 'Could not load the collection.')
+        setError(response?.error || t('collectionPage.loadFailed'))
         setDetail(null)
         return
       }
@@ -206,7 +209,7 @@ function CollectionPage() {
       })
     } catch (loadError) {
       console.error('Error loading collection overview:', loadError)
-      setError(loadError?.message || 'Could not load the collection.')
+      setError(loadError?.message || t('collectionPage.loadFailed'))
       setDetail(null)
     } finally {
       setLoading(false)
@@ -246,7 +249,7 @@ function CollectionPage() {
         })
 
         if (response?.success === false) {
-          throw new Error(response.error || 'Could not load songs.')
+          throw new Error(response.error || t('collectionPage.songsLoadFailed'))
         }
 
         hydratedTracks.push(...(response?.items || []))
@@ -344,12 +347,12 @@ function CollectionPage() {
     type
   ])
 
-  const menuOptions = useMemo(() => buildCollectionMenuOptions(type), [type])
+  const menuOptions = useMemo(() => buildCollectionMenuOptions(type, t), [type, t])
 
   const collectionName =
-    meta?.title || (type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory')
+    meta?.title || (type === 'playlist' ? t('collectionPage.playlist') : type === 'likes' ? t('collectionPage.favourites') : t('collectionPage.directory'))
   const sourceTypeLabel =
-    type === 'playlist' ? 'Playlist' : type === 'likes' ? 'Favourites' : 'Directory'
+    type === 'playlist' ? t('collectionPage.playlist') : type === 'likes' ? t('collectionPage.favourites') : t('collectionPage.directory')
   const routeBack =
     type === 'playlist' ? '/playlists' : type === 'likes' ? '/favourites' : '/directories'
   const collectionSourceName =
@@ -374,7 +377,7 @@ function CollectionPage() {
 
       PlayQueue(hydratedTracks, `folder:${sourcePath}`, 0)
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'Could not load songs.')
+      toastLoadError(tracksError?.message || t('collectionPage.songsLoadFailed'))
     }
   }, [PlayQueue, addPlaylisthistory, hasTracks, loadAllTracks, sourcePath, type])
 
@@ -403,7 +406,7 @@ function CollectionPage() {
 
       playQueueShuffled(hydratedTracks, `folder:${sourcePath}`)
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'Could not load songs.')
+      toastLoadError(tracksError?.message || t('collectionPage.songsLoadFailed'))
     } finally {
       setShufflingCollection(false)
     }
@@ -432,16 +435,16 @@ function CollectionPage() {
       return
     }
 
-    toastLoadError(response?.error || 'Could not load the playlist.')
-  }, [playlistEditPayload, sourcePath, type])
+    toastLoadError(response?.error || t('collectionPage.loadFailed'))
+  }, [playlistEditPayload, sourcePath, type, t])
 
   const handleRevealInExplorer = useCallback(async () => {
     const result = await window.electron.ipcRenderer.invoke('reveal-path-in-explorer', sourcePath)
 
     if (!result?.success) {
-      toastLoadError(result?.error || 'Could not open the explorer.')
+      toastLoadError(result?.error || t('collectionPage.explorerOpenFailed'))
     }
-  }, [sourcePath])
+  }, [sourcePath, t])
 
   const handleDeleteCollection = useCallback(async () => {
     if (type === 'playlist') {
@@ -458,10 +461,10 @@ function CollectionPage() {
     try {
       return await loadAllTracks()
     } catch (tracksError) {
-      toastLoadError(tracksError?.message || 'Could not load songs.')
+      toastLoadError(tracksError?.message || t('collectionPage.songsLoadFailed'))
       return []
     }
-  }, [loadAllTracks])
+  }, [loadAllTracks, t])
 
   const handleCollectionMenuSelect = useCallback(async (optionId) => {
     if (optionId === COLLECTION_MENU_IDS.ADD_TO_QUEUE) {
@@ -518,7 +521,7 @@ function CollectionPage() {
       })
 
       if (!response?.success) {
-        throw new Error(response?.error || 'Could not load the ranking.')
+        throw new Error(response?.error || t('rankings.loadFailed'))
       }
 
       setDetail((currentDetail) => ({
@@ -529,7 +532,7 @@ function CollectionPage() {
         }
       }))
     } catch (rankingError) {
-      toastLoadError(rankingError?.message || 'Could not load the ranking.')
+      toastLoadError(rankingError?.message || t('rankings.loadFailed'))
     } finally {
       setRankingLoadingTab('')
     }
@@ -552,7 +555,7 @@ function CollectionPage() {
         })
 
         if (!response?.success) {
-          throw new Error(response?.error || 'Could not load the ranking.')
+          throw new Error(response?.error || t('rankings.loadFailed'))
         }
 
         const ranking = response.rankings?.[tabId]
@@ -563,14 +566,14 @@ function CollectionPage() {
       }
 
       if (rankingTracks.length === 0) {
-        throw new Error('This ranking has no songs to play.')
+        throw new Error(t('rankings.noSongsToPlay'))
       }
 
       playQueueShuffled(rankingTracks, `${collectionSourceName}:${tabId}`)
     } catch (rankingError) {
-      toastLoadError(rankingError?.message || 'Could not play the ranking.')
+      toastLoadError(rankingError?.message || t('rankings.playFailed'))
     }
-  }, [collectionSourceName, playQueueShuffled, sourcePath, type])
+  }, [collectionSourceName, playQueueShuffled, sourcePath, type, t])
 
   const handleUpdatePlaylist = useCallback(async (playlistPath, payload) => {
     const response = await updatePlaylistMetadata(playlistPath, payload)
@@ -604,7 +607,7 @@ function CollectionPage() {
   if (error) {
     return (
       <section className={collectionPageClassName}>
-        <ErrorState message={error} onRetry={() => void loadDetail()} />
+        <ErrorState message={error} onRetry={() => void loadDetail()} t={t} />
       </section>
     )
   }
@@ -612,7 +615,7 @@ function CollectionPage() {
   if (!detail) {
     return (
       <section className={collectionPageClassName}>
-        <ErrorState message="The requested collection was not found." onRetry={() => navigate(routeBack)} />
+        <ErrorState message={t('collectionPage.notFound')} onRetry={() => navigate(routeBack)} t={t} />
       </section>
     )
   }
@@ -633,7 +636,7 @@ function CollectionPage() {
           onPlayCollectionShuffled={handlePlayCollectionShuffled}
           shuffleActionDisabled={!hasTracks || hydratingTracks}
           shuffleActionLoading={shufflingCollection}
-          shuffleActionLabel="Play the full collection shuffled"
+          shuffleActionLabel={t('collectionPage.playFullShuffled')}
           headerActions={
             <>
               <Button
@@ -687,13 +690,13 @@ function CollectionPage() {
       {type !== 'likes' && (
         <ConfirmActionModal
           isVisible={isDeleteVisible}
-          title={type === 'playlist' ? 'Delete playlist?' : 'Delete directory?'}
+          title={type === 'playlist' ? t('collectionPage.deletePlaylistTitle') : t('collectionPage.deleteDirectoryTitle')}
           message={
             type === 'playlist'
-              ? 'This playlist will be removed from Elevate.'
-              : 'This directory will be removed from the Elevate library.'
+              ? t('collectionPage.deletePlaylistConfirm')
+              : t('collectionPage.deleteDirectoryConfirm')
           }
-          confirmLabel={type === 'playlist' ? 'Delete playlist' : 'Delete directory'}
+          confirmLabel={type === 'playlist' ? t('actions.deletePlaylist') : t('actions.deleteDirectory')}
           onCancel={() => setIsDeleteVisible(false)}
           onConfirm={() => {
             void handleDeleteCollection()

@@ -402,7 +402,14 @@ function VisualizerPlaybackProvider({ children }) {
   const [shuffledOrder, setShuffledOrder] = useState([])
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
   const [isPresetPaused, setIsPresetPaused] = useState(false)
+  const [isVisualizerVisibleForCycling, setIsVisualizerVisibleForCycling] = useState(false)
   const presetIntervalRef = useRef(null)
+
+  const setShuffleEnabled = useCallback((nextValue) => {
+    const shouldEnableShuffle = Boolean(nextValue)
+    setIsShuffled(shouldEnableShuffle)
+    setShuffledOrder(shouldEnableShuffle ? shuffleArray(activePresetNames) : [])
+  }, [activePresetNames])
 
   const toggleShuffle = useCallback(() => {
     setIsShuffled((previousValue) => {
@@ -413,9 +420,13 @@ function VisualizerPlaybackProvider({ children }) {
   }, [activePresetNames])
 
   useEffect(() => {
-    setIsShuffled(false)
+    if (isShuffled) {
+      setShuffledOrder(shuffleArray(activePresetNames))
+      return
+    }
+
     setShuffledOrder([])
-  }, [activePresetNames])
+  }, [activePresetNames, isShuffled])
 
   const currentOrder = useMemo(() => {
     if (isShuffled) {
@@ -423,7 +434,13 @@ function VisualizerPlaybackProvider({ children }) {
     }
     return activePresetNames
   }, [activePresetNames, isShuffled, shuffledOrder])
-  const canAutoCyclePresets = isPlaying && location.pathname === '/music'
+  const isOnMusicRoute = location.pathname === '/music'
+  const shouldAutoCyclePresets =
+    isPlaying &&
+    isOnMusicRoute &&
+    isVisualizerVisibleForCycling &&
+    !isPresetPaused &&
+    currentOrder.length > 1
 
   const currentPresetName = currentOrder[currentPresetIndex] || ''
 
@@ -453,8 +470,12 @@ function VisualizerPlaybackProvider({ children }) {
     setIsPresetPaused(Boolean(nextValue))
   }, [])
 
+  const setVisualizerCyclingVisibility = useCallback((nextValue) => {
+    setIsVisualizerVisibleForCycling(Boolean(nextValue))
+  }, [])
+
   useEffect(() => {
-    if (!isPresetPaused && canAutoCyclePresets && currentOrder.length > 0) {
+    if (shouldAutoCyclePresets) {
       if (presetIntervalRef.current) {
         clearInterval(presetIntervalRef.current)
       }
@@ -470,7 +491,7 @@ function VisualizerPlaybackProvider({ children }) {
         presetIntervalRef.current = null
       }
     }
-  }, [canAutoCyclePresets, cycleDurationMs, currentOrder, isPresetPaused, nextPreset])
+  }, [cycleDurationMs, nextPreset, shouldAutoCyclePresets])
 
   const setPresetIndex = useCallback(
     (index) => {
@@ -498,10 +519,13 @@ function VisualizerPlaybackProvider({ children }) {
       allPresets: currentOrder,
       activePresetItems,
       isPresetPaused,
+      isPresetCycleActive: shouldAutoCyclePresets,
       isShuffled,
       nextPreset,
       prevPreset,
       setPresetPaused,
+      setShuffleEnabled,
+      setVisualizerCyclingVisibility,
       togglePresetPause,
       toggleShuffle,
       setPresetIndex,
@@ -512,11 +536,14 @@ function VisualizerPlaybackProvider({ children }) {
       currentOrder,
       currentPresetIndex,
       currentPresetName,
+      shouldAutoCyclePresets,
       isPresetPaused,
       isShuffled,
       nextPreset,
       prevPreset,
       setPresetPaused,
+      setShuffleEnabled,
+      setVisualizerCyclingVisibility,
       setPresetByName,
       setPresetIndex,
       togglePresetPause,

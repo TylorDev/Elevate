@@ -45,6 +45,12 @@ import {
   LuTrash2
 } from 'react-icons/lu'
 
+const RIGHT_CLICK_HINT_WIDTH = 108
+const RIGHT_CLICK_HINT_HEIGHT = 34
+const RIGHT_CLICK_HINT_OFFSET_X = 18
+const RIGHT_CLICK_HINT_OFFSET_Y = 18
+const RIGHT_CLICK_HINT_STORAGE_KEY = 'music.rightClickHintDismissed'
+
 const STATIC_CONTEXT_MENU_OPTIONS = [
   { id: 'go-to-admin-presets', label: 'Go to Admin Presets', icon: <LuLayoutGrid /> }
 ]
@@ -68,6 +74,7 @@ function formatListeningHours(seconds) {
 
 function Music() {
   const navigate = useNavigate()
+  const { rightClickHintDisabled } = useSuper()
   const { currentFile } = useQueue()
   const { mediaElement, togglePlayPause } = usePlayback()
   const { currentCover } = usePlaylists()
@@ -77,6 +84,19 @@ function Music() {
   const [enableVisualizer, setEnableVisualizer] = useState(false)
   const [controlsHidden, setControlsHidden] = useState(true)
   const [pendingSaveListIds, setPendingSaveListIds] = useState([])
+  const [rightClickHint, setRightClickHint] = useState({
+    isVisible: false,
+    x: RIGHT_CLICK_HINT_OFFSET_X,
+    y: RIGHT_CLICK_HINT_OFFSET_Y
+  })
+  const [isRightClickHintDismissed, setIsRightClickHintDismissed] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(RIGHT_CLICK_HINT_STORAGE_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const musicRef = useRef(null)
   const menuRef = useRef(null)
   const visualizerCanvasRef = useRef(null)
   const savePresetInitialIdsRef = useRef([])
@@ -85,7 +105,10 @@ function Music() {
   const {
     currentPresetName: rawCurrentPresetName,
     isPresetPaused,
+    isPresetCycleActive,
     isShuffled,
+    setVisualizerCyclingVisibility,
+    setShuffleEnabled,
     togglePresetPause,
     toggleShuffle,
     prevPreset,
@@ -114,9 +137,27 @@ function Music() {
     }
   }, [mediaElement])
 
+  useEffect(() => {
+    setVisualizerCyclingVisibility(enableVisualizer)
+
+    return () => {
+      setVisualizerCyclingVisibility(false)
+    }
+  }, [enableVisualizer, setVisualizerCyclingVisibility])
+
+  useEffect(() => {
+    if (!rightClickHintDisabled) {
+      return
+    }
+
+    setRightClickHint((currentState) =>
+      currentState.isVisible ? { ...currentState, isVisible: false } : currentState
+    )
+  }, [rightClickHintDisabled])
+
   const handleBackgroundClick = useCallback(
     (event) => {
-      if (event.target instanceof Element && event.target.closest('button')) {
+      if (event.target instanceof window.Element && event.target.closest('button')) {
         return
       }
 
@@ -148,6 +189,18 @@ function Music() {
       return nextEnableVisualizer
     })
   }, [])
+  const handleOpenSongHistory = useCallback(
+    (event) => {
+      event.stopPropagation()
+
+      if (!currentFile?.filePath) {
+        return
+      }
+
+      navigate(`/history/song/${encodeURIComponent(currentFile.filePath)}`)
+    },
+    [currentFile?.filePath, navigate]
+  )
   const openPresetManagerPage = useCallback(() => navigate('/visualizer-presets'), [navigate])
   const canCapturePresetFrame = Boolean(
     enableVisualizer && currentPresetName && visualizerCanvasRef.current
@@ -191,8 +244,94 @@ function Music() {
   }, [activePresetList?.id, presetLists, sourceAssociations])
 
   const handleContextMenu = useCallback((event) => {
+    setRightClickHint((currentState) =>
+      currentState.isVisible ? { ...currentState, isVisible: false } : currentState
+    )
+
+    if (rightClickHintDisabled) {
+      menuRef.current?.open(event)
+      return
+    }
+
+    setIsRightClickHintDismissed(true)
+
+    try {
+      window.sessionStorage.setItem(RIGHT_CLICK_HINT_STORAGE_KEY, 'true')
+    } catch {
+      // Ignore session storage issues; the in-memory dismissed state still prevents re-showing.
+    }
+
     menuRef.current?.open(event)
+  }, [rightClickHintDisabled])
+
+  const hideRightClickHint = useCallback(() => {
+    setRightClickHint((currentState) =>
+      currentState.isVisible ? { ...currentState, isVisible: false } : currentState
+    )
   }, [])
+
+  const updateRightClickHint = useCallback(
+    (event) => {
+      if (rightClickHintDisabled) {
+        hideRightClickHint()
+        return
+      }
+
+      if (isRightClickHintDismissed) {
+        hideRightClickHint()
+        return
+      }
+
+      const musicElement = musicRef.current
+      const eventTarget = event.target
+
+      if (!musicElement || !(eventTarget instanceof window.Element)) {
+        hideRightClickHint()
+        return
+      }
+
+      if (
+        eventTarget.closest(
+          'button, .cover-wrapper, .visualizer-controls-panel, .current-preset-name, .preset-nav-controls'
+        )
+      ) {
+        hideRightClickHint()
+        return
+      }
+
+      const isBackgroundVisible =
+        enableVisualizer || !showCover || (showCover && currentCover && !enableVisualizer)
+
+      if (!isBackgroundVisible) {
+        hideRightClickHint()
+        return
+      }
+
+      const rect = musicElement.getBoundingClientRect()
+      const nextX = Math.min(
+        Math.max(event.clientX - rect.left + RIGHT_CLICK_HINT_OFFSET_X, 12),
+        rect.width - RIGHT_CLICK_HINT_WIDTH - 12
+      )
+      const nextY = Math.min(
+        Math.max(event.clientY - rect.top + RIGHT_CLICK_HINT_OFFSET_Y, 12),
+        rect.height - RIGHT_CLICK_HINT_HEIGHT - 12
+      )
+
+      setRightClickHint({
+        isVisible: true,
+        x: nextX,
+        y: nextY
+      })
+    },
+    [
+      currentCover,
+      enableVisualizer,
+      hideRightClickHint,
+      isRightClickHintDismissed,
+      rightClickHintDisabled,
+      showCover
+    ]
+  )
 
   const handleCapturePresetFrame = useCallback(() => {
     const sourceCanvas = visualizerCanvasRef.current
@@ -278,6 +417,8 @@ function Music() {
 
   const handleLoadPresetList = useCallback(
     (sourceId) => {
+      setShuffleEnabled(true)
+
       if (sourceId === '__favorites__') {
         void setPresetSource({
           mode: 'favorites',
@@ -299,7 +440,7 @@ function Music() {
         listId: sourceId
       })
     },
-    [setPresetSource]
+    [setPresetSource, setShuffleEnabled]
   )
 
   const handleCreatePresetList = useCallback(async () => {
@@ -468,9 +609,12 @@ function Music() {
 
   return (
     <div
+      ref={musicRef}
       className={`Music ${!enableVisualizer ? 'no-visualizer' : ''}`}
       onClick={handleBackgroundClick}
       onContextMenu={handleContextMenu}
+      onMouseLeave={hideRightClickHint}
+      onMouseMove={updateRightClickHint}
     >
       {!showCover && currentCover && (
         <div className="cover-as-background" style={coverBackgroundStyle} />
@@ -490,9 +634,28 @@ function Music() {
         </div>
       )}
 
+      {rightClickHint.isVisible ? (
+        <div
+          className="music-right-click-hint"
+          style={{
+            left: `${rightClickHint.x}px`,
+            top: `${rightClickHint.y}px`
+          }}
+        >
+          Right Click
+        </div>
+      ) : null}
+
       <div className="Player-main">
         {showCover && (
-          <div className="cover-wrapper">
+          <button
+            className={`cover-wrapper ${currentFile?.filePath ? 'is-clickable' : ''}`}
+            onClick={handleOpenSongHistory}
+            type="button"
+            disabled={!currentFile?.filePath}
+            aria-label={currentFile?.filePath ? 'Open song history' : undefined}
+            title={currentFile?.filePath ? 'Open song history' : undefined}
+          >
             <div className="cover-container">
               {currentCover ? (
                 <img src={currentCover} alt="Cover" className="album-cover" />
@@ -500,7 +663,7 @@ function Music() {
                 <div className="no-cover">No Cover</div>
               )}
             </div>
-          </div>
+          </button>
         )}
       </div>
 
@@ -528,6 +691,13 @@ function Music() {
             <button
               className={`visualizer-control-btn ${isPresetPaused ? 'is-active' : ''}`}
               onClick={togglePresetPause}
+              title={
+                isPresetPaused
+                  ? 'Resume preset cycling'
+                  : isPresetCycleActive
+                    ? 'Pause preset cycling'
+                    : 'Preset cycling will resume when the visualizer is visible'
+              }
               type="button"
             >
               {isPresetPaused ? <LuPlay /> : <LuPause />}

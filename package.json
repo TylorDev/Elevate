@@ -1,10 +1,17 @@
 {
   "name": "elevate",
   "version": "1.0.0",
-  "description": "An Modern music player offline. ",
+  "description": "Offline music player for Windows built by TylorDev.",
   "main": "./out/main/index.js",
-  "author": "@TylorDev",
+  "author": {
+    "name": "TylorDev",
+    "url": "https://github.com/TylorDev"
+  },
   "homepage": "https://github.com/TylorDev/Elevate",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TylorDev/Elevate.git"
+  },
   "type": "module",
   "engines": {
     "node": ">=24 <25",
@@ -20,7 +27,7 @@
     "postinstall": "prisma generate",
     "electron:rebuild": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "node scripts/build-win.mjs",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux"
   },

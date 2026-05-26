@@ -269,6 +269,7 @@ function DirectoriesQueueTab({ isActive }) {
           height="100%"
           list={currentDir}
           name={`folder:${selectedDirectory.path}`}
+          redirectActiveToMusic
           preserveOrder
           enablePinMove
           pinMoveScope="source-local"

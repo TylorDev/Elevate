@@ -126,7 +126,9 @@ function Settings() {
     waveformVariant,
     handleWaveformVariantChange,
     discordRpcEnabled,
-    toggleDiscordRpc
+    toggleDiscordRpc,
+    rightClickHintDisabled,
+    toggleRightClickHintDisabled
   } = useSuper()
   const {
     currentBackground,
@@ -394,7 +396,7 @@ function Settings() {
               </div>
               <div className="settings-card__content">
                 <h3>Discord Rich Presence</h3>
-                <p>Show what you're listening to on your Discord profile.</p>
+                <p>Show what you&apos;re listening to on your Discord profile.</p>
               </div>
               <button
                 className={`toggle-switch ${discordRpcEnabled ? 'active' : ''}`}
@@ -402,6 +404,25 @@ function Settings() {
                 role="switch"
                 aria-checked={discordRpcEnabled}
                 aria-label="Toggle Discord Rich Presence"
+              >
+                <span className="toggle-switch__thumb" />
+              </button>
+            </div>
+
+            <div className="settings-card">
+              <div className="settings-card__icon">
+                <LuMessageSquare />
+              </div>
+              <div className="settings-card__content">
+                <h3>Right Click Hint</h3>
+                <p>Show the right-click hint over the Music background and visualizer.</p>
+              </div>
+              <button
+                className={`toggle-switch ${!rightClickHintDisabled ? 'active' : ''}`}
+                onClick={toggleRightClickHintDisabled}
+                role="switch"
+                aria-checked={!rightClickHintDisabled}
+                aria-label="Toggle right-click hint"
               >
                 <span className="toggle-switch__thumb" />
               </button>
