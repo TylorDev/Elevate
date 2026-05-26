@@ -1,272 +1,280 @@
-# Reporte de Uso y Visualización de Toasts en Elevate
+# Auditoria Electron Produccion / Unpacked
 
-Este documento presenta una auditoría completa del sistema de notificaciones **Toast** en la aplicación Elevate. El sistema está construido sobre la biblioteca `react-toastify` y se utiliza para proporcionar feedback inmediato y no intrusivo al usuario sobre acciones de reproducción, gestión de playlists, biblioteca y estado del sistema.
+Fecha: 2026-05-26  
+Objetivo: auditar por que `dist/win-unpacked/elevate.exe` tarda demasiado o se queda congelada antes de cargar el renderer, con foco en main process, Prisma, ASAR/unpacked y bundles del renderer.
 
----
+## Resumen Ejecutivo
 
-## 1. Configuración Global (`ToastContainer`)
+`Fixes.md` esta parcialmente implementado. Los cambios mas importantes ya aterrizaron: se removio `dotenv/config`, Prisma ya se inicializa de forma lazy dentro de `initializePrisma()`, los watchers ya no bloquean directamente antes de crear la ventana, y el paquete ya no incluye `dev.db-shm`, `dev.db-wal` ni migrations dentro de `resources/prisma`.
 
-El contenedor principal que renderiza y gestiona las colas de notificaciones se encuentra montado en el layout principal de la aplicación:
+El bloqueo principal, sin embargo, sigue vivo: `src/main/index.mjs` todavia ejecuta `await initializePrisma()` antes de `createTray()` y `createWindow()`. Si Prisma, `@prisma/adapter-libsql`, el runtime WASM o el native binding de libsql se queda esperando en produccion/unpacked, Electron nunca llega a ejecutar `loadFile()` y el renderer no tiene oportunidad de pintar.
 
-* **Archivo de Montaje**: [Main.jsx](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Layouts/Main/Main.jsx#L57)
-* **Ubicación en el DOM**: Se renderiza al final del componente wrapper `Main` para asegurar que las notificaciones floten por encima de todos los componentes visuales (como el visualizador de audio, la barra de estado y el reproductor).
+La hipotesis mas fuerte sigue siendo correcta: si `npm run dev` arranca normal pero el unpacked queda congelado sin cargar renderer, el problema probablemente esta en main process antes de crear la ventana, no en React como primer sospechoso.
 
-```jsx
-// src/renderer/src/Layouts/Main/Main.jsx
-<ToastContainer />
+## Estado De Implementacion De `Fixes.md`
+
+Implementado:
+
+- `import 'dotenv/config'` fue removido de `src/main/prisma.mjs`.
+- Prisma ya no se instancia en module scope; ahora `new PrismaLibSql()` y `new PrismaClient()` ocurren dentro de `initializePrisma()`.
+- `initializeWatchers()` ya no se espera antes de `createWindow()`; ahora corre en background con `.catch(...)`.
+- `processAndDispatchLaunchArgs()` ya no se espera durante startup inicial; ahora se dispara con `void`.
+- `electron-builder.yml` ya excluye `dev.db-shm`, `dev.db-wal` y `migrations/**`.
+- `dist/win-unpacked/resources/prisma` contiene solo `schema.prisma` y `template.db`.
+- `puppeteer` ya no esta en `dependencies`.
+- `react-devtools` esta en `devDependencies`, no en `dependencies`.
+
+Parcial o pendiente:
+
+- `initializePrisma()` sigue bloqueando antes de crear la ventana.
+- El cliente Prisma ya es lazy, pero su primera inicializacion sigue en la ruta critica del arranque visual.
+- `initializePrisma()` todavia ejecuta operaciones sync de FS y varias sentencias SQL secuenciales.
+- Imports pesados del main bundle siguen presentes antes de que el renderer pinte.
+
+## Timeline Real De Arranque Actual
+
+El flujo actual en `src/main/index.mjs` es aproximadamente:
+
+```text
+main module eval
+  -> imports del bundle principal
+  -> resolveIconPath() con fs.existsSync()
+  -> nativeImage para tray/thumbar icons
+  -> process.loadEnvFile() con try/catch
+  -> app.requestSingleInstanceLock()
+
+app.whenReady()
+  -> app.setAppUserModelId()
+  -> log.info("App started")
+  -> await initializePrisma()
+       -> getDatabaseUrl()
+       -> getStoragePaths()
+       -> existsSync(databasePath)
+       -> mkdirSync(databaseDir) si falta
+       -> copyFileSync(template.db, elevate.db) si falta
+       -> new PrismaLibSql({ url })
+       -> new PrismaClient({ adapter })
+       -> PRAGMA foreign_keys
+       -> PRAGMA journal_mode = WAL
+       -> PRAGMA busy_timeout
+       -> CREATE TABLE / CREATE INDEX secuenciales
+  -> prisma = prismaClient
+  -> registrar IPC handlers
+  -> createTray()
+  -> createWindow()
+  -> loadFile(out/renderer/index.html)
+  -> initDiscordPresence() en background
+  -> initializeWatchers() en background
+  -> processAndDispatchLaunchArgs() en background
 ```
 
----
+Punto critico: `createWindow()` y `mainWindow.loadFile()` ocurren despues de Prisma. Por eso un bloqueo en Prisma se ve como "no carga el renderer".
 
-## 2. Mapa Detallado de Usos por Componente y Contexto
+## Bloqueadores Probables En Main Process
 
-A continuación se detallan todas las llamadas activas del método `toast` organizadas por capa arquitectónica.
+### 1. Prisma Todavia Esta En La Ruta Critica
 
-### 2.1. Gestión de Favoritos (`LikeContext.jsx`)
-Usa notificaciones con una duración de **1000 ms** para confirmar de manera rápida cuando una pista es agregada o removida de favoritos.
+Archivo: `src/main/index.mjs`  
+Riesgo: alto
 
-* **Likes de Canciones (`likesong`)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"liked"`
-  * **Configuración**: `position: 'bottom-right', autoClose: 1000, theme: 'dark'`
-  * **Ubicación**: [LikeContext.jsx:L88-97](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/LikeContext.jsx#L88-L97)
-* **Dislikes de Canciones (`unlikesong`)**:
-  * **Tipo**: `toast.warning`
-  * **Mensaje**: `"disliked"`
-  * **Configuración**: `position: 'bottom-right', autoClose: 1000, theme: 'dark'`
-  * **Ubicación**: [LikeContext.jsx:L103-112](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/LikeContext.jsx#L103-L112)
+`await initializePrisma()` ocurre antes de crear la ventana. Aunque el fix lazy redujo el trabajo en module-evaluation time, movio el costo a `app.whenReady()` antes del primer paint.
 
----
+Impacto esperado:
 
-### 2.2. Gestión de Playlists (`PlaylistsContex.jsx`)
-Muestra feedback informativo sobre el guardado, la exportación y la actualización de playlists M3U. Utiliza animaciones `Bounce` de `react-toastify`.
+- Si `@libsql` tarda en resolver/cargar el native binding desde `app.asar.unpacked`, no hay ventana.
+- Si el runtime de Prisma/WASM tarda en inicializar, no hay ventana.
+- Si el archivo SQLite queda bloqueado o WAL tarda, no hay ventana.
+- Si `template.db` debe copiarse en primer arranque y el FS esta lento, no hay ventana.
 
-* **Error en Actualización de Metadatos**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`response.error || 'Error al actualizar la playlist'`)
-  * **Ubicación**: [PlaylistsContex.jsx:L189-199](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L189-L199)
-* **Validación de Playlist sin Canciones**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: `"No hay canciones para guardar."` o `"No hay canciones para exportar."`
-  * **Ubicaciones**: [PlaylistsContex.jsx:L258](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L258) y [PlaylistsContex.jsx:L337](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L337)
-* **Error de Guardado de Playlist**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`error?.message || 'No se pudo guardar la playlist.'`)
-  * **Ubicaciones**: [PlaylistsContex.jsx:L282](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L282) y [PlaylistsContex.jsx:L298](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L298)
-* **Playlist Guardada con Éxito**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Playlist guardada: {result.playlistName}"`
-  * **Ubicación**: [PlaylistsContex.jsx:L314-324](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L314-L324)
-* **Error de Exportación de Playlist**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`error?.message || 'No se pudo exportar la playlist.'`)
-  * **Ubicaciones**: [PlaylistsContex.jsx:L359](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L359) y [PlaylistsContex.jsx:L375](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L375)
-* **Playlist Exportada con Éxito**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Playlist exportada: {result.playlistName}"`
-  * **Ubicación**: [PlaylistsContex.jsx:L391](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L391)
-* **Notificaciones del Sistema e IPC (`handleNotification`)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: Dinámico enviado por IPC (`message || 'Completado!'`)
-  * **Nota**: Filtra y omite los eventos de tipo `scan-progress` para evitar saturación visual durante el escaneo.
-  * **Ubicación**: [PlaylistsContex.jsx:L433](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/PlaylistsContex.jsx#L433)
+### 2. Trabajo Sync De FS Durante Startup
 
----
+Archivos principales:
 
-### 2.3. Cola de Reproducción (`QueueContext.jsx`)
-Muestra el éxito de las operaciones directas sobre la cola activa.
+- `src/main/index.mjs`
+- `src/main/prisma.mjs`
+- `src/main/storagePaths.mjs`
 
-* **Remover Pista de la Cola Activa (`removeFromCurrentQueue`)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Eliminada correctamente!"`
-  * **Ubicación**: [QueueContext.jsx:L272-282](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/QueueContext.jsx#L272-L282)
-* **Remover Pista de una Playlist Guardada (`removeTrack`)**:
-  * **Tipo**: `toast.success` (ejecutado con un delay de `1000ms` tras actualizar el archivo mediante IPC)
-  * **Mensaje**: `"Eliminada correctamente!"`
-  * **Ubicación**: [QueueContext.jsx:L453-463](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/QueueContext.jsx#L453-L463)
-* **Agregar Canción a una Playlist Guardada (`addSong`)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Agregada: {result.songName}"`
-  * **Ubicación**: [QueueContext.jsx:L491-501](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/QueueContext.jsx#L491-L501)
+Operaciones relevantes:
 
----
+- `fs.existsSync()` para resolver iconos.
+- `fs.readFileSync()` para `window-state.json`.
+- `existsSync(databasePath)` dentro de Prisma.
+- `mkdirSync(databaseDir)` si la base no existe.
+- `copyFileSync(template.db, elevate.db)` en primer arranque.
+- `existsSync()` sobre candidatos de `template.db`.
 
-### 2.4. Logros de Visualización de Audio (`AudioContext.jsx`)
-Mapea el sistema de "recompensas" de visualización de audio según la duración de la pista escuchada de manera activa. Usa un objeto de configuración unificado `TOAST_OPTIONS`.
+Estas operaciones son pequenas individualmente, pero en produccion ocurren sobre rutas empaquetadas, `%APPDATA%`, `process.resourcesPath` y potencialmente antivirus/Defender. En conjunto pueden explicar stalls frios.
 
-* **Configuración Unificada**:
-  ```javascript
-  const TOAST_OPTIONS = {
-    position: 'bottom-right',
-    autoClose: 1400,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    progress: undefined,
-    theme: 'dark'
-  }
-  ```
-* **Visualización Corta Alcanzada (`SHORT_VIEW_MS` = 10 seg)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"+1 short views"`
-  * **Ubicación**: [AudioContext.jsx:L162](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/AudioContext.jsx#L162)
-* **Visualización Larga Alcanzada (Escucha >= 80% de la pista)**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"+1 long views"`
-  * **Ubicación**: [AudioContext.jsx:L183](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/AudioContext.jsx#L183)
+### 3. Imports Pesados Dentro Del Bundle Principal
 
----
+El build actual `out/main/index.js` incluye imports o codigo de:
 
-### 2.5. Utilidades e Invokes IPC Genéricos (`utils.jsx`)
-El sistema de utilidades encapsula las peticiones IPC de Electron y adjunta notificaciones automáticas en caso de éxito/error de operaciones genéricas.
+- `sharp`
+- `music-metadata`
+- `axios`
+- `cheerio`
+- `chokidar`
+- `@prisma/adapter-libsql`
+- runtime de `@prisma/client`
 
-* **Operación Exitosa en Getter (`ElectronGetter`)**:
-  * **Tipo**: `toast.success`
-  * **Nota**: Comentado por defecto en la base del código actual para evitar spam visual en cargas de colecciones rutinarias.
-  * **Ubicación**: [utils.jsx:L62](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L62)
-* **Error en Getter (`ElectronGetter` / `ElectronGetter2`)**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`error.message || 'Error desconocido'`)
-  * **Ubicaciones**: [utils.jsx:L80](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L80) y [utils.jsx:L116](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L116)
-* **Eliminación Exitosa (`ElectronDelete`)**:
-  * **Tipo**: `toast.warning`
-  * **Mensaje**: Dinámico enviado al helper (`message || 'Eliminado!'`)
-  * **Ubicación**: [utils.jsx:L100](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L100)
-* **Errores en Setters (`ElectronSetter` / `ElectronSetter2` / `ElectronSetter3` / `ElectronSetter4`)**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico de error devuelto
-  * **Ubicaciones**: [utils.jsx:L140](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L140), [utils.jsx:L164](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L164), [utils.jsx:L189](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L189), [utils.jsx:L218](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx#L218)
+Esto no significa que todo ejecute trabajo pesado inmediatamente, pero si aumenta parse/compile/evaluation cost del main process y eleva el riesgo de native binding resolution antes del primer paint. `sharp`, `@libsql`, `@parcel/watcher` y `node-audio-volume-mixer` aparecen bajo `app.asar.unpacked/node_modules`, lo cual confirma presencia de binarios nativos o dependencias que Electron debe resolver con cuidado en produccion.
 
----
+## Riesgos Prisma / libsql / ASAR
 
-### 2.6. Vistas y Páginas de Usuario
+El paquete unpacked contiene:
 
-#### `Music.jsx` (Sección de Configuración y Gestión de Presets del Visualizador)
-* **Guardado de Preset**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Preset guardado!"`
-  * **Ubicación**: [Music.jsx:L283](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx#L283)
-* **Error en Creación de Preset**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: `"No se pudo crear la preset list"`
-  * **Ubicación**: [Music.jsx:L327](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx#L327)
-* **Preset Eliminado con Éxito**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Preset eliminado de {effectivePresetList.name}"`
-  * **Ubicación**: [Music.jsx:L357](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx#L357)
-* **Error al Eliminar Preset**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: `"No se pudo eliminar el preset de la lista actual"`
-  * **Ubicación**: [Music.jsx:L360](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/Music/Music.jsx#L360)
-
-#### `CollectionPage.jsx`
-* **Error al Abrir Directorio en Explorador**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`result?.error || 'No se pudo abrir el explorador.'`)
-  * **Ubicación**: [CollectionPage.jsx:L376](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/CollectionPage/CollectionPage.jsx#L376)
-* **Error al Compilar/Guardar Playlist desde Vista**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: Dinámico (`result?.error || 'No se pudo crear la playlist.'`)
-  * **Ubicación**: [CollectionPage.jsx:L413](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Pages/CollectionPage/CollectionPage.jsx#L413)
-
-#### `CollectionAddToPlaylistModal.jsx` (Modal de Guardado)
-* **Error de Inserción Masiva**:
-  * **Tipo**: `toast.error`
-  * **Mensaje**: `"No se pudieron agregar las canciones."`
-  * **Ubicación**: [CollectionAddToPlaylistModal.jsx:L32](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/CollectionAddToPlaylistModal/CollectionAddToPlaylistModal.jsx#L32)
-* **Inserción Masiva Exitosa**:
-  * **Tipo**: `toast.success`
-  * **Mensaje**: `"Se agregaron {filePaths.length} canciones correctamente"`
-  * **Ubicación**: [CollectionAddToPlaylistModal.jsx:L46](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/components/CollectionAddToPlaylistModal/CollectionAddToPlaylistModal.jsx#L46)
-
----
-
-## 3. Patrón de Diseño y Consistencia de Toasts
-
-* **Tema Visual**: Prácticamente el 100% de los toasts utilizan `theme: 'dark'` para integrarse de forma nativa con la estética del reproductor de música.
-* **Duración**: La duración estándar es de **3000 ms** para notificaciones complejas, acortada a **1000-1400 ms** para acciones inmediatas frecuentes (Favoritos, Recompensas de escucha) con el fin de mejorar la fluidez de interacción.
-* **Transiciones**: Se utiliza `transition: Bounce` mayoritariamente en la capa de listas de reproducción para dar un impacto alegre y dinámico.
-* **Estilo CSS**: En `SongItem.jsx` (Línea 8), se realiza la importación de la hoja de estilos de la librería:
-  ```javascript
-  import 'react-toastify/dist/ReactToastify.css'
-  ```
-
----
-
-## 4. Oportunidades de Optimización en `src/renderer/src/Contexts/utils.jsx`
-
-Tras revisar la implementación de las utilidades e IPC wrappers genéricos en [utils.jsx](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/renderer/src/Contexts/utils.jsx), se han identificado varias áreas clave de optimización que reducirán la duplicación de código, prevendrán bugs en producción y mejorarán el rendimiento.
-
-### 4.1. Reducción drástica del código repetitivo de Toasts (DRY)
-* **Problema**: Las opciones de configuración de Toast se repiten textualmente 7 veces en el archivo (alrededor de 70 líneas duplicadas de configuración). Esto incrementa innecesariamente el tamaño del bundle del frontend y dificulta el mantenimiento uniforme.
-* **Solución**: Declarar una constante global `DEFAULT_TOAST_OPTIONS` en el archivo, o crear un wrapper simple `showToast(message, type = 'error')`.
-
-**Refactorización sugerida**:
-```javascript
-const DEFAULT_TOAST_OPTIONS = {
-  position: 'bottom-right',
-  autoClose: 3000,
-  hideProgressBar: false,
-  closeOnClick: true,
-  pauseOnHover: true,
-  draggable: true,
-  progress: undefined,
-  theme: 'dark',
-  transition: Bounce
-}
-
-const showToast = (message, type = 'error') => {
-  const content = typeof message === 'object' ? (message?.message || 'Error desconocido') : message
-  toast[type](content, DEFAULT_TOAST_OPTIONS)
-}
+```text
+dist/win-unpacked/resources/app.asar
+dist/win-unpacked/resources/app.asar.unpacked/node_modules/@libsql
+dist/win-unpacked/resources/app.asar.unpacked/node_modules/@img
+dist/win-unpacked/resources/app.asar.unpacked/node_modules/@parcel
+dist/win-unpacked/resources/prisma/schema.prisma
+dist/win-unpacked/resources/prisma/template.db
 ```
 
----
+Esto esta mejor que el estado descrito en `Fixes.md`: ya no hay `dev.db-shm`, `dev.db-wal` ni migrations en `resources/prisma`.
 
-### 4.2. Bug de serialización en `toast.error(error)`
-* **Problema**: En funciones como `ElectronGetter2` (Línea 140), `ElectronSetter` (Línea 164), `ElectronSetter2` (Línea 189) y `electronInvoke` (Línea 218), se pasa el objeto `error` completo a `toast.error(error, ...)`. En React y entornos de producción, pasar un objeto `Error` de JS directo a `toast` suele provocar que se muestre la cadena literal `"[object Object]"` en la interfaz de usuario en lugar del mensaje real del error.
-* **Solución**: Siempre extraer de manera segura la cadena descriptiva mediante `error?.message || error || 'Error desconocido'`.
+Riesgos que quedan:
 
----
+- `new PrismaLibSql({ url })` se ejecuta antes de mostrar UI.
+- El native binding de libsql debe resolverse desde `app.asar.unpacked`.
+- El runtime Prisma con `engineType = "client"` incluye query compiler WASM/runtime en el bundle.
+- `initializePrisma()` no tiene timeout, fallback visual ni estado intermedio visible para el usuario.
+- Si la base en `%APPDATA%` queda bloqueada, corrupta o lenta, el usuario ve una app congelada en vez de una ventana con error recuperable.
 
-### 4.3. Prevención de errores de borde (Boundary Check) en `shuffleArray`
-* **Problema**: El algoritmo Fisher-Yates implementado (Líneas 3-17) copia y reordena el array original asumiendo que contiene elementos suficientes y que `currentIndex` es un índice válido. Si se pasa un array vacío `[]` o con un solo elemento `[song]`, destructurar `[newArray[0], newArray[currentIndex]] = [newArray[currentIndex], newArray[0]]` escribirá valores `undefined` sparse y provocará comportamientos inesperados o roturas de tipado en el reproductor.
-* **Solución**: Agregar una cláusula de guarda al inicio del helper.
+## Riesgos Renderer / Bundle Size
 
-**Refactorización sugerida**:
-```javascript
-export const shuffleArray = (array, currentIndex) => {
-  if (!Array.isArray(array) || array.length <= 1) {
-    return [...(array || [])]
-  }
-  let newArray = [...array]
-  // El resto del algoritmo permanece intacto
-  ...
-}
+El renderer no parece ser el primer bloqueo si la ventana nunca se crea, pero si contribuye al tiempo total despues de `loadFile()`.
+
+Assets observados en `out/renderer/assets`:
+
+- `index-*.js`: ~3.29 MB
+- `Music-*.js`: ~1.44 MB
+- `index-*.css`: ~159 KB
+- total `out/renderer`: ~5.58 MB
+
+La ruta inicial redirige a `/music`, por lo que despues del bundle principal se carga el chunk de `Music`.
+
+Riesgos:
+
+- `src/renderer/src/main.jsx` monta muchos providers globales antes de pintar la experiencia principal.
+- `Main.jsx` envuelve toda la app en `VisualizerProvider`.
+- `VisualizerContext.jsx` importa `butterchurn-presets/lib/elevate.min.js` en el contexto global, aunque el usuario no haya activado el visualizer.
+- La pantalla inicial `/music` importa `Render`, `useVisualizerPresets` y bastantes iconos/controles, lo cual eleva el costo del primer route chunk.
+
+Si el main process se desbloquea, el siguiente cuello de botella probable sera el JS inicial del renderer.
+
+## Tamano Del Paquete
+
+Mediciones actuales:
+
+- `dist/win-unpacked/resources/app.asar`: ~381 MB
+- `resources/Elevate`: ~2.64 MB
+- `out/renderer`: ~5.58 MB
+
+`Fixes.md` mencionaba `puppeteer` como causa probable del ASAR grande, pero eso ya no aplica al `package.json` actual. El ASAR sigue siendo muy grande y merece una auditoria separada con analisis de contenido del ASAR/dependencias. El tamano no necesariamente bloquea por si solo, pero aumenta costo de lectura, antivirus scanning y cold start.
+
+## Recomendaciones Priorizadas
+
+### P0 - Sacar Prisma Del Camino Del Primer Paint
+
+Cambiar el orden de arranque para crear la ventana antes de `initializePrisma()`:
+
+```text
+app.whenReady()
+  -> registrar IPC minimo de ventana/diagnostico
+  -> createTray()
+  -> createWindow()
+  -> loadFile()
+  -> iniciar Prisma en background
+  -> cuando Prisma este listo, registrar o habilitar handlers dependientes de DB
 ```
 
----
+La app deberia poder pintar una UI inicial aunque la base de datos tarde o falle.
 
-### 4.4. Optimización de Hashing de Claves en `dedupedInvoke`
-* **Problema**: La función `getInvokeKey` utiliza `JSON.stringify(args)` para generar claves únicas de de-duplicación de peticiones activas IPC. Si las colecciones crecen o se transfieren grandes listas de metadatos o canciones completas como parámetros, `JSON.stringify` es costoso para la CPU y puede lanzar excepciones si hay referencias circulares.
-* **Solución**: Generar claves simplificadas si los parámetros son primitivos (números, strings) o implementar un serializador ligero optimizado.
+### P1 - Estado `databaseReady` Y Timeouts
 
-**Refactorización sugerida**:
-```javascript
-function getInvokeKey(action, args) {
-  if (args.length === 0) return action
-  try {
-    return `${action}:${JSON.stringify(args)}`
-  } catch {
-    // Fallback robusto en caso de error de serialización
-    return `${action}:${Date.now()}`
-  }
-}
+Agregar un estado central de DB:
+
+- `databaseReady: false | true`
+- `databaseError: null | error`
+- `databaseInitStartedAt`
+- `databaseInitFinishedAt`
+
+Los handlers dependientes de Prisma deben:
+
+- esperar con timeout corto, o
+- responder `{ success: false, code: "DATABASE_INITIALIZING" }`, o
+- mostrar en renderer un estado de "Inicializando biblioteca".
+
+Esto evita que IPCs tempranos queden colgados si el renderer consulta datos antes de que Prisma este listo.
+
+### P2 - Instrumentacion De Startup
+
+Agregar timestamps alrededor de:
+
+- inicio de `app.whenReady()`
+- antes/despues de `initializePrisma()`
+- antes/despues de `createWindow()`
+- antes/despues de `loadFile()`
+- `ready-to-show`
+- primer mensaje/IPC del renderer
+- inicio/fin de `initializeWatchers()`
+
+Sin esto, el diagnostico depende demasiado de inferencia.
+
+### P3 - Diferir Imports Pesados
+
+Mover a imports dinamicos o modulos lazy:
+
+- `sharp` solo cuando se procesan covers/imagenes.
+- `music-metadata` solo cuando se escanean archivos.
+- `chokidar` solo cuando se inicializan watchers.
+- `axios`/`cheerio` solo cuando se usa scraping/feed.
+- `butterchurn-presets` solo cuando el visualizer se abre o se activa.
+
+La meta es que el main process inicial solo cargue Electron, logging, ventana, storage minimo y diagnostico.
+
+### P4 - Reducir Costo Del Renderer Inicial
+
+Separar visualizer/admin presets de la ruta inicial `/music`:
+
+- No montar `VisualizerProvider` global si no es necesario para el primer paint.
+- Cargar presets de Butterchurn bajo demanda.
+- Revisar si `Music` puede pintar cover/player primero y luego hidratar controles avanzados.
+- Auditar dependencias de `index-*.js` para reducir los ~3.29 MB iniciales.
+
+## Pruebas Y Validacion Recomendada
+
+Despues de aplicar fixes futuros:
+
+1. Ejecutar `npm run build:unpack`.
+2. Confirmar que `dist/win-unpacked/resources/prisma` no contiene `dev.db`, `dev.db-shm`, `dev.db-wal` ni `migrations`.
+3. Ejecutar el unpacked con logging:
+
+```powershell
+cd "c:\Users\Jimbo\Downloads\Music\xc\Elevate\dist\win-unpacked"
+.\elevate.exe --enable-logging --v=1
 ```
 
----
+4. Revisar logs para confirmar orden:
 
-### 4.5. Fusión de Wrappers IPC Redundantes
-* **Problema**: Existen wrappers redundantes y confusos como `ElectronGetter` vs `ElectronGetter2` (uno arroja el error de nuevo y el otro lo consume internamente de manera silenciosa) y `ElectronSetter` vs `ElectronSetter2`. 
-* **Solución**: Unificar en un único cliente IPC modular o estandarizar las respuestas bajo un contrato `{ success, data, error }` (similar al utilizado en `ElectronSetter2`), eliminando callbacks de `setState` pasados directamente, lo cual mejora la separación de responsabilidades entre la vista y las utilidades.
+```text
+app.whenReady start
+createWindow start
+loadFile start
+renderer first console/IPC
+initializePrisma start
+initializePrisma done/error
+ready-to-show
+```
+
+5. Validar que `/music` pinta aunque Prisma tarde o falle.
+6. Medir assets en `out/renderer/assets` y comparar antes/despues.
+7. Probar primer arranque limpio borrando solo la DB de usuario de prueba, no recursos del repo.
+
+## Conclusion
+
+La auditoria confirma que `Fixes.md` avanzo bastante, pero el fix decisivo aun no esta completo: Prisma sigue antes de la ventana. Para resolver el congelamiento de `dist/win-unpacked`, la prioridad debe ser invertir el contrato de arranque: primero ventana y renderer minimo, despues base de datos y servicios pesados en background.
+
+Cuando la UI exista desde el primer segundo, cualquier problema de Prisma/libsql/ASAR dejara de verse como "la app murio congelada" y pasara a ser un error diagnosticable, logueable y recuperable.

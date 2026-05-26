@@ -56,4 +56,7 @@ extraResources:
       - "**/*"
       - "!dev.db"
       - "!dev.db-journal"
+      - "!dev.db-shm"
+      - "!dev.db-wal"
+      - "!migrations/**"
   - src/main/generated/prisma/**/*

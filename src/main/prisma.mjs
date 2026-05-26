@@ -1,4 +1,4 @@
-import 'dotenv/config'
+
 import { existsSync, copyFileSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -66,25 +66,29 @@ function serializeWrite(operation) {
   return run
 }
 
-const adapter = new PrismaLibSql({
-  url: getDatabaseUrl()
-})
-
-export const prisma = new PrismaClient({ adapter }).$extends({
-  query: {
-    $allModels: {
-      $allOperations({ operation, query, args }) {
-        if (!writeOperations.has(operation)) {
-          return query(args)
-        }
-
-        return serializeWrite(() => query(args))
-      }
-    }
-  }
-})
+// Prisma client is initialized lazily inside initializePrisma() to ensure
+// app paths and native bindings resolve correctly after app.whenReady().
+export let prisma = null
 
 export async function initializePrisma() {
+  const adapter = new PrismaLibSql({
+    url: getDatabaseUrl()
+  })
+
+  prisma = new PrismaClient({ adapter }).$extends({
+    query: {
+      $allModels: {
+        $allOperations({ operation, query, args }) {
+          if (!writeOperations.has(operation)) {
+            return query(args)
+          }
+
+          return serializeWrite(() => query(args))
+        }
+      }
+    }
+  })
+
   await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON')
   await prisma.$executeRawUnsafe('PRAGMA journal_mode = WAL')
   await prisma.$executeRawUnsafe('PRAGMA busy_timeout = 5000')

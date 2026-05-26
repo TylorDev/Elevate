@@ -759,13 +759,13 @@ if (!gotTheLock) {
 
   app.whenReady().then(async () => {
   app.setAppUserModelId('com.electron')
-  console.log(process.versions.node)
-
-  prisma = prismaClient
-  await initializePrisma()
-
   log.info('App started, version:', process.versions.node)
 
+  // ── Phase 1: Initialize Prisma (lazy — fast now, no module-scope overhead) ──
+  await initializePrisma()
+  prisma = prismaClient
+
+  // ── Phase 2: Register all IPC handlers (no I/O, just registration) ──
   ipcMain.on('ping', () => log.info('pong'))
   setupWindowControlHandlers()
 
@@ -789,16 +789,20 @@ if (!gotTheLock) {
     return getDiscordStatus()
   })
 
+  // ── Phase 3: Create tray + window ASAP (renderer starts loading) ──
+  createTray()
+  createWindow()
+
+  // ── Phase 4: Non-blocking background initialization ──
   // Initialize Discord Rich Presence (non-blocking)
   void initDiscordPresence()
 
-  // Initialize directory watchers for all existing directories
-  await initializeWatchers()
+  // Initialize directory watchers in background (non-blocking)
+  initializeWatchers().catch((err) => log.error('Error initializing directory watchers:', err))
 
-  createTray()
-  createWindow()
+  // Process launch args in background (non-blocking)
   console.info('[argv/main] initial process.argv', process.argv)
-  await processAndDispatchLaunchArgs(process.argv.slice(1), {
+  void processAndDispatchLaunchArgs(process.argv.slice(1), {
     mainWindow: mainWin,
     workingDirectory: process.cwd(),
     notifyRenderer: sendNotification,
