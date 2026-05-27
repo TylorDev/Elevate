@@ -3,12 +3,13 @@ import { prisma } from '../../prisma.mjs'
 import { discoverSubdirectories, indexDirectoryIncrementally, scanDirectoryAsync } from './directoryScanner.mjs'
 import { startWatching } from './directoryWatcher.mjs'
 import { getFileInfos } from './utils.mjs'
+import {
+  isSupportedAudioFile,
+  isSupportedMediaFile,
+  resolveImportableAudioPaths
+} from './mediaFileSupport.mjs'
 
-export const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
-
-export function isSupportedAudioFile(filePath) {
-  return AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase())
-}
+export { isSupportedAudioFile, isSupportedMediaFile }
 
 function uniquePaths(paths) {
   return [...new Set(paths.map((currentPath) => path.normalize(currentPath)))]
@@ -143,7 +144,8 @@ export async function addDirectoryToLibrary(
   void startWatching(normalizedRootPath)
   startBackgroundIndexing(dirsToRegister, notifyRenderer)
 
-  const songs = await getFileInfos(recursiveAudioFiles)
+  const importableAudioFiles = await resolveImportableAudioPaths(recursiveAudioFiles)
+  const songs = await getFileInfos(importableAudioFiles)
 
   return {
     success: true,

@@ -3,7 +3,8 @@ import path from 'path'
 import { app, ipcMain } from 'electron'
 import { importPlaylistFile } from './ipc/playlistHandlers.mjs'
 import { getFileInfos } from './ipc/utils/utils.mjs'
-import { addDirectoryToLibrary, isSupportedAudioFile } from './ipc/utils/libraryIngestion.mjs'
+import { addDirectoryToLibrary, isSupportedMediaFile } from './ipc/utils/libraryIngestion.mjs'
+import { resolveImportableAudioPaths } from './ipc/utils/mediaFileSupport.mjs'
 
 const pendingLaunchPayloads = []
 let rendererLaunchChannelReady = false
@@ -225,7 +226,7 @@ function normalizeLaunchEntries(rawArgs, workingDirectory = process.cwd()) {
       continue
     }
 
-    if (stats.isFile() && isSupportedAudioFile(resolvedPath)) {
+    if (stats.isFile() && isSupportedMediaFile(resolvedPath)) {
       orderedEntries.push({ type: 'file', path: resolvedPath })
       continue
     }
@@ -302,8 +303,9 @@ async function processLaunchEntries(
     .map((entry) => entry.path)
 
   if (filePaths.length > 0) {
-    files.push(...filePaths)
-    const fileSongs = await getFileInfos(filePaths)
+    const importableFilePaths = await resolveImportableAudioPaths(filePaths)
+    files.push(...importableFilePaths)
+    const fileSongs = await getFileInfos(importableFilePaths)
     appendUniqueSongs(songs, fileSongs, seenSongPaths)
   }
 

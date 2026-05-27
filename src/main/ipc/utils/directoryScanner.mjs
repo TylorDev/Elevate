@@ -2,8 +2,12 @@ import fs from 'fs'
 import path from 'path'
 import { getOrCreateSong } from './utils.mjs'
 import { prisma } from '../../prisma.mjs'
+import {
+  isSupportedMediaFile,
+  resolveImportableAudioPath,
+  resolveImportableAudioPaths
+} from './mediaFileSupport.mjs'
 
-const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 const WALK_YIELD_EVERY = 50
 const INDEX_BATCH_SIZE = 20
 
@@ -39,7 +43,7 @@ async function walkAsync(dir, audioFiles, recursive) {
     try {
       if (entry.isDirectory() && recursive) {
         await walkAsync(fullPath, audioFiles, recursive)
-      } else if (entry.isFile() && AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+      } else if (entry.isFile() && isSupportedMediaFile(entry.name)) {
         audioFiles.push(fullPath)
       }
     } catch {
@@ -76,7 +80,7 @@ async function discoverRecursive(dir, result) {
   for (const entry of entries) {
     if (entry.isDirectory()) {
       subdirs.push(path.join(dir, entry.name))
-    } else if (entry.isFile() && AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+    } else if (entry.isFile() && isSupportedMediaFile(entry.name)) {
       hasDirectAudio = true
     }
   }
@@ -104,7 +108,7 @@ export async function directoryHasAudio(dirPath) {
   try {
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true })
     return entries.some(
-      (e) => e.isFile() && AUDIO_EXTENSIONS.has(path.extname(e.name).toLowerCase())
+      (e) => e.isFile() && isSupportedMediaFile(e.name)
     )
   } catch {
     return false
@@ -131,10 +135,14 @@ export async function indexDirectoryIncrementally(dirPath, onProgress) {
     const batch = audioFiles.slice(i, i + INDEX_BATCH_SIZE)
 
     const songs = await Promise.all(
-      batch.map((filePath) => {
-        const fileName = path.basename(filePath, path.extname(filePath))
-        return getOrCreateSong(filePath, fileName).catch(() => null)
-      })
+      batch.map((filePath) =>
+        resolveImportableAudioPath(filePath)
+          .then((importablePath) => {
+            const fileName = path.basename(importablePath, path.extname(importablePath))
+            return getOrCreateSong(importablePath, fileName)
+          })
+          .catch(() => null)
+      )
     )
 
     for (const song of songs) {
@@ -173,8 +181,10 @@ export async function updateDirectoryStats(dirPath) {
   }
 
   // Query durations from the DB for files we already indexed
+  const importableAudioFiles = await resolveImportableAudioPaths(audioFiles)
+
   const songs = await prisma.songs.findMany({
-    where: { filepath: { in: audioFiles } },
+    where: { filepath: { in: importableAudioFiles } },
     select: { duration: true }
   })
 

@@ -105,6 +105,7 @@ export function getStoragePaths() {
     ? join(userDataRoot, 'covers')
     : resolve('covers')
   const feedCacheRoot = join(userDataRoot, 'feed-cache-v1')
+  const convertedAudioRoot = join(userDataRoot, 'converted-audio')
   const backgroundImagesRoot = join(userDataRoot, 'background-images')
   const backgroundAssetsRoot = join(backgroundImagesRoot, 'assets')
   const windowStatePath = join(userDataRoot, 'window-state.json')
@@ -137,6 +138,7 @@ export function getStoragePaths() {
     playlistCoverFullRoot: join(coverCacheRoot, 'playlist-full'),
     feedCacheRoot,
     feedCoverCacheRoot: join(feedCacheRoot, 'covers'),
+    convertedAudioRoot,
     backgroundImagesRoot,
     backgroundAssetsRoot,
     backgroundConfigPath: join(backgroundImagesRoot, 'background-config.json'),
@@ -176,6 +178,9 @@ export function getStorageDiagnostics() {
       }),
       feedCacheRoot: buildPathInfo(storagePaths.feedCacheRoot, {
         fallbackWritableTarget: dirname(storagePaths.feedCacheRoot)
+      }),
+      convertedAudioRoot: buildPathInfo(storagePaths.convertedAudioRoot, {
+        fallbackWritableTarget: dirname(storagePaths.convertedAudioRoot)
       }),
       backgroundImagesRoot: buildPathInfo(storagePaths.backgroundImagesRoot, {
         fallbackWritableTarget: dirname(storagePaths.backgroundImagesRoot)

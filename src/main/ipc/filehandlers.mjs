@@ -24,6 +24,7 @@ import {
   stopWatching,
   setNotifyRenderer
 } from './utils/directoryWatcher.mjs'
+import { resolveImportableAudioPaths } from './utils/mediaFileSupport.mjs'
 
 import fs from 'fs'
 import path from 'path'
@@ -209,7 +210,7 @@ async function getCachedAudioFiles(dirPath, { recursive = true } = {}) {
     return cachedFiles.files
   }
 
-  const files = await scanDirectoryAsync(dirPath, recursive)
+  const files = await resolveImportableAudioPaths(await scanDirectoryAsync(dirPath, recursive))
   audioPathsCache.set(cacheKey, {
     files,
     expiresAt: Date.now() + AUDIO_PATHS_TTL

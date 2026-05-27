@@ -2,8 +2,8 @@ import path from 'path'
 import { prisma } from '../../prisma.mjs'
 import { getOrCreateSong } from './utils.mjs'
 import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.mjs'
+import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.mjs'
 
-const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 const DEBOUNCE_MS = 500
 
 /** @type {Map<string, import('chokidar').FSWatcher>} */
@@ -130,7 +130,7 @@ export async function initializeWatchers() {
 // ─── Event handlers ──────────────────────────────────────────────────
 
 function isAudioFile(filePath) {
-  return AUDIO_EXTENSIONS.has(path.extname(filePath).toLowerCase())
+  return isSupportedMediaFile(filePath)
 }
 
 function findOwnerDir(filePath, rootDirPath) {
@@ -243,8 +243,9 @@ async function flushChanges() {
     try {
       // Process additions — index new songs
       for (const filePath of changes.added) {
-        const fileName = path.basename(filePath, path.extname(filePath))
-        await getOrCreateSong(filePath, fileName).catch((err) => {
+        const importablePath = await resolveImportableAudioPath(filePath)
+        const fileName = path.basename(importablePath, path.extname(importablePath))
+        await getOrCreateSong(importablePath, fileName).catch((err) => {
           console.error(`[watcher] Error indexing ${filePath}:`, err.message)
         })
       }

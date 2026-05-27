@@ -3,6 +3,7 @@ import fs from 'fs'
 import crypto from 'crypto'
 import { prisma } from '../../prisma.mjs'
 import { getStoragePaths } from '../../storagePaths.mjs'
+import { resolveImportableAudioPaths } from './mediaFileSupport.mjs'
 
 let sharpModulePromise = null
 let musicMetadataModulePromise = null
@@ -369,7 +370,9 @@ export async function getFileInfosBulk(filePaths = [], { concurrency = 6 } = {})
     return []
   }
 
-  const validFilePaths = orderedFilePaths.filter((filePath) => {
+  const importableOrderedFilePaths = await resolveImportableAudioPaths(orderedFilePaths)
+
+  const validFilePaths = importableOrderedFilePaths.filter((filePath) => {
     const fileName = path.basename(filePath, path.extname(filePath))
     return !fileName.includes('#')
   })
