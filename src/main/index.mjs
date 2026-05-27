@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
+import { runNativeBindingDiagnostics } from './nativeDiagnostics.mjs'
 import { getPrismaStatus, initializePrisma, prisma } from './prisma.mjs'
 import { getStorageDiagnostics, getStoragePaths } from './storagePaths.mjs'
 import {
@@ -111,6 +112,7 @@ log.transports.console.level = 'debug'
 log.transports.file.maxSize = 5 * 1024 * 1024
 log.transports.file.format = '{y}-{m}-{d} {h}:{i}:{s}.{ms} [{level}] {text}'
 log.initialize()
+runNativeBindingDiagnostics(log, app)
 
 process.on('uncaughtException', (error) => {
   log.error('Uncaught Exception:', error.message)

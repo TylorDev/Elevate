@@ -1,6 +1,8 @@
 
 node_modules
 dist
+build/vc_redist*.exe
+build/redist/*.exe
 .env
 .env.*
 !.env.example
@@ -21,4 +23,3 @@ out
 
 # Specific image directories
 covers/
-

@@ -9,12 +9,27 @@ files:
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!node_modules/node-audio-volume-mixer/build/Release/obj/**'
+  - '!node_modules/node-audio-volume-mixer/build/Release/*.exp'
+  - '!node_modules/node-audio-volume-mixer/build/Release/*.lib'
+  - '!node_modules/node-audio-volume-mixer/build/Release/*.iobj'
+  - '!node_modules/node-audio-volume-mixer/build/Release/*.ipdb'
 asarUnpack:
   - resources/**
+  - '**/*.node'
+  - node_modules/@libsql/**/*
+  - node_modules/libsql/**/*
+  - node_modules/@img/sharp-*/**/*
+  - node_modules/sharp/**/*
+  - node_modules/node-audio-volume-mixer/build/Release/addon.node
 win:
   executableName: elevate
   icon: build/elevate.ico
+  extraResources:
+    - from: build/redist/vc_redist.x64.exe
+      to: redist/vc_redist.x64.exe
 nsis:
+  include: build/installer.nsh
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
@@ -41,7 +56,6 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
-npmRebuild: false
 publish:
   provider: github
   owner: TylorDev

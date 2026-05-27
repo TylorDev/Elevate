@@ -1,7 +1,5 @@
 import { promises as fs } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { PrismaLibSql } from '@prisma/adapter-libsql'
-import { PrismaClient } from './generated/prisma/client.ts'
 import { getStoragePaths } from './storagePaths.mjs'
 
 const DEFAULT_PRISMA_WAIT_TIMEOUT_MS = 15_000
@@ -206,6 +204,11 @@ export async function initializePrisma() {
 }
 
 async function initializePrismaClient() {
+  const [{ PrismaLibSql }, { PrismaClient }] = await Promise.all([
+    import('@prisma/adapter-libsql'),
+    import('./generated/prisma/client.ts')
+  ])
+
   const adapter = new PrismaLibSql({
     url: await getDatabaseUrl()
   })

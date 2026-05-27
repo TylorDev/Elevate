@@ -39,4 +39,5 @@ const publishMode = hasGithubToken ? 'always' : 'never'
 console.log(`[build:win] GitHub release publishing: ${hasGithubToken ? 'enabled' : 'disabled'}`)
 
 await run(process.execPath, [npmCli, 'run', 'build'], 'npm run build')
+await run(process.execPath, ['scripts/prepare-vc-redist.mjs'], 'prepare VC++ Redistributable')
 await run(process.execPath, [builderCli, '--win', '--publish', publishMode], 'electron-builder --win')
