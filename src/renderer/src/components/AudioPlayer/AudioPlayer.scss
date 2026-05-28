@@ -3,14 +3,31 @@
     z-index: 1500;
     width: 100%;
     min-width: 0;
-    background-color: $card;
+    
+    // Glassmorphism, Gradients, Bevels, and Glow
+    background: linear-gradient(
+        145deg, 
+        color-mix(in srgb, $card 85%, transparent) 0%, 
+        color-mix(in srgb, $card 60%, transparent) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    border-right: 1px solid rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+    box-shadow: 
+        inset 1px 1px 2px rgba(255, 255, 255, 0.05),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.2),
+        0 -8px 32px rgba(0, 0, 0, 0.4),
+        0 0 20px color-mix(in srgb, $primary-color 15%, transparent);
+
     color: $text-primary;
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
     align-items: center;
     gap: 1rem;
     padding: 0.75rem 1.25rem;
-    border: 1px solid $secondary;
 
 
     &__col-1 {
@@ -34,19 +51,27 @@
             height: auto;
             padding: 0;
             margin-top: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            &:active {
+                transform: scale(0.85);
+            }
 
             svg {
                 font-size: 1.1rem;
                 color: $text-secondary;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             &:hover svg {
                 color: $text-primary;
+                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 60%, transparent));
             }
 
             &.liked svg {
                 color: $primary-color;
                 fill: $primary-color;
+                filter: drop-shadow(0 0 10px color-mix(in srgb, $primary-color 80%, transparent));
             }
         }
     }
@@ -124,15 +149,22 @@
         max-width: 7rem;
         width: 100%;
         aspect-ratio: 1/1;
-        border-radius: 6px;
+        border-radius: $border-radius;
         overflow: hidden;
         cursor: pointer;
-        transition: filter 0.2s;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 
+            0 8px 24px rgba(0, 0, 0, 0.4),
+            0 0 15px color-mix(in srgb, $primary-color 15%, transparent);
 
 
         &:hover {
-            filter: brightness(0.8);
+            transform: translateY(-2px);
+            box-shadow: 
+                0 12px 28px rgba(0, 0, 0, 0.5),
+                0 0 25px color-mix(in srgb, $primary-color 30%, transparent);
+            filter: brightness(1.1);
         }
 
         img {
@@ -208,7 +240,11 @@
         min-height: 1.7rem;
         padding: 0.18rem 0.5rem;
         border-radius: $border-radius;
-        background: rgba(255, 255, 255, 0.08);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+        box-shadow: 
+            inset 1px 1px 2px rgba(255, 255, 255, 0.1),
+            inset -1px -1px 2px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         color: $text-secondary;
         font-size: 0.7rem;
         white-space: nowrap;
@@ -249,9 +285,15 @@
             width: auto;
             height: auto;
             color: $text-primary;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            &:active {
+                transform: scale(0.9);
+            }
 
             svg {
                 font-size: 1.2rem;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             &[aria-label="Previous song"],
@@ -262,12 +304,15 @@
             }
 
             &:hover {
-                color: $text-primary;
+                color: $primary-color;
                 background: transparent;
+                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 60%, transparent));
+                transform: scale(1.1);
             }
 
             &.is-active {
                 color: $primary-color;
+                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 80%, transparent));
             }
         }
 
@@ -275,22 +320,42 @@
             width: 3.5rem;
             height: 3.5rem;
             border-radius: 50%;
-            background-color: $primary-color;
+            background: linear-gradient(145deg, color-mix(in srgb, $primary-color 85%, white), color-mix(in srgb, $primary-color 70%, black));
             color: $activeIcon;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+            box-shadow: 
+                inset 2px 2px 4px rgba(255, 255, 255, 0.4),
+                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
+                0 6px 16px rgba(0, 0, 0, 0.4),
+                0 0 15px color-mix(in srgb, $primary-color 40%, transparent);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
             svg {
                 font-size: 1.5rem;
                 fill: $activeIcon;
                 color: $activeIcon;
+                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
             }
 
             &:hover {
-                transform: scale(1.05);
-                background-color: color-mix(in srgb, $primary-color 85%, black);
+                transform: scale(1.1);
+                background: linear-gradient(145deg, color-mix(in srgb, $primary-color 70%, white), color-mix(in srgb, $primary-color 80%, black));
+                box-shadow: 
+                    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+                    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
+                    0 8px 24px rgba(0, 0, 0, 0.5),
+                    0 0 25px color-mix(in srgb, $primary-color 60%, transparent);
+            }
+            
+            &:active {
+                transform: scale(0.95);
+                box-shadow: 
+                    inset 3px 3px 6px rgba(0, 0, 0, 0.5),
+                    inset -3px -3px 6px rgba(255, 255, 255, 0.1),
+                    0 2px 8px rgba(0, 0, 0, 0.3),
+                    0 0 10px color-mix(in srgb, $primary-color 30%, transparent);
             }
         }
     }

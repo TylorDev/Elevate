@@ -10,12 +10,23 @@
     width: 100%;
 
     .AudioPlayerButton {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+        &:active {
+            transform: scale(0.9);
+        }
+
         &.muted {
             color: rgba(255, 255, 255, 0.3);
 
             &:hover {
                 color: $primary-color;
+                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 60%, transparent));
             }
+        }
+        &.is-active {
+            color: $primary-color;
+            filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 80%, transparent));
         }
     }
 
@@ -83,6 +94,7 @@
                     &:hover {
                         transform: scale(1.1);
                         background: $hover;
+                        box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
                     }
                 }
             }
@@ -96,7 +108,7 @@
                 border-radius: $border-radius;
                 pointer-events: none;
                 z-index: 1;
-
+                box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
             }
         }
 
@@ -111,6 +123,11 @@
             justify-content: center;
             padding: 6px;
             border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+            &:active {
+                transform: scale(0.9);
+            }
 
 
             &:hover {
@@ -165,6 +182,7 @@
                     &:hover {
                         transform: scale(1.2);
                         background: $hover;
+                        box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
                     }
                 }
             }
@@ -179,6 +197,7 @@
                 border-radius: $border-radius;
                 pointer-events: none;
                 z-index: 1;
+                box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
             }
         }
     }
