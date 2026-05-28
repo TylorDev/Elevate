@@ -128,7 +128,6 @@ function Main() {
 
   const mainClassName = [
     'Main',
-    isCompactHeight ? 'Main--compact-height' : '',
     isHeaderCollapsed ? 'Main--header-hidden' : '',
     isQueueCollapsed ? 'Main--queue-hidden' : 'Main--queue-visible'
   ]

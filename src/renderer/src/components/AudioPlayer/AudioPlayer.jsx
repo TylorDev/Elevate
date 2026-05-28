@@ -16,7 +16,8 @@ import {
   LuRepeat1,
   LuShuffle,
   LuVolume2,
-  LuVolumeX
+  LuVolumeX,
+  LuPictureInPicture2
 } from 'react-icons/lu'
 
 import { SliderVolume } from '../SliderVolume/SliderVolume'
@@ -28,10 +29,10 @@ import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
 
 import { AudioPlayerButton } from './AudioPlayerButton'
+import { PlayerMenu } from './PlayerMenu'
 
 import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
-import { useIsCompactHeaderViewport, useIsCompactViewportHeight } from '../../utils/compactViewport'
 
 export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
   const { waveformVariant, toggleStep, isStep } = useSuper()
@@ -43,8 +44,6 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   const { currentCover } = usePlaylists()
   const { likeState, toggleLike } = useLikes()
   const navigate = useNavigate()
-  const isCompactHeight = useIsCompactViewportHeight()
-  const isCompactWidth = useIsCompactHeaderViewport()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef(null)
 
@@ -102,168 +101,100 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   }
 
   return (
-    <div
-      className={isCompactWidth ? 'AudioPlayer AudioPlayer--compact-mobile' : 'AudioPlayer'}
-      id="AudioPlayer"
-    >
-      <AudioPlayerProgressRow
-        progress={progress}
-        duration={duration}
-        waveformVariant={waveformVariant}
-        formatTime={formatTime}
-      />
+    <div className="AudioPlayer" id="AudioPlayer">
+      <div className="AudioPlayer__col-1">
+        <div
+          className="AudioPlayer__cover"
+          onClick={() => {
+            if (currentFile) navigate('/music')
+          }}
+        >
+          <img src={currentCover || undefined} alt="Cover" />
+        </div>
 
-      <div
-        className="AudioPlayer__cover"
-        onClick={() => {
-          if (currentFile) navigate('/music')
-        }}
-      >
-        <img src={currentCover || undefined} alt="Cover" />
+        <div className="AudioPlayer__info">
+          <AudioPlayerMetadata title={title} artist={artist}></AudioPlayerMetadata>
+
+          <div className="AudioPlayer__actions-row">
+            <AudioPlayerButton
+              variant="like"
+              className={likeState.currentLike ? 'liked' : ''}
+              onClick={handleLikeClick}
+              ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
+              disabled={!currentFile}
+            >
+              {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
+            </AudioPlayerButton>
+          </div>
+        </div>
       </div>
 
-      <AudioPlayerMetadata title={title} artist={artist}></AudioPlayerMetadata>
+      <div className="AudioPlayer__col-2">
+        <AudioPlayerProgressRow
+          progress={progress}
+          duration={duration}
+          waveformVariant={waveformVariant}
+          formatTime={formatTime}
+        />
 
-      <div className="AudioPlayer__controls" id="controls">
-        <AudioPlayerButton
-          onClick={handlePreviousClick}
-          variant="default"
-          ariaLabel="Previous song"
-        >
-          <LuSkipBack />
-        </AudioPlayerButton>
-        <AudioPlayerButton
-          onClick={togglePlayPause}
-          variant="play"
-          ariaLabel={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? <LuPause /> : <LuPlay />}
-        </AudioPlayerButton>
-        <AudioPlayerButton onClick={handleNextClick} variant="default" ariaLabel="Next song">
-          <LuSkipForward />
-        </AudioPlayerButton>
-      </div>
-
-      <div className="AudioPlayer__like-container">
-        <div className="Secondary-Controls">
+        <div className="AudioPlayer__controls" id="controls">
           <AudioPlayerButton
-            variant="like"
-            className={likeState.currentLike ? 'liked' : ''}
-            onClick={handleLikeClick}
-            ariaLabel={likeState.currentLike ? 'Remove like' : 'Like song'}
-            disabled={!currentFile}
+            onClick={toggleShuffle}
+            variant="default"
+            ariaLabel="Shuffle"
+            className={isShuffled ? 'is-active' : ''}
           >
-            {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
+            <LuShuffle id={isShuffled ? 'btnShuffle-true' : 'btnShuffle-false'} />
           </AudioPlayerButton>
 
-          <div className="AudioPlayer__menu" ref={menuRef}>
-            <AudioPlayerButton
-              variant="menu"
-              className="AudioPlayer__menu-trigger"
-              ariaLabel="Open player actions"
-              aria-expanded={isMenuOpen}
-              onClick={() => setIsMenuOpen((current) => !current)}
-            >
-              <LuEllipsis />
-            </AudioPlayerButton>
+          <AudioPlayerButton
+            onClick={handlePreviousClick}
+            variant="default"
+            ariaLabel="Previous song"
+          >
+            <LuSkipBack />
+          </AudioPlayerButton>
 
-            {isMenuOpen && (
-              <div className="AudioPlayer__menu-panel" role="menu">
-                <AudioPlayerButton
-                  type="button"
-                  variant="menu-panel-item"
-                  role="menuitem"
-                  onClick={() => runMenuAction(toggleMute)}
-                >
-                  {muted ? <LuVolumeX /> : <LuVolume2 />}
-                  <span>{muted ? 'Unmute' : 'Mute'}</span>
-                </AudioPlayerButton>
-                <AudioPlayerButton
-                  type="button"
-                  variant="menu-panel-item"
-                  role="menuitem"
-                  onClick={() => runMenuAction(toggleStep)}
-                >
-                  {isStep ? <LuFootprints className="Step" /> : <LuFootprints />}
-                  <span>Step</span>
-                </AudioPlayerButton>
-                <AudioPlayerButton
-                  type="button"
-                  variant="menu-panel-item"
-                  role="menuitem"
-                  onClick={() => runMenuAction(toggleShuffle)}
-                >
-                  <LuShuffle id={isShuffled ? 'btnShuffle-true' : 'btnShuffle-false'} />
-                  <span>Shuffle</span>
-                </AudioPlayerButton>
-                <AudioPlayerButton
-                  type="button"
-                  variant="menu-panel-item"
-                  role="menuitem"
-                  onClick={() => runMenuAction(toggleRepeat)}
-                >
-                  {loop ? <LuRepeat id="btnShuffle-true" /> : <LuRepeat1 id="btnShuffle-false" />}
-                  <span>Repeat</span>
-                </AudioPlayerButton>
-                <AudioPlayerButton
-                  type="button"
-                  variant="menu-panel-item"
-                  role="menuitem"
-                  aria-pressed={!isQueueHidden}
-                  onClick={() => runMenuAction(onToggleQueue)}
-                >
-                  <LuListVideo />
-                  <span>Queue</span>
-                </AudioPlayerButton>
-              </div>
-            )}
+          <AudioPlayerButton
+            onClick={togglePlayPause}
+            variant="play"
+            ariaLabel={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? <LuPause /> : <LuPlay />}
+          </AudioPlayerButton>
 
-            <div
-              className="AudioPlayer__menu-inline"
-              role="group"
-              aria-label="Secondary player actions"
-            >
-              <AudioPlayerButton
-                type="button"
-                variant="inline-action"
-                className={isShuffled ? 'is-active' : ''}
-                onClick={toggleShuffle}
-                title="Shuffle"
-              >
-                <LuShuffle />
-              </AudioPlayerButton>
-              <AudioPlayerButton
-                type="button"
-                variant="inline-action"
-                className={isStep ? 'is-active' : ''}
-                onClick={toggleStep}
-                title="Step"
-              >
-                <LuFootprints />
-              </AudioPlayerButton>
-              <AudioPlayerButton
-                type="button"
-                variant="inline-action"
-                className={loop ? 'is-active' : ''}
-                onClick={toggleRepeat}
-                title="Repeat"
-              >
-                {loop ? <LuRepeat /> : <LuRepeat1 />}
-              </AudioPlayerButton>
-              <AudioPlayerButton
-                type="button"
-                variant="inline-action"
-                className={!isQueueHidden ? 'is-active' : ''}
-                aria-pressed={!isQueueHidden}
-                onClick={onToggleQueue}
-                title={isQueueHidden ? 'Show queue panel' : 'Hide queue panel'}
-              >
-                <LuListVideo />
-              </AudioPlayerButton>
-            </div>
-          </div>
-          {!isCompactHeight ? <SliderVolume variant="horizontal" /> : null}
+          <AudioPlayerButton onClick={handleNextClick} variant="default" ariaLabel="Next song">
+            <LuSkipForward />
+          </AudioPlayerButton>
+
+          <AudioPlayerButton
+            onClick={toggleRepeat}
+            variant="default"
+            ariaLabel="Repeat"
+            className={loop ? 'is-active' : ''}
+          >
+            {loop ? <LuRepeat id="btnShuffle-true" /> : <LuRepeat1 id="btnShuffle-false" />}
+          </AudioPlayerButton>
         </div>
+      </div>
+
+      <div className="AudioPlayer__col-3">
+        <div className="AudioPlayer__volume-wrapper">
+          <SliderVolume variant="horizontal" />
+        </div>
+
+        <AudioPlayerButton
+          variant="default"
+          onClick={onToggleQueue}
+          ariaLabel={isQueueHidden ? 'Show queue panel' : 'Hide queue panel'}
+          className={!isQueueHidden ? 'is-active' : ''}
+        >
+          <LuListVideo />
+        </AudioPlayerButton>
+
+        <AudioPlayerButton variant="default" ariaLabel="Picture in Picture">
+          <LuPictureInPicture2 />
+        </AudioPlayerButton>
       </div>
     </div>
   )
