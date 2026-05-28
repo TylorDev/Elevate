@@ -7,7 +7,7 @@
     justify-content: center;
     cursor: pointer;
     transition: background 0.2s, color 0.2s, transform 0.1s;
-
+    aspect-ratio: 1/1;
     width: 2.5rem;
     height: 2.5rem;
  
@@ -18,8 +18,9 @@
     }
 
     &:hover {
-        background: $hover;
-        color: $text-primary;
+   
+        color: $primary-color;
+        transform: scale(1.2);
     }
 
     &:disabled {
@@ -58,10 +59,12 @@
        
         &.liked {
             color: $primary-color;
+        
             
             svg {
                 color: $primary-color;
                 fill: $primary-color;
+                
             }
         }
     }

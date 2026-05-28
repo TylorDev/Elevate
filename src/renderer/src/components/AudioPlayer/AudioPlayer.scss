@@ -4,23 +4,26 @@
     width: 100%;
     min-width: 0;
     
+    
     // Glassmorphism, Gradients, Bevels, and Glow
-    background: linear-gradient(
-        145deg, 
-        color-mix(in srgb, $card 85%, transparent) 0%, 
-        color-mix(in srgb, $card 60%, transparent) 100%
-    );
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+  background:
+    linear-gradient(
+        135deg,
+        color-mix(in srgb, $primary-color, transparent 90%),
+        transparent 34%
+    ),
+    linear-gradient(
+        315deg,
+        color-mix(in srgb, $primary-color, transparent 90%),
+        transparent 10%
+    ),
+    $card;
+
+  
+
     border-top: 1px solid rgba(255, 255, 255, 0.12);
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
-    border-right: 1px solid rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.4);
-    box-shadow: 
-        inset 1px 1px 2px rgba(255, 255, 255, 0.05),
-        inset -1px -1px 2px rgba(0, 0, 0, 0.2),
-        0 -8px 32px rgba(0, 0, 0, 0.4),
-        0 0 20px color-mix(in srgb, $primary-color 15%, transparent);
+
+
 
     color: $text-primary;
     display: grid;
@@ -56,6 +59,10 @@
             &:active {
                 transform: scale(0.85);
             }
+            &:hover{
+                transform: scale(1.1);
+                background-color: transparent;
+            }
 
             svg {
                 font-size: 1.1rem;
@@ -65,13 +72,13 @@
 
             &:hover svg {
                 color: $text-primary;
-                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 60%, transparent));
+                
             }
 
             &.liked svg {
                 color: $primary-color;
                 fill: $primary-color;
-                filter: drop-shadow(0 0 10px color-mix(in srgb, $primary-color 80%, transparent));
+               
             }
         }
     }
@@ -81,6 +88,7 @@
         align-items: center;
         gap: 0.25rem;
         margin-top: 0.15rem;
+        
     }
 
     &__col-2 {
@@ -90,6 +98,7 @@
         gap: 0.25rem;
         width: 100%;
         min-width: 0;
+         filter: saturate(2);
     }
 
     &__col-3 {
@@ -118,14 +127,14 @@
         grid-template-areas: "currentTime progress duration";
         align-items: center;
         gap: 0.75rem;
-
+      
 
     }
 
     &__current-time {
         grid-area: currentTime;
         font-size: 0.75rem;
-        color: $text-secondary;
+        color: $primary-color;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
 
@@ -161,10 +170,8 @@
 
         &:hover {
             transform: translateY(-2px);
-            box-shadow: 
-                0 12px 28px rgba(0, 0, 0, 0.5),
-                0 0 25px color-mix(in srgb, $primary-color 30%, transparent);
-            filter: brightness(1.1);
+          
+         
         }
 
         img {
@@ -228,38 +235,7 @@
         }
     }
 
-    &__stat,
-    &__cortas,
-    &__folder,
-    &__repeats,
-    &__skips {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-        width: 100%;
-        min-height: 1.7rem;
-        padding: 0.18rem 0.5rem;
-        border-radius: $border-radius;
-        background: linear-gradient(145deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
-        box-shadow: 
-            inset 1px 1px 2px rgba(255, 255, 255, 0.1),
-            inset -1px -1px 2px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        color: $text-secondary;
-        font-size: 0.7rem;
-        white-space: nowrap;
-        box-sizing: border-box;
-
-        svg {
-            color: $primary-color;
-            flex-shrink: 0;
-        }
-
-        strong {
-            color: $text-primary;
-            font-weight: 600;
-        }
-    }
+ 
 
     &__folder {
         min-width: 0;
@@ -280,7 +256,7 @@
         justify-content: center;
         gap: 1.25rem;
         align-self: stretch;
-
+     
         .AudioPlayerButton {
             width: auto;
             height: auto;
@@ -306,13 +282,13 @@
             &:hover {
                 color: $primary-color;
                 background: transparent;
-                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 60%, transparent));
+              
                 transform: scale(1.1);
             }
 
             &.is-active {
                 color: $primary-color;
-                filter: drop-shadow(0 0 8px color-mix(in srgb, $primary-color 80%, transparent));
+               
             }
         }
 
@@ -325,38 +301,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 
-                inset 2px 2px 4px rgba(255, 255, 255, 0.4),
-                inset -2px -2px 4px rgba(0, 0, 0, 0.3),
-                0 6px 16px rgba(0, 0, 0, 0.4),
-                0 0 15px color-mix(in srgb, $primary-color 40%, transparent);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-
+        
             svg {
                 font-size: 1.5rem;
                 fill: $activeIcon;
                 color: $activeIcon;
-                filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+            
             }
 
             &:hover {
                 transform: scale(1.1);
                 background: linear-gradient(145deg, color-mix(in srgb, $primary-color 70%, white), color-mix(in srgb, $primary-color 80%, black));
-                box-shadow: 
-                    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
-                    inset -2px -2px 4px rgba(0, 0, 0, 0.4),
-                    0 8px 24px rgba(0, 0, 0, 0.5),
-                    0 0 25px color-mix(in srgb, $primary-color 60%, transparent);
+              
             }
             
-            &:active {
-                transform: scale(0.95);
-                box-shadow: 
-                    inset 3px 3px 6px rgba(0, 0, 0, 0.5),
-                    inset -3px -3px 6px rgba(255, 255, 255, 0.1),
-                    0 2px 8px rgba(0, 0, 0, 0.3),
-                    0 0 10px color-mix(in srgb, $primary-color 30%, transparent);
-            }
+     
         }
     }
 
@@ -365,6 +324,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    
     }
 
     &__menu {

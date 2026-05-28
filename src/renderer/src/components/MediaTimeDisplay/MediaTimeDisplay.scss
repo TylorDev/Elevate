@@ -42,11 +42,13 @@
         width: 100%;
         background: color-mix(in srgb, var(--text-secondary, #6f6f6f), transparent 18%);
         opacity: 0.55;
+        box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5);
     }
 
     .waveform__simple-progress {
         background: var(--Dynamic-color, #baff00);
         max-width: 100%;
+        box-shadow: 0 0 10px color-mix(in srgb, var(--Dynamic-color, #baff00) 60%, transparent);
     }
 
     .waveform__simple-thumb {
@@ -57,7 +59,9 @@
         border-radius: 50%;
         background: #ffffff;
         border: 2px solid var(--Dynamic-color, #baff00);
-        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
+        box-shadow: 
+            0 0 0 2px rgba(0, 0, 0, 0.18),
+            0 0 12px color-mix(in srgb, var(--Dynamic-color, #baff00) 80%, transparent);
         transform: translate(-50%, -50%);
         pointer-events: none;
     }

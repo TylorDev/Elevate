@@ -108,7 +108,7 @@
                 border-radius: $border-radius;
                 pointer-events: none;
                 z-index: 1;
-                box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
+               
             }
         }
 
@@ -173,7 +173,7 @@
                     -webkit-appearance: none;
                     width: 14px;
                     height: 14px;
-                    background: white;
+                    background: $primary-color;
                     border-radius: 50%;
                     cursor: pointer;
                     border: 2px solid $primary-color;
@@ -181,7 +181,7 @@
 
                     &:hover {
                         transform: scale(1.2);
-                        background: $hover;
+                        background:$text-primary;
                         box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
                     }
                 }
@@ -197,7 +197,7 @@
                 border-radius: $border-radius;
                 pointer-events: none;
                 z-index: 1;
-                box-shadow: 0 0 10px color-mix(in srgb, $primary-color 80%, transparent);
+               
             }
         }
     }

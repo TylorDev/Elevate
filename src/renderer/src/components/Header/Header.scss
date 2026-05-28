@@ -10,7 +10,9 @@
     background: $card;
     border-right: 1px solid $secondary;
     padding: 1.5rem 0;
-
+  background:
+    linear-gradient(60deg, color-mix(in srgb, $primary-color, transparent 85%), transparent 64%),
+    $card; 
 
     .nav-sec {
         width: 100%;

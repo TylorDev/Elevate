@@ -17,7 +17,9 @@ const PLAYLIST_MENU_EMPTY_ID = '__playlist_empty__'
 const PLAYLIST_MENU_NO_MATCHES_ID = '__playlist_no_matches__'
 
 function normalizePlaylistName(value = '') {
-  return String(value).trim().replace(/\.m3u$/i, '')
+  return String(value)
+    .trim()
+    .replace(/\.m3u$/i, '')
 }
 
 function normalizeSearchValue(value = '') {
@@ -105,20 +107,16 @@ export const SongItemView = memo(function SongItemView({
           'songItem',
           isActive ? 'active' : '',
           showInsightValue ? 'songItem--insight' : ''
-        ].filter(Boolean).join(' ')}
+        ]
+          .filter(Boolean)
+          .join(' ')}
       >
-        <div
-          className={[
-            'songItem__pinIndicator',
-            isPinned ? 'is-active' : '',
-            isPinEnabled ? '' : 'is-hidden'
-          ].filter(Boolean).join(' ')}
-        >
-          {isPinEnabled ? <LuPin /> : null}
-        </div>
-
         <div className="song-progress">
-          {isActive ? <ActiveSongProgress /> : <div className="song-progress-fill" style={INACTIVE_PROGRESS_STYLE} />}
+          {isActive ? (
+            <ActiveSongProgress />
+          ) : (
+            <div className="song-progress-fill" style={INACTIVE_PROGRESS_STYLE} />
+          )}
         </div>
 
         <div className="cover">
@@ -131,15 +129,14 @@ export const SongItemView = memo(function SongItemView({
         <div className="songdata">
           <span className="song-tittle">{title}</span>
           <span className="song-artist">
-            {artist || unknownArtistLabel} -{' '}
-            <span className="song-views">
-              <FaEye /> {shortViewCount}
-            </span>
+            {artist || unknownArtistLabel} - <span className="song-views"></span>
           </span>
           {containerFolderName ? (
             <span className="song-folder" title={containerFolderName}>
               <LuFolder />
-              <strong>{containerFolderName}</strong>
+              <span title={shortViewCount}>
+                <FaEye />
+              </span>
             </span>
           ) : null}
         </div>
@@ -211,10 +208,7 @@ function SongItemContainer({
     () => normalizePlaylistName(playlistQuery),
     [playlistQuery]
   )
-  const normalizedSearchTerm = useMemo(
-    () => normalizeSearchValue(playlistQuery),
-    [playlistQuery]
-  )
+  const normalizedSearchTerm = useMemo(() => normalizeSearchValue(playlistQuery), [playlistQuery])
   const filteredPlaylists = useMemo(() => {
     if (!Array.isArray(playlists)) {
       return []

@@ -12,6 +12,9 @@
   color: $text-primary;
   background: $card;
 
+    background:
+    linear-gradient(80deg, color-mix(in srgb, $primary-color, transparent 85%), transparent 44%),
+    $card; 
   &__header {
     padding: clamp(0.7rem, 1.8vw, 1rem) clamp(0.7rem, 1.8vw, 1rem) 0.5rem;
     display: flex;
