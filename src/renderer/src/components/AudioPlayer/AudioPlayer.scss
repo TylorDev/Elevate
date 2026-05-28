@@ -381,3 +381,21 @@
 #btnShuffle-false {
     color: $text-primary;
 }
+
+@media (max-width: 550px) {
+    .AudioPlayer__controls {
+        .AudioPlayerButton[aria-label="Shuffle"],
+        .AudioPlayerButton[aria-label="Repeat"] {
+            display: none;
+        }
+    }
+}
+
+@media (max-width: 800px) {
+    .AudioPlayer__col-3 {
+        justify-content: center;
+    }
+    .AudioPlayer__volume-wrapper {
+        flex: 0 0 auto;
+    }
+}

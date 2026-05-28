@@ -45,7 +45,14 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   const { likeState, toggleLike } = useLikes()
   const navigate = useNavigate()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
   const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -180,7 +187,7 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
 
       <div className="AudioPlayer__col-3">
         <div className="AudioPlayer__volume-wrapper">
-          <SliderVolume variant="horizontal" />
+          <SliderVolume variant={windowWidth <= 800 ? 'popup' : 'horizontal'} />
         </div>
 
         <AudioPlayerButton

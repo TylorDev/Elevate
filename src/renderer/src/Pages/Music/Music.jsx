@@ -15,6 +15,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { useBackground } from '../../Contexts/BackgroundContext'
 import { useNavigate } from 'react-router-dom'
 import {
   useVisualizerCatalog,
@@ -78,6 +79,8 @@ function Music() {
   const { currentFile } = useQueue()
   const { mediaElement, togglePlayPause } = usePlayback()
   const { currentCover } = usePlaylists()
+  const { backgroundImageUrl } = useBackground()
+  const activeCover = currentCover || backgroundImageUrl
   const [audioEl, setAudioEl] = useState(null)
 
   const [showCover, setShowCover] = useState(true)
@@ -326,7 +329,7 @@ function Music() {
       }
 
       const isBackgroundVisible =
-        enableVisualizer || !showCover || (showCover && currentCover && !enableVisualizer)
+        enableVisualizer || !showCover || (showCover && activeCover && !enableVisualizer)
 
       if (!isBackgroundVisible) {
         hideRightClickHint()
@@ -350,7 +353,7 @@ function Music() {
       })
     },
     [
-      currentCover,
+      activeCover,
       enableVisualizer,
       hideRightClickHint,
       isRightClickHintDismissed,
@@ -629,8 +632,8 @@ function Music() {
   )
 
   const coverBackgroundStyle = useMemo(
-    () => (currentCover ? { backgroundImage: `url(${currentCover})` } : undefined),
-    [currentCover]
+    () => (activeCover ? { backgroundImage: `url(${activeCover})` } : undefined),
+    [activeCover]
   )
 
   return (
@@ -642,11 +645,11 @@ function Music() {
       onMouseLeave={hideRightClickHint}
       onMouseMove={updateRightClickHint}
     >
-      {!showCover && currentCover && (
+      {!showCover && activeCover && (
         <div className="cover-as-background" style={coverBackgroundStyle} />
       )}
 
-      {showCover && currentCover && !enableVisualizer && (
+      {showCover && activeCover && !enableVisualizer && (
         <div className="blurred-cover-background" style={coverBackgroundStyle} />
       )}
 
@@ -685,8 +688,8 @@ function Music() {
             title={currentFile?.filePath ? 'Open song history' : undefined}
           >
             <div className="cover-container">
-              {currentCover ? (
-                <img src={currentCover} alt="Cover" className="album-cover" />
+              {activeCover ? (
+                <img src={activeCover} alt="Cover" className="album-cover" />
               ) : (
                 <div className="no-cover">No Cover</div>
               )}
