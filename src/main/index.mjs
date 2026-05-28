@@ -31,8 +31,7 @@ const windowStateChannel = 'window:state-changed'
 const appCommandChannel = 'app:command'
 let tray = null
 let hasShutdownStarted = false
-let devToolsToggleInProgress = false
-let nativeDevToolsUnavailable = false
+
 let mainRendererWebContentsId = null
 const mainDir = fileURLToPath(new URL('.', import.meta.url))
 const rendererDir = fileURLToPath(new URL('../renderer', import.meta.url))
@@ -201,49 +200,7 @@ function sendAppCommand(command) {
   mainWin.webContents.send(appCommandChannel, command)
 }
 
-function toggleMainWindowDevTools() {
-  try {
-    if (nativeDevToolsUnavailable) {
-      log.warn('Native DevTools are unavailable in this process. Renderer console is being captured in main logs.')
-      return false
-    }
 
-    if (!mainWin || mainWin.isDestroyed()) {
-      log.warn('Cannot toggle DevTools: main window is not available.')
-      return false
-    }
-
-    const { webContents } = mainWin
-
-    if (!webContents || webContents.isDestroyed()) {
-      log.warn('Cannot toggle DevTools: webContents is not available.')
-      return false
-    }
-
-    if (webContents.isDevToolsOpened()) {
-      devToolsToggleInProgress = true
-      webContents.closeDevTools()
-      setTimeout(() => {
-        devToolsToggleInProgress = false
-      }, 1500)
-      return true
-    }
-
-    devToolsToggleInProgress = true
-    webContents.openDevTools({ mode: 'bottom', activate: true })
-    setTimeout(() => {
-      devToolsToggleInProgress = false
-    }, 1500)
-    return true
-  } catch (error) {
-    devToolsToggleInProgress = false
-    log.error('Failed to toggle DevTools:', error?.message || error)
-    if (error?.stack) {
-      log.error('DevTools toggle stack:', error.stack)
-    }
-    return false
-  }
-}
 
 function getConsoleLogMethod(level) {
   if (level >= 3) return 'error'
@@ -289,40 +246,7 @@ function registerRendererDiagnostics(windowInstance) {
   })
 }
 
-function isDevToolsShortcut(input = {}) {
-  if (input.key === 'F12') {
-    return true
-  }
 
-  const isCtrlOrMeta = Boolean(input.control || input.meta)
-  return isCtrlOrMeta && input.shift && String(input.key).toLowerCase() === 'i'
-}
-
-function registerDevToolsShortcuts(windowInstance) {
-  const toggleDevTools = () => {
-    toggleMainWindowDevTools()
-  }
-
-  const f12Registered = globalShortcut.register('F12', toggleDevTools)
-  const inspectorRegistered = globalShortcut.register('CommandOrControl+Shift+I', toggleDevTools)
-
-  if (!f12Registered) {
-    log.warn('Global shortcut F12 was not registered; using webContents fallback.')
-  }
-
-  if (!inspectorRegistered) {
-    log.warn('Global shortcut CommandOrControl+Shift+I was not registered; using webContents fallback.')
-  }
-
-  windowInstance.webContents.on('before-input-event', (event, input) => {
-    if (!isDevToolsShortcut(input)) {
-      return
-    }
-
-    event.preventDefault()
-    toggleMainWindowDevTools()
-  })
-}
 
 const GRID_PRESET_CELLS = {
   'top-left': { row: 0, col: 0 },
@@ -693,7 +617,7 @@ function createWindow() {
     updateTaskbarControls()
   })
 
-  registerDevToolsShortcuts(mainWindow)
+
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {

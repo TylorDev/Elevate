@@ -1,8 +1,23 @@
 import './AudioPlayer.scss'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LuHeart, LuHeartOff, LuPause, LuPlay, LuSkipBack, LuSkipForward } from 'react-icons/lu'
+import {
+  LuHeart,
+  LuHeartOff,
+  LuPause,
+  LuPlay,
+  LuSkipBack,
+  LuSkipForward,
+  LuEllipsis,
+  LuFootprints,
+  LuListVideo,
+  LuRepeat,
+  LuRepeat1,
+  LuShuffle,
+  LuVolume2,
+  LuVolumeX
+} from 'react-icons/lu'
 
 import { SliderVolume } from '../SliderVolume/SliderVolume'
 import { useSuper } from '../../Contexts/SupeContext'
@@ -11,25 +26,17 @@ import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useLikes } from '../../Contexts/LikeContext'
-import { PlayerMenu } from './PlayerMenu'
+
 import { AudioPlayerButton } from './AudioPlayerButton'
-import { AudioPlayerStats } from './AudioPlayerStats'
+
 import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
-import {
-  useIsCompactHeaderViewport,
-  useIsCompactViewportHeight
-} from '../../utils/compactViewport'
+import { useIsCompactHeaderViewport, useIsCompactViewportHeight } from '../../utils/compactViewport'
 
 export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
   const { waveformVariant, toggleStep, isStep } = useSuper()
-  const {
-    currentFile,
-    handleNextClick,
-    handlePreviousClick,
-    toggleShuffle,
-    isShuffled
-  } = useQueue()
+  const { currentFile, handleNextClick, handlePreviousClick, toggleShuffle, isShuffled } =
+    useQueue()
   const { togglePlayPause, isPlaying, muted, toggleMute, toggleRepeat, loop } = usePlayback()
 
   const { progress, duration } = usePlaybackProgress()
@@ -39,6 +46,26 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
   const isCompactHeight = useIsCompactViewportHeight()
   const isCompactWidth = useIsCompactHeaderViewport()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false)
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isMenuOpen, setIsMenuOpen])
+
+  const runMenuAction = (action) => {
+    action()
+    setIsMenuOpen(false)
+  }
 
   const title = currentFile?.title || currentFile?.fileName || 'Unknown'
   const artist = currentFile?.artist || 'Unknown'
@@ -95,16 +122,7 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
         <img src={currentCover || undefined} alt="Cover" />
       </div>
 
-      <AudioPlayerMetadata title={title} artist={artist}>
-        {!isCompactHeight ? (
-          <AudioPlayerStats
-            shortViews={shortViews}
-            repeats={repeats}
-            skips={skips}
-            containerFolderName={containerFolderName}
-          />
-        ) : null}
-      </AudioPlayerMetadata>
+      <AudioPlayerMetadata title={title} artist={artist}></AudioPlayerMetadata>
 
       <div className="AudioPlayer__controls" id="controls">
         <AudioPlayerButton
@@ -138,22 +156,113 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
             {likeState.currentLike ? <LuHeart /> : <LuHeartOff />}
           </AudioPlayerButton>
 
-          {!isCompactHeight ? <SliderVolume /> : null}
+          <div className="AudioPlayer__menu" ref={menuRef}>
+            <AudioPlayerButton
+              variant="menu"
+              className="AudioPlayer__menu-trigger"
+              ariaLabel="Open player actions"
+              aria-expanded={isMenuOpen}
+              onClick={() => setIsMenuOpen((current) => !current)}
+            >
+              <LuEllipsis />
+            </AudioPlayerButton>
 
-          <PlayerMenu
-            isMenuOpen={isMenuOpen}
-            setIsMenuOpen={setIsMenuOpen}
-            muted={muted}
-            toggleMute={toggleMute}
-            isStep={isStep}
-            toggleStep={toggleStep}
-            isShuffled={isShuffled}
-            toggleShuffle={toggleShuffle}
-            loop={loop}
-            toggleRepeat={toggleRepeat}
-            isQueueHidden={isQueueHidden}
-            onToggleQueue={onToggleQueue}
-          />
+            {isMenuOpen && (
+              <div className="AudioPlayer__menu-panel" role="menu">
+                <AudioPlayerButton
+                  type="button"
+                  variant="menu-panel-item"
+                  role="menuitem"
+                  onClick={() => runMenuAction(toggleMute)}
+                >
+                  {muted ? <LuVolumeX /> : <LuVolume2 />}
+                  <span>{muted ? 'Unmute' : 'Mute'}</span>
+                </AudioPlayerButton>
+                <AudioPlayerButton
+                  type="button"
+                  variant="menu-panel-item"
+                  role="menuitem"
+                  onClick={() => runMenuAction(toggleStep)}
+                >
+                  {isStep ? <LuFootprints className="Step" /> : <LuFootprints />}
+                  <span>Step</span>
+                </AudioPlayerButton>
+                <AudioPlayerButton
+                  type="button"
+                  variant="menu-panel-item"
+                  role="menuitem"
+                  onClick={() => runMenuAction(toggleShuffle)}
+                >
+                  <LuShuffle id={isShuffled ? 'btnShuffle-true' : 'btnShuffle-false'} />
+                  <span>Shuffle</span>
+                </AudioPlayerButton>
+                <AudioPlayerButton
+                  type="button"
+                  variant="menu-panel-item"
+                  role="menuitem"
+                  onClick={() => runMenuAction(toggleRepeat)}
+                >
+                  {loop ? <LuRepeat id="btnShuffle-true" /> : <LuRepeat1 id="btnShuffle-false" />}
+                  <span>Repeat</span>
+                </AudioPlayerButton>
+                <AudioPlayerButton
+                  type="button"
+                  variant="menu-panel-item"
+                  role="menuitem"
+                  aria-pressed={!isQueueHidden}
+                  onClick={() => runMenuAction(onToggleQueue)}
+                >
+                  <LuListVideo />
+                  <span>Queue</span>
+                </AudioPlayerButton>
+              </div>
+            )}
+
+            <div
+              className="AudioPlayer__menu-inline"
+              role="group"
+              aria-label="Secondary player actions"
+            >
+              <AudioPlayerButton
+                type="button"
+                variant="inline-action"
+                className={isShuffled ? 'is-active' : ''}
+                onClick={toggleShuffle}
+                title="Shuffle"
+              >
+                <LuShuffle />
+              </AudioPlayerButton>
+              <AudioPlayerButton
+                type="button"
+                variant="inline-action"
+                className={isStep ? 'is-active' : ''}
+                onClick={toggleStep}
+                title="Step"
+              >
+                <LuFootprints />
+              </AudioPlayerButton>
+              <AudioPlayerButton
+                type="button"
+                variant="inline-action"
+                className={loop ? 'is-active' : ''}
+                onClick={toggleRepeat}
+                title="Repeat"
+              >
+                {loop ? <LuRepeat /> : <LuRepeat1 />}
+              </AudioPlayerButton>
+              <AudioPlayerButton
+                type="button"
+                variant="inline-action"
+                className={!isQueueHidden ? 'is-active' : ''}
+                aria-pressed={!isQueueHidden}
+                onClick={onToggleQueue}
+                title={isQueueHidden ? 'Show queue panel' : 'Hide queue panel'}
+              >
+                <LuListVideo />
+              </AudioPlayerButton>
+            </div>
+          </div>
+          {!isCompactHeight ? <SliderVolume variant="horizontal" /> : null}
         </div>
       </div>
     </div>

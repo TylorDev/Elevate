@@ -97,7 +97,6 @@ export function PlayerMenu({
           title="Shuffle"
         >
           <LuShuffle />
-          <span>Shuffle</span>
         </button>
         <button
           type="button"
@@ -106,7 +105,6 @@ export function PlayerMenu({
           title="Step"
         >
           <LuFootprints />
-          <span>Step</span>
         </button>
         <button
           type="button"
@@ -115,7 +113,6 @@ export function PlayerMenu({
           title="Repeat"
         >
           {loop ? <LuRepeat /> : <LuRepeat1 />}
-          <span>Repeat</span>
         </button>
         <button
           type="button"
@@ -125,7 +122,6 @@ export function PlayerMenu({
           title={isQueueHidden ? 'Show queue panel' : 'Hide queue panel'}
         >
           <LuListVideo />
-          <span>Queue</span>
         </button>
       </div>
     </div>

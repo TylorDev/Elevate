@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { LuVolume1, LuVolume2, LuVolumeX, LuChevronDown } from 'react-icons/lu'
 import { usePlayback } from '../../Contexts/PlaybackContext'
+import { AudioPlayerButton } from '../AudioPlayer/AudioPlayerButton'
 import './SliderVolume.scss'
 
-export function SliderVolume() {
+export function SliderVolume({ variant = 'popup' }) {
   const { volume, setMediaVolume, muted, toggleMute } = usePlayback()
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef(null)
   
   const displayVolume = muted ? 0 : volume
   const percentage = Math.round(displayVolume * 100)
+  const isHorizontal = variant === 'horizontal'
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -34,55 +36,74 @@ export function SliderVolume() {
   }
 
   return (
-    <div className="SliderVolume" ref={containerRef}>
-      <button
-        className={`volume-button ${isOpen ? 'active' : ''} ${muted ? 'muted' : ''}`}
-        onClick={() => setIsOpen((current) => !current)}
+    <div className={`SliderVolume ${isHorizontal ? 'horizontal' : ''}`} ref={containerRef}>
+      <AudioPlayerButton
+        className={`${isOpen && !isHorizontal ? 'is-active' : ''} ${muted ? 'muted' : ''}`}
+        onClick={() => !isHorizontal && setIsOpen((current) => !current)}
         onContextMenu={(e) => {
           e.preventDefault()
           toggleMute()
         }}
+        ariaLabel="Volume (Right click to mute)"
         title="Volume (Right click to mute)"
       >
         {getVolumeIcon()}
-      </button>
+      </AudioPlayerButton>
 
-      {isOpen && (
-        <div className="volume-panel">
-          <div className="volume-value">{percentage}%</div>
-          
-          <div className="slider-container">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
-              value={displayVolume}
-              onChange={(event) => setMediaVolume(parseFloat(event.target.value))}
-              className="volume-slider"
-              style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
-            />
-            <div 
-              className="volume-progress-fill" 
-              style={{ height: `${percentage}%` }}
-            />
-          </div>
-
-          <button
-            className="mute-panel-btn"
-            onClick={toggleMute}
-            title={muted ? 'Unmute' : 'Mute'}
-          >
-            {muted ? <LuVolumeX /> : <LuVolume2 />}
-          </button>
-
-          <button
-            className="close-panel-btn"
-            onClick={() => setIsOpen(false)}
-          >
-            <LuChevronDown />
-          </button>
+      {isHorizontal ? (
+        <div className="slider-container-horizontal">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={displayVolume}
+            onChange={(event) => setMediaVolume(parseFloat(event.target.value))}
+            className="volume-slider-horizontal"
+          />
+          <div 
+            className="volume-progress-fill-horizontal" 
+            style={{ width: `${percentage}%` }}
+          />
         </div>
+      ) : (
+        isOpen && (
+          <div className="volume-panel">
+            <div className="volume-value">{percentage}%</div>
+            
+            <div className="slider-container">
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={displayVolume}
+                onChange={(event) => setMediaVolume(parseFloat(event.target.value))}
+                className="volume-slider"
+                style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+              />
+              <div 
+                className="volume-progress-fill" 
+                style={{ height: `${percentage}%` }}
+              />
+            </div>
+
+            <button
+              className="mute-panel-btn"
+              onClick={toggleMute}
+              title={muted ? 'Unmute' : 'Mute'}
+            >
+              {muted ? <LuVolumeX /> : <LuVolume2 />}
+            </button>
+
+            <button
+              className="close-panel-btn"
+              onClick={() => setIsOpen(false)}
+            >
+              <LuChevronDown />
+            </button>
+          </div>
+        )
       )}
     </div>
   )

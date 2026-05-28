@@ -207,31 +207,6 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
         z-index: 2000;
 
-        button {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            background: transparent;
-            border: none;
-            color: $text-primary;
-            padding: 0.5rem 0.75rem;
-            border-radius: $border-radius;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.2s;
-
-            &:hover {
-                background-color: $hover;
-            }
-
-            svg {
-                font-size: 1.1rem;
-            }
-
-            span {
-                font-size: 0.85rem;
-            }
-        }
     }
 }
 
@@ -427,42 +402,6 @@
             gap: 0.14rem;
             width: 100%;
 
-            button {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.32rem;
-                min-height: 2.1rem;
-                padding: 0.28rem 0.54rem;
-                border: none;
-                border-radius: $border-radius;
-                background: transparent;
-                color: rgba(255, 255, 255, 0.7);
-                cursor: pointer;
-                transition: background 0.2s, color 0.2s, transform 0.1s;
-
-                &:hover {
-                    background: $hover;
-                    color: $text-primary;
-                }
-
-                &.is-active {
-                    color: $primary-color;
-                    background: rgba(255, 255, 255, 0.08);
-                }
-
-                svg {
-                    font-size: 0.95rem;
-                    flex-shrink: 0;
-                }
-
-                span {
-                    font-size: 0.72rem;
-                    font-weight: 600;
-                    line-height: 1;
-                    white-space: nowrap;
-                }
-            }
         }
     }
 }
@@ -542,42 +481,6 @@
         gap: 0.18rem;
         width: 100%;
 
-        button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            min-height: 2.3rem;
-            padding: 0.32rem 0.68rem;
-            border: none;
-            border-radius: $border-radius;
-            background: transparent;
-            color: rgba(255, 255, 255, 0.7);
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s, transform 0.1s;
-
-            &:hover {
-                background: $hover;
-                color: $text-primary;
-            }
-
-            &.is-active {
-                color: $primary-color;
-                background: rgba(255, 255, 255, 0.08);
-            }
-
-            svg {
-                font-size: 1rem;
-                flex-shrink: 0;
-            }
-
-            span {
-                font-size: 0.78rem;
-                font-weight: 600;
-                line-height: 1;
-                white-space: nowrap;
-            }
-        }
     }
 }
 

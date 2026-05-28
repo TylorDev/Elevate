@@ -7,36 +7,13 @@
     display: flex;
     align-items: center;
 
-    .volume-button {
-        background-color: transparent;
-        width: 2.8rem;
-        height: 2.8rem;
-        border-radius: 50%;
-        color: rgba(255, 255, 255, 0.6);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: none;
-
-
-        &:hover,
-        &.active {
-            background: $hover;
-            color: $text-primary;
-            transform: scale(1.1);
-        }
-
+    .AudioPlayerButton {
         &.muted {
             color: rgba(255, 255, 255, 0.3);
 
             &:hover {
                 color: $primary-color;
             }
-        }
-
-        svg {
-            font-size: 1.3rem;
         }
     }
 
@@ -143,6 +120,63 @@
         .close-panel-btn:hover {
             color: $primary-color;
             transform: translateY(2px);
+        }
+    }
+
+    &.horizontal {
+        flex-direction: row;
+        
+        .AudioPlayerButton {
+            margin-right: 8px;
+        }
+
+        .slider-container-horizontal {
+            position: relative;
+            width: 80px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+
+            .volume-slider-horizontal {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 100%;
+                height: 6px;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: $border-radius;
+                outline: none;
+                cursor: pointer;
+                position: relative;
+                z-index: 2;
+
+                &::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 14px;
+                    height: 14px;
+                    background: white;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    border: 2px solid $primary-color;
+                    transition: transform 0.2s, background 0.2s;
+
+                    &:hover {
+                        transform: scale(1.2);
+                        background: $hover;
+                    }
+                }
+            }
+
+            .volume-progress-fill-horizontal {
+                position: absolute;
+                top: 50%;
+                left: 0;
+                height: 6px;
+                transform: translateY(-50%);
+                background: $primary-color;
+                border-radius: $border-radius;
+                pointer-events: none;
+                z-index: 1;
+            }
         }
     }
 }
