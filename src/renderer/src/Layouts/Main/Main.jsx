@@ -26,12 +26,14 @@ function Main() {
   const navigate = useNavigate()
   const location = useLocation()
   const queueNavigationRedirectRef = useRef(false)
+  const pictureInPicturePreviousPathRef = useRef('/music')
   const isCompactHeight = useIsCompactViewportHeight()
   const isCompactHeaderMode = useIsCompactHeaderViewport()
   const isCollectionHorizontalViewport = useIsCollectionHorizontalViewport()
   const isCollectionMovilEligibleViewport = useIsCollectionMovilEligibleViewport()
   const [headerHiddenPreference, setHeaderHiddenPreference] = useState(null)
   const [queueHiddenPreference, setQueueHiddenPreference] = useState(null)
+  const [isPictureInPictureMode, setIsPictureInPictureMode] = useState(false)
   const [isMobileQueueRedirectViewport, setIsMobileQueueRedirectViewport] = useState(() => {
     if (typeof window === 'undefined') {
       return false
@@ -129,10 +131,37 @@ function Main() {
   const mainClassName = [
     'Main',
     isHeaderCollapsed ? 'Main--header-hidden' : '',
-    isQueueCollapsed ? 'Main--queue-hidden' : 'Main--queue-visible'
+    isQueueCollapsed ? 'Main--queue-hidden' : 'Main--queue-visible',
+    isPictureInPictureMode ? 'Main--picture-in-picture' : ''
   ]
     .filter(Boolean)
     .join(' ')
+
+  const getCurrentRoutePath = useCallback(
+    () => `${location.pathname}${location.search}${location.hash}`,
+    [location.hash, location.pathname, location.search]
+  )
+
+  const handleEnterPictureInPicture = useCallback(() => {
+    const currentRoutePath = getCurrentRoutePath()
+
+    pictureInPicturePreviousPathRef.current = currentRoutePath || '/music'
+    setIsPictureInPictureMode(true)
+
+    if (location.pathname !== '/music') {
+      navigate('/music')
+    }
+  }, [getCurrentRoutePath, location.pathname, navigate])
+
+  const handleExitPictureInPicture = useCallback(() => {
+    const previousPath = pictureInPicturePreviousPathRef.current || '/music'
+
+    setIsPictureInPictureMode(false)
+
+    if (previousPath !== '/music') {
+      navigate(previousPath)
+    }
+  }, [navigate])
 
   const handleToggleQueue = useCallback(() => {
     const nextQueueHidden =
@@ -195,15 +224,18 @@ function Main() {
             context={{
               isHeaderHidden: isHeaderCollapsed,
               isQueueHidden: isQueueCollapsed,
+              isPictureInPictureMode,
               isCompactHeaderMode,
               shouldUseCollectionMobileLayout,
-              shouldUseCollectionHorizontalMobileLayout
+              shouldUseCollectionHorizontalMobileLayout,
+              onExitPictureInPicture: handleExitPictureInPicture
             }}
           />
         </main>
         <div className="Main__player">
           <AudioPlayer
             isQueueHidden={isQueueCollapsed}
+            onEnterPictureInPicture={handleEnterPictureInPicture}
             onToggleQueue={handleToggleQueue}
           />
         </div>

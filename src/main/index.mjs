@@ -523,11 +523,17 @@ function setupWindowControlHandlers() {
     if (!mainWin || mainWin.isDestroyed()) {
       return
     }
-
     const currentValue = mainWin.isAlwaysOnTop()
     mainWin.setAlwaysOnTop(!currentValue)
     sendWindowState()
   })
+  
+  ipcMain.handle('window:set-minimum-size', (_, payload) => {
+    if (!mainWin || mainWin.isDestroyed()) return
+    const { width, height } = payload
+    mainWin.setMinimumSize(width, height)
+  })
+
   ipcMain.handle('window:apply-grid-preset', (_, payload = {}) => {
     if (!mainWin || mainWin.isDestroyed()) {
       return { success: false, error: 'Main window is not available.' }

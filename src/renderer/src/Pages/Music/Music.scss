@@ -318,4 +318,188 @@
       background: $hover;
     }
   }
+
+  &.Music--picture-in-picture {
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+    -webkit-app-region: drag;
+
+    .visualizer-background {
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .pip-drag-surface {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+   
+      cursor: grab;
+      -webkit-app-region: drag;
+
+   
+    }
+
+    .pip-empty-state {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.92rem;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .pip-close-btn,
+    .pip-control-btn,
+    .pip-controls,
+    .pip-timeline,
+    .waveform {
+      -webkit-app-region: no-drag;
+    }
+
+    .pip-close-btn,
+    .pip-control-btn {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: $border-radius;
+      background: rgba(0, 0, 0, 0);
+      box-shadow:
+        0 14px 30px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: $text-primary;
+      cursor: pointer;
+      transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        background 160ms ease,
+        color 160ms ease;
+
+      &:hover {
+        border-color: color-mix(in srgb, $primary-color 40%, rgba(255, 255, 255, 0.14));
+        background: rgba(12, 12, 12, 0.78);
+        color: $primary-color;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+      }
+    }
+
+    .pip-close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 4;
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pip-controls {
+      position: absolute;
+      left: 50%;
+      bottom: 1rem;
+      z-index: 4;
+      width: min(42rem, calc(100vw - 2rem));
+      display: grid;
+      grid-template-columns: auto auto auto minmax(10rem, 1fr);
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.75rem;
+
+      border-radius: $border-radius;
+ 
+       background-color: color-mix(in srgb, black 60%, transparent),;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(18px);
+      transform: translateX(-50%);
+      opacity: 0.0;
+      pointer-events: auto;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+      
+    .pip-control-btn {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        width: 1.1rem;
+        height: 1.1rem;
+        fill: currentColor;
+      }
+    }
+
+    .pip-control-btn--play {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, $primary-color 86%, white),
+        color-mix(in srgb, $primary-color 74%, black)
+      );
+      color: $activeIcon;
+
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        fill: currentColor;
+      }
+
+      &:hover {
+        color: $activeIcon;
+          background: linear-gradient(
+        145deg,
+        color-mix(in srgb, $primary-color 86%, white),
+        color-mix(in srgb, $primary-color 74%, black)
+      );
+       filter: brightness(1.2);
+      }
+    }
+
+    .pip-timeline {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto minmax(7rem, 1fr) auto;
+      align-items: center;
+      gap: 0.65rem;
+
+      .waveform {
+        grid-area: auto;
+      }
+    }
+
+    .pip-time {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      white-space: nowrap;
+
+      &:first-child {
+        color: var(--Dynamic-color, #ff6b6b);
+      }
+    }
+  }
 }
+
+

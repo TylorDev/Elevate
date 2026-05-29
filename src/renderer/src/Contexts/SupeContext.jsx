@@ -161,7 +161,8 @@ export const SuperProvider = ({ children }) => {
 
     const fadeOutInterval = setInterval(() => {
       if (currentStepCount < steps) {
-        mediaRef.current.volume -= stepVolume
+        const nextVolume = mediaRef.current.volume - stepVolume
+        mediaRef.current.volume = Math.min(Math.max(nextVolume, 0), 1)
         if (mediaRef.current.volume < minVolume) {
           mediaRef.current.volume = minVolume
         }
@@ -181,10 +182,8 @@ export const SuperProvider = ({ children }) => {
 
     const fadeInInterval = setInterval(() => {
       if (currentStepCount < steps) {
-        mediaRef.current.volume += stepVolume
-        if (mediaRef.current.volume > 1.0) {
-          mediaRef.current.volume = 1.0
-        }
+        const nextVolume = mediaRef.current.volume + stepVolume
+        mediaRef.current.volume = Math.min(Math.max(nextVolume, 0), 1)
         currentStepCount++
       } else {
         clearInterval(fadeInInterval)

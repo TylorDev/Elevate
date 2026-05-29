@@ -9,8 +9,8 @@ import { getGlobalAudioContext } from '../../utils/audioVisualizer'
 
 const CANVAS_WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
 const SEEK_COLOR = '#ffffff'
-const BARS_COUNT = 72
-const BAR_GAP = 3
+const BARS_COUNT = 200
+const BAR_GAP = 0.5
 
 export const MediaTimeDisplay = ({ variant = 'oscilloscope' }) => {
   const { currentFile } = useQueue()
@@ -224,14 +224,8 @@ export const MediaTimeDisplay = ({ variant = 'oscilloscope' }) => {
       {isSimpleVariant ? (
         <>
           <div className="waveform__simple-track" />
-          <div
-            className="waveform__simple-progress"
-            style={{ width: `${progressRatio * 100}%` }}
-          />
-          <div
-            className="waveform__simple-thumb"
-            style={{ left: `${progressRatio * 100}%` }}
-          />
+          <div className="waveform__simple-progress" style={{ width: `${progressRatio * 100}%` }} />
+          <div className="waveform__simple-thumb" style={{ left: `${progressRatio * 100}%` }} />
         </>
       ) : (
         <canvas ref={canvasRef} />

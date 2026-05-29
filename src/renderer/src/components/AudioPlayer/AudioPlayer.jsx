@@ -34,7 +34,11 @@ import { PlayerMenu } from './PlayerMenu'
 import { AudioPlayerMetadata } from './AudioPlayerMetadata'
 import { AudioPlayerProgressRow } from './AudioPlayerProgressRow'
 
-export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} }) {
+export function AudioPlayer({
+  isQueueHidden = false,
+  onEnterPictureInPicture = () => {},
+  onToggleQueue = () => {}
+}) {
   const { waveformVariant, toggleStep, isStep } = useSuper()
   const { currentFile, handleNextClick, handlePreviousClick, toggleShuffle, isShuffled } =
     useQueue()
@@ -199,7 +203,12 @@ export function AudioPlayer({ isQueueHidden = false, onToggleQueue = () => {} })
           <LuListVideo />
         </AudioPlayerButton>
 
-        <AudioPlayerButton variant="default" ariaLabel="Picture in Picture">
+        <AudioPlayerButton
+          variant="default"
+          onClick={onEnterPictureInPicture}
+          ariaLabel="Picture in Picture"
+          disabled={!currentFile}
+        >
           <LuPictureInPicture2 />
         </AudioPlayerButton>
       </div>

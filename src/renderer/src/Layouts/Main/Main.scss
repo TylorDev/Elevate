@@ -116,6 +116,28 @@
     }
 }
 
+.Main--picture-in-picture {
+    --status-height: 0px;
+    --player-height: 0px;
+    --header-width: 0px;
+    --queue-width: 0px;
+
+    grid-template-areas: "outlet";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+
+    .Main__status,
+    .Main__header,
+    .Main__player,
+    .Main__queue {
+        display: none;
+    }
+
+    .outlet {
+        overflow: hidden;
+    }
+}
+
 .outlet {
     grid-area: outlet;
     height: 100%;

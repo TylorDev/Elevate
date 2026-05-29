@@ -13,10 +13,12 @@ import {
 } from '../../components/ui/select'
 import { useSuper } from '../../Contexts/SupeContext'
 import { usePlayback } from '../../Contexts/PlaybackContext'
+import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { useQueue } from '../../Contexts/QueueContext'
 import { usePlaylists } from '../../Contexts/PlaylistsContex'
 import { useBackground } from '../../Contexts/BackgroundContext'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import { MediaTimeDisplay } from '../../components/MediaTimeDisplay/MediaTimeDisplay'
 import {
   useVisualizerCatalog,
   useVisualizerFavoriteActions,
@@ -42,7 +44,8 @@ import {
   LuShuffle,
   LuSkipBack,
   LuSkipForward,
-  LuTrash2
+  LuTrash2,
+  LuX
 } from 'react-icons/lu'
 
 const RIGHT_CLICK_HINT_WIDTH = 108
@@ -73,11 +76,22 @@ function formatListeningHours(seconds) {
   return `${Math.round(totalSeconds / 60)} min`
 }
 
+function formatTime(seconds) {
+  if (!seconds || isNaN(seconds)) return '0:00'
+
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
 function Music() {
   const navigate = useNavigate()
-  const { rightClickHintDisabled } = useSuper()
-  const { currentFile } = useQueue()
-  const { mediaElement, togglePlayPause } = usePlayback()
+  const outletContext = useOutletContext() || {}
+  const { isPictureInPictureMode = false, onExitPictureInPicture = () => {} } = outletContext
+  const { rightClickHintDisabled, toggleStep, isStep } = useSuper()
+  const { currentFile, handleNextClick, handlePreviousClick } = useQueue()
+  const { isPlaying, mediaElement, togglePlayPause } = usePlayback()
+  const { duration, progress } = usePlaybackProgress()
   const { currentCover } = usePlaylists()
   const { backgroundImageUrl } = useBackground()
   const activeCover = currentCover || backgroundImageUrl
@@ -106,7 +120,7 @@ function Music() {
   const savePresetWasPausedRef = useRef(true)
   const wasVisualizerEnabledRef = useRef(enableVisualizer)
   const shuffleManuallyDisabledRef = useRef(false)
-
+  const wasAlwaysOnTopRef = useRef(false)
   const {
     currentPresetName: rawCurrentPresetName,
     isPresetPaused,
@@ -144,18 +158,54 @@ function Music() {
   }, [mediaElement])
 
   useEffect(() => {
-    setVisualizerCyclingVisibility(enableVisualizer)
+    setVisualizerCyclingVisibility(enableVisualizer || isPictureInPictureMode)
 
     return () => {
       setVisualizerCyclingVisibility(false)
     }
-  }, [enableVisualizer, setVisualizerCyclingVisibility])
+  }, [enableVisualizer, isPictureInPictureMode, setVisualizerCyclingVisibility])
+
+  useEffect(() => {
+    let isMounted = true
+    const windowControls = window.electron?.windowControls
+    if (!windowControls) return
+
+    const syncAlwaysOnTop = async () => {
+      try {
+        const state = await windowControls.getState()
+        if (!isMounted) return
+
+        if (isPictureInPictureMode) {
+          await windowControls.setMinimumSize(450, 253)
+
+          wasAlwaysOnTopRef.current = state.isAlwaysOnTop
+          if (!state.isAlwaysOnTop) {
+            await windowControls.toggleAlwaysOnTop()
+          }
+        } else {
+          await windowControls.setMinimumSize(500, 400)
+
+          if (state.isAlwaysOnTop && !wasAlwaysOnTopRef.current) {
+            await windowControls.toggleAlwaysOnTop()
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing Window State (Always On Top / Size):', error)
+      }
+    }
+
+    void syncAlwaysOnTop()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isPictureInPictureMode])
 
   useEffect(() => {
     const wasVisualizerEnabled = wasVisualizerEnabledRef.current
     wasVisualizerEnabledRef.current = enableVisualizer
 
-    if (!enableVisualizer || wasVisualizerEnabled) {
+    if ((!enableVisualizer && !isPictureInPictureMode) || wasVisualizerEnabled) {
       return
     }
 
@@ -166,7 +216,13 @@ function Music() {
     if (!isShuffled) {
       setShuffleEnabled(true)
     }
-  }, [effectivePresetSource?.mode, enableVisualizer, isShuffled, setShuffleEnabled])
+  }, [
+    effectivePresetSource?.mode,
+    enableVisualizer,
+    isPictureInPictureMode,
+    isShuffled,
+    setShuffleEnabled
+  ])
 
   useEffect(() => {
     if (!rightClickHintDisabled) {
@@ -272,26 +328,29 @@ function Music() {
     })
   }, [activePresetList?.id, presetLists, sourceAssociations])
 
-  const handleContextMenu = useCallback((event) => {
-    setRightClickHint((currentState) =>
-      currentState.isVisible ? { ...currentState, isVisible: false } : currentState
-    )
+  const handleContextMenu = useCallback(
+    (event) => {
+      setRightClickHint((currentState) =>
+        currentState.isVisible ? { ...currentState, isVisible: false } : currentState
+      )
 
-    if (rightClickHintDisabled) {
+      if (rightClickHintDisabled) {
+        menuRef.current?.open(event)
+        return
+      }
+
+      setIsRightClickHintDismissed(true)
+
+      try {
+        window.sessionStorage.setItem(RIGHT_CLICK_HINT_STORAGE_KEY, 'true')
+      } catch {
+        // Ignore session storage issues; the in-memory dismissed state still prevents re-showing.
+      }
+
       menuRef.current?.open(event)
-      return
-    }
-
-    setIsRightClickHintDismissed(true)
-
-    try {
-      window.sessionStorage.setItem(RIGHT_CLICK_HINT_STORAGE_KEY, 'true')
-    } catch {
-      // Ignore session storage issues; the in-memory dismissed state still prevents re-showing.
-    }
-
-    menuRef.current?.open(event)
-  }, [rightClickHintDisabled])
+    },
+    [rightClickHintDisabled]
+  )
 
   const hideRightClickHint = useCallback(() => {
     setRightClickHint((currentState) =>
@@ -635,6 +694,189 @@ function Music() {
     () => (activeCover ? { backgroundImage: `url(${activeCover})` } : undefined),
     [activeCover]
   )
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (isPictureInPictureMode) {
+        return
+      }
+
+      // Ignorar si el usuario está escribiendo en un input
+      if (['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return
+
+      if (event.key === 'Tab') {
+        event.preventDefault()
+
+        if (showCover && !enableVisualizer) {
+          setShowCover(false)
+          setEnableVisualizer(true)
+          setPresetPaused(false)
+          toast.success('Visualizer View', {
+            autoClose: 1500,
+            hideProgressBar: true,
+            position: 'top-center'
+          })
+        } else {
+          setShowCover(true)
+          setEnableVisualizer(false)
+          setPresetPaused(true)
+          toast.success('Cover View', {
+            autoClose: 1500,
+            hideProgressBar: true,
+            position: 'top-center'
+          })
+        }
+      }
+
+      if (!event.ctrlKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 't') {
+        event.preventDefault()
+        toggleStep()
+        toast.success(`Step ${!isStep ? 'Enabled' : 'Disabled'}`, {
+          autoClose: 1500,
+          hideProgressBar: true,
+          position: 'top-center'
+        })
+      }
+
+      if (event.key === 'F1') {
+        event.preventDefault()
+        if (currentPresetName) {
+          toggleFavorite(currentPresetName)
+          toast.success(
+            !isCurrentPresetFavorite
+              ? 'Added to favorite presets'
+              : 'Removed from favorite presets',
+            {
+              autoClose: 1500,
+              hideProgressBar: true,
+              position: 'top-center'
+            }
+          )
+        }
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        nextPreset()
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        prevPreset()
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        togglePresetPause()
+        toast.success(`Pause ${!isPresetPaused ? 'Enabled' : 'Disabled'}`, {
+          autoClose: 1500,
+          hideProgressBar: true,
+          position: 'top-center'
+        })
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        handleShuffleToggle()
+        toast.success(`Shuffle ${!isShuffled ? 'Enabled' : 'Disabled'}`, {
+          autoClose: 1500,
+          hideProgressBar: true,
+          position: 'top-center'
+        })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [
+    currentPresetName,
+    toggleFavorite,
+    nextPreset,
+    prevPreset,
+    togglePresetPause,
+    handleShuffleToggle,
+    toggleStep,
+    isStep,
+    isCurrentPresetFavorite,
+    isPresetPaused,
+    isShuffled,
+    showCover,
+    enableVisualizer,
+    isPictureInPictureMode,
+    setPresetPaused
+  ])
+
+  if (isPictureInPictureMode) {
+    return (
+      <div ref={musicRef} className="Music Music--picture-in-picture">
+        <div className="pip-drag-surface" aria-hidden="true" tabIndex={0} />
+
+        {audioEl ? (
+          <div className="visualizer-background">
+            <Suspense fallback={null}>
+              <Render
+                audioElement={audioEl}
+                canvasRefExternal={visualizerCanvasRef}
+                presetName={currentPresetName}
+              />
+            </Suspense>
+          </div>
+        ) : (
+          <div className="pip-empty-state">No audio loaded</div>
+        )}
+
+        <button
+          className="pip-close-btn"
+          onClick={onExitPictureInPicture}
+          type="button"
+          aria-label="Exit Picture in Picture"
+          title="Exit Picture in Picture"
+        >
+          <LuX />
+        </button>
+
+        <div className="pip-controls" role="group" aria-label="Picture in Picture controls">
+          <button
+            className="pip-control-btn"
+            onClick={handlePreviousClick}
+            type="button"
+            aria-label="Previous song"
+            disabled={!currentFile}
+          >
+            <LuSkipBack />
+          </button>
+
+          <button
+            className="pip-control-btn pip-control-btn--play"
+            onClick={togglePlayPause}
+            type="button"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            disabled={!currentFile}
+          >
+            {isPlaying ? <LuPause /> : <LuPlay />}
+          </button>
+
+          <button
+            className="pip-control-btn"
+            onClick={handleNextClick}
+            type="button"
+            aria-label="Next song"
+            disabled={!currentFile}
+          >
+            <LuSkipForward />
+          </button>
+
+          <div className="pip-timeline">
+            <span className="pip-time">{formatTime(progress)}</span>
+            <MediaTimeDisplay />
+            <span className="pip-time">{formatTime(duration)}</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
