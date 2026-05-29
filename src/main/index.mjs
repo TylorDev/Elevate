@@ -26,7 +26,7 @@ let mainWin
 let isQuitting = false
 const require = createRequire(import.meta.url)
 const electron = require('electron')
-const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen, Menu, Tray, nativeImage } = electron
+const { app, shell, BrowserWindow, ipcMain, globalShortcut, screen, Menu, Tray, nativeImage, clipboard } = electron
 const windowStateChannel = 'window:state-changed'
 const appCommandChannel = 'app:command'
 let tray = null
@@ -623,7 +623,16 @@ function createWindow() {
     updateTaskbarControls()
   })
 
-
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F12' && input.type === 'keyDown') {
+      mainWindow.webContents.capturePage().then((image) => {
+        clipboard.writeImage(image)
+        log.info('Screenshot captured and copied to clipboard')
+      }).catch(err => {
+        log.error('Failed to capture screenshot', err)
+      })
+    }
+  })
 
   mainWindow.on('close', (event) => {
     if (!isQuitting) {
