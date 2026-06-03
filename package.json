@@ -1,6 +1,6 @@
 {
   "name": "elevate",
-  "version": "1.0.0",
+  "version": "2.0.3",
   "description": "Offline music player for Windows built by TylorDev.",
   "main": "./out/main/index.js",
   "author": {
