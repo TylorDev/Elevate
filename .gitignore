@@ -20,6 +20,8 @@ out
 *.bmp
 *.webp
 *.ico
+!docs/assets/elevate-logo.png
+!docs/assets/elevate.ico
 
 # Specific image directories
 covers/
