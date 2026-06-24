@@ -1,3 +1,4 @@
+// @ts-nocheck
 import log from 'electron-log/main.js'
 
 /**

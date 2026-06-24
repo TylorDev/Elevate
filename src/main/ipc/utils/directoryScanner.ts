@@ -1,12 +1,13 @@
+// @ts-nocheck
 import fs from 'fs'
 import path from 'path'
-import { getOrCreateSong } from './utils.mjs'
-import { prisma } from '../../prisma.mjs'
+import { getOrCreateSong } from './utils.ts'
+import { prisma } from '../../prisma.ts'
 import {
   isSupportedMediaFile,
   resolveImportableAudioPath,
   resolveImportableAudioPaths
-} from './mediaFileSupport.mjs'
+} from './mediaFileSupport.ts'
 
 const WALK_YIELD_EVERY = 50
 const INDEX_BATCH_SIZE = 20

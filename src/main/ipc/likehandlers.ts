@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createRequire } from 'node:module'
 
 import {
@@ -8,11 +9,11 @@ import {
   getOrCreateSong,
   mapSongRecordToFileInfo,
   USER_PREFERENCE_TRACK_SELECT
-} from './utils/utils.mjs'
-import { generateCollectionCoverFromTracks } from './utils/collectionDetail.mjs'
-import { prisma } from '../prisma.mjs'
+} from './utils/utils.ts'
+import { generateCollectionCoverFromTracks } from './utils/collectionDetail.ts'
+import { prisma } from '../prisma.ts'
 
-import { getSongBpm } from './utils/utils.mjs'
+import { getSongBpm } from './utils/utils.ts'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { ipcMain } = electron

@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { randomUUID } from 'node:crypto'
 import { ipcMain } from 'electron'
-import { prisma } from '../prisma.mjs'
+import { prisma } from '../prisma.ts'
 
 const DEFAULT_CYCLE_DURATION = 6000
 

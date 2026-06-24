@@ -29,7 +29,7 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ['**/*.{cjs,js,jsx,mjs}'],
+    files: ['**/*.{cjs,js,jsx,mjs,ts,tsx}'],
     languageOptions: {
       ecmaVersion: 'latest',
       globals,

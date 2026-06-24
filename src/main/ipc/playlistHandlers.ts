@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createRequire } from 'node:module'
 import path from 'path'
 import fs from 'fs'
@@ -12,12 +13,12 @@ import {
   processPlaylist,
   savePlaylistCoverToCache,
   ensureCoverDir
-} from './utils/utils.mjs'
+} from './utils/utils.ts'
 import {
   buildCollectionSummary,
   generateCollectionCoverFromTracks
-} from './utils/collectionDetail.mjs'
-import { prisma } from '../prisma.mjs'
+} from './utils/collectionDetail.ts'
+import { prisma } from '../prisma.ts'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, dialog, ipcMain } = electron

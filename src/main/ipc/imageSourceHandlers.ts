@@ -1,8 +1,9 @@
+// @ts-nocheck
 import { ipcMain, dialog, BrowserWindow } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { createHash, randomUUID } from 'node:crypto'
-import { getStoragePaths } from '../storagePaths.mjs'
+import { getStoragePaths } from '../storagePaths.ts'
 
 const SUPPORTED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 const MAX_BACKGROUND_HISTORY_ITEMS = 20

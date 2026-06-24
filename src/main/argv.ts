@@ -1,10 +1,11 @@
+// @ts-nocheck
 import fs from 'fs'
 import path from 'path'
 import { app, ipcMain } from 'electron'
-import { importPlaylistFile } from './ipc/playlistHandlers.mjs'
-import { getFileInfos } from './ipc/utils/utils.mjs'
-import { addDirectoryToLibrary, isSupportedMediaFile } from './ipc/utils/libraryIngestion.mjs'
-import { resolveImportableAudioPaths } from './ipc/utils/mediaFileSupport.mjs'
+import { importPlaylistFile } from './ipc/playlistHandlers.ts'
+import { getFileInfos } from './ipc/utils/utils.ts'
+import { addDirectoryToLibrary, isSupportedMediaFile } from './ipc/utils/libraryIngestion.ts'
+import { resolveImportableAudioPaths } from './ipc/utils/mediaFileSupport.ts'
 
 const pendingLaunchPayloads = []
 let rendererLaunchChannelReady = false

@@ -1,4 +1,5 @@
-import { getCoverFromCache } from './utils.mjs'
+// @ts-nocheck
+import { getCoverFromCache } from './utils.ts'
 
 let sharpModulePromise = null
 

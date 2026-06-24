@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { ipcMain } from 'electron'
-import { prisma } from '../prisma.mjs'
+import { prisma } from '../prisma.ts'
 
 export function setupSessionHandlers() {
   ipcMain.handle('player-session:save', async (event, data) => {

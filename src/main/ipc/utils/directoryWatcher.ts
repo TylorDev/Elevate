@@ -1,8 +1,9 @@
+// @ts-nocheck
 import path from 'path'
-import { prisma } from '../../prisma.mjs'
-import { getOrCreateSong } from './utils.mjs'
-import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.mjs'
-import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.mjs'
+import { prisma } from '../../prisma.ts'
+import { getOrCreateSong } from './utils.ts'
+import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.ts'
+import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.ts'
 
 const DEBOUNCE_MS = 500
 

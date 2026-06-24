@@ -1,6 +1,7 @@
+// @ts-nocheck
 import { promises as fs } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { getStoragePaths } from './storagePaths.mjs'
+import { getStoragePaths } from './storagePaths.ts'
 
 const DEFAULT_PRISMA_WAIT_TIMEOUT_MS = 15_000
 

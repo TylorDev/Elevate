@@ -20,10 +20,15 @@
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --fix",
+    "test": "vitest run --configLoader runner --config vitest.config.mjs",
+    "test:generate": "npm run prisma:generate && npm test",
     "start": "node scripts/electron-vite.mjs preview",
     "dev": "node scripts/electron-vite.mjs dev",
+    "test:main": "vitest run --configLoader runner --config vitest.config.mjs",
+    "test:main:watch": "vitest --configLoader runner --config vitest.config.mjs",
     "prebuild": "node scripts/clean-build.mjs && node scripts/prepare-template-db.mjs",
     "build": "electron-vite build",
+    "prisma:generate": "prisma generate",
     "postinstall": "prisma generate && electron-builder install-app-deps",
     "electron:rebuild": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
@@ -76,6 +81,7 @@
     "@electron-toolkit/eslint-config": "^2.1.0",
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron/rebuild": "^4.0.4",
+    "@types/node": "^26.0.1",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^41.5.0",
     "electron-builder": "^26.8.1",
@@ -84,11 +90,14 @@
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
+    "mock-require": "^3.0.3",
     "prettier": "^3.8.3",
     "prisma": "^6.19.3",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "sass": "^1.99.0",
-    "vite": "^7.3.2"
+    "typescript": "^6.0.3",
+    "vite": "^7.3.2",
+    "vitest": "^4.1.9"
   }
 }

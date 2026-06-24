@@ -1,9 +1,10 @@
+// @ts-nocheck
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { prisma } from '../../prisma.mjs'
-import { getStoragePaths } from '../../storagePaths.mjs'
-import { resolveImportableAudioPaths } from './mediaFileSupport.mjs'
+import { prisma } from '../../prisma.ts'
+import { getStoragePaths } from '../../storagePaths.ts'
+import { resolveImportableAudioPaths } from './mediaFileSupport.ts'
 
 let sharpModulePromise = null
 let musicMetadataModulePromise = null
@@ -135,9 +136,9 @@ export async function deletePlaylistCoverFromCache(coverHash) {
   return true
 }
 
-// getAllAudioFiles has been moved to directoryScanner.mjs (async version)
+// getAllAudioFiles has been moved to directoryScanner.ts (async version)
 // Re-export for backward compatibility
-export { scanDirectoryAsync as getAllAudioFiles } from './directoryScanner.mjs'
+export { scanDirectoryAsync as getAllAudioFiles } from './directoryScanner.ts'
 
 // ─── Song CRUD with metadata caching ─────────────────────────────────
 
@@ -642,9 +643,9 @@ export async function getFileCovers(filePaths) {
 
 // ─── Duration calculation ────────────────────────────────────────────
 
-// getTotalDuration has been moved to directoryScanner.mjs (updateDirectoryStats)
+// getTotalDuration has been moved to directoryScanner.ts (updateDirectoryStats)
 // Re-export for backward compatibility
-export { updateDirectoryStats as getTotalDuration } from './directoryScanner.mjs'
+export { updateDirectoryStats as getTotalDuration } from './directoryScanner.ts'
 
 // ─── Cover generation (collage) ──────────────────────────────────────
 

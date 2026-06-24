@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createRequire } from 'node:module'
 import log from 'electron-log/main.js'
 import {
@@ -8,38 +9,38 @@ import {
   processPlaylist,
   resizeCover,
   getCoverFromCache
-} from './utils/utils.mjs'
+} from './utils/utils.ts'
 import {
   buildCollectionSummary,
   generateCollectionCoverFromTracks
-} from './utils/collectionDetail.mjs'
+} from './utils/collectionDetail.ts'
 
 import {
   scanDirectoryAsync,
   indexDirectoryIncrementally,
   updateDirectoryStats
-} from './utils/directoryScanner.mjs'
+} from './utils/directoryScanner.ts'
 
 import {
   stopWatching,
   setNotifyRenderer
-} from './utils/directoryWatcher.mjs'
-import { resolveImportableAudioPaths } from './utils/mediaFileSupport.mjs'
+} from './utils/directoryWatcher.ts'
+import { resolveImportableAudioPaths } from './utils/mediaFileSupport.ts'
 
 import fs from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import { sendNotification } from '../index.mjs'
-import { prisma } from '../prisma.mjs'
-import { getStoragePaths } from '../storagePaths.mjs'
-import { setBraveVolume } from './audio.mjs'
-import { addDirectoryToLibrary } from './utils/libraryIngestion.mjs'
+import { sendNotification } from '../index.ts'
+import { prisma } from '../prisma.ts'
+import { getStoragePaths } from '../storagePaths.ts'
+import { setBraveVolume } from './audio.ts'
+import { addDirectoryToLibrary } from './utils/libraryIngestion.ts'
 import {
   getPlaylistEditPayload,
   getPlaylistOverview,
   getPlaylistTracksPage
-} from './playlistHandlers.mjs'
-import { getLikesOverview, getLikesTracksPage } from './likehandlers.mjs'
+} from './playlistHandlers.ts'
+import { getLikesOverview, getLikesTracksPage } from './likehandlers.ts'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { app, BrowserWindow, dialog, ipcMain, shell } = electron

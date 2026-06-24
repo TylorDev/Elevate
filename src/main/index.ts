@@ -1,26 +1,27 @@
+// @ts-nocheck
 import { createRequire } from 'node:module'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
-import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.mjs'
-import { runNativeBindingDiagnostics } from './nativeDiagnostics.mjs'
-import { getPrismaStatus, initializePrisma, prisma } from './prisma.mjs'
-import { getStorageDiagnostics, getStoragePaths } from './storagePaths.mjs'
+import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.ts'
+import { runNativeBindingDiagnostics } from './nativeDiagnostics.ts'
+import { getPrismaStatus, initializePrisma, prisma } from './prisma.ts'
+import { getStorageDiagnostics, getStoragePaths } from './storagePaths.ts'
 import {
   initDiscordPresence,
   setPresence,
   clearPresence,
   getStatus as getDiscordStatus,
   shutdownDiscordPresence
-} from './discordPresence.mjs'
-import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.mjs'
-import { setupPlaylistHandlers } from './ipc/playlistHandlers.mjs'
-import { setupFilehandlers } from './ipc/filehandlers.mjs'
-import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.mjs'
-import { setupImageSourceHandlers } from './ipc/imageSourceHandlers.mjs'
-import { setupVisualizerHandlers } from './ipc/visualizerHandlers.mjs'
-import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.mjs'
+} from './discordPresence.ts'
+import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.ts'
+import { setupPlaylistHandlers } from './ipc/playlistHandlers.ts'
+import { setupFilehandlers } from './ipc/filehandlers.ts'
+import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.ts'
+import { setupImageSourceHandlers } from './ipc/imageSourceHandlers.ts'
+import { setupVisualizerHandlers } from './ipc/visualizerHandlers.ts'
+import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.ts'
 
 let mainWin
 let isQuitting = false
