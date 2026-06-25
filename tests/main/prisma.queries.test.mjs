@@ -113,7 +113,7 @@ describe('main query helpers', () => {
       }
     })
 
-    const playlists = await importFreshProject('src/main/ipc/playlistHandlers.ts')
+    const playlists = await importFreshProject('src/main/ipc/playlistHandlers/index.ts')
     const overview = await playlists.getPlaylistOverview(playlistPath, { page: 1, pageSize: 10 })
     const page = await playlists.getPlaylistTracksPage(playlistPath, { page: 1, pageSize: 1 })
 

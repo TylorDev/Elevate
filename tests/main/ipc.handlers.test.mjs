@@ -117,8 +117,8 @@ describe('main IPC handlers', () => {
       sendNotification: vi.fn()
     }))
 
-    const playlists = await importFreshProject('src/main/ipc/playlistHandlers.ts')
-    const files = await importFreshProject('src/main/ipc/filehandlers.ts')
+    const playlists = await importFreshProject('src/main/ipc/playlistHandlers/index.ts')
+    const files = await importFreshProject('src/main/ipc/filehandlers/index.ts')
     playlists.setupPlaylistHandlers()
     files.setupFilehandlers()
 

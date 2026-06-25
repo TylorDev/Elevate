@@ -16,8 +16,8 @@ import {
   shutdownDiscordPresence
 } from './discordPresence.ts'
 import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.ts'
-import { setupPlaylistHandlers } from './ipc/playlistHandlers.ts'
-import { setupFilehandlers } from './ipc/filehandlers.ts'
+import { setupPlaylistHandlers } from './ipc/playlistHandlers/index.ts'
+import { setupFilehandlers } from './ipc/filehandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.ts'
 import { setupImageSourceHandlers } from './ipc/imageSourceHandlers.ts'
 import { setupVisualizerHandlers } from './ipc/visualizerHandlers.ts'

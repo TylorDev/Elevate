@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { app, ipcMain } from 'electron'
-import { importPlaylistFile } from './ipc/playlistHandlers.ts'
+import { importPlaylistFile } from './ipc/playlistHandlers/index.ts'
 import { getFileInfos } from './ipc/utils/utils.ts'
 import { addDirectoryToLibrary, isSupportedMediaFile } from './ipc/utils/libraryIngestion.ts'
 import { resolveImportableAudioPaths } from './ipc/utils/mediaFileSupport.ts'
