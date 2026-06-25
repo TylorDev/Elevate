@@ -17,7 +17,6 @@ import {
 
 import {
   scanDirectoryAsync,
-  indexDirectoryIncrementally,
   updateDirectoryStats
 } from './utils/directoryScanner.ts'
 
@@ -1455,15 +1454,6 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-directory-detail', async (_, directoryPath) => {
-    try {
-      return await getDirectoryDetail(directoryPath)
-    } catch (error) {
-      console.error('Error retrieving directory detail:', error)
-      return { success: false, error: error.message || 'Could not load the directory.' }
-    }
-  })
-
   ipcMain.handle('collection:get-overview', async (_, request) => {
     try {
       return await getCollectionOverview(request)
@@ -1590,29 +1580,6 @@ export function setupFilehandlers() {
     }
   })
 
-  // ─── get-directory-by-path ───────────────────────────────────────
-  // Now reads stats directly from the DB instead of recalculating.
-  ipcMain.handle('get-directory-by-path', async (event, dirPath) => {
-    try {
-      const directory = await getDirectoryByPath(dirPath)
-
-      if (!directory) {
-        throw new Error('Directory not found')
-      }
-
-      // If never scanned, trigger a quick scan
-      if (!directory.lastScannedAt) {
-        const stats = await updateDirectoryStats(dirPath)
-        return enrichDirectory({ ...directory, ...stats })
-      }
-
-      return enrichDirectory(directory)
-    } catch (error) {
-      console.error('Error retrieving directory:', error)
-      throw error
-    }
-  })
-
   // ─── get-all-directories ─────────────────────────────────────────
   // Reads stats from DB. Only rescans directories that have never been scanned.
   ipcMain.handle('get-all-directories', async () => {
@@ -1718,33 +1685,4 @@ export function setupFilehandlers() {
     }
   })
 
-  // ─── rescan-directory ────────────────────────────────────────────
-  // Force a full re-scan of a specific directory.
-  ipcMain.handle('rescan-directory', async (_, dirPath) => {
-    try {
-      const stats = await indexDirectoryIncrementally(dirPath, (progress) => {
-        sendNotification(
-          JSON.stringify({
-            type: 'scan-progress',
-            ...progress
-          })
-        )
-      })
-
-      await prisma.directory.updateMany({
-        where: { path: dirPath },
-        data: {
-          totalTracks: stats.totalTracks,
-          totalDuration: stats.totalDuration,
-          lastScannedAt: new Date()
-        }
-      })
-
-      invalidateDirectoryCache(dirPath)
-      return { success: true, ...stats }
-    } catch (error) {
-      console.error('Error rescanning directory:', error)
-      throw error
-    }
-  })
 }

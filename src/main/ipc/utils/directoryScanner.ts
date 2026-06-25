@@ -100,22 +100,6 @@ async function discoverRecursive(dir, result) {
   return hasDirectAudio || hasChildAudio
 }
 
-// ─── Quick check for audio in a directory ────────────────────────────
-
-/**
- * Check if a directory directly contains at least one audio file (non-recursive).
- */
-export async function directoryHasAudio(dirPath) {
-  try {
-    const entries = await fs.promises.readdir(dirPath, { withFileTypes: true })
-    return entries.some(
-      (e) => e.isFile() && isSupportedMediaFile(e.name)
-    )
-  } catch {
-    return false
-  }
-}
-
 // ─── Incremental indexing ────────────────────────────────────────────
 
 /**

@@ -155,40 +155,6 @@ function buildPlaylistSummary(playlist, effectiveCover = null) {
   }
 }
 
-async function getPlaylistDetail(filepath) {
-  const baseDir = path.dirname(filepath)
-  const playlistSongs = await processPlaylist(filepath, baseDir)
-  const tracks = playlistSongs.map((song) => ({ ...song, picture: undefined }))
-  const playlistData = await getPlaylist(filepath)
-  const cover = null
-  const suggestedCovers = await getTop10SuggestedCovers(filepath)
-  const effectiveCover = playlistData ? await getEffectiveCover(playlistData, cover) : cover
-  const resolvedCover = effectiveCover
-  const summary = buildCollectionSummary(tracks, {
-    sourcePath: filepath,
-    cover: resolvedCover
-  })
-
-  return {
-    success: true,
-    type: 'playlist',
-    meta: {
-      title: playlistData?.nombre || extractPlaylistName(filepath),
-      sourcePath: filepath,
-      createdAt: playlistData?.createdAt || null,
-      totalplays: playlistData?.totalplays || 0,
-      editable: true
-    },
-    tracks,
-    summary,
-    playlistData,
-    cover,
-    suggestedCovers,
-    effectiveCover: resolvedCover,
-    coverConfig: buildCoverConfig(playlistData)
-  }
-}
-
 export async function getPlaylistOverview(filepath, request = {}) {
   const baseDir = path.dirname(filepath)
   const tracks = (await processPlaylist(filepath, baseDir)).map((song) => ({
@@ -750,21 +716,6 @@ async function getPlaylists({ take = null, skip = null } = {}) {
   return request
 }
 
-async function getPlaylistsLite() {
-  const playlists = await prisma.playlist.findMany({
-    orderBy: { totalplays: 'desc' }
-  })
-
-  return playlists.map((playlist) => {
-    return {
-      ...playlist,
-      cover: null,
-      effectiveCover: null,
-      coverConfig: buildCoverConfig(playlist)
-    }
-  })
-}
-
 async function getPlaylistsMinimal() {
   const playlists = await prisma.playlist.findMany({
     select: {
@@ -1258,29 +1209,6 @@ async function getPlaylistDetails(playlistPath) {
   const contador = getPlays(playlistPath)
   return { totalDuration, totalTracks, contador }
 }
-async function updatePlaylistByPath(path, newData) {
-  try {
-    const playlist = await prisma.playlist.findUnique({
-      where: { path }
-    })
-
-    if (!playlist) {
-      console.log(`Playlist not found for path: ${path}`)
-      return null
-    }
-
-    const updatedPlaylist = await prisma.playlist.update({
-      where: { id: playlist.id },
-      data: newData
-    })
-    invalidatePlaylistCache(path)
-
-    return updatedPlaylist
-  } catch (error) {
-    console.error('Error updating playlist:', error)
-    return null
-  }
-}
 async function getM3ufilepaths(filepath) {
   return readPlaylistTrackPaths(filepath)
 }
@@ -1551,19 +1479,6 @@ export function setupPlaylistHandlers() {
     }
   })
 
-  ipcMain.handle('get-playlist-detail', async (event, filepath) => {
-    if (!filepath || filepath === '') {
-      return { success: false, error: 'filepath is required' }
-    }
-
-    try {
-      return await getPlaylistDetail(filepath)
-    } catch (error) {
-      log.error('get-playlist-detail error:', error.message)
-      return { success: false, error: error.message }
-    }
-  })
-
   ipcMain.handle('playlist:ensure-cover', async (_event, request) => {
     const playlistPath = typeof request === 'string' ? request : request?.playlistPath
     const variant = typeof request === 'object' ? request?.variant || 'full' : 'full'
@@ -1585,10 +1500,6 @@ export function setupPlaylistHandlers() {
   //Simple
   ipcMain.handle('get-playlists', async () => {
     return await getPlaylists()
-  })
-
-  ipcMain.handle('get-playlists-lite', async () => {
-    return await getPlaylistsLite()
   })
 
   ipcMain.handle('get-playlists-minimal', async () => {
@@ -1616,10 +1527,6 @@ export function setupPlaylistHandlers() {
   //simple
   ipcMain.handle('delete-playlist', async (event, filePath) => {
     return queuePlaylistDelete(filePath, event.sender)
-  })
-
-  ipcMain.handle('change-list-name', async (event, filepath, newData) => {
-    await updatePlaylistByPath(filepath, newData)
   })
 
   ipcMain.handle('update-playlist-metadata', async (event, { path: filepath, nombre, coverMode, coverValue, coverSelection }) => {

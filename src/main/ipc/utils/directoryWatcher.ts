@@ -47,14 +47,6 @@ export function setNotifyRenderer(fn) {
 }
 
 /**
- * Set the function used to send scan progress to the renderer.
- */
-let sendProgressFn = null
-export function setSendProgress(fn) {
-  sendProgressFn = fn
-}
-
-/**
  * Start watching a directory recursively.
  * Idempotent — calling with an already-watched path is a no-op.
  */

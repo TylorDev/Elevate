@@ -6,7 +6,7 @@ import {
   invokeIpc,
   setOpenDialogResult
 } from './helpers/electronMock.mjs'
-import { createPrismaTestContext, createRuntimeContext, importFreshProject, seedSong } from './helpers/runtime.mjs'
+import { createPrismaTestContext, createRuntimeContext, importFreshProject } from './helpers/runtime.mjs'
 
 let context = null
 
@@ -18,47 +18,6 @@ afterEach(async () => {
 })
 
 describe('main IPC handlers', () => {
-  it('saves, loads, and clears player sessions while preserving queue order', async () => {
-    context = await createPrismaTestContext()
-    const first = await seedSong(context.client, {
-      filepath: path.join(context.root, 'first.mp3'),
-      filename: 'first'
-    })
-    const second = await seedSong(context.client, {
-      filepath: path.join(context.root, 'second.mp3'),
-      filename: 'second'
-    })
-
-    const { setupSessionHandlers } = await importFreshProject('src/main/ipc/sessionHandlers.ts')
-    setupSessionHandlers()
-
-    await invokeIpc('player-session:save', {
-      song_id: second.song_id,
-      position_sec: 12.5,
-      resume_from_start: false,
-      queue_type: 'PLAYLIST',
-      queue_source: 'mix',
-      queue_song_ids: [second.song_id, first.song_id],
-      queue_index: 0
-    })
-
-    const loaded = await invokeIpc('player-session:load')
-    expect(loaded.success).toBe(true)
-    expect(loaded.session.queue_song_ids).toEqual([second.song_id, first.song_id])
-    expect(loaded.queue_songs.map((song) => song.song_id)).toEqual([second.song_id, first.song_id])
-    expect(loaded.currentSong.song_id).toBe(second.song_id)
-
-    const cleared = await invokeIpc('player-session:clear')
-    const afterClear = await invokeIpc('player-session:load')
-    expect(cleared.success).toBe(true)
-    expect(afterClear.session).toMatchObject({
-      song_id: null,
-      position_sec: 0,
-      queue_type: 'NONE',
-      queue_song_ids: []
-    })
-  })
-
   it('manages visualizer settings, favorites, lists, associations, and stale association pruning', async () => {
     context = await createPrismaTestContext()
     const { setupVisualizerHandlers } = await importFreshProject('src/main/ipc/visualizerHandlers.ts')

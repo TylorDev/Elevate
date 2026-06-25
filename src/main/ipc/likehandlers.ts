@@ -13,7 +13,6 @@ import {
 import { generateCollectionCoverFromTracks } from './utils/collectionDetail.ts'
 import { prisma } from '../prisma.ts'
 
-import { getSongBpm } from './utils/utils.ts'
 const require = createRequire(import.meta.url)
 const electron = require('electron')
 const { ipcMain } = electron
@@ -161,39 +160,6 @@ async function updateSongPreference(filepath, updateAction, updateData) {
   }
 }
 
-async function addPlayHistory(song_id) {
-  try {
-    // Upsert UserPreference: Si no existe, se crea con valores predeterminados.
-    await prisma.userPreferences.upsert({
-      where: { song_id },
-      update: {
-        play_count: {
-          increment: 1
-        },
-        short_view_count: {
-          increment: 1
-        }
-      },
-      create: {
-        song_id,
-        play_count: 1, // Inicializa play_count en 1
-        short_view_count: 1
-      }
-    })
-
-    // Crear un nuevo registro en PlayHistory
-    await prisma.playHistory.create({
-      data: {
-        song_id
-      }
-    })
-
-    console.log(`Play history updated for song_id: ${song_id}`)
-  } catch (error) {
-    console.error('Error updating play history:', error)
-  }
-}
-
 async function getMostPlayedSongsWithDetails() {
   try {
     const userPreferences = await prisma.userPreferences.findMany({
@@ -283,70 +249,6 @@ export async function getLikesTracksPage(request = {}) {
     pageSize,
     total,
     hasMore: offset + items.length < total
-  }
-}
-
-function formatRankedSong(record, metricKey) {
-  const song = record.Songs
-  return {
-    song_id: song.song_id,
-    filePath: song.filepath,
-    fileName: song.filename,
-    title: song.title,
-    artist: song.artist,
-    album: song.album,
-    genre: song.genre,
-    year: song.year,
-    duration: Number(song.duration) || 0,
-    coverHash: song.coverHash,
-    short_view_count: Number(record.short_view_count) || 0,
-    long_view_count: Number(record.long_view_count) || 0,
-    long_play_seconds: Number(record.long_play_seconds) || 0,
-    active_listening_seconds: Number(record.active_listening_seconds) || 0,
-    consecutive_repeat_count: Number(record.consecutive_repeat_count) || 0,
-    skip_count: Number(record.skip_count) || 0,
-    metricValue: Number(record[metricKey]) || 0
-  }
-}
-
-async function getRanking(metricKey, limit = 50) {
-  const rows = await prisma.userPreferences.findMany({
-    where: {
-      [metricKey]: {
-        gt: 0
-      }
-    },
-    orderBy: {
-      [metricKey]: 'desc'
-    },
-    take: limit,
-    include: {
-      Songs: true
-    }
-  })
-
-  return rows.map((record) => formatRankedSong(record, metricKey))
-}
-
-async function getStatisticsRankings(request = {}) {
-  const limit = Math.min(Math.max(Number(request?.limit) || 50, 1), 100)
-  const [shortViews, longViews, duration, repeats, skips] = await Promise.all([
-    getRanking('short_view_count', limit),
-    getRanking('long_view_count', limit),
-    getRanking('long_play_seconds', limit),
-    getRanking('consecutive_repeat_count', limit),
-    getRanking('skip_count', limit)
-  ])
-
-  return {
-    success: true,
-    rankings: {
-      shortViews,
-      longViews,
-      duration,
-      repeats,
-      skips
-    }
   }
 }
 
@@ -583,42 +485,6 @@ async function getRecentHistoryOrdered() {
   }
 }
 
-async function getLatestPlayHistoryRecord() {
-  try {
-    // Obtener el registro más reciente de PlayHistory ordenado por el campo timestamp
-    const latestPlayHistoryRecord = await prisma.playHistory.findFirst({
-      orderBy: {
-        timestamp: 'desc' // Ordenar de más reciente a más antiguo
-      },
-      select: {
-        song_id: true,
-        timestamp: true, // Incluye el campo timestamp para información adicional
-        Songs: {
-          select: {
-            filepath: true,
-            filename: true
-          }
-        }
-      }
-    })
-
-    if (!latestPlayHistoryRecord) {
-      return { success: false, message: 'No play history records found.' }
-    }
-
-    // console.debug('Latest play history record:', latestPlayHistoryRecord)
-
-    // Opcional: Si necesitas información adicional de la canción, puedes obtenerla aquí
-    const fileInfos = await getFileInfos([latestPlayHistoryRecord.Songs.filepath], {
-      includePicture: false
-    })
-
-    return fileInfos.length > 0 ? fileInfos[0] : null
-  } catch (error) {
-    console.error('Error retrieving latest play history record:', error)
-    return { success: false, error: error.message }
-  }
-}
 function normalizeSearchQuery(value) {
   if (typeof value !== 'string') {
     return ''
@@ -980,18 +846,6 @@ export function setupLikeSongHandlers() {
     }
   })
 
-  ipcMain.handle('add-history', async (event, filepath, filename) => {
-    try {
-      const song = await getOrCreateSong(filepath, filename)
-      await addPlayHistory(song.song_id)
-
-      return { success: true, songId: song.song_id }
-    } catch (error) {
-      console.error('Error liking song:', error)
-      return { success: false, error: error.message }
-    }
-  })
-
   ipcMain.handle('playback:record', async (event, payload) => {
     try {
       return await recordPlaybackStats(payload)
@@ -1059,22 +913,9 @@ export function setupLikeSongHandlers() {
     return likes.slice(0, 5) // Mostrar solo los primeros 5 elementos únicos
   })
 
-  ipcMain.handle('get-lastest', async (event) => {
-    return getLatestPlayHistoryRecord()
-  })
-
   ipcMain.handle('get-most-played', async (event) => {
     const paths = await getMostPlayedSongsWithDetails()
     return getFileInfos(paths, { includePicture: false })
-  })
-
-  ipcMain.handle('statistics:get-rankings', async (event, request) => {
-    try {
-      return await getStatisticsRankings(request)
-    } catch (error) {
-      console.error('Error retrieving statistics rankings:', error)
-      return { success: false, error: error.message }
-    }
   })
 
   ipcMain.handle('statistics:get-overview', async (event, request) => {
@@ -1107,23 +948,6 @@ export function setupLikeSongHandlers() {
 }
 
 export function setupMusicHandlers() {
-  ipcMain.handle('get-bpm', async (event, common) => {
-    try {
-      const { filePath, fileName } = common
-      const fileInfo = await getSongBpm(common)
-
-      console.log('recibido[getbpm-Handler]', fileInfo.bpm) // Verifica que fileInfo.bpm tenga el valor correcto
-
-      const song = await getOrCreateSong(filePath, fileName)
-      await markUserPreference(song.song_id, 'bpm', parseInt(fileInfo.bpm))
-
-      return fileInfo
-    } catch (error) {
-      console.error(`Error in get-bpm handler:`, error)
-      throw error
-    }
-  })
-
   ipcMain.handle('search-songs-page', async (event, request) => {
     return searchSongsPage(request)
   })
