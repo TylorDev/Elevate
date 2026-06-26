@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'node:crypto'
@@ -20,12 +19,29 @@ import {
   bufferToDataUrl,
   MAX_BACKGROUND_HISTORY_ITEMS
 } from './shared.ts'
+import type {
+  BackgroundConfig,
+  BackgroundConfigItem,
+  BackgroundMutationResult,
+  BackgroundState,
+  CreateBackgroundItemRequest,
+  ImageSourceType,
+  MaterializedBackgroundItem,
+  MaterializedBackgroundItemResult,
+  UpsertBackgroundItemRequest
+} from '../../Types/imageSourceHandlers.ts'
 
-function getItemSignature(sourceType, sourceValue) {
+function getItemSignature(sourceType: ImageSourceType, sourceValue: string): string {
   return `${sourceType}:${sourceValue}`
 }
 
-export function createBackgroundItem({ sourceType, sourceValue, resolvedAssetPath, mimeType, existingItem }) {
+export function createBackgroundItem({
+  sourceType,
+  sourceValue,
+  resolvedAssetPath,
+  mimeType,
+  existingItem
+}: CreateBackgroundItemRequest): BackgroundConfigItem {
   const timestamp = new Date().toISOString()
   const base = existingItem || {
     id: randomUUID(),
@@ -44,7 +60,7 @@ export function createBackgroundItem({ sourceType, sourceValue, resolvedAssetPat
   }
 }
 
-export function sortAndTrimItems(config) {
+export function sortAndTrimItems(config: BackgroundConfig): void {
   const activeId = config.currentBackgroundId
   const sortedItems = normalizeItems(config.items)
   let keptItems = sortedItems.slice(0, MAX_BACKGROUND_HISTORY_ITEMS)
@@ -68,24 +84,30 @@ export function sortAndTrimItems(config) {
   config.items = normalizeItems(keptItems)
 }
 
-export function findBackgroundItem(config, sourceType, sourceValue) {
+export function findBackgroundItem(
+  config: BackgroundConfig,
+  sourceType: ImageSourceType,
+  sourceValue: string
+): BackgroundConfigItem | undefined {
   const signature = getItemSignature(sourceType, sourceValue)
   return config.items.find(
     (item) => getItemSignature(item.sourceType, item.sourceValue) === signature
   )
 }
 
-function getDisplaySource(item) {
+function getDisplaySource(item: BackgroundConfigItem | null | undefined): string {
   if (!item?.sourceValue) return ''
   if (item.sourceType === 'remote') return item.sourceValue
   return path.basename(item.sourceValue)
 }
 
-async function materializeItem(item) {
-  let nextItem = { ...item }
+async function materializeItem(item: BackgroundConfigItem): Promise<MaterializedBackgroundItemResult> {
+  const nextItem: BackgroundConfigItem = { ...item }
 
   const assetExists =
-    nextItem.resolvedAssetPath && fs.existsSync(nextItem.resolvedAssetPath) && fs.statSync(nextItem.resolvedAssetPath).isFile()
+    nextItem.resolvedAssetPath &&
+    fs.existsSync(nextItem.resolvedAssetPath) &&
+    fs.statSync(nextItem.resolvedAssetPath).isFile()
 
   if (assetExists) {
     const buffer = fs.readFileSync(nextItem.resolvedAssetPath)
@@ -147,9 +169,9 @@ async function materializeItem(item) {
   }
 }
 
-export async function buildBackgroundState(config) {
+export async function buildBackgroundState(config: BackgroundConfig): Promise<BackgroundState> {
   let didChange = false
-  const materializedItems = []
+  const materializedItems: MaterializedBackgroundItem[] = []
 
   for (const item of normalizeItems(config.items)) {
     const materialized = await materializeItem(item)
@@ -196,7 +218,12 @@ export async function buildBackgroundState(config) {
   }
 }
 
-export async function upsertBackgroundItem({ sourceType, sourceValue, buffer, mimeType }) {
+export async function upsertBackgroundItem({
+  sourceType,
+  sourceValue,
+  buffer,
+  mimeType
+}: UpsertBackgroundItemRequest): Promise<BackgroundState> {
   const config = readBackgroundConfig()
   const existingItem = findBackgroundItem(config, sourceType, sourceValue)
   const itemId = existingItem?.id || randomUUID()
@@ -225,16 +252,18 @@ export async function upsertBackgroundItem({ sourceType, sourceValue, buffer, mi
   return buildBackgroundState(config)
 }
 
-export async function listBackgroundImages() {
+export async function listBackgroundImages(): Promise<BackgroundState> {
   return buildBackgroundState(readBackgroundConfig())
 }
 
-export async function getCurrentBackgroundImage() {
+export async function getCurrentBackgroundImage(): Promise<MaterializedBackgroundItem | null> {
   const state = await buildBackgroundState(readBackgroundConfig())
   return state.current
 }
 
-export async function selectBackgroundImage(id) {
+export async function selectBackgroundImage(
+  id?: string | null
+): Promise<BackgroundMutationResult> {
   const config = readBackgroundConfig()
   const item = config.items.find((candidate) => candidate.id === id)
 
@@ -264,7 +293,7 @@ export async function selectBackgroundImage(id) {
   }
 }
 
-export async function clearCurrentBackgroundImage() {
+export async function clearCurrentBackgroundImage(): Promise<BackgroundMutationResult> {
   const config = readBackgroundConfig()
   config.currentBackgroundId = null
   saveBackgroundConfig(config)
@@ -275,7 +304,9 @@ export async function clearCurrentBackgroundImage() {
   }
 }
 
-export async function removeBackgroundImage(id) {
+export async function removeBackgroundImage(
+  id?: string | null
+): Promise<BackgroundMutationResult> {
   const config = readBackgroundConfig()
 
   if (config.currentBackgroundId === id) {

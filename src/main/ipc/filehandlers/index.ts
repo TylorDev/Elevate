@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { dialog, ipcMain } from 'electron'
 import fs from 'fs'
 import log from 'electron-log/main.js'
@@ -40,19 +39,52 @@ import { addDirectoryToLibrary } from '../utils/libraryIngestion.ts'
 import { setNotifyRenderer } from '../utils/directoryWatcher.ts'
 import { getFileInfos } from '../utils/utils.ts'
 import { getPlaylistEditPayload } from '../playlistHandlers/index.ts'
+import { getErrorMessage } from './shared.ts'
+import type { PrismaClient } from '../../generated/prisma/client.ts'
+import type {
+  AudioFileInfo,
+  FilehandlerArgs,
+  FilehandlerChannel,
+  FilehandlerInvokeHandler
+} from '../../Types/filehandlers.ts'
 
-export function invalidateDirectoryCache(dirPath = null) {
+export type * from '../../Types/filehandlers.ts'
+
+const db = prisma as unknown as PrismaClient
+const getAudioFileInfos = getFileInfos as (
+  filePaths: string[],
+  options?: Record<string, unknown>
+) => Promise<AudioFileInfo[]>
+const registerNotifyRenderer = setNotifyRenderer as unknown as (
+  callback: (message: string) => void
+) => void
+const addDirectory = addDirectoryToLibrary as unknown as (
+  selectedPath: string,
+  options: {
+    notifyRenderer: (message: string) => void
+    invalidateDirectoryCache: (dirPath?: string | null) => void
+  }
+) => Promise<unknown>
+
+function handleFilehandler<C extends FilehandlerChannel>(
+  channel: C,
+  handler: FilehandlerInvokeHandler<C>
+): void {
+  ipcMain.handle(channel, (event, ...args) => handler(event, ...(args as FilehandlerArgs<C>)))
+}
+
+export function invalidateDirectoryCache(dirPath: string | null = null): void {
   clearPendingDirectoriesRequest()
   invalidateFeedCollectionsCache('all')
   clearAudioCaches(dirPath)
 }
 
-function setupSignalFileWatcher() {
+function setupSignalFileWatcher(): void {
   const signalFilePath = getStoragePaths().signalFilePath
   if (fs.existsSync(signalFilePath)) {
     log.info('File exists, starting watch:', signalFilePath)
 
-    fs.watch(signalFilePath, (eventType, filename) => {
+    fs.watch(signalFilePath, (_eventType, filename) => {
       if (filename) {
         fs.readFile(signalFilePath, 'utf8', (err, data) => {
           if (err) {
@@ -79,11 +111,11 @@ function setupSignalFileWatcher() {
   }
 }
 
-export function setupFilehandlers() {
-  setNotifyRenderer((message) => sendNotification(message))
+export function setupFilehandlers(): void {
+  registerNotifyRenderer((message: string) => sendNotification(message))
   setupSignalFileWatcher()
 
-  ipcMain.handle('add-directory', async (_, providedPath = null) => {
+  handleFilehandler('add-directory', async (_event, providedPath = null) => {
     try {
       let selectedPath = providedPath
 
@@ -96,10 +128,14 @@ export function setupFilehandlers() {
           return null
         }
 
-        selectedPath = result.filePaths[0]
+        selectedPath = result.filePaths[0] || null
       }
 
-      return await addDirectoryToLibrary(selectedPath, {
+      if (!selectedPath) {
+        return null
+      }
+
+      return await addDirectory(selectedPath, {
         notifyRenderer: sendNotification,
         invalidateDirectoryCache
       })
@@ -109,9 +145,9 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-new-audio-files', async () => {
+  handleFilehandler('get-new-audio-files', async () => {
     try {
-      const recentAudioFiles = await prisma.songs.findMany({
+      const recentAudioFiles = (await db.songs.findMany({
         orderBy: {
           timestamp: 'desc'
         },
@@ -119,17 +155,17 @@ export function setupFilehandlers() {
           filepath: true
         },
         take: 5
-      })
+      })) as Array<{ filepath: string }>
 
       const filepathsArray = recentAudioFiles.map((song) => song.filepath)
-      return getFileInfos(filepathsArray, { includePicture: false })
+      return getAudioFileInfos(filepathsArray, { includePicture: false })
     } catch (error) {
       console.error('Error retrieving latest audio files:', error)
       throw error
     }
   })
 
-  ipcMain.handle('get-all-audio-files', async (event, currentPage) => {
+  handleFilehandler('get-all-audio-files', async (_event, currentPage) => {
     try {
       if (currentPage) {
         const pageResult = await getAudioFilesPage(currentPage)
@@ -138,14 +174,14 @@ export function setupFilehandlers() {
 
       const uniqueAudioFiles = await getUniqueAudioPaths()
 
-      return getFileInfos(uniqueAudioFiles, { includePicture: false })
+      return getAudioFileInfos(uniqueAudioFiles, { includePicture: false })
     } catch (error) {
       console.error('Error retrieving audio files:', error)
       throw error
     }
   })
 
-  ipcMain.handle('get-all-audio-files-page', async (event, request) => {
+  handleFilehandler('get-all-audio-files-page', async (_event, request) => {
     try {
       return await getAudioFilesPage(request)
     } catch (error) {
@@ -154,7 +190,7 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-audio-cover-thumbnail', async (event, filePath) => {
+  handleFilehandler('get-audio-cover-thumbnail', async (_event, filePath) => {
     try {
       return await getAudioCover(filePath, 'thumb')
     } catch (error) {
@@ -163,7 +199,7 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-audio-cover-full', async (event, filePath) => {
+  handleFilehandler('get-audio-cover-full', async (_event, filePath) => {
     try {
       return await getAudioCover(filePath, 'full')
     } catch (error) {
@@ -172,7 +208,7 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-all-audio-files-number', async () => {
+  handleFilehandler('get-all-audio-files-number', async () => {
     try {
       const uniqueAudioFiles = await getUniqueAudioPaths()
 
@@ -183,7 +219,7 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-audio-in-directory', async (_, directoryPath) => {
+  handleFilehandler('get-audio-in-directory', async (_event, directoryPath) => {
     try {
       return getAudioInDirectory(directoryPath)
     } catch (error) {
@@ -192,52 +228,55 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('collection:get-overview', async (_, request) => {
+  handleFilehandler('collection:get-overview', async (_event, request) => {
     try {
       return await getCollectionOverview(request)
     } catch (error) {
       console.error('Error retrieving collection overview:', error)
-      return { success: false, error: error.message || 'Could not load the collection.' }
+      return { success: false, error: getErrorMessage(error, 'Could not load the collection.') }
     }
   })
 
-  ipcMain.handle('collection:get-tracks-page', async (_, request) => {
+  handleFilehandler('collection:get-tracks-page', async (_event, request) => {
     try {
       return await getCollectionTracksPage(request)
     } catch (error) {
       console.error('Error retrieving collection tracks page:', error)
-      return { success: false, error: error.message || 'Could not load songs.' }
+      return { success: false, error: getErrorMessage(error, 'Could not load songs.') }
     }
   })
 
-  ipcMain.handle('collection:get-playlist-edit-payload', async (_, playlistPath) => {
+  handleFilehandler('collection:get-playlist-edit-payload', async (_event, playlistPath) => {
     try {
       return await getPlaylistEditPayload(playlistPath)
     } catch (error) {
       console.error('Error retrieving playlist edit payload:', error)
-      return { success: false, error: error.message || 'No se pudo cargar la playlist.' }
+      return { success: false, error: getErrorMessage(error, 'No se pudo cargar la playlist.') }
     }
   })
 
-  ipcMain.handle('feed:get-collection-rankings', async (_, request) => {
+  handleFilehandler('feed:get-collection-rankings', async (_event, request) => {
     try {
       return await getFeedCollectionRankings(request)
     } catch (error) {
       console.error('Error retrieving feed collection rankings:', error)
-      return { success: false, error: error.message || 'No se pudo cargar el feed.' }
+      return { success: false as const, error: getErrorMessage(error, 'No se pudo cargar el feed.') }
     }
   })
 
-  ipcMain.handle('feed:refresh-collection-rankings', async (_, request) => {
+  handleFilehandler('feed:refresh-collection-rankings', async (_event, request) => {
     try {
       return await refreshFeedCollectionRankings(request)
     } catch (error) {
       console.error('Error refreshing feed collection rankings:', error)
-      return { success: false, error: error.message || 'No se pudo actualizar el feed.' }
+      return {
+        success: false as const,
+        error: getErrorMessage(error, 'No se pudo actualizar el feed.')
+      }
     }
   })
 
-  ipcMain.handle('feed:get-collection-cover', async (_, request) => {
+  handleFilehandler('feed:get-collection-cover', async (_event, request) => {
     try {
       return await getFeedCollectionCover(request)
     } catch (error) {
@@ -246,15 +285,15 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('delete-directory', async (event, dirPath) => {
+  handleFilehandler('delete-directory', async (_event, dirPath) => {
     return deleteDirectory(dirPath, { invalidateDirectoryCache })
   })
 
-  ipcMain.handle('delete-directory-branch', async (event, request) => {
+  handleFilehandler('delete-directory-branch', async (_event, request) => {
     return deleteDirectoryBranch(request, { invalidateDirectoryCache })
   })
 
-  ipcMain.handle('get-all-directories', async () => {
+  handleFilehandler('get-all-directories', async () => {
     try {
       return await getAllDirectories()
     } catch (error) {
@@ -263,7 +302,7 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-directories-number', async () => {
+  handleFilehandler('get-directories-number', async () => {
     try {
       return await getDirectoriesNumber()
     } catch (error) {
@@ -272,19 +311,19 @@ export function setupFilehandlers() {
     }
   })
 
-  ipcMain.handle('get-random-directory', async () => {
+  handleFilehandler('get-random-directory', async () => {
     return await getRandomDirectory()
   })
 
-  ipcMain.handle('search-directories-page', async (event, request) => {
+  handleFilehandler('search-directories-page', async (_event, request) => {
     return searchDirectoriesPage(request)
   })
 
-  ipcMain.handle('reveal-path-in-explorer', async (_, targetPath) => {
+  handleFilehandler('reveal-path-in-explorer', async (_event, targetPath) => {
     return revealPathInExplorer(targetPath)
   })
 
-  ipcMain.handle('open-directory-in-explorer', async (_, targetPath) => {
+  handleFilehandler('open-directory-in-explorer', async (_event, targetPath) => {
     return openDirectoryInExplorer(targetPath)
   })
 }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import {
   extractAudioCover,
   getCoverFromCache,
@@ -9,18 +8,34 @@ import { scanDirectoryAsync } from '../utils/directoryScanner.ts'
 import { resolveImportableAudioPaths } from '../utils/mediaFileSupport.ts'
 import { prisma } from '../../prisma.ts'
 import { normalizeAudioPageRequest } from './shared.ts'
+import type { Directory, PrismaClient } from '../../generated/prisma/client.ts'
+import type {
+  AudioFileInfo,
+  AudioCoverCacheEntry,
+  AudioCoverPayload,
+  AudioCoverVariant,
+  AudioFilesPage,
+  AudioPageRequest,
+  AudioPathsCacheEntry,
+  ExtractedAudioCover
+} from '../../Types/filehandlers.ts'
 
-const audioPathsCache = new Map()
-const audioCoverCache = new Map()
+const db = prisma as unknown as PrismaClient
+const getAudioFileInfos = getFileInfos as (
+  filePaths: string[],
+  options?: Record<string, unknown>
+) => Promise<AudioFileInfo[]>
+const audioPathsCache = new Map<string, AudioPathsCacheEntry>()
+const audioCoverCache = new Map<string, AudioCoverCacheEntry>()
 const AUDIO_PATHS_TTL = 60 * 1000
 const COVER_CACHE_TTL = 10 * 60 * 1000
 const COVER_CACHE_LIMIT = 400
 
-function getAudioPathsCacheKey(dirPath, recursive = true) {
+function getAudioPathsCacheKey(dirPath: string, recursive = true): string {
   return `${recursive ? 'recursive' : 'direct'}:${dirPath}`
 }
 
-export function clearAudioCaches(dirPath = null) {
+export function clearAudioCaches(dirPath: string | null = null): void {
   if (!dirPath) {
     audioPathsCache.clear()
     audioCoverCache.clear()
@@ -40,7 +55,10 @@ export function clearAudioCaches(dirPath = null) {
   }
 }
 
-export async function getCachedAudioFiles(dirPath, { recursive = true } = {}) {
+export async function getCachedAudioFiles(
+  dirPath: string,
+  { recursive = true }: { recursive?: boolean } = {}
+): Promise<string[]> {
   const cacheKey = getAudioPathsCacheKey(dirPath, recursive)
   const cachedFiles = audioPathsCache.get(cacheKey)
 
@@ -48,7 +66,8 @@ export async function getCachedAudioFiles(dirPath, { recursive = true } = {}) {
     return cachedFiles.files
   }
 
-  const files = await resolveImportableAudioPaths(await scanDirectoryAsync(dirPath, recursive))
+  const scannedFiles = (await scanDirectoryAsync(dirPath, recursive)) as string[]
+  const files = (await resolveImportableAudioPaths(scannedFiles)) as string[]
   audioPathsCache.set(cacheKey, {
     files,
     expiresAt: Date.now() + AUDIO_PATHS_TTL
@@ -57,12 +76,12 @@ export async function getCachedAudioFiles(dirPath, { recursive = true } = {}) {
   return files
 }
 
-export async function getUniqueAudioPaths() {
-  const directories = await prisma.directory.findMany()
+export async function getUniqueAudioPaths(): Promise<string[]> {
+  const directories = (await db.directory.findMany()) as Directory[]
 
   if (!directories.length) return []
 
-  const allAudioFiles = []
+  const allAudioFiles: string[] = []
   for (const dir of directories) {
     const files = await getCachedAudioFiles(dir.path, { recursive: true })
     allAudioFiles.push(...files)
@@ -70,12 +89,12 @@ export async function getUniqueAudioPaths() {
   return [...new Set(allAudioFiles)]
 }
 
-export async function getAudioFilesPage(request) {
+export async function getAudioFilesPage(request: AudioPageRequest): Promise<AudioFilesPage> {
   const { page, pageSize } = normalizeAudioPageRequest(request)
   const uniqueAudioFiles = await getUniqueAudioPaths()
   const start = (page - 1) * pageSize
   const paginatedAudioFiles = uniqueAudioFiles.slice(start, start + pageSize)
-  const items = await getFileInfos(paginatedAudioFiles, { includePicture: false })
+  const items = await getAudioFileInfos(paginatedAudioFiles, { includePicture: false })
 
   return {
     items,
@@ -86,7 +105,10 @@ export async function getAudioFilesPage(request) {
   }
 }
 
-export async function getAudioCover(filePath, variant = 'thumb') {
+export async function getAudioCover(
+  filePath: string | null | undefined,
+  variant: AudioCoverVariant = 'thumb'
+): Promise<AudioCoverPayload | null> {
   if (!filePath) return null
 
   const cacheKey = `${variant}:${filePath}`
@@ -98,7 +120,7 @@ export async function getAudioCover(filePath, variant = 'thumb') {
     return cachedCover.cover
   }
 
-  const diskCover = await getCoverFromCache(filePath, variant)
+  const diskCover = (await getCoverFromCache(filePath, variant)) as AudioCoverPayload | null
   if (diskCover) {
     audioCoverCache.set(cacheKey, {
       cover: diskCover,
@@ -106,12 +128,14 @@ export async function getAudioCover(filePath, variant = 'thumb') {
     })
     while (audioCoverCache.size > COVER_CACHE_LIMIT) {
       const oldestKey = audioCoverCache.keys().next().value
-      audioCoverCache.delete(oldestKey)
+      if (oldestKey) {
+        audioCoverCache.delete(oldestKey)
+      }
     }
     return diskCover
   }
 
-  const cover = await extractAudioCover(filePath)
+  const cover = (await extractAudioCover(filePath)) as ExtractedAudioCover | null
 
   if (!cover) {
     audioCoverCache.set(cacheKey, {
@@ -121,7 +145,7 @@ export async function getAudioCover(filePath, variant = 'thumb') {
     return null
   }
 
-  const result =
+  const result: AudioCoverPayload =
     variant === 'thumb'
       ? {
           data: await resizeCover(cover.buffer, 128),
@@ -139,7 +163,9 @@ export async function getAudioCover(filePath, variant = 'thumb') {
 
   while (audioCoverCache.size > COVER_CACHE_LIMIT) {
     const oldestKey = audioCoverCache.keys().next().value
-    audioCoverCache.delete(oldestKey)
+    if (oldestKey) {
+      audioCoverCache.delete(oldestKey)
+    }
   }
 
   return result

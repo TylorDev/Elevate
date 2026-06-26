@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { BrowserWindow, dialog } from 'electron'
 import fs from 'fs'
 import {
@@ -7,8 +6,16 @@ import {
   getMimeTypeFromExtension,
   SUPPORTED_IMAGE_EXTENSIONS
 } from './shared.ts'
+import type { IpcMainInvokeEvent } from 'electron'
+import type {
+  DownloadedImageResult,
+  LocalImageDialogResult,
+  LocalImagePreviewResult,
+  LocalImageResult,
+  ImagePreviewResult
+} from '../../Types/imageSourceHandlers.ts'
 
-export async function downloadRemoteImage(url) {
+export async function downloadRemoteImage(url: string): Promise<DownloadedImageResult> {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return {
       success: false,
@@ -63,7 +70,7 @@ export async function downloadRemoteImage(url) {
   }
 }
 
-export function readLocalImageFile(filePath) {
+export function readLocalImageFile(filePath: string): LocalImageResult {
   try {
     const mimeType = getMimeTypeFromExtension(filePath)
     if (!mimeType) {
@@ -90,7 +97,7 @@ export function readLocalImageFile(filePath) {
   }
 }
 
-export function pickLocalImageFile(event) {
+export function pickLocalImageFile(event: IpcMainInvokeEvent): Promise<LocalImageDialogResult> {
   const win = BrowserWindow.fromWebContents(event.sender)
 
   return dialog.showOpenDialog(win, {
@@ -99,10 +106,10 @@ export function pickLocalImageFile(event) {
   })
 }
 
-export async function validateRemoteImage(url) {
+export async function validateRemoteImage(url: string): Promise<ImagePreviewResult> {
   const remoteResult = await downloadRemoteImage(url)
 
-  if (!remoteResult.success) {
+  if (remoteResult.success === false) {
     return remoteResult
   }
 
@@ -113,7 +120,7 @@ export async function validateRemoteImage(url) {
   }
 }
 
-export async function pickLocalImage(event) {
+export async function pickLocalImage(event: IpcMainInvokeEvent): Promise<LocalImagePreviewResult> {
   const result = await pickLocalImageFile(event)
 
   if (result.canceled || result.filePaths.length === 0) {
@@ -122,7 +129,7 @@ export async function pickLocalImage(event) {
 
   const filePath = result.filePaths[0]
   const localResult = readLocalImageFile(filePath)
-  if (!localResult.success) {
+  if (localResult.success === false) {
     return localResult
   }
 

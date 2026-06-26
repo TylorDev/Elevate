@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ipcMain } from 'electron'
 import { getFileInfos } from '../utils/utils.ts'
 import {
@@ -27,93 +26,123 @@ import {
   getStatisticsOverview,
   getStatisticsRankingPage
 } from './statistics.ts'
+import { getErrorMessage } from './shared.ts'
+import type {
+  AudioFileInfo,
+  ErrorResponse,
+  LikeArgs,
+  LikeChannel,
+  LikeInvokeHandler
+} from '../../Types/likeHandlers.ts'
 
 export {
   getLikesOverview,
   getLikesTracksPage
 }
+export type * from '../../Types/likeHandlers.ts'
 
-export function setupLikeSongHandlers() {
-  ipcMain.handle('like-song', async (event, common) => {
+const getAudioFileInfos = getFileInfos as (
+  filePaths: string[],
+  options?: Record<string, unknown>
+) => Promise<AudioFileInfo[]>
+
+function handleLike<C extends LikeChannel>(
+  channel: C,
+  handler: LikeInvokeHandler<C>
+): void {
+  ipcMain.handle(channel, (event, ...args) => handler(event, ...(args as LikeArgs<C>)))
+}
+
+function isErrorResponse(value: unknown): value is ErrorResponse {
+  return Boolean(value && typeof value === 'object' && 'success' in value && value.success === false)
+}
+
+export function setupLikeSongHandlers(): void {
+  handleLike('like-song', async (_event, common) => {
     return likeSong(common)
   })
 
-  ipcMain.handle('is-song-liked', async (event, filepath, filename) => {
+  handleLike('is-song-liked', async (_event, filepath, filename) => {
     return checkSongLiked(filepath, filename)
   })
 
-  ipcMain.handle('playback:record', async (event, payload) => {
+  handleLike('playback:record', async (_event, payload) => {
     try {
       return await recordPlaybackStats(payload)
     } catch (error) {
       console.error('Error recording playback stats:', error)
-      return { success: false, error: error.message }
+      return { success: false, error: getErrorMessage(error) }
     }
   })
 
-  ipcMain.handle('unlike-song', (event, common) => {
+  handleLike('unlike-song', (_event, common) => {
     return unlikeSong(common)
   })
 
-  ipcMain.handle('get-likes', async (event) => {
-    return await getLikes()
+  handleLike('get-likes', async () => {
+    return getLikes()
   })
 
-  ipcMain.handle('get-likes-number', async (event) => {
+  handleLike('get-likes-number', async () => {
     return getLikesNumber()
   })
 
-  ipcMain.handle('listen-later-song', async (event, filepath, filename) => {
+  handleLike('listen-later-song', async (_event, filepath, filename) => {
     return listenLaterSong(filepath, filename)
   })
 
-  ipcMain.handle('get-listen-later', async (event) => {
+  handleLike('get-listen-later', async () => {
     return getListenLater()
   })
 
-  ipcMain.handle('get-history', async (event, page) => {
+  handleLike('get-history', async (_event, page) => {
     return getPlayHistoryOrdered(page)
   })
 
-  ipcMain.handle('history:get-song-timeline', async (event, request) => {
+  handleLike('history:get-song-timeline', async (_event, request) => {
     return getSongHistoryTimeline(request)
   })
 
-  ipcMain.handle('get-recents', async (event) => {
+  handleLike('get-recents', async () => {
     const likes = await getRecentHistoryOrdered()
-    return likes.slice(0, 5) // Mostrar solo los primeros 5 elementos unicos
+    return Array.isArray(likes) ? likes.slice(0, 5) : likes
   })
 
-  ipcMain.handle('get-most-played', async (event) => {
+  handleLike('get-most-played', async () => {
     const paths = await getMostPlayedSongsWithDetails()
-    return getFileInfos(paths, { includePicture: false })
+
+    if (isErrorResponse(paths)) {
+      return paths
+    }
+
+    return getAudioFileInfos(paths, { includePicture: false })
   })
 
-  ipcMain.handle('statistics:get-overview', async (event, request) => {
+  handleLike('statistics:get-overview', async (_event, request) => {
     try {
       return await getStatisticsOverview(request)
     } catch (error) {
       console.error('Error retrieving statistics overview:', error)
-      return { success: false, error: error.message }
+      return { success: false, error: getErrorMessage(error) }
     }
   })
 
-  ipcMain.handle('statistics:get-ranking-page', async (event, request) => {
+  handleLike('statistics:get-ranking-page', async (_event, request) => {
     try {
       return await getStatisticsRankingPage(request)
     } catch (error) {
       console.error('Error retrieving statistics ranking page:', error)
-      return { success: false, error: error.message }
+      return { success: false, error: getErrorMessage(error) }
     }
   })
 
-  ipcMain.handle('remove-listen-later', (event, filepath, filename) => {
-    return removeListenLater(filepath, filename)
+  handleLike('remove-listen-later', (_event, filepath) => {
+    return removeListenLater(filepath)
   })
 }
 
-export function setupMusicHandlers() {
-  ipcMain.handle('search-songs-page', async (event, request) => {
+export function setupMusicHandlers(): void {
+  handleLike('search-songs-page', async (_event, request) => {
     return searchSongsPage(request)
   })
 }

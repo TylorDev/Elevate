@@ -1,8 +1,14 @@
-// @ts-nocheck
 import path from 'path'
 import { buildRankingPageFromTracks } from '../utils/utils.ts'
+import type {
+  AudioFileInfo,
+  DataUrlBufferResult,
+  PageRequest,
+  PlaylistInsightRankingId,
+  PlaylistInsightRankings
+} from '../../Types/playlistHandlers.ts'
 
-export const INSIGHT_METRIC_KEYS = {
+export const INSIGHT_METRIC_KEYS: Record<PlaylistInsightRankingId, keyof AudioFileInfo> = {
   duration: 'duration',
   shortViews: 'short_view_count',
   longViews: 'long_view_count',
@@ -11,7 +17,7 @@ export const INSIGHT_METRIC_KEYS = {
   skips: 'skip_count'
 }
 
-export const WINDOWS_RESERVED_FILE_NAMES = new Set([
+export const WINDOWS_RESERVED_FILE_NAMES = new Set<string>([
   'CON',
   'PRN',
   'AUX',
@@ -36,24 +42,48 @@ export const WINDOWS_RESERVED_FILE_NAMES = new Set([
   'LPT9'
 ])
 
-export function buildInsightRankingsFromTracks(tracks = [], request = {}) {
+function hasControlCharacters(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    if (value.charCodeAt(index) <= 31) {
+      return true
+    }
+  }
+
+  return false
+}
+
+export function stripControlCharacters(value: string): string {
+  return Array.from(value).filter((character) => character.charCodeAt(0) > 31).join('')
+}
+
+export function getErrorMessage(error: unknown, fallback = 'Unexpected error.'): string {
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
+export function buildInsightRankingsFromTracks(
+  tracks: AudioFileInfo[] = [],
+  request: PageRequest = {}
+): PlaylistInsightRankings {
   const page = Number(request?.page) || 1
   const pageSize = Number(request?.pageSize) || 50
 
-  return Object.entries(INSIGHT_METRIC_KEYS).reduce((rankings, [tabId, metricKey]) => {
-    rankings[tabId] = buildRankingPageFromTracks(tracks, metricKey, { page, pageSize })
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce<PlaylistInsightRankings>((rankings, [tabId, metricKey]) => {
+    rankings[tabId as PlaylistInsightRankingId] = buildRankingPageFromTracks(tracks, metricKey, {
+      page,
+      pageSize
+    })
     return rankings
   }, {})
 }
 
-export function normalizePageRequest(request = {}) {
+export function normalizePageRequest(request: PageRequest = {}): { page: number; pageSize: number } {
   return {
     page: Math.max(Number(request?.page) || 1, 1),
     pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
   }
 }
 
-export function dataUrlToBuffer(dataUrl) {
+export function dataUrlToBuffer(dataUrl: unknown): DataUrlBufferResult | null {
   if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
     return null
   }
@@ -69,38 +99,38 @@ export function dataUrlToBuffer(dataUrl) {
   }
 }
 
-export function isSourcePathValue(value = '') {
+export function isSourcePathValue(value = ''): boolean {
   return typeof value === 'string' && value !== '' && !value.startsWith('data:')
 }
 
-export function getRandomIndex(total) {
+export function getRandomIndex(total: number): number {
   return Math.floor(Math.random() * total)
 }
 
-export function extractPlaylistName(filePath) {
+export function extractPlaylistName(filePath: string): string {
   return path.basename(filePath, path.extname(filePath))
 }
 
-export function stripPlaylistExtension(nombre = '') {
+export function stripPlaylistExtension(nombre = ''): string {
   return String(nombre).trim().replace(/\.m3u$/i, '')
 }
 
-export function normalizePlaylistFileName(nombre = '') {
+export function normalizePlaylistFileName(nombre = ''): string {
   return stripPlaylistExtension(nombre)
 }
 
-export function hasInvalidPlaylistNameCharacters(nombre = '') {
+export function hasInvalidPlaylistNameCharacters(nombre = ''): boolean {
   return /[<>:"/\\|?*]/.test(String(nombre))
 }
 
-export function getPlaylistNameValidationError(nombre = '') {
+export function getPlaylistNameValidationError(nombre = ''): string | null {
   const rawName = stripPlaylistExtension(nombre)
 
   if (!rawName) {
     return 'Enter a valid playlist name.'
   }
 
-  if (/[\x00-\x1f]/.test(rawName)) {
+  if (hasControlCharacters(rawName)) {
     return 'El nombre de la playlist contiene caracteres no permitidos.'
   }
 
@@ -125,22 +155,23 @@ export function getPlaylistNameValidationError(nombre = '') {
   return null
 }
 
-export function getTrackPathKey(filePath) {
+export function getTrackPathKey(filePath: string): string {
   const normalizedPath = path.normalize(filePath)
   return process.platform === 'win32' ? normalizedPath.toLowerCase() : normalizedPath
 }
 
-export function resolvePlaylistTrackPath(trackPath, baseDirectory) {
+export function resolvePlaylistTrackPath(trackPath: string, baseDirectory: string): string {
   return path.isAbsolute(trackPath)
     ? path.normalize(trackPath)
     : path.resolve(baseDirectory, trackPath)
 }
 
-export function sanitizePlaylistTrackPaths(filePaths = []) {
-  const uniqueTrackPaths = []
-  const seenPaths = new Set()
+export function sanitizePlaylistTrackPaths(filePaths: unknown = []): string[] {
+  const uniqueTrackPaths: string[] = []
+  const seenPaths = new Set<string>()
+  const candidatePaths = Array.isArray(filePaths) ? filePaths : []
 
-  for (const item of filePaths) {
+  for (const item of candidatePaths) {
     if (typeof item !== 'string') {
       continue
     }
@@ -159,23 +190,24 @@ export function sanitizePlaylistTrackPaths(filePaths = []) {
   return uniqueTrackPaths
 }
 
-export function hasDuplicatePlaylistTrackPaths(filePaths = []) {
-  return sanitizePlaylistTrackPaths(filePaths).length !== filePaths.length
+export function hasDuplicatePlaylistTrackPaths(filePaths: unknown = []): boolean {
+  return Array.isArray(filePaths) && sanitizePlaylistTrackPaths(filePaths).length !== filePaths.length
 }
 
-export function getPlaylistTrackSignature(filePaths = []) {
+export function getPlaylistTrackSignature(filePaths: unknown = []): string {
   return sanitizePlaylistTrackPaths(filePaths).map(getTrackPathKey).join('\n')
 }
 
-export function isProtectedPathError(error) {
-  return ['EACCES', 'EPERM', 'EROFS'].includes(error?.code)
+export function isProtectedPathError(error: unknown): boolean {
+  const code = typeof error === 'object' && error ? Reflect.get(error, 'code') : null
+  return ['EACCES', 'EPERM', 'EROFS'].includes(String(code))
 }
 
-export function getProtectedPathMessage() {
+export function getProtectedPathMessage(): string {
   return 'Ruta protegida, No se pudo crear la playlist.'
 }
 
-export function normalizeSearchQuery(value) {
+export function normalizeSearchQuery(value: unknown): string {
   if (typeof value !== 'string') {
     return ''
   }

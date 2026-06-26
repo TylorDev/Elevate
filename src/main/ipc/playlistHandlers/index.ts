@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ipcMain } from 'electron'
 import log from 'electron-log/main.js'
 import {
@@ -34,6 +33,14 @@ import {
   appendTracksToPlaylist,
   removeTrackFromPlaylist
 } from './tracks.ts'
+import { getErrorMessage } from './shared.ts'
+import type {
+  EnsurePlaylistCoverRequest,
+  PlaylistArgs,
+  PlaylistChannel,
+  PlaylistCoverVariant,
+  PlaylistInvokeHandler
+} from '../../Types/playlistHandlers.ts'
 
 export {
   exportPlaylistToTarget,
@@ -43,9 +50,28 @@ export {
   importPlaylistFile,
   savePlaylistToTarget
 }
+export type * from '../../Types/playlistHandlers.ts'
 
-export function setupPlaylistHandlers() {
-  ipcMain.handle('load-list', async (_event, explicitFilePath = null) => {
+function handlePlaylist<C extends PlaylistChannel>(
+  channel: C,
+  handler: PlaylistInvokeHandler<C>
+): void {
+  ipcMain.handle(channel, (event, ...args) => handler(event, ...(args as PlaylistArgs<C>)))
+}
+
+function parseCoverRequest(request: EnsurePlaylistCoverRequest): {
+  playlistPath: string | null | undefined
+  variant: PlaylistCoverVariant
+} {
+  const playlistPath = typeof request === 'string' ? request : request?.playlistPath
+  const variant =
+    request && typeof request === 'object' && request?.variant ? request.variant : 'full'
+
+  return { playlistPath, variant }
+}
+
+export function setupPlaylistHandlers(): void {
+  handlePlaylist('load-list', async (_event, explicitFilePath = null) => {
     try {
       const filePath =
         typeof explicitFilePath === 'string' && explicitFilePath.trim() !== ''
@@ -60,11 +86,11 @@ export function setupPlaylistHandlers() {
 
       return result
     } catch (err) {
-      return { success: false, error: err.message }
+      return { success: false, error: getErrorMessage(err) }
     }
   })
 
-  ipcMain.handle('get-list', async (event, filepath) => {
+  handlePlaylist('get-list', async (_event, filepath) => {
     if (!filepath || filepath === '') {
       log.error('get-list: filepath is empty or undefined')
       return { success: false, error: 'filepath is required' }
@@ -76,61 +102,57 @@ export function setupPlaylistHandlers() {
       log.info('get-list: loaded successfully')
       return payload
     } catch (err) {
-      log.error('get-list error:', err.message)
-      log.error('Stack:', err.stack)
-      return { success: false, error: err.message }
+      log.error('get-list error:', getErrorMessage(err))
+      log.error('Stack:', err instanceof Error ? err.stack : null)
+      return { success: false, error: getErrorMessage(err) }
     }
   })
 
-  ipcMain.handle('playlist:ensure-cover', async (_event, request) => {
-    const playlistPath = typeof request === 'string' ? request : request?.playlistPath
-    const variant = typeof request === 'object' ? request?.variant || 'full' : 'full'
+  handlePlaylist('playlist:ensure-cover', async (_event, request) => {
+    const { playlistPath, variant } = parseCoverRequest(request)
     return ensurePlaylistCover(playlistPath, {
       variant,
       allowAutoGenerate: true
     })
   })
 
-  ipcMain.handle('playlist:get-cover', async (_event, request) => {
-    const playlistPath = typeof request === 'string' ? request : request?.playlistPath
-    const variant = typeof request === 'object' ? request?.variant || 'full' : 'full'
+  handlePlaylist('playlist:get-cover', async (_event, request) => {
+    const { playlistPath, variant } = parseCoverRequest(request)
     return ensurePlaylistCover(playlistPath, {
       variant,
       allowAutoGenerate: false
     })
   })
 
-  //Simple
-  ipcMain.handle('get-playlists', async () => {
+  handlePlaylist('get-playlists', async () => {
     return await getPlaylists({}, enrichPlaylistWithCover)
   })
 
-  ipcMain.handle('get-playlists-minimal', async () => {
+  handlePlaylist('get-playlists-minimal', async () => {
     return await getPlaylistsMinimal()
   })
 
-  ipcMain.handle('search-playlists-page', async (event, request) => {
+  handlePlaylist('search-playlists-page', async (_event, request) => {
     return searchPlaylistsPage(request, enrichPlaylistWithCover)
   })
 
-  ipcMain.handle('get-playlists-number', async () => {
+  handlePlaylist('get-playlists-number', async () => {
     return getPlaylistsNumber()
   })
 
-  ipcMain.handle('get-random-playlist', async () => {
+  handlePlaylist('get-random-playlist', async () => {
     return await getRandomPlaylist(enrichPlaylistWithCover)
   })
 
-  //simple
-  ipcMain.handle('delete-playlist', async (event, filePath) => {
+  handlePlaylist('delete-playlist', async (event, filePath) => {
     return queuePlaylistDelete(filePath, event.sender)
   })
 
-  ipcMain.handle('update-playlist-metadata', async (event, request) => {
+  handlePlaylist('update-playlist-metadata', async (_event, request) => {
     return updatePlaylistMetadata(request)
   })
 
-  ipcMain.handle('load-list-to-history', async (event, filePath) => {
+  handlePlaylist('load-list-to-history', async (_event, filePath) => {
     try {
       const playlist = await getPlaylist(filePath)
       if (!playlist) {
@@ -146,23 +168,23 @@ export function setupPlaylistHandlers() {
     }
   })
 
-  ipcMain.handle('update-list', async (event, request) => {
+  handlePlaylist('update-list', async (_event, request) => {
     return removeTrackFromPlaylist(request)
   })
 
-  ipcMain.handle('add-new-song', async (event, request) => {
+  handlePlaylist('add-new-song', async (_event, request) => {
     return addNewSongToPlaylist(request)
   })
 
-  ipcMain.handle('append-tracks-to-playlist', async (event, request) => {
+  handlePlaylist('append-tracks-to-playlist', async (_event, request) => {
     return appendTracksToPlaylist(request)
   })
 
-  ipcMain.handle('save-m3u', async (event, request = {}) => {
+  handlePlaylist('save-m3u', async (_event, request = {}) => {
     try {
       return saveM3uRequest(request)
     } catch (err) {
-      return { success: false, error: err.message }
+      return { success: false, error: getErrorMessage(err) }
     }
   })
 }

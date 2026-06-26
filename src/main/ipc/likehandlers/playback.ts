@@ -1,34 +1,56 @@
-// @ts-nocheck
 import { getOrCreateSong } from '../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   PLAYBACK_EVENT_TYPES,
   STAT_SELECT
 } from './shared.ts'
+import type { Prisma, PrismaClient, Songs } from '../../generated/prisma/client.ts'
+import type {
+  PlaybackEventType,
+  PlaybackIncrementUpdate,
+  PlaybackPreferenceCreate,
+  PlaybackRecordPayload,
+  PlaybackRecordResult
+} from '../../Types/likeHandlers.ts'
 
-function normalizePlaybackNumber(value, fallback = 0) {
+const db = prisma as unknown as PrismaClient
+const getSong = getOrCreateSong as (
+  filepath?: string | null,
+  filename?: string | null
+) => Promise<Songs>
+
+function normalizePlaybackNumber(value: unknown, fallback = 0): number {
   const number = Number(value)
   return Number.isFinite(number) && number > 0 ? number : fallback
 }
 
-export async function recordPlaybackStats(payload = {}) {
+function normalizePlaybackEventType(value: unknown): PlaybackEventType | null {
+  const eventType = String(value || '')
+  return PLAYBACK_EVENT_TYPES.has(eventType as PlaybackEventType)
+    ? (eventType as PlaybackEventType)
+    : null
+}
+
+export async function recordPlaybackStats(
+  payload: PlaybackRecordPayload = {}
+): Promise<PlaybackRecordResult> {
   const filePath = payload?.filePath
   const fileName = payload?.fileName
-  const eventType = String(payload?.eventType || '')
+  const eventType = normalizePlaybackEventType(payload?.eventType)
 
-  if (!filePath || !PLAYBACK_EVENT_TYPES.has(eventType)) {
+  if (!filePath || !eventType) {
     return { success: false, error: 'Invalid playback payload' }
   }
 
-  const song = await getOrCreateSong(filePath, fileName || '')
+  const song = await getSong(filePath, fileName || '')
   const duration = normalizePlaybackNumber(payload?.duration, Number(song.duration) || 0)
   const activeListeningSeconds = normalizePlaybackNumber(payload?.activeListeningSeconds, 0)
   const countAsRepeat =
     eventType === 'playback-finalize' && Boolean(payload?.countAsRepeat)
-  const updateData = {}
-  const createData = { song_id: song.song_id }
+  const updateData: PlaybackIncrementUpdate = {}
+  const createData: PlaybackPreferenceCreate = { song_id: song.song_id }
   let shouldCreatePlayHistory = false
-  let createdPlayHistoryAt = null
+  let createdPlayHistoryAt: string | null = null
 
   if (eventType === 'skip-award') {
     updateData.skip_count = { increment: 1 }
@@ -65,11 +87,11 @@ export async function recordPlaybackStats(payload = {}) {
     createData.consecutive_repeat_count = 1
   }
 
-  await prisma.$transaction(async (tx) => {
+  await db.$transaction(async (tx) => {
     await tx.userPreferences.upsert({
       where: { song_id: song.song_id },
-      update: updateData,
-      create: createData
+      update: updateData as Prisma.UserPreferencesUncheckedUpdateInput,
+      create: createData as Prisma.UserPreferencesUncheckedCreateInput
     })
 
     if (shouldCreatePlayHistory) {
@@ -82,7 +104,7 @@ export async function recordPlaybackStats(payload = {}) {
     }
   })
 
-  const stats = await prisma.userPreferences.findUnique({
+  const stats = await db.userPreferences.findUnique({
     where: { song_id: song.song_id },
     select: STAT_SELECT
   })
@@ -93,7 +115,7 @@ export async function recordPlaybackStats(payload = {}) {
     eventType,
     isConsecutiveRepeat: countAsRepeat,
     stats: {
-      ...stats,
+      ...(stats || {}),
       ...(createdPlayHistoryAt ? { lastPlayedAt: createdPlayHistoryAt } : {})
     }
   }

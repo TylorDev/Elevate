@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from 'fs'
 import path from 'path'
 import {
@@ -6,8 +5,9 @@ import {
   getBackgroundAssetsDir
 } from './backgroundConfig.ts'
 import { getExtensionFromMimeType } from './shared.ts'
+import type { BackgroundConfigItem } from '../../Types/imageSourceHandlers.ts'
 
-export function writeAssetBuffer(itemId, mimeType, buffer) {
+export function writeAssetBuffer(itemId: string, mimeType: string, buffer: Buffer): string {
   ensureBackgroundStorage()
   const extension = getExtensionFromMimeType(mimeType) || 'png'
   const targetPath = path.join(getBackgroundAssetsDir(), `${itemId}.${extension}`)
@@ -15,7 +15,7 @@ export function writeAssetBuffer(itemId, mimeType, buffer) {
   return targetPath
 }
 
-export function deleteAssetFile(assetPath) {
+export function deleteAssetFile(assetPath?: string | null): void {
   if (!assetPath) return
 
   try {
@@ -27,7 +27,10 @@ export function deleteAssetFile(assetPath) {
   }
 }
 
-export function moveAssetIfNeeded(item, nextAssetPath) {
+export function moveAssetIfNeeded(
+  item: Partial<Pick<BackgroundConfigItem, 'resolvedAssetPath'>> | null | undefined,
+  nextAssetPath: string
+): void {
   if (!item?.resolvedAssetPath || item.resolvedAssetPath === nextAssetPath) {
     return
   }

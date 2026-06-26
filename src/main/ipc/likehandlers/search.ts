@@ -1,12 +1,31 @@
-// @ts-nocheck
 import { getLastPlayedAtBySongId } from '../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   normalizeSearchQuery,
   STAT_SELECT
 } from './shared.ts'
+import type { PrismaClient, Songs, UserPreferences } from '../../generated/prisma/client.ts'
+import type {
+  NormalizedSearchSongsFilters,
+  ParsedArtistTitle,
+  SearchFieldMatchScore,
+  SearchQueryInfo,
+  SearchSongItem,
+  SearchSongMatch,
+  SearchSongsPage,
+  SearchSongsPageRequest
+} from '../../Types/likeHandlers.ts'
 
-function normalizeSearchText(value) {
+type SearchableSong = Songs & {
+  UserPreferences?: Partial<UserPreferences>[] | null
+}
+
+const db = prisma as unknown as PrismaClient
+const getLastPlayedAt = getLastPlayedAtBySongId as (
+  songIds: Array<number | null | undefined>
+) => Promise<Map<number, string>>
+
+function normalizeSearchText(value: unknown): string {
   if (typeof value !== 'string') {
     return ''
   }
@@ -20,11 +39,11 @@ function normalizeSearchText(value) {
     .replace(/\s+/g, ' ')
 }
 
-function compactSearchText(value) {
+function compactSearchText(value: unknown): string {
   return normalizeSearchText(value).replace(/\s+/g, '')
 }
 
-function parseArtistTitleFromFilename(filename) {
+function parseArtistTitleFromFilename(filename: unknown): ParsedArtistTitle {
   if (typeof filename !== 'string' || !filename.includes(' - ')) {
     return { artist: '', title: '' }
   }
@@ -40,7 +59,7 @@ function parseArtistTitleFromFilename(filename) {
   return { artist, title }
 }
 
-function createQueryInfo(query) {
+function createQueryInfo(query: string): SearchQueryInfo {
   const normalized = normalizeSearchText(query)
   const compact = compactSearchText(query)
 
@@ -51,7 +70,7 @@ function createQueryInfo(query) {
   }
 }
 
-function getFieldMatchScore(value, queryInfo) {
+function getFieldMatchScore(value: unknown, queryInfo: SearchQueryInfo): SearchFieldMatchScore {
   const normalizedValue = normalizeSearchText(value)
 
   if (!normalizedValue || !queryInfo.normalized) {
@@ -91,43 +110,48 @@ function getFieldMatchScore(value, queryInfo) {
   return null
 }
 
-function getSongSearchMatch(song, queryInfo, filters) {
+function addScore(
+  candidateScores: SearchFieldMatchScore[],
+  value: unknown,
+  queryInfo: SearchQueryInfo,
+  offset = 0
+): void {
+  const score = getFieldMatchScore(value, queryInfo)
+  candidateScores.push(score != null ? score + offset : null)
+}
+
+function getSongSearchMatch(
+  song: SearchableSong,
+  queryInfo: SearchQueryInfo,
+  filters: NormalizedSearchSongsFilters
+): SearchSongMatch {
   const parsedFromFilename = parseArtistTitleFromFilename(song.filename || '')
   const title = String(song.title || '')
   const filename = String(song.filename || '')
   const artist = String(song.artist || '')
 
-  const candidateScores = []
+  const candidateScores: SearchFieldMatchScore[] = []
 
   if (filters.name) {
-    candidateScores.push(
-      getFieldMatchScore(title, queryInfo),
-      getFieldMatchScore(parsedFromFilename.title, queryInfo) != null
-        ? getFieldMatchScore(parsedFromFilename.title, queryInfo) + 10
-        : null,
-      getFieldMatchScore(filename, queryInfo) != null
-        ? getFieldMatchScore(filename, queryInfo) + 20
-        : null,
-      getFieldMatchScore(`${artist} ${title}`, queryInfo) != null
-        ? getFieldMatchScore(`${artist} ${title}`, queryInfo) + 30
-        : null,
-      getFieldMatchScore(`${parsedFromFilename.artist} ${parsedFromFilename.title}`, queryInfo) != null
-        ? getFieldMatchScore(`${parsedFromFilename.artist} ${parsedFromFilename.title}`, queryInfo) + 40
-        : null
+    addScore(candidateScores, title, queryInfo)
+    addScore(candidateScores, parsedFromFilename.title, queryInfo, 10)
+    addScore(candidateScores, filename, queryInfo, 20)
+    addScore(candidateScores, `${artist} ${title}`, queryInfo, 30)
+    addScore(
+      candidateScores,
+      `${parsedFromFilename.artist} ${parsedFromFilename.title}`,
+      queryInfo,
+      40
     )
   }
 
   if (filters.artist) {
-    candidateScores.push(
-      getFieldMatchScore(artist, queryInfo) != null ? getFieldMatchScore(artist, queryInfo) + 50 : null,
-      getFieldMatchScore(parsedFromFilename.artist, queryInfo) != null
-        ? getFieldMatchScore(parsedFromFilename.artist, queryInfo) + 60
-        : null
-    )
+    addScore(candidateScores, artist, queryInfo, 50)
+    addScore(candidateScores, parsedFromFilename.artist, queryInfo, 60)
   }
 
   const priority = candidateScores
-    .filter((score) => score != null)
+    .filter((score): score is number => score != null)
     .sort((left, right) => left - right)[0]
 
   return {
@@ -136,11 +160,13 @@ function getSongSearchMatch(song, queryInfo, filters) {
   }
 }
 
-export async function searchSongsPage(request = {}) {
+export async function searchSongsPage(
+  request: SearchSongsPageRequest = {}
+): Promise<SearchSongsPage> {
   const query = normalizeSearchQuery(request?.query)
   const page = Math.max(Number(request?.page) || 1, 1)
   const pageSize = Math.min(Math.max(Number(request?.pageSize) || 50, 1), 100)
-  const filters = {
+  const filters: NormalizedSearchSongsFilters = {
     name: request?.filters?.name !== false,
     artist: request?.filters?.artist !== false
   }
@@ -159,14 +185,14 @@ export async function searchSongsPage(request = {}) {
   const queryInfo = createQueryInfo(query)
 
   try {
-    const songs = await prisma.songs.findMany({
+    const songs = await db.songs.findMany({
       include: {
         UserPreferences: {
           select: STAT_SELECT
         }
       }
-    })
-    const lastPlayedAtBySongId = await getLastPlayedAtBySongId(
+    }) as SearchableSong[]
+    const lastPlayedAtBySongId = await getLastPlayedAt(
       songs.map((song) => song.song_id)
     )
 
@@ -201,7 +227,7 @@ export async function searchSongsPage(request = {}) {
 
     const total = matchedSongs.length
     const paginatedSongs = matchedSongs.slice(offset, offset + pageSize)
-    const items = Array.isArray(paginatedSongs)
+    const items: SearchSongItem[] = Array.isArray(paginatedSongs)
       ? paginatedSongs.map((song) => ({
           song_id: song.song_id,
           filePath: song.filepath,

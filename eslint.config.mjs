@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import react from 'eslint-plugin-react'
+import tseslint from 'typescript-eslint'
 
 const globals = {
   Buffer: 'readonly',
@@ -28,6 +29,7 @@ export default [
     ignores: ['build/**', 'dist/**', 'node_modules/**', 'out/**', 'src/main/generated/prisma/**']
   },
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['**/*.{cjs,js,jsx,mjs,ts,tsx}'],
     languageOptions: {
@@ -55,6 +57,13 @@ export default [
       react: {
         version: 'detect'
       }
+    }
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'warn'
     }
   }
 ]

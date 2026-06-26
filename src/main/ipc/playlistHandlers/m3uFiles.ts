@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { app, dialog } from 'electron'
 import fs from 'fs'
 import path from 'path'
@@ -15,6 +14,7 @@ import {
 } from './repository.ts'
 import {
   extractPlaylistName,
+  getErrorMessage,
   getPlaylistNameValidationError,
   getPlaylistTrackSignature,
   getProtectedPathMessage,
@@ -23,10 +23,32 @@ import {
   normalizePlaylistFileName,
   resolvePlaylistTrackPath,
   sanitizePlaylistTrackPaths,
+  stripControlCharacters,
   stripPlaylistExtension
 } from './shared.ts'
+import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
+import type {
+  AudioFileInfo,
+  DuplicateImportedPlaylist,
+  ExportPlaylistResult,
+  PersistPlaylistRecordOptions,
+  PersistPlaylistRecordResult,
+  PlaylistDetails,
+  ResolveUniquePlaylistPathRequest,
+  SaveM3uFileResult,
+  SaveM3uRequest,
+  SavePlaylistResult,
+  SavePlaylistToTargetRequest
+} from '../../Types/playlistHandlers.ts'
 
-export async function selectFile() {
+const db = prisma as unknown as PrismaClient
+const processPlaylistTracks = processPlaylist as (
+  filepath: string,
+  baseDir: string,
+  options?: Record<string, unknown>
+) => Promise<AudioFileInfo[]>
+
+export async function selectFile(): Promise<string | null> {
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [{ name: 'M3U Files', extensions: ['m3u'] }]
@@ -39,12 +61,13 @@ export async function selectFile() {
   return result.filePaths[0]
 }
 
-export async function saveDialog(nombre = '') {
+export async function saveDialog(nombre = ''): Promise<string | null> {
   let isValid = false
-  let filePath
-  const suggestedFileName = stripPlaylistExtension(nombre)
-    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '')
-    .replace(/[. ]+$/g, '') || 'playlist'
+  let filePath: string | null = null
+  const suggestedFileName =
+    stripControlCharacters(stripPlaylistExtension(nombre))
+      .replace(/[<>:"/\\|?*]/g, '')
+      .replace(/[. ]+$/g, '') || 'playlist'
 
   while (!isValid) {
     const { filePath: selectedPath } = await dialog.showSaveDialog({
@@ -54,16 +77,14 @@ export async function saveDialog(nombre = '') {
     })
 
     if (!selectedPath) {
-      // Si el usuario cancela el dialogo
       console.log('The dialog was canceled')
-      return null // O lanza una excepcion si prefieres
+      return null
     }
 
-    // Extraer el nombre del archivo usando el modulo path
     const fileName = path.basename(selectedPath, path.extname(selectedPath))
 
     if (fileName.length > 2 && fileName.length < 15) {
-      isValid = true // El nombre es valido
+      isValid = true
       filePath = selectedPath
     } else {
       console.debug(fileName)
@@ -73,21 +94,19 @@ export async function saveDialog(nombre = '') {
     }
   }
 
-  return filePath // Retorna la ruta del archivo valido
+  return filePath
 }
 
-const createM3uContent = (filePaths) => {
-  return filePaths.join('\n')
-}
+const createM3uContent = (filePaths: string[]): string => filePaths.join('\n')
 
-const saveM3uFile = async (m3uFilePath, m3uContent) => {
+const saveM3uFile = async (m3uFilePath: string, m3uContent: string): Promise<SaveM3uFileResult> => {
   try {
     await fs.promises.writeFile(m3uFilePath, m3uContent)
     return { success: true, path: m3uFilePath }
   } catch (err) {
     return {
       success: false,
-      error: isProtectedPathError(err) ? getProtectedPathMessage() : err.message
+      error: isProtectedPathError(err) ? getProtectedPathMessage() : getErrorMessage(err)
     }
   }
 }
@@ -96,12 +115,12 @@ export async function resolveUniquePlaylistPath({
   targetDirectory,
   requestedName,
   targetPath = null
-} = {}) {
+}: ResolveUniquePlaylistPathRequest = {}): Promise<string> {
   if (!targetDirectory) {
     throw new Error('Target directory is required')
   }
 
-  const baseName = targetPath ? extractPlaylistName(targetPath) : requestedName
+  const baseName = targetPath ? extractPlaylistName(targetPath) : requestedName || ''
   const validationError = getPlaylistNameValidationError(baseName)
   if (validationError) {
     throw new Error(validationError)
@@ -125,7 +144,7 @@ export async function resolveUniquePlaylistPath({
   }
 }
 
-export async function savePlaylist(filePath, filePaths) {
+export async function savePlaylist(filePath: string, filePaths: string[]): Promise<SavePlaylistResult> {
   const playlistName = extractPlaylistName(filePath)
   const m3uContent = createM3uContent(filePaths)
   const saveResult = await saveM3uFile(filePath, m3uContent)
@@ -137,10 +156,13 @@ export async function savePlaylist(filePath, filePaths) {
   return { success: true, playlistName }
 }
 
-export async function persistPlaylistRecord(filePath, { allowExistingPath = false } = {}) {
+export async function persistPlaylistRecord(
+  filePath: string,
+  { allowExistingPath = false }: PersistPlaylistRecordOptions = {}
+): Promise<PersistPlaylistRecordResult> {
   const playlistName = extractPlaylistName(filePath)
   const [existingPlaylistByPath, conflictingPlaylistByName] = await Promise.all([
-    prisma.playlist.findUnique({ where: { path: filePath } }),
+    db.playlist.findUnique({ where: { path: filePath } }),
     findPlaylistByNameInsensitive(playlistName)
   ])
 
@@ -174,7 +196,7 @@ export async function savePlaylistToTarget({
   targetPath = null,
   targetDirectory = null,
   nombre = ''
-} = {}) {
+}: SavePlaylistToTargetRequest = {}): Promise<PersistPlaylistRecordResult> {
   const normalizedFilePaths = sanitizePlaylistTrackPaths(filePaths)
 
   if (normalizedFilePaths.length === 0) {
@@ -195,7 +217,7 @@ export async function savePlaylistToTarget({
     return { success: false, error }
   }
 
-  invalidatePlaylistCache(playlistPath)
+  invalidatePlaylistCache()
   return persistPlaylistRecord(playlistPath)
 }
 
@@ -204,7 +226,7 @@ export async function exportPlaylistToTarget({
   targetPath = null,
   targetDirectory = null,
   nombre = ''
-} = {}) {
+}: SavePlaylistToTargetRequest = {}): Promise<ExportPlaylistResult> {
   const normalizedFilePaths = sanitizePlaylistTrackPaths(filePaths)
 
   if (normalizedFilePaths.length === 0) {
@@ -257,20 +279,20 @@ export async function exportPlaylistToTarget({
   }
 }
 
-export async function getPlaylistDetails(playlistPath) {
+export async function getPlaylistDetails(playlistPath: string): Promise<PlaylistDetails> {
   const m3uDirectory = path.dirname(playlistPath)
-  const tracks = await processPlaylist(playlistPath, m3uDirectory)
+  const tracks = await processPlaylistTracks(playlistPath, m3uDirectory)
   const totalDuration = tracks.reduce((acc, track) => acc + track.duration, 0)
   const totalTracks = tracks.length
   const contador = getPlays(playlistPath)
   return { totalDuration, totalTracks, contador }
 }
 
-export async function getM3ufilepaths(filepath) {
+export async function getM3ufilepaths(filepath: string): Promise<string[]> {
   return readPlaylistTrackPaths(filepath)
 }
 
-export async function readPlaylistTrackPaths(filepath) {
+export async function readPlaylistTrackPaths(filepath: string): Promise<string[]> {
   const fileContent = await fs.promises.readFile(filepath, 'utf-8')
   const baseDirectory = path.dirname(filepath)
   const absolutePaths = fileContent
@@ -280,8 +302,16 @@ export async function readPlaylistTrackPaths(filepath) {
   return absolutePaths.map((trackPath) => resolvePlaylistTrackPath(trackPath, baseDirectory))
 }
 
-async function findDuplicateImportedPlaylist({ name, path: importedPath, trackSignature }) {
-  const samePathPlaylist = await prisma.playlist.findUnique({
+async function findDuplicateImportedPlaylist({
+  name,
+  path: importedPath,
+  trackSignature
+}: {
+  name: string
+  path: string
+  trackSignature: string
+}): Promise<DuplicateImportedPlaylist> {
+  const samePathPlaylist = await db.playlist.findUnique({
     where: { path: importedPath }
   })
 
@@ -306,7 +336,7 @@ async function findDuplicateImportedPlaylist({ name, path: importedPath, trackSi
         }
       }
     } catch (error) {
-      console.warn('Could not compare playlist during import:', playlist.path, error?.message)
+      console.warn('Could not compare playlist during import:', playlist.path, getErrorMessage(error))
     }
   }
 
@@ -320,9 +350,12 @@ async function findDuplicateImportedPlaylist({ name, path: importedPath, trackSi
   return null
 }
 
-async function persistImportedPlaylistRecord(filePath, filePaths) {
+async function persistImportedPlaylistRecord(
+  filePath: string,
+  filePaths: string[]
+): Promise<PersistPlaylistRecordResult> {
   const playlistName = extractPlaylistName(filePath)
-  const existingPlaylistByPath = await prisma.playlist.findUnique({
+  const existingPlaylistByPath = await db.playlist.findUnique({
     where: { path: filePath }
   })
 
@@ -341,7 +374,7 @@ async function persistImportedPlaylistRecord(filePath, filePaths) {
     }
   }
 
-  const playlist = await createPlaylistRecord(filePath, playlistName, filePaths.length, 0)
+  const playlist: Playlist = await createPlaylistRecord(filePath, playlistName, filePaths.length, 0)
 
   return {
     success: true,
@@ -351,7 +384,7 @@ async function persistImportedPlaylistRecord(filePath, filePaths) {
   }
 }
 
-export async function importPlaylistFile(filePath) {
+export async function importPlaylistFile(filePath: string): Promise<PersistPlaylistRecordResult> {
   const resolvedFilePath = path.resolve(filePath)
   const playlistName = extractPlaylistName(resolvedFilePath)
   const validationError = getPlaylistNameValidationError(playlistName)
@@ -415,7 +448,9 @@ export async function importPlaylistFile(filePath) {
   return persistImportedPlaylistRecord(playlistPath, normalizedFilePaths)
 }
 
-export async function saveM3uRequest(request = {}) {
+export async function saveM3uRequest(
+  request: SaveM3uRequest = {}
+): Promise<PersistPlaylistRecordResult | ExportPlaylistResult> {
   const {
     filePaths = [],
     targetPath = null,

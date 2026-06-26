@@ -1,4 +1,3 @@
-// @ts-nocheck
 import fs from 'fs'
 import { createHash, randomUUID } from 'node:crypto'
 import { writeAssetBuffer } from './backgroundAssets.ts'
@@ -23,8 +22,11 @@ import {
   parseDataUrl,
   sanitizeRemoteUrl
 } from './shared.ts'
+import type { BackgroundMutationResult } from '../../Types/imageSourceHandlers.ts'
 
-export async function migrateLegacyBackgroundValue(legacyValue) {
+export async function migrateLegacyBackgroundValue(
+  legacyValue?: string | null
+): Promise<BackgroundMutationResult> {
   if (!legacyValue || typeof legacyValue !== 'string') {
     return { success: true, ...(await buildBackgroundState(readBackgroundConfig())) }
   }
@@ -75,7 +77,7 @@ export async function migrateLegacyBackgroundValue(legacyValue) {
 
   if (trimmedValue.startsWith('http://') || trimmedValue.startsWith('https://')) {
     const remoteResult = await downloadRemoteImage(trimmedValue)
-    if (!remoteResult.success) {
+    if (remoteResult.success === false) {
       return remoteResult
     }
 
@@ -92,7 +94,7 @@ export async function migrateLegacyBackgroundValue(legacyValue) {
 
   if (fs.existsSync(trimmedValue)) {
     const localResult = readLocalImageFile(trimmedValue)
-    if (!localResult.success) {
+    if (localResult.success === false) {
       return localResult
     }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import path from 'path'
 import { getOrCreateSong } from '../utils/utils.ts'
 import {
@@ -12,15 +11,30 @@ import {
   persistPlaylistRecord,
   savePlaylist
 } from './m3uFiles.ts'
+import { getErrorMessage } from './shared.ts'
+import type {
+  AddNewSongToPlaylistRequest,
+  AppendTracksToPlaylistRequest,
+  AppendTracksToPlaylistResult,
+  ErrorResponse,
+  RemoveTrackFromPlaylistRequest,
+  UpsertPlaylistMetadataResult
+} from '../../Types/playlistHandlers.ts'
+import type { Playlist } from '../../generated/prisma/client.ts'
 
-export async function removeTrackFromPlaylist({ filePath, index }) {
+type TrackMutationResult = UpsertPlaylistMetadataResult | ErrorResponse
+type AddNewSongResult = (UpsertPlaylistMetadataResult & { songName?: string }) | ErrorResponse
+
+export async function removeTrackFromPlaylist({
+  filePath,
+  index
+}: RemoveTrackFromPlaylistRequest): Promise<TrackMutationResult> {
   console.log(filePath)
 
-  const baseDir = path.dirname(filePath)
-  const filePaths = await getM3ufilepaths(filePath, baseDir) //
+  const filePaths = await getM3ufilepaths(filePath)
   filePaths.splice(index, 1)
   const saveResult = await savePlaylist(filePath, filePaths)
-  invalidatePlaylistCache(filePath)
+  invalidatePlaylistCache()
   if (!saveResult.success) {
     return { success: false, error: saveResult.error }
   }
@@ -38,14 +52,16 @@ export async function removeTrackFromPlaylist({ filePath, index }) {
   return upsertPlaylistMetadataPreservingName(playlistData.path, playlistData)
 }
 
-export async function addNewSongToPlaylist({ filePath, song }) {
+export async function addNewSongToPlaylist({
+  filePath,
+  song
+}: AddNewSongToPlaylistRequest): Promise<AddNewSongResult> {
   console.log(filePath)
 
   const filename = path.basename(song)
   await getOrCreateSong(song, filename)
 
-  const baseDir = path.dirname(filePath)
-  const filePaths = await getM3ufilepaths(filePath, baseDir) //
+  const filePaths = await getM3ufilepaths(filePath)
 
   if (filePaths.includes(song)) {
     return {
@@ -56,7 +72,7 @@ export async function addNewSongToPlaylist({ filePath, song }) {
 
   filePaths.push(song)
   const saveResult = await savePlaylist(filePath, filePaths)
-  invalidatePlaylistCache(filePath)
+  invalidatePlaylistCache()
   if (!saveResult.success) {
     return { success: false, error: saveResult.error }
   }
@@ -70,19 +86,24 @@ export async function addNewSongToPlaylist({ filePath, song }) {
     numElementos: playlistDetails.totalTracks,
     totalplays: 0
   }
+  const persistResult = await upsertPlaylistMetadataPreservingName(playlistData.path, playlistData)
 
-  return { ...upsertPlaylistMetadataPreservingName(playlistData.path, playlistData), songName: filename }
+  return { ...persistResult, songName: filename }
 }
 
-export async function appendTracksToPlaylist({ playlistPath, filePaths = [] }) {
+export async function appendTracksToPlaylist({
+  playlistPath,
+  filePaths = []
+}: AppendTracksToPlaylistRequest = {}): Promise<AppendTracksToPlaylistResult> {
   try {
     if (!playlistPath) {
       return { success: false, error: 'playlistPath is required' }
     }
 
     const existingPaths = await getM3ufilepaths(playlistPath)
-    const normalizedIncomingPaths = filePaths
-      .filter((item) => typeof item === 'string' && item.trim() !== '')
+    const incomingPaths = Array.isArray(filePaths) ? filePaths : []
+    const normalizedIncomingPaths = incomingPaths
+      .filter((item): item is string => typeof item === 'string' && item.trim() !== '')
       .map((item) => item.trim())
 
     if (normalizedIncomingPaths.length === 0) {
@@ -90,7 +111,7 @@ export async function appendTracksToPlaylist({ playlistPath, filePaths = [] }) {
     }
 
     const existingSet = new Set(existingPaths)
-    const pathsToAppend = []
+    const pathsToAppend: string[] = []
 
     for (const trackPath of normalizedIncomingPaths) {
       if (!existingSet.has(trackPath)) {
@@ -106,13 +127,13 @@ export async function appendTracksToPlaylist({ playlistPath, filePaths = [] }) {
         success: true,
         addedCount: 0,
         skippedCount: normalizedIncomingPaths.length,
-        playlist: await getPlaylist(playlistPath)
+        playlist: (await getPlaylist(playlistPath)) as Playlist | null
       }
     }
 
     const nextFilePaths = existingPaths.concat(pathsToAppend)
     const saveResult = await savePlaylist(playlistPath, nextFilePaths)
-    invalidatePlaylistCache(playlistPath)
+    invalidatePlaylistCache()
 
     if (!saveResult.success) {
       return { success: false, error: saveResult.error }
@@ -120,7 +141,7 @@ export async function appendTracksToPlaylist({ playlistPath, filePaths = [] }) {
 
     const persistResult = await persistPlaylistRecord(playlistPath, { allowExistingPath: true })
     if (!persistResult.success) {
-      return persistResult
+      return { success: false, error: persistResult.error }
     }
 
     return {
@@ -131,6 +152,6 @@ export async function appendTracksToPlaylist({ playlistPath, filePaths = [] }) {
     }
   } catch (error) {
     console.error('Error appending tracks to playlist:', error)
-    return { success: false, error: error.message || 'Could not add the songs.' }
+    return { success: false, error: getErrorMessage(error, 'Could not add the songs.') }
   }
 }

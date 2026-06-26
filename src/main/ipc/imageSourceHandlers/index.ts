@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { ipcMain } from 'electron'
 import {
   clearCurrentBackgroundImage,
@@ -19,30 +18,44 @@ import { migrateLegacyBackgroundValue } from './legacyMigration.ts'
 import {
   sanitizeRemoteUrl
 } from './shared.ts'
+import type {
+  ImageSourceArgs,
+  ImageSourceChannel,
+  ImageSourceInvokeHandler
+} from '../../Types/imageSourceHandlers.ts'
 
-export function setupImageSourceHandlers() {
-  ipcMain.handle('image-source:validate-remote', async (_, { url }) => {
-    return validateRemoteImage(url)
+export type * from '../../Types/imageSourceHandlers.ts'
+
+function handleImageSource<C extends ImageSourceChannel>(
+  channel: C,
+  handler: ImageSourceInvokeHandler<C>
+): void {
+  ipcMain.handle(channel, (event, ...args) => handler(event, ...(args as ImageSourceArgs<C>)))
+}
+
+export function setupImageSourceHandlers(): void {
+  handleImageSource('image-source:validate-remote', async (_event, { url }) => {
+    return validateRemoteImage(url || '')
   })
 
-  ipcMain.handle('image-source:pick-local', async (event) => {
+  handleImageSource('image-source:pick-local', async (event) => {
     return pickLocalImage(event)
   })
 
-  ipcMain.handle('background-images:list', async () => {
+  handleImageSource('background-images:list', async () => {
     return listBackgroundImages()
   })
 
-  ipcMain.handle('background-images:get-current', async () => {
+  handleImageSource('background-images:get-current', async () => {
     return getCurrentBackgroundImage()
   })
 
-  ipcMain.handle('background-images:apply-remote', async (_, { url }) => {
+  handleImageSource('background-images:apply-remote', async (_event, { url }) => {
     try {
-      const normalizedUrl = sanitizeRemoteUrl(url)
+      const normalizedUrl = sanitizeRemoteUrl(url || '')
       const remoteResult = await downloadRemoteImage(normalizedUrl)
 
-      if (!remoteResult.success) {
+      if (remoteResult.success === false) {
         return remoteResult
       }
 
@@ -64,7 +77,7 @@ export function setupImageSourceHandlers() {
     }
   })
 
-  ipcMain.handle('background-images:apply-local', async (event) => {
+  handleImageSource('background-images:apply-local', async (event) => {
     const result = await pickLocalImageFile(event)
 
     if (result.canceled || result.filePaths.length === 0) {
@@ -73,7 +86,7 @@ export function setupImageSourceHandlers() {
 
     const filePath = result.filePaths[0]
     const localResult = readLocalImageFile(filePath)
-    if (!localResult.success) {
+    if (localResult.success === false) {
       return localResult
     }
 
@@ -88,19 +101,19 @@ export function setupImageSourceHandlers() {
     }
   })
 
-  ipcMain.handle('background-images:select', async (_, { id }) => {
+  handleImageSource('background-images:select', async (_event, { id }) => {
     return selectBackgroundImage(id)
   })
 
-  ipcMain.handle('background-images:clear-current', async () => {
+  handleImageSource('background-images:clear-current', async () => {
     return clearCurrentBackgroundImage()
   })
 
-  ipcMain.handle('background-images:remove', async (_, { id }) => {
+  handleImageSource('background-images:remove', async (_event, { id }) => {
     return removeBackgroundImage(id)
   })
 
-  ipcMain.handle('background-images:migrate-legacy', async (_, { value }) => {
+  handleImageSource('background-images:migrate-legacy', async (_event, { value }) => {
     return migrateLegacyBackgroundValue(value)
   })
 }

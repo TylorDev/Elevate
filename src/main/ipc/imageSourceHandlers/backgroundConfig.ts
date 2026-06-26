@@ -1,27 +1,36 @@
-// @ts-nocheck
 import fs from 'fs'
 import { getStoragePaths } from '../../storagePaths.ts'
+import type {
+  BackgroundConfig,
+  BackgroundConfigItem,
+  BackgroundItemStatus,
+  ImageSourceType
+} from '../../Types/imageSourceHandlers.ts'
 
-export function ensureBackgroundStorage() {
+export function ensureBackgroundStorage(): void {
   fs.mkdirSync(getStoragePaths().backgroundAssetsRoot, { recursive: true })
 }
 
-export function getBackgroundAssetsDir() {
+export function getBackgroundAssetsDir(): string {
   return getStoragePaths().backgroundAssetsRoot
 }
 
-function getBackgroundConfigPath() {
+function getBackgroundConfigPath(): string {
   return getStoragePaths().backgroundConfigPath
 }
 
-function defaultBackgroundConfig() {
+function defaultBackgroundConfig(): BackgroundConfig {
   return {
     currentBackgroundId: null,
     items: []
   }
 }
 
-export function readBackgroundConfig() {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object')
+}
+
+export function readBackgroundConfig(): BackgroundConfig {
   ensureBackgroundStorage()
 
   try {
@@ -32,12 +41,14 @@ export function readBackgroundConfig() {
     }
 
     const raw = fs.readFileSync(backgroundConfigPath, 'utf8')
-    const parsed = JSON.parse(raw)
+    const parsed = JSON.parse(raw) as unknown
 
     return {
       currentBackgroundId:
-        typeof parsed?.currentBackgroundId === 'string' ? parsed.currentBackgroundId : null,
-      items: Array.isArray(parsed?.items) ? parsed.items : []
+        isRecord(parsed) && typeof parsed?.currentBackgroundId === 'string'
+          ? parsed.currentBackgroundId
+          : null,
+      items: isRecord(parsed) && Array.isArray(parsed?.items) ? normalizeItems(parsed.items) : []
     }
   } catch (error) {
     console.error('Failed to read background config:', error)
@@ -45,31 +56,36 @@ export function readBackgroundConfig() {
   }
 }
 
-function writeBackgroundConfig(config) {
+function writeBackgroundConfig(config: BackgroundConfig): void {
   ensureBackgroundStorage()
   fs.writeFileSync(getBackgroundConfigPath(), JSON.stringify(config, null, 2), 'utf8')
 }
 
-export function normalizeItems(items) {
+function normalizeStatus(value: unknown): BackgroundItemStatus {
+  return value === 'missing' || value === 'invalid' || value === 'ready' ? value : 'ready'
+}
+
+function normalizeSourceType(value: unknown): ImageSourceType {
+  return value === 'remote' ? 'remote' : 'local'
+}
+
+export function normalizeItems(items: unknown[]): BackgroundConfigItem[] {
   return items
-    .filter((item) => item && typeof item.id === 'string')
+    .filter((item): item is Record<string, unknown> => isRecord(item) && typeof item.id === 'string')
     .map((item) => ({
-      id: item.id,
-      sourceType: item.sourceType === 'remote' ? 'remote' : 'local',
+      id: item.id as string,
+      sourceType: normalizeSourceType(item.sourceType),
       sourceValue: typeof item.sourceValue === 'string' ? item.sourceValue : '',
       resolvedAssetPath: typeof item.resolvedAssetPath === 'string' ? item.resolvedAssetPath : '',
       mimeType: typeof item.mimeType === 'string' ? item.mimeType : 'image/png',
       createdAt: typeof item.createdAt === 'string' ? item.createdAt : new Date().toISOString(),
       lastUsedAt: typeof item.lastUsedAt === 'string' ? item.lastUsedAt : new Date().toISOString(),
-      status:
-        item.status === 'missing' || item.status === 'invalid' || item.status === 'ready'
-          ? item.status
-          : 'ready'
+      status: normalizeStatus(item.status)
     }))
     .sort((left, right) => new Date(right.lastUsedAt).getTime() - new Date(left.lastUsedAt).getTime())
 }
 
-export function saveBackgroundConfig(config) {
+export function saveBackgroundConfig(config: Partial<BackgroundConfig> | null | undefined): void {
   writeBackgroundConfig({
     currentBackgroundId:
       typeof config?.currentBackgroundId === 'string' ? config.currentBackgroundId : null,

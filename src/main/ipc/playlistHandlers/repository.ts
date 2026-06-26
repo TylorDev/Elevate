@@ -1,65 +1,90 @@
-// @ts-nocheck
 import path from 'path'
 import { prisma } from '../../prisma.ts'
 import { deletePlaylistCoverFromCache } from '../utils/utils.ts'
 import {
   extractPlaylistName,
+  getErrorMessage,
   getRandomIndex,
   normalizePlaylistFileName,
   normalizeSearchQuery
 } from './shared.ts'
+import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
+import type {
+  EnrichedPlaylist,
+  PlaylistDeleteCompletedPayload,
+  PlaylistDeleteQueuedResponse,
+  PlaylistDeleteResult,
+  PlaylistEnricher,
+  PlaylistIdentityRecord,
+  PlaylistListRequest,
+  PlaylistMinimal,
+  PlaylistNameRecord,
+  PlaylistSearchItem,
+  PlaylistSearchPage,
+  PlaylistSearchRequest,
+  PlaylistSender,
+  UpsertPlaylistMetadataInput,
+  UpsertPlaylistMetadataResult
+} from '../../Types/playlistHandlers.ts'
 
-const pendingPlaylistRequests = new Map()
+const db = prisma as unknown as PrismaClient
+const pendingPlaylistRequests = new Map<string, Promise<EnrichedPlaylist[]>>()
 let deletePlaylistJobCounter = 0
 
-export function invalidatePlaylistCache(playlistPath = null) {
+export function invalidatePlaylistCache(): void {
   pendingPlaylistRequests.clear()
 }
 
-export async function upsertPlaylistMetadataPreservingName(filepath, data) {
+export async function upsertPlaylistMetadataPreservingName(
+  filepath: string,
+  data: UpsertPlaylistMetadataInput
+): Promise<UpsertPlaylistMetadataResult> {
   try {
-    // Busca la playlist existente para obtener el nombre actual.
-    const existingPlaylist = await prisma.playlist.findUnique({
+    const existingPlaylist = await db.playlist.findUnique({
       where: {
         path: filepath
       }
     })
 
     if (existingPlaylist) {
-      // Si la playlist existe, actualizala conservando el nombre actual.
-      const updatedPlaylist = await prisma.playlist.update({
+      const updatedPlaylist = await db.playlist.update({
         where: {
           path: filepath
         },
         data: {
           ...data,
-          nombre: existingPlaylist.nombre // Manten el nombre actual.
+          nombre: existingPlaylist.nombre
         }
       })
-      invalidatePlaylistCache(filepath)
+      invalidatePlaylistCache()
 
       return { success: true, playlist: updatedPlaylist }
-    } else {
-      // Si la playlist no existe, creala con el nombre y datos proporcionados.
-      const newPlaylist = await prisma.playlist.create({
-        data: {
-          ...data,
-          path: filepath // Usa el filepath como identificador unico.
-        }
-      })
-      invalidatePlaylistCache(filepath)
-
-      return { success: true, playlist: newPlaylist }
     }
+
+    const newPlaylist = await db.playlist.create({
+      data: {
+        ...data,
+        path: filepath
+      } as Parameters<typeof db.playlist.create>[0]['data']
+    })
+    invalidatePlaylistCache()
+
+    return { success: true, playlist: newPlaylist }
   } catch (error) {
     console.error('Error handling playlist in database:', error)
     return { success: false, error: 'Error handling playlist in database.' }
   }
 }
 
-export async function updatePlaylist(path, nombre, duracion = 0, numElementos = 0, totalplays = 0) {
-  const playlist = await prisma.playlist.upsert({
-    where: { path },
+export async function updatePlaylist(
+  playlistPath: string,
+  nombre: string,
+  duracion = 0,
+  numElementos = 0,
+  totalplays = 0
+): Promise<Playlist> {
+  const playlist = await db.playlist.upsert({
+    where: { path: playlistPath },
     update: {
       nombre,
       duracion,
@@ -67,79 +92,86 @@ export async function updatePlaylist(path, nombre, duracion = 0, numElementos = 
       totalplays
     },
     create: {
-      path,
+      path: playlistPath,
       nombre,
       duracion,
       numElementos,
       totalplays
     }
   })
-  invalidatePlaylistCache(path)
+  invalidatePlaylistCache()
 
   return playlist
 }
 
-export async function getPlaylist(filePath) {
+export async function getPlaylist(filePath: string | null | undefined): Promise<Playlist | null> {
+  if (!filePath) {
+    return null
+  }
+
   try {
-    const playlist = await prisma.playlist.findUnique({
+    return await db.playlist.findUnique({
       where: { path: filePath }
     })
-    return playlist
   } catch (error) {
     console.error('Error getting playlist:', error)
     return null
   }
 }
 
-export async function incrementCounter(playlistId) {
+export async function incrementCounter(playlistId: number): Promise<void> {
   try {
-    // Anadir al historial
-    await prisma.historial.create({
+    await db.historial.create({
       data: { playlistId }
     })
 
-    // Incrementar el conteo de reproducciones
-    await prisma.playlist.update({
+    await db.playlist.update({
       where: { id: playlistId },
       data: { totalplays: { increment: 1 } }
     })
   } catch (error) {
     console.error('Error updating playlist:', error)
-    // Manejar el error segun sea necesario
   }
 }
 
-function isPrismaRecordNotFound(error) {
-  return error?.code === 'P2025'
+function isPrismaRecordNotFound(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && Reflect.get(error, 'code') === 'P2025'
 }
 
-async function deletePlaylist(filePath) {
+async function deletePlaylist(filePath: string): Promise<PlaylistDeleteResult> {
   try {
-    const existingPlaylist = await prisma.playlist.findUnique({
+    const existingPlaylist = await db.playlist.findUnique({
       where: { path: filePath },
       select: { customCoverHash: true }
     })
 
-    await prisma.playlist.delete({
+    await db.playlist.delete({
       where: { path: filePath }
     })
-    invalidatePlaylistCache(filePath)
+    invalidatePlaylistCache()
     await deletePlaylistCoverFromCache(existingPlaylist?.customCoverHash || null)
 
     return { success: true, path: filePath }
   } catch (error) {
     if (isPrismaRecordNotFound(error)) {
-      invalidatePlaylistCache(filePath)
+      invalidatePlaylistCache()
       return { success: true, path: filePath, notFound: true }
     }
 
     console.error('Error deleting playlist:', error)
 
-    return { success: false, message: 'Error deleting playlist', error: error.message }
+    return {
+      success: false,
+      message: 'Error deleting playlist',
+      error: getErrorMessage(error, 'Error deleting playlist')
+    }
   }
 }
 
-export function queuePlaylistDelete(filePath, sender) {
+export function queuePlaylistDelete(
+  filePath: string | null | undefined,
+  sender: PlaylistSender
+): PlaylistDeleteQueuedResponse {
   if (typeof filePath !== 'string' || filePath.trim() === '') {
     return { success: false, error: 'Invalid playlist path.' }
   }
@@ -149,7 +181,7 @@ export function queuePlaylistDelete(filePath, sender) {
 
   setImmediate(async () => {
     const result = await deletePlaylist(normalizedPath)
-    const payload = {
+    const payload: PlaylistDeleteCompletedPayload = {
       jobId,
       path: normalizedPath,
       success: Boolean(result?.success),
@@ -164,7 +196,7 @@ export function queuePlaylistDelete(filePath, sender) {
   return { success: true, queued: true, jobId, path: normalizedPath }
 }
 
-export async function getPlays(filePath) {
+export async function getPlays(filePath: string): Promise<number> {
   try {
     const playlist = await getPlaylist(filePath)
 
@@ -172,24 +204,27 @@ export async function getPlays(filePath) {
       return 0
     }
 
-    const count = await prisma.historial.count({
+    return await db.historial.count({
       where: { playlistId: playlist.id }
     })
-
-    return count
   } catch (error) {
     console.error('Error counting playlist occurrences:', error)
     return 0
   }
 }
 
-async function processPlaylistsBatch(playlists, concurrency = 3, enrichPlaylist = (playlist) => playlist) {
-  const results = new Array(playlists.length)
+async function processPlaylistsBatch<TOutput>(
+  playlists: Playlist[],
+  concurrency = 3,
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput>
+): Promise<TOutput[]> {
+  const results = new Array<TOutput>(playlists.length)
   let nextIndex = 0
 
-  async function worker() {
+  async function worker(): Promise<void> {
     while (nextIndex < playlists.length) {
-      const index = nextIndex++
+      const index = nextIndex
+      nextIndex += 1
       const playlist = playlists[index]
 
       try {
@@ -206,15 +241,18 @@ async function processPlaylistsBatch(playlists, concurrency = 3, enrichPlaylist 
   return results
 }
 
-export async function getPlaylists({ take = null, skip = null } = {}, enrichPlaylist = (playlist) => playlist) {
+export async function getPlaylists<TOutput = EnrichedPlaylist>(
+  { take = null, skip = null }: PlaylistListRequest = {},
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+): Promise<TOutput[]> {
   const requestKey = JSON.stringify({ take, skip })
   const pendingRequest = pendingPlaylistRequests.get(requestKey)
 
   if (pendingRequest) {
-    return pendingRequest
+    return pendingRequest as Promise<TOutput[]>
   }
 
-  const options = {
+  const options: Parameters<typeof db.playlist.findMany>[0] = {
     orderBy: {
       totalplays: 'desc'
     }
@@ -223,19 +261,19 @@ export async function getPlaylists({ take = null, skip = null } = {}, enrichPlay
   if (take !== null) options.take = take
   if (skip !== null) options.skip = skip
 
-  const request = prisma.playlist
+  const request = db.playlist
     .findMany(options)
     .then((playlists) => processPlaylistsBatch(playlists, 3, enrichPlaylist))
     .finally(() => {
       pendingPlaylistRequests.delete(requestKey)
     })
 
-  pendingPlaylistRequests.set(requestKey, request)
+  pendingPlaylistRequests.set(requestKey, request as Promise<EnrichedPlaylist[]>)
   return request
 }
 
-export async function getPlaylistsMinimal() {
-  const playlists = await prisma.playlist.findMany({
+export async function getPlaylistsMinimal(): Promise<PlaylistMinimal[]> {
+  const playlists = await db.playlist.findMany({
     select: {
       id: true,
       path: true,
@@ -248,7 +286,7 @@ export async function getPlaylistsMinimal() {
     orderBy: { totalplays: 'desc' }
   })
 
-  return playlists.map(playlist => ({
+  return playlists.map((playlist) => ({
     ...playlist,
     cover: null,
     effectiveCover: null,
@@ -261,33 +299,39 @@ export async function getPlaylistsMinimal() {
   }))
 }
 
-export async function getRandomPlaylist(enrichPlaylist = (playlist) => playlist) {
+export async function getRandomPlaylist<TOutput = EnrichedPlaylist>(
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+): Promise<TOutput | null> {
   try {
-    const totalPlaylists = await prisma.playlist.count()
+    const totalPlaylists = await db.playlist.count()
     if (totalPlaylists === 0) return null
 
     const randomIndex = getRandomIndex(totalPlaylists)
     const [randomPlaylist] = await getPlaylists({ take: 1, skip: randomIndex }, enrichPlaylist)
 
-    return randomPlaylist
+    return randomPlaylist || null
   } catch (error) {
     console.error('Error fetching random playlist:', error)
     return null
   }
 }
 
-export async function getPlaylistsNumber() {
+export async function getPlaylistsNumber(): Promise<number> {
   try {
-    const totalPlaylists = await prisma.playlist.count()
-    return totalPlaylists // Devuelve solo el numero total de playlists
+    return await db.playlist.count()
   } catch (error) {
     console.error('Error retrieving playlists count:', error)
     throw error
   }
 }
 
-export async function createPlaylistRecord(filePath, playlistName, totalTracks, totalDuration = 0) {
-  const playlist = await prisma.playlist.create({
+export async function createPlaylistRecord(
+  filePath: string,
+  playlistName: string,
+  totalTracks: number,
+  totalDuration = 0
+): Promise<Playlist> {
+  const playlist = await db.playlist.create({
     data: {
       path: filePath,
       nombre: playlistName,
@@ -297,27 +341,33 @@ export async function createPlaylistRecord(filePath, playlistName, totalTracks, 
     }
   })
 
-  invalidatePlaylistCache(filePath)
+  invalidatePlaylistCache()
   return playlist
 }
 
-export async function findPlaylistByNameInsensitive(playlistName) {
+export async function findPlaylistByNameInsensitive(
+  playlistName: string
+): Promise<PlaylistNameRecord | null> {
   const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
-  const playlists = await prisma.playlist.findMany({
+  const playlists = await db.playlist.findMany({
     select: {
       nombre: true,
       path: true
     }
   })
 
-  return playlists.find(
-    (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
-  ) || null
+  return (
+    playlists.find(
+      (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
+    ) || null
+  )
 }
 
-export async function findPlaylistsByNameInsensitive(playlistName) {
+export async function findPlaylistsByNameInsensitive(
+  playlistName: string
+): Promise<PlaylistIdentityRecord[]> {
   const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
-  const playlists = await prisma.playlist.findMany({
+  const playlists = await db.playlist.findMany({
     select: {
       id: true,
       nombre: true,
@@ -330,7 +380,10 @@ export async function findPlaylistsByNameInsensitive(playlistName) {
   )
 }
 
-export async function playlistNameExistsInDatabase(playlistName, filePath = null) {
+export async function playlistNameExistsInDatabase(
+  playlistName: string,
+  filePath: string | null = null
+): Promise<boolean> {
   const conflictingPlaylist = await findPlaylistByNameInsensitive(playlistName)
 
   if (!conflictingPlaylist) {
@@ -344,19 +397,22 @@ export async function playlistNameExistsInDatabase(playlistName, filePath = null
   return true
 }
 
-export async function playlistPathExistsInDatabase(filePath) {
+export async function playlistPathExistsInDatabase(filePath: string | null | undefined): Promise<boolean> {
   if (!filePath) {
     return false
   }
 
-  const conflictingPlaylist = await prisma.playlist.findUnique({
+  const conflictingPlaylist = await db.playlist.findUnique({
     where: { path: path.resolve(filePath) }
   })
 
   return Boolean(conflictingPlaylist)
 }
 
-export async function playlistIdentityExistsInDatabase(playlistName, filePath) {
+export async function playlistIdentityExistsInDatabase(
+  playlistName: string,
+  filePath: string
+): Promise<boolean> {
   const [conflictingName, conflictingPath] = await Promise.all([
     playlistNameExistsInDatabase(playlistName),
     playlistPathExistsInDatabase(filePath)
@@ -365,7 +421,10 @@ export async function playlistIdentityExistsInDatabase(playlistName, filePath) {
   return conflictingName || conflictingPath
 }
 
-export async function searchPlaylistsPage(request = {}, enrichPlaylist = (playlist) => playlist) {
+export async function searchPlaylistsPage<TOutput extends EnrichedPlaylist = EnrichedPlaylist>(
+  request: PlaylistSearchRequest = {},
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+): Promise<PlaylistSearchPage> {
   const query = normalizeSearchQuery(request?.query)
   const page = Math.max(Number(request?.page) || 1, 1)
   const pageSize = Math.min(Math.max(Number(request?.pageSize) || 30, 1), 60)
@@ -380,7 +439,7 @@ export async function searchPlaylistsPage(request = {}, enrichPlaylist = (playli
     }
   }
 
-  const matchingPlaylists = await prisma.playlist.findMany({
+  const matchingPlaylists = await db.playlist.findMany({
     where: {
       OR: [
         { nombre: { contains: query } },
@@ -398,28 +457,28 @@ export async function searchPlaylistsPage(request = {}, enrichPlaylist = (playli
   const start = (page - 1) * pageSize
   const pageItems = sortedPlaylists.slice(start, start + pageSize)
 
-  const items = await Promise.all(
+  const items: PlaylistSearchItem[] = await Promise.all(
     pageItems.map(async (playlist) => {
       const enrichedPlaylist = await enrichPlaylist(playlist)
 
-      return ({
-      type: 'playlist',
-      id: playlist.id,
-      title: playlist.nombre,
-      subtitle: `${playlist.numElementos} tracks`,
-      meta: playlist.path,
-      actionPayload: {
-        path: playlist.path
-      },
-      cover: enrichedPlaylist.effectiveCover,
-      effectiveCover: enrichedPlaylist.effectiveCover,
-      coverConfig: enrichedPlaylist.coverConfig,
-      path: playlist.path,
-      nombre: playlist.nombre,
-      duracion: playlist.duracion,
-      numElementos: playlist.numElementos,
-      totalplays: playlist.totalplays
-    })
+      return {
+        type: 'playlist',
+        id: playlist.id,
+        title: playlist.nombre,
+        subtitle: `${playlist.numElementos} tracks`,
+        meta: playlist.path,
+        actionPayload: {
+          path: playlist.path
+        },
+        cover: enrichedPlaylist.effectiveCover,
+        effectiveCover: enrichedPlaylist.effectiveCover,
+        coverConfig: enrichedPlaylist.coverConfig,
+        path: playlist.path,
+        nombre: playlist.nombre,
+        duracion: playlist.duracion,
+        numElementos: playlist.numElementos,
+        totalplays: playlist.totalplays
+      }
     })
   )
 
@@ -432,12 +491,12 @@ export async function searchPlaylistsPage(request = {}, enrichPlaylist = (playli
   }
 }
 
-export async function getPlaylistByPathOrNull(filePath) {
-  return prisma.playlist.findUnique({
+export async function getPlaylistByPathOrNull(filePath: string): Promise<Playlist | null> {
+  return db.playlist.findUnique({
     where: { path: filePath }
   })
 }
 
-export function getPlaylistNameFromPath(filePath) {
+export function getPlaylistNameFromPath(filePath: string): string {
   return extractPlaylistName(filePath)
 }

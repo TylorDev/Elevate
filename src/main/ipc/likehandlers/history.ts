@@ -1,11 +1,52 @@
-// @ts-nocheck
 import { getFileInfos } from '../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
-import { toDayKey } from './shared.ts'
+import {
+  getErrorMessage,
+  toDayKey
+} from './shared.ts'
+import type { PrismaClient } from '../../generated/prisma/client.ts'
+import type {
+  AudioFileInfo,
+  ErrorResponse,
+  HistoryAudioFileInfo,
+  HistoryPageRequest,
+  HistoryPageResult,
+  SongHistoryDailyRecord,
+  SongHistoryTimelineRequest,
+  SongHistoryTimelineResult
+} from '../../Types/likeHandlers.ts'
 
-export async function getMostPlayedSongsWithDetails() {
+const db = prisma as unknown as PrismaClient
+const getAudioFileInfos = getFileInfos as (
+  filePaths: string[],
+  options?: Record<string, unknown>
+) => Promise<AudioFileInfo[]>
+
+function isStringTuple(value: [string, string] | null): value is [string, string] {
+  return value !== null
+}
+
+function normalizeHistoryPageRequest(request: HistoryPageRequest): {
+  page: number
+  pageSize: number
+  offset: number
+} {
+  const page = Math.max(Number(typeof request === 'object' ? request?.page : request) || 1, 1)
+  const pageSize = Math.min(
+    Math.max(Number(typeof request === 'object' ? request?.pageSize : undefined) || 10, 1),
+    50
+  )
+
+  return {
+    page,
+    pageSize,
+    offset: (page - 1) * pageSize
+  }
+}
+
+export async function getMostPlayedSongsWithDetails(): Promise<string[] | ErrorResponse> {
   try {
-    const userPreferences = await prisma.userPreferences.findMany({
+    const userPreferences = await db.userPreferences.findMany({
       orderBy: {
         short_view_count: 'desc'
       },
@@ -20,7 +61,6 @@ export async function getMostPlayedSongsWithDetails() {
       }
     })
 
-    // Extraer las canciones mas escuchadas con detalles adicionales (filepath y filename)
     const songs = userPreferences.map((record) => ({
       filepath: record.Songs.filepath,
       filename: record.Songs.filename,
@@ -32,24 +72,24 @@ export async function getMostPlayedSongsWithDetails() {
     return firstTenPaths
   } catch (error) {
     console.error('Error retrieving most played songs:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
-export async function getPlayHistoryOrdered(request = 1) {
-  const page = Math.max(Number(request?.page ?? request) || 1, 1)
-  const pageSize = Math.min(Math.max(Number(request?.pageSize) || 10, 1), 50)
-  const offset = (page - 1) * pageSize
+export async function getPlayHistoryOrdered(
+  request: HistoryPageRequest = 1
+): Promise<HistoryPageResult> {
+  const { page, pageSize, offset } = normalizeHistoryPageRequest(request)
 
   try {
-    const uniqueHistoryRows = await prisma.playHistory.groupBy({
+    const uniqueHistoryRows = await db.playHistory.groupBy({
       by: ['song_id']
     })
     const totalRecords = uniqueHistoryRows.length
 
     const maxPages = Math.ceil(totalRecords / pageSize)
 
-    const playHistoryRecords = await prisma.playHistory.groupBy({
+    const playHistoryRecords = await db.playHistory.groupBy({
       by: ['song_id'],
       _max: {
         timestamp: true
@@ -70,7 +110,7 @@ export async function getPlayHistoryOrdered(request = 1) {
 
     const songIds = playHistoryRecords.map((record) => record.song_id)
     const songs = songIds.length
-      ? await prisma.songs.findMany({
+      ? await db.songs.findMany({
           where: {
             song_id: {
               in: songIds
@@ -85,22 +125,27 @@ export async function getPlayHistoryOrdered(request = 1) {
     const songById = new Map(songs.map((song) => [song.song_id, song]))
     const lastPlayedAtByPath = new Map(
       playHistoryRecords
-        .map((record) => {
+        .map((record): [string, string] | null => {
           const filePath = songById.get(record.song_id)?.filepath
           const lastPlayedAt = record._max?.timestamp
 
           return filePath && lastPlayedAt ? [filePath, lastPlayedAt.toISOString()] : null
         })
-        .filter(Boolean)
+        .filter(isStringTuple)
     )
 
-    const filePaths = songIds.map((songId) => songById.get(songId)?.filepath).filter(Boolean)
-    const fileInfos = (await getFileInfos(filePaths, { includePicture: false })).map((fileInfo) => ({
+    const filePaths = songIds
+      .map((songId) => songById.get(songId)?.filepath)
+      .filter((filePath): filePath is string => Boolean(filePath))
+    const fileInfos: HistoryAudioFileInfo[] = (await getAudioFileInfos(filePaths, {
+      includePicture: false
+    })).map((fileInfo) => ({
       ...fileInfo,
       lastPlayedAt: lastPlayedAtByPath.get(fileInfo.filePath) || null
     }))
 
     return {
+      items: fileInfos,
       fileInfos,
       page,
       pageSize,
@@ -110,11 +155,13 @@ export async function getPlayHistoryOrdered(request = 1) {
     }
   } catch (error) {
     console.error('Error retrieving play history:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
-export async function getSongHistoryTimeline(request = {}) {
+export async function getSongHistoryTimeline(
+  request: SongHistoryTimelineRequest = {}
+): Promise<SongHistoryTimelineResult> {
   const filePath = typeof request?.filePath === 'string' ? request.filePath : ''
 
   if (!filePath) {
@@ -122,7 +169,7 @@ export async function getSongHistoryTimeline(request = {}) {
   }
 
   try {
-    const songRecord = await prisma.songs.findUnique({
+    const songRecord = await db.songs.findUnique({
       where: { filepath: filePath },
       select: {
         song_id: true,
@@ -135,15 +182,15 @@ export async function getSongHistoryTimeline(request = {}) {
       return { success: false, error: 'No se encontro esta cancion en la biblioteca.' }
     }
 
-    const historyRecords = await prisma.playHistory.findMany({
+    const historyRecords = await db.playHistory.findMany({
       where: { song_id: songRecord.song_id },
       orderBy: { timestamp: 'asc' },
       select: { timestamp: true }
     })
     const events = historyRecords
       .map((record) => record.timestamp?.toISOString?.())
-      .filter(Boolean)
-    const recordsByDay = new Map()
+      .filter((timestamp): timestamp is string => Boolean(timestamp))
+    const recordsByDay = new Map<string, number>()
 
     for (const eventTimestamp of events) {
       const dayKey = toDayKey(eventTimestamp)
@@ -158,12 +205,11 @@ export async function getSongHistoryTimeline(request = {}) {
     const dailyRecords = Array.from(recordsByDay.entries())
       .map(([date, count]) => ({ date, count }))
       .sort((left, right) => left.date.localeCompare(right.date))
-    const peakDay =
-      dailyRecords.reduce(
-        (currentPeak, record) => (record.count > currentPeak.count ? record : currentPeak),
-        { date: null, count: 0 }
-      ) || null
-    const fileInfos = await getFileInfos([songRecord.filepath], { includePicture: false })
+    const peakDay = dailyRecords.reduce<SongHistoryDailyRecord>(
+      (currentPeak, record) => (record.count > currentPeak.count ? record : currentPeak),
+      { date: '', count: 0 }
+    )
+    const fileInfos = await getAudioFileInfos([songRecord.filepath], { includePicture: false })
 
     return {
       success: true,
@@ -181,20 +227,19 @@ export async function getSongHistoryTimeline(request = {}) {
     }
   } catch (error) {
     console.error('Error retrieving song history timeline:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 }
 
-export async function getRecentHistoryOrdered() {
+export async function getRecentHistoryOrdered(): Promise<AudioFileInfo[] | ErrorResponse> {
   try {
-    // Obtener todos los registros de PlayHistory ordenados por el campo timestamp mas reciente
-    const playHistoryRecords = await prisma.playHistory.findMany({
+    const playHistoryRecords = await db.playHistory.findMany({
       orderBy: {
-        timestamp: 'desc' // Ordenar de mas reciente a mas antiguo
+        timestamp: 'desc'
       },
       select: {
         song_id: true,
-        timestamp: true, // Incluye el campo timestamp para informacion adicional
+        timestamp: true,
         Songs: {
           select: {
             filepath: true,
@@ -204,24 +249,18 @@ export async function getRecentHistoryOrdered() {
       }
     })
 
-    // Filtrar canciones unicas basadas en el song_id y obtener la mas reciente
-    const uniqueSongs = new Map()
+    const uniqueSongs = new Map<number, { filepath: string; filename: string }>()
     playHistoryRecords.forEach((record) => {
       if (!uniqueSongs.has(record.song_id)) {
         uniqueSongs.set(record.song_id, record.Songs)
       }
     })
 
-    // Convertir el Map a un array de canciones
     const songs = Array.from(uniqueSongs.values())
-
-    // Opcional: Si necesitas informacion adicional de las canciones, puedes obtenerla aqui
     const filePaths = songs.map((song) => song.filepath)
-    const fileInfos = await getFileInfos(filePaths, { includePicture: false })
-
-    return fileInfos
+    return getAudioFileInfos(filePaths, { includePicture: false })
   } catch (error) {
     console.error('Error retrieving play history:', error)
-    return { success: false, error: error.message }
+    return { success: false, error: getErrorMessage(error) }
   }
 }
