@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { buildCollectionSummaryFromFileInfos, getFileInfos } from '../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../utils/collectionDetail.ts'
-import { getLikesOverview, getLikesTracksPage } from '../likehandlers.ts'
+import { getLikesOverview, getLikesTracksPage } from '../likehandlers/index.ts'
 import {
   getPlaylistOverview,
   getPlaylistTracksPage

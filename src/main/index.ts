@@ -15,11 +15,11 @@ import {
   getStatus as getDiscordStatus,
   shutdownDiscordPresence
 } from './discordPresence.ts'
-import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers.ts'
+import { setupLikeSongHandlers, setupMusicHandlers } from './ipc/likehandlers/index.ts'
 import { setupPlaylistHandlers } from './ipc/playlistHandlers/index.ts'
 import { setupFilehandlers } from './ipc/filehandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.ts'
-import { setupImageSourceHandlers } from './ipc/imageSourceHandlers.ts'
+import { setupImageSourceHandlers } from './ipc/imageSourceHandlers/index.ts'
 import { setupVisualizerHandlers } from './ipc/visualizerHandlers.ts'
 import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.ts'
 

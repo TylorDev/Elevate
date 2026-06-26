@@ -56,7 +56,7 @@ describe('main query helpers', () => {
       preference: { is_favorite: false, short_view_count: 99 }
     })
 
-    const likes = await importFreshProject('src/main/ipc/likehandlers.ts')
+    const likes = await importFreshProject('src/main/ipc/likehandlers/index.ts')
     const overview = await likes.getLikesOverview({ page: 1, pageSize: 10 })
     const page = await likes.getLikesTracksPage({ page: 1, pageSize: 1 })
 

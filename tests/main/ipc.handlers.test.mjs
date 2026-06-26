@@ -80,7 +80,7 @@ describe('main IPC handlers', () => {
       }))
     )
 
-    const { setupImageSourceHandlers } = await importFreshProject('src/main/ipc/imageSourceHandlers.ts')
+    const { setupImageSourceHandlers } = await importFreshProject('src/main/ipc/imageSourceHandlers/index.ts')
     setupImageSourceHandlers()
 
     const remoteValidation = await invokeIpc('image-source:validate-remote', {
