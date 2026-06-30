@@ -1,3 +1,4 @@
+export type * from './argv.ts'
 export type * from './filehandlers.ts'
 export type * from './imageSourceHandlers.ts'
 export type * from './likeHandlers.ts'

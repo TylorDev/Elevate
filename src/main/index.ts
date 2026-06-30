@@ -4,7 +4,11 @@ import { join } from 'path'
 import { fileURLToPath } from 'url'
 import fs from 'fs'
 import log from 'electron-log/main.js'
-import { markLaunchWindowPending, processAndDispatchLaunchArgs, setupArgvHandlers } from './argv.ts'
+import {
+  markLaunchWindowPending,
+  processAndDispatchLaunchArgs,
+  setupArgvHandlers
+} from './ipc/argv/index.ts'
 import { runNativeBindingDiagnostics } from './nativeDiagnostics.ts'
 import { getPrismaStatus, initializePrisma, prisma } from './prisma.ts'
 import { getStorageDiagnostics, getStoragePaths } from './storagePaths.ts'
