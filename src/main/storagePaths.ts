@@ -110,7 +110,6 @@ export function getStoragePaths() {
   const backgroundImagesRoot = join(userDataRoot, 'background-images')
   const backgroundAssetsRoot = join(backgroundImagesRoot, 'assets')
   const windowStatePath = join(userDataRoot, 'window-state.json')
-  const signalFilePath = process.env.ELEVATE_SIGNAL_FILE || join(userDataRoot, 'signal.txt')
   const logsRoot = app.getPath('logs')
   const updaterCacheRoot = getUpdaterCachePath()
 
@@ -144,7 +143,6 @@ export function getStoragePaths() {
     backgroundAssetsRoot,
     backgroundConfigPath: join(backgroundImagesRoot, 'background-config.json'),
     windowStatePath,
-    signalFilePath,
     logsRoot,
     updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
     updaterCacheRoot
@@ -188,9 +186,6 @@ export function getStorageDiagnostics() {
       }),
       windowStatePath: buildPathInfo(storagePaths.windowStatePath, {
         fallbackWritableTarget: dirname(storagePaths.windowStatePath)
-      }),
-      signalFilePath: buildPathInfo(storagePaths.signalFilePath, {
-        fallbackWritableTarget: dirname(storagePaths.signalFilePath)
       }),
       logsRoot: buildPathInfo(storagePaths.logsRoot, {
         fallbackWritableTarget: dirname(storagePaths.logsRoot)

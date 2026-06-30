@@ -117,7 +117,7 @@ El build actual `out/main/index.js` incluye imports o codigo de:
 - `@prisma/adapter-libsql`
 - runtime de `@prisma/client`
 
-Esto no significa que todo ejecute trabajo pesado inmediatamente, pero si aumenta parse/compile/evaluation cost del main process y eleva el riesgo de native binding resolution antes del primer paint. `sharp`, `@libsql`, `@parcel/watcher` y `node-audio-volume-mixer` aparecen bajo `app.asar.unpacked/node_modules`, lo cual confirma presencia de binarios nativos o dependencias que Electron debe resolver con cuidado en produccion.
+Esto no significa que todo ejecute trabajo pesado inmediatamente, pero si aumenta parse/compile/evaluation cost del main process y eleva el riesgo de native binding resolution antes del primer paint. `sharp`, `@libsql` y `@parcel/watcher` aparecen bajo `app.asar.unpacked/node_modules`, lo cual confirma presencia de binarios nativos o dependencias que Electron debe resolver con cuidado en produccion. La integracion legacy con `node-audio-volume-mixer` fue retirada del proceso principal y del paquete final.
 
 ## Riesgos Prisma / libsql / ASAR
 

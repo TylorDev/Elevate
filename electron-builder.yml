@@ -9,11 +9,6 @@ files:
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!node_modules/node-audio-volume-mixer/build/Release/obj/**'
-  - '!node_modules/node-audio-volume-mixer/build/Release/*.exp'
-  - '!node_modules/node-audio-volume-mixer/build/Release/*.lib'
-  - '!node_modules/node-audio-volume-mixer/build/Release/*.iobj'
-  - '!node_modules/node-audio-volume-mixer/build/Release/*.ipdb'
 asarUnpack:
   - resources/**
   - '**/*.node'
@@ -21,7 +16,6 @@ asarUnpack:
   - node_modules/libsql/**/*
   - node_modules/@img/sharp-*/**/*
   - node_modules/sharp/**/*
-  - node_modules/node-audio-volume-mixer/build/Release/addon.node
 win:
   executableName: elevate
   icon: build/elevate.ico

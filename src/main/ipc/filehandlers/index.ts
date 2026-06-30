@@ -1,6 +1,4 @@
 import { dialog, ipcMain } from 'electron'
-import fs from 'fs'
-import log from 'electron-log/main.js'
 import {
   getAudioCover,
   getAudioFilesPage,
@@ -33,8 +31,6 @@ import {
 } from './explorer.ts'
 import { sendNotification } from '../../index.ts'
 import { prisma } from '../../prisma.ts'
-import { getStoragePaths } from '../../storagePaths.ts'
-import { setBraveVolume } from '../audio.ts'
 import { addDirectoryToLibrary } from '../utils/libraryIngestion.ts'
 import { setNotifyRenderer } from '../utils/directoryWatcher.ts'
 import { getFileInfos } from '../utils/utils.ts'
@@ -79,41 +75,8 @@ export function invalidateDirectoryCache(dirPath: string | null = null): void {
   clearAudioCaches(dirPath)
 }
 
-function setupSignalFileWatcher(): void {
-  const signalFilePath = getStoragePaths().signalFilePath
-  if (fs.existsSync(signalFilePath)) {
-    log.info('File exists, starting watch:', signalFilePath)
-
-    fs.watch(signalFilePath, (_eventType, filename) => {
-      if (filename) {
-        fs.readFile(signalFilePath, 'utf8', (err, data) => {
-          if (err) {
-            console.error(`Error al leer el archivo: ${err}`)
-            return
-          }
-
-          if (data.startsWith('\ufeff')) {
-            data = data.slice(1)
-          }
-
-          if (data) {
-            setBraveVolume(0.2)
-          } else {
-            setBraveVolume(1)
-          }
-        })
-      }
-    })
-
-    log.info('Vigilando el txt:', signalFilePath)
-  } else {
-    log.info('Signal file not found, skipping optional watcher:', signalFilePath)
-  }
-}
-
 export function setupFilehandlers(): void {
   registerNotifyRenderer((message: string) => sendNotification(message))
-  setupSignalFileWatcher()
 
   handleFilehandler('add-directory', async (_event, providedPath = null) => {
     try {

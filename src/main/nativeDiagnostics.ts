@@ -211,12 +211,6 @@ export function runNativeBindingDiagnostics(log, app) {
       module: 'sharp',
       nativePackage: '@img/sharp-win32-x64',
       nativeRelativePath: 'lib/sharp-win32-x64.node'
-    },
-    {
-      name: 'node-audio-volume-mixer',
-      module: 'node-audio-volume-mixer',
-      nativeFile: 'node-audio-volume-mixer/build/Release/addon.node',
-      load: false
     }
   ]
 

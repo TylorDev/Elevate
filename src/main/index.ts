@@ -20,7 +20,7 @@ import { setupPlaylistHandlers } from './ipc/playlistHandlers/index.ts'
 import { setupFilehandlers } from './ipc/filehandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.ts'
 import { setupImageSourceHandlers } from './ipc/imageSourceHandlers/index.ts'
-import { setupVisualizerHandlers } from './ipc/visualizerHandlers.ts'
+import { setupVisualizerHandlers } from './ipc/visualizerHandlers/index.ts'
 import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.ts'
 
 let mainWin

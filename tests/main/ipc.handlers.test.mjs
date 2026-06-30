@@ -6,7 +6,11 @@ import {
   invokeIpc,
   setOpenDialogResult
 } from './helpers/electronMock.mjs'
-import { createPrismaTestContext, createRuntimeContext, importFreshProject } from './helpers/runtime.mjs'
+import {
+  createPrismaTestContext,
+  createRuntimeContext,
+  importFreshProject
+} from './helpers/runtime.mjs'
 
 let context = null
 
@@ -20,8 +24,23 @@ afterEach(async () => {
 describe('main IPC handlers', () => {
   it('manages visualizer settings, favorites, lists, associations, and stale association pruning', async () => {
     context = await createPrismaTestContext()
-    const { setupVisualizerHandlers } = await importFreshProject('src/main/ipc/visualizerHandlers.ts')
+    const { setupVisualizerHandlers } = await importFreshProject(
+      'src/main/ipc/visualizerHandlers/index.ts'
+    )
     setupVisualizerHandlers()
+
+    expect(getRegisteredIpcChannels()).toEqual([
+      'visualizer:load-state',
+      'visualizer:update-settings',
+      'visualizer:toggle-favorite',
+      'visualizer:create-list',
+      'visualizer:rename-list',
+      'visualizer:delete-list',
+      'visualizer:toggle-preset-in-list',
+      'visualizer:associate-source',
+      'visualizer:remove-source-association',
+      'visualizer:prune-source-associations'
+    ])
 
     const initial = await invokeIpc('visualizer:load-state')
     expect(initial).toMatchObject({
@@ -35,10 +54,39 @@ describe('main IPC handlers', () => {
       }
     })
 
+    await expect(invokeIpc('visualizer:toggle-favorite', ' ')).resolves.toEqual({
+      success: false,
+      error: 'Preset name is required.'
+    })
+    await expect(invokeIpc('visualizer:rename-list', {})).resolves.toEqual({
+      success: false,
+      error: 'List id and name are required.'
+    })
+    await expect(invokeIpc('visualizer:delete-list', '')).resolves.toEqual({
+      success: false,
+      error: 'List id is required.'
+    })
+    await expect(invokeIpc('visualizer:toggle-preset-in-list', {})).resolves.toEqual({
+      success: false,
+      error: 'List id and preset name are required.'
+    })
+    await expect(invokeIpc('visualizer:associate-source', {})).resolves.toEqual({
+      success: false,
+      error: 'Source and list id are required.'
+    })
+    await expect(invokeIpc('visualizer:remove-source-association', {})).resolves.toEqual({
+      success: false,
+      error: 'Source is required.'
+    })
+
     const favorite = await invokeIpc('visualizer:toggle-favorite', 'milkdrop preset')
     const listResult = await invokeIpc('visualizer:create-list', 'Road')
     const listId = listResult.state.presetLists[0].id
-    await invokeIpc('visualizer:toggle-preset-in-list', { listId, presetName: 'milkdrop preset' })
+    await invokeIpc('visualizer:rename-list', { listId, name: 'Road Trip' })
+    await invokeIpc('visualizer:toggle-preset-in-list', { listId, presetName: 'preset one' })
+    await invokeIpc('visualizer:toggle-preset-in-list', { listId, presetName: 'preset two' })
+    await invokeIpc('visualizer:toggle-preset-in-list', { listId, presetName: 'preset three' })
+    await invokeIpc('visualizer:toggle-preset-in-list', { listId, presetName: 'preset two' })
     await invokeIpc('visualizer:update-settings', {
       cycleDurationMs: 750,
       presetSource: { mode: 'list', listId }
@@ -51,7 +99,21 @@ describe('main IPC handlers', () => {
       source: { type: 'directory', id: 'C:/music' },
       listId
     })
+    const removed = await invokeIpc('visualizer:remove-source-association', {
+      type: 'directory',
+      id: 'C:/music'
+    })
+    expect(removed.state.sourceAssociations['directory:C:/music']).toBeUndefined()
+    await invokeIpc('visualizer:associate-source', {
+      source: { type: 'directory', id: 'C:/music' },
+      listId
+    })
     const pruned = await invokeIpc('visualizer:prune-source-associations', ['playlist:mix.m3u'])
+
+    const compactedItems = await context.client.visualizerPresetListItem.findMany({
+      where: { listId },
+      orderBy: { position: 'asc' }
+    })
 
     expect(favorite.state.favorites).toEqual(['milkdrop preset'])
     expect(pruned.state).toMatchObject({
@@ -62,7 +124,24 @@ describe('main IPC handlers', () => {
       }
     })
     expect(pruned.state.sourceAssociations['directory:C:/music']).toBeUndefined()
-    expect(pruned.state.presetLists[0].presetNames).toEqual(['milkdrop preset'])
+    expect(pruned.state.presetLists[0]).toMatchObject({
+      name: 'Road Trip',
+      presetNames: ['preset one', 'preset three']
+    })
+    expect(compactedItems.map(({ presetName, position }) => ({ presetName, position }))).toEqual([
+      { presetName: 'preset one', position: 0 },
+      { presetName: 'preset three', position: 1 }
+    ])
+
+    const deleted = await invokeIpc('visualizer:delete-list', listId)
+    expect(deleted).toMatchObject({
+      success: true,
+      state: {
+        presetSource: { mode: 'all', listId: null },
+        presetLists: [],
+        sourceAssociations: {}
+      }
+    })
   })
 
   it('stores local background images and validates remote image URLs through IPC', async () => {
@@ -80,7 +159,9 @@ describe('main IPC handlers', () => {
       }))
     )
 
-    const { setupImageSourceHandlers } = await importFreshProject('src/main/ipc/imageSourceHandlers/index.ts')
+    const { setupImageSourceHandlers } = await importFreshProject(
+      'src/main/ipc/imageSourceHandlers/index.ts'
+    )
     setupImageSourceHandlers()
 
     const remoteValidation = await invokeIpc('image-source:validate-remote', {

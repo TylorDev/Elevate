@@ -109,7 +109,6 @@ export async function createRuntimeContext({ database = false } = {}) {
     'DATABASE_URL',
     'ELEVATE_ENABLE_PORTABLE_MODE',
     'ELEVATE_PORTABLE_DATA_DIR',
-    'ELEVATE_SIGNAL_FILE',
     'LOCALAPPDATA'
   ])
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'elevate-main-test-'))
@@ -117,7 +116,6 @@ export async function createRuntimeContext({ database = false } = {}) {
 
   process.env.ELEVATE_ENABLE_PORTABLE_MODE = '1'
   process.env.ELEVATE_PORTABLE_DATA_DIR = path.join(root, 'portable-data')
-  process.env.ELEVATE_SIGNAL_FILE = path.join(root, 'signal.txt')
   process.env.APPDATA = path.join(root, 'appData')
   process.env.LOCALAPPDATA = path.join(root, 'localAppData')
   configureElectronPaths(root)
