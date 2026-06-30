@@ -1,6 +1,6 @@
 // @ts-nocheck
 import path from 'path'
-import { prisma } from '../../prisma.ts'
+import { prisma } from '../prisma.ts'
 import { getOrCreateSong } from './utils.ts'
 import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.ts'
 import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.ts'

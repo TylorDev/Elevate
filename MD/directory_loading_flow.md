@@ -350,13 +350,13 @@ Modelo mínimo: solo `id` autoincremental y `path` único. No almacena metadatos
 
 ## 7. Utilidades del File System — `utils.mjs`
 
-**Archivo:** [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs)
+**Archivo:** [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs)
 
-### `getAllAudioFiles(dirPath)` — [L42-L68](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L42-L68)
+### `getAllAudioFiles(dirPath)` — [L42-L68](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L42-L68)
 
 Recorre recursivamente el directorio buscando archivos con extensiones `.mp3`, `.wav`, `.flac`. Usa `fs.readdirSync` + `fs.statSync` (síncrono).
 
-### `getTotalDuration(directory)` — [L350-L355](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L350-L355)
+### `getTotalDuration(directory)` — [L350-L355](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L350-L355)
 
 ```javascript
 export async function getTotalDuration(directory) {
@@ -369,7 +369,7 @@ export async function getTotalDuration(directory) {
 
 **Operación costosa:** Escanea todos los archivos, parsea metadatos de los nuevos, y suma duraciones.
 
-### `getFileInfos(filePaths)` — [L174-L218](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L174-L218)
+### `getFileInfos(filePaths)` — [L174-L218](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L174-L218)
 
 Para cada archivo:
 1. Llama `getOrCreateSong(filePath, fileName)` — Si el song ya existe en DB con `metadataLoaded=true`, retorna el registro directo. Si no, parsea el archivo con `music-metadata`.
@@ -378,7 +378,7 @@ Para cada archivo:
 
 **Concurrencia:** Usa `mapWithConcurrency` con límite de 6 workers paralelos.
 
-### `getOrCreateSong(filepath, filename)` — [L76-L148](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L76-L148)
+### `getOrCreateSong(filepath, filename)` — [L76-L148](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L76-L148)
 
 Es el **corazón de la indexación**:
 

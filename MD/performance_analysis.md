@@ -143,7 +143,7 @@ En [playlistHandlers.mjs:336-355](file:///C:/Users/Jimbo/Downloads/Music/xc/Elev
 3. Hace `upsert` en Prisma
 4. Busca `userPreferences` en Prisma
 
-Después, `handleQueueAndPlay` invoca `get-list` que hace [processPlaylist](file:///C:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L355-L365):
+Después, `handleQueueAndPlay` invoca `get-list` que hace [processPlaylist](file:///C:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L355-L365):
 
 1. Lee el archivo `.m3u` del disco
 2. Para **cada canción** en la playlist → `getFileInfos()` con concurrencia 6

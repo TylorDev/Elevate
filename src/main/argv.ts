@@ -3,9 +3,9 @@ import fs from 'fs'
 import path from 'path'
 import { app, ipcMain } from 'electron'
 import { importPlaylistFile } from './ipc/playlistHandlers/index.ts'
-import { getFileInfos } from './ipc/utils/utils.ts'
-import { addDirectoryToLibrary, isSupportedMediaFile } from './ipc/utils/libraryIngestion.ts'
-import { resolveImportableAudioPaths } from './ipc/utils/mediaFileSupport.ts'
+import { getFileInfos } from './utils/utils.ts'
+import { addDirectoryToLibrary, isSupportedMediaFile } from './utils/libraryIngestion.ts'
+import { resolveImportableAudioPaths } from './utils/mediaFileSupport.ts'
 
 const pendingLaunchPayloads = []
 let rendererLaunchChannelReady = false

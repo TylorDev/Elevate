@@ -1,4 +1,4 @@
-import { getLastPlayedAtBySongId } from '../utils/utils.ts'
+import { getLastPlayedAtBySongId } from '../../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   normalizeSearchQuery,

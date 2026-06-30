@@ -2,7 +2,7 @@ import { app, dialog } from 'electron'
 import fs from 'fs'
 import path from 'path'
 import { prisma } from '../../prisma.ts'
-import { processPlaylist } from '../utils/utils.ts'
+import { processPlaylist } from '../../utils/utils.ts'
 import {
   createPlaylistRecord,
   findPlaylistByNameInsensitive,

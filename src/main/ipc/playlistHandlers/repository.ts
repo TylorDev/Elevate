@@ -1,6 +1,6 @@
 import path from 'path'
 import { prisma } from '../../prisma.ts'
-import { deletePlaylistCoverFromCache } from '../utils/utils.ts'
+import { deletePlaylistCoverFromCache } from '../../utils/utils.ts'
 import {
   extractPlaylistName,
   getErrorMessage,

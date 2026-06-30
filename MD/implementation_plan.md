@@ -111,7 +111,7 @@ Extender el modelo `Songs` para almacenar todos los metadatos que actualmente se
 
 ---
 
-#### [MODIFY] [utils.mjs](file:///C:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs)
+#### [MODIFY] [utils.mjs](file:///C:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs)
 
 - **`getOrCreateSong()`**: Cambiar para que ejecute `parseFile()` **solo en el primer registro** (INSERT). En UPDATEs, retorna la row existente directamente.
 - **`getFileInfos()`**: **Ya no parsea archivos**. Lee metadata directamente de la DB. Si una canción no tiene metadata (nuevo archivo), la parsea y guarda. Formato: `SELECT * FROM Songs JOIN UserPreferences`.

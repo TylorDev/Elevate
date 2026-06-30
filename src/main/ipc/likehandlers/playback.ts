@@ -1,4 +1,4 @@
-import { getOrCreateSong } from '../utils/utils.ts'
+import { getOrCreateSong } from '../../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   PLAYBACK_EVENT_TYPES,

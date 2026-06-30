@@ -1,4 +1,4 @@
-import { getFileInfos } from '../utils/utils.ts'
+import { getFileInfos } from '../../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   getErrorMessage,

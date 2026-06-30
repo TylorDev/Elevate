@@ -1,6 +1,6 @@
 // @ts-nocheck
 import path from 'path'
-import { prisma } from '../../prisma.ts'
+import { prisma } from '../prisma.ts'
 import { discoverSubdirectories, indexDirectoryIncrementally, scanDirectoryAsync } from './directoryScanner.ts'
 import { startWatching } from './directoryWatcher.ts'
 import { getFileInfos } from './utils.ts'

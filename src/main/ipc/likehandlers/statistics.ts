@@ -3,7 +3,7 @@ import {
   buildRankingPageFromTracks,
   mapSongRecordToFileInfo,
   USER_PREFERENCE_TRACK_SELECT
-} from '../utils/utils.ts'
+} from '../../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
 import {
   buildInsightRankingsFromTracks,

@@ -162,7 +162,7 @@ extraResources:
 
 | | |
 |---|---|
-| **Archivo** | [index.mjs:796](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/index.mjs#L796) + [directoryWatcher.mjs:104-119](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/directoryWatcher.mjs#L104-L119) |
+| **Archivo** | [index.mjs:796](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/index.mjs#L796) + [directoryWatcher.mjs:104-119](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/directoryWatcher.mjs#L104-L119) |
 | **Severidad** | 🔴 CRÍTICO |
 | **Solo en prod** | Parcial (peor en prod por paths largos) |
 
@@ -272,7 +272,7 @@ Con `batchWindowMs: 0`, si hay argumentos, ejecuta:
 | [index.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/index.mjs#L48-L58) | 48-58 | `fs.existsSync()` × 3 | `resolveIconPath()` — se ejecuta en module scope |
 | [index.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/index.mjs#L130) | 130 | `fs.readFileSync()` | `loadWindowState()` — OK, es pequeño |
 | [imageSourceHandlers.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/imageSourceHandlers.mjs#L11) | 11 | `fs.mkdirSync()` | `ensureBackgroundStorage()` — en module scope |
-| [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L10-L16) | 10-16 | `fs.mkdirSync()` × 4 | `getCoverCacheDir()` — lazy pero sync |
+| [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L10-L16) | 10-16 | `fs.mkdirSync()` × 4 | `getCoverCacheDir()` — lazy pero sync |
 
 **Fix:** Reemplazar `existsSync`/`mkdirSync` en rutas de inicialización con versiones async (`fs.promises.access`, `fs.promises.mkdir`).
 
@@ -318,7 +318,7 @@ app.asar: 408,629,861 bytes (≈ 390MB)
 
 | | |
 |---|---|
-| **Archivo** | [utils.mjs:6](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L6) |
+| **Archivo** | [utils.mjs:6](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L6) |
 | **Severidad** | 🟡 MEDIO |
 
 ```javascript

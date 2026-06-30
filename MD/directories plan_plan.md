@@ -23,8 +23,8 @@ Refactorizar el pipeline de importación/escaneo de directorios para manejar cor
 
 | Problema | Archivo | Impacto |
 |---|---|---|
-| `getAllAudioFiles()` es **síncrono** (`readdirSync` + `statSync`) | [utils.mjs:42-68](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L42-L68) | Bloquea el event loop del main process con directorios grandes |
-| `getTotalDuration()` escanea todo + parsea metadata de cada archivo | [utils.mjs:350-355](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs#L350-L355) | Se ejecuta **por cada directorio** en `getDirectoriesWithDetails` |
+| `getAllAudioFiles()` es **síncrono** (`readdirSync` + `statSync`) | [utils.mjs:42-68](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L42-L68) | Bloquea el event loop del main process con directorios grandes |
+| `getTotalDuration()` escanea todo + parsea metadata de cada archivo | [utils.mjs:350-355](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs#L350-L355) | Se ejecuta **por cada directorio** en `getDirectoriesWithDetails` |
 | `totalTracks` y `totalDuration` se recalculan en cada request | [filehandlers.mjs:166-186](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/filehandlers.mjs#L166-L186) | Caché de solo 60s; sin persistencia |
 | `fs.watch` no se inicia para directorios nuevos | [filehandlers.mjs:298-322](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/filehandlers.mjs#L298-L322) | Cambios no detectados hasta reinicio |
 | `fs.watch` solo detecta `rename` en el root, no es recursivo | [filehandlers.mjs:231-241](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/filehandlers.mjs#L231-L241) | No detecta cambios en subcarpetas |
@@ -71,7 +71,7 @@ npx prisma generate
 
 ### Component 2: Scanner Asíncrono — `directoryScanner.mjs`
 
-#### [NEW] [directoryScanner.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/directoryScanner.mjs)
+#### [NEW] [directoryScanner.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/directoryScanner.mjs)
 
 Reemplaza `getAllAudioFiles` (síncrono) con un scanner completamente asíncrono que **no bloquea el event loop**.
 
@@ -123,7 +123,7 @@ async function walkAsync(dir, audioFiles = []) {
 
 ### Component 3: File Watcher Robusto — `directoryWatcher.mjs`
 
-#### [NEW] [directoryWatcher.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/directoryWatcher.mjs)
+#### [NEW] [directoryWatcher.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/directoryWatcher.mjs)
 
 Reemplaza el sistema `fs.watch` actual con `chokidar` para watching recursivo y confiable.
 
@@ -255,7 +255,7 @@ async function getCachedAudioFiles(dirPath) {
 
 ### Component 5: `utils.mjs` — Funciones Refactorizadas
 
-#### [MODIFY] [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/ipc/utils/utils.mjs)
+#### [MODIFY] [utils.mjs](file:///c:/Users/Jimbo/Downloads/Music/xc/Elevate/src/main/utils/utils.mjs)
 
 1. **Eliminar `getAllAudioFiles()`** — Reemplazada por `scanDirectoryAsync()` del nuevo módulo.
 
@@ -334,10 +334,10 @@ El preload ya expone `on` / `off` genéricos, así que **no necesita cambios**. 
 | Acción | Archivo | Cambio |
 |---|---|---|
 | MODIFY | `prisma/schema.prisma` | Agregar campos a `Directory` |
-| NEW | `src/main/ipc/utils/directoryScanner.mjs` | Scanner asíncrono no-bloqueante |
-| NEW | `src/main/ipc/utils/directoryWatcher.mjs` | Watcher con chokidar + debounce |
+| NEW | `src/main/utils/directoryScanner.mjs` | Scanner asíncrono no-bloqueante |
+| NEW | `src/main/utils/directoryWatcher.mjs` | Watcher con chokidar + debounce |
 | MODIFY | `src/main/ipc/filehandlers.mjs` | Refactorizar handlers, eliminar código síncrono |
-| MODIFY | `src/main/ipc/utils/utils.mjs` | Eliminar `getAllAudioFiles` y `getTotalDuration` |
+| MODIFY | `src/main/utils/utils.mjs` | Eliminar `getAllAudioFiles` y `getTotalDuration` |
 | MODIFY | `src/main/index.mjs` | Integrar watcher init + cleanup |
 | MODIFY | `src/renderer/src/Contexts/MiniContext.jsx` | Progreso + auto-refresh |
 | MODIFY | `src/renderer/src/Contexts/PlaylistsContex.jsx` | Manejar nuevo evento |

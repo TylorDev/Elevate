@@ -3,9 +3,9 @@ import {
   getCoverFromCache,
   getFileInfos,
   resizeCover
-} from '../utils/utils.ts'
-import { scanDirectoryAsync } from '../utils/directoryScanner.ts'
-import { resolveImportableAudioPaths } from '../utils/mediaFileSupport.ts'
+} from '../../utils/utils.ts'
+import { scanDirectoryAsync } from '../../utils/directoryScanner.ts'
+import { resolveImportableAudioPaths } from '../../utils/mediaFileSupport.ts'
 import { prisma } from '../../prisma.ts'
 import { normalizeAudioPageRequest } from './shared.ts'
 import type { Directory, PrismaClient } from '../../generated/prisma/client.ts'

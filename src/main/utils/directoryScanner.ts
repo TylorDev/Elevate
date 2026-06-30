@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { getOrCreateSong } from './utils.ts'
-import { prisma } from '../../prisma.ts'
+import { prisma } from '../prisma.ts'
 import {
   isSupportedMediaFile,
   resolveImportableAudioPath,

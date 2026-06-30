@@ -7,8 +7,8 @@ import {
   getPlaylistCoverFromCache,
   processPlaylist,
   savePlaylistCoverToCache
-} from '../utils/utils.ts'
-import { generateCollectionCoverFromTracks } from '../utils/collectionDetail.ts'
+} from '../../utils/utils.ts'
+import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { prisma } from '../../prisma.ts'
 import {
   dataUrlToBuffer,

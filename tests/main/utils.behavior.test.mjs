@@ -15,7 +15,7 @@ afterEach(async () => {
 describe('main utility behavior', () => {
   it('classifies supported media extensions case-insensitively and materializes mp4 sources as cached mp3 paths', async () => {
     runtime = await createRuntimeContext()
-    const media = await importFreshProject('src/main/ipc/utils/mediaFileSupport.ts')
+    const media = await importFreshProject('src/main/utils/mediaFileSupport.ts')
     const sourcePath = path.join(runtime.root, 'Video Source.MP4')
     await fs.promises.writeFile(sourcePath, Buffer.from('fake-video-audio'))
 
@@ -35,9 +35,9 @@ describe('main utility behavior', () => {
 
   it('builds collection summaries with numeric coercion and stable extras', async () => {
     runtime = await createRuntimeContext()
-    const { buildCollectionSummary } = await importFreshProject('src/main/ipc/utils/collectionDetail.ts')
+    const { buildCollectionSummary } = await importFreshProject('src/main/utils/collectionDetail.ts')
     const { buildCollectionSummaryFromFileInfos, buildRankingPageFromTracks, mapSongRecordToFileInfo } =
-      await importFreshProject('src/main/ipc/utils/utils.ts')
+      await importFreshProject('src/main/utils/utils.ts')
 
     const tracks = [
       {
@@ -112,7 +112,7 @@ describe('main utility behavior', () => {
 
   it('returns null for collection cover generation when no cached covers are available', async () => {
     runtime = await createPrismaTestContext()
-    const { generateCollectionCoverFromTracks } = await importFreshProject('src/main/ipc/utils/collectionDetail.ts')
+    const { generateCollectionCoverFromTracks } = await importFreshProject('src/main/utils/collectionDetail.ts')
 
     const result = await generateCollectionCoverFromTracks([
       { filePath: 'a.mp3', short_view_count: 1 },

@@ -15,7 +15,7 @@ afterEach(async () => {
 describe('main query helpers', () => {
   it('creates song metadata defaults and resolves last played timestamps', async () => {
     context = await createPrismaTestContext()
-    const utils = await importFreshProject('src/main/ipc/utils/utils.ts')
+    const utils = await importFreshProject('src/main/utils/utils.ts')
     const filePath = path.join(context.root, 'unparseable.mp3')
     await fs.promises.writeFile(filePath, Buffer.from('not-a-real-mp3'))
 

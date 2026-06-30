@@ -21,7 +21,7 @@ import { setupFilehandlers } from './ipc/filehandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from './ipc/playlistSaveExplorerHandlers.ts'
 import { setupImageSourceHandlers } from './ipc/imageSourceHandlers/index.ts'
 import { setupVisualizerHandlers } from './ipc/visualizerHandlers/index.ts'
-import { initializeWatchers, stopAll as stopDirectoryWatchers } from './ipc/utils/directoryWatcher.ts'
+import { initializeWatchers, stopAll as stopDirectoryWatchers } from './utils/directoryWatcher.ts'
 
 let mainWin
 let isQuitting = false

@@ -6,8 +6,8 @@ import {
   buildCollectionSummaryFromFileInfos,
   getFileInfos,
   processPlaylist
-} from '../utils/utils.ts'
-import { generateCollectionCoverFromTracks } from '../utils/collectionDetail.ts'
+} from '../../utils/utils.ts'
+import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { prisma } from '../../prisma.ts'
 import { getStoragePaths } from '../../storagePaths.ts'
 import { getCachedAudioFiles } from './audioLibrary.ts'

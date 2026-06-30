@@ -1,5 +1,5 @@
 import path from 'path'
-import { getOrCreateSong } from '../utils/utils.ts'
+import { getOrCreateSong } from '../../utils/utils.ts'
 import {
   getPlaylist,
   invalidatePlaylistCache,

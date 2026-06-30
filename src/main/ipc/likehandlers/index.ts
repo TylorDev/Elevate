@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { getFileInfos } from '../utils/utils.ts'
+import { getFileInfos } from '../../utils/utils.ts'
 import {
   getLikesOverview,
   getLikesTracksPage

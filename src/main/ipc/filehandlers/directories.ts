@@ -1,7 +1,7 @@
 import { prisma } from '../../prisma.ts'
-import { updateDirectoryStats } from '../utils/directoryScanner.ts'
-import { stopWatching } from '../utils/directoryWatcher.ts'
-import { getFileInfos } from '../utils/utils.ts'
+import { updateDirectoryStats } from '../../utils/directoryScanner.ts'
+import { stopWatching } from '../../utils/directoryWatcher.ts'
+import { getFileInfos } from '../../utils/utils.ts'
 import { getCachedAudioFiles } from './audioLibrary.ts'
 import {
   getDirectoryChildrenCount,

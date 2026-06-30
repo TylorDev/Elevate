@@ -1,5 +1,5 @@
 import path from 'path'
-import { buildCollectionSummaryFromFileInfos, processPlaylist } from '../utils/utils.ts'
+import { buildCollectionSummaryFromFileInfos, processPlaylist } from '../../utils/utils.ts'
 import {
   buildCoverConfig,
   getEffectiveCover,

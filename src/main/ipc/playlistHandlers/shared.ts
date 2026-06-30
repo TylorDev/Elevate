@@ -1,5 +1,5 @@
 import path from 'path'
-import { buildRankingPageFromTracks } from '../utils/utils.ts'
+import { buildRankingPageFromTracks } from '../../utils/utils.ts'
 import type {
   AudioFileInfo,
   DataUrlBufferResult,
