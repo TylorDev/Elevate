@@ -9,11 +9,10 @@ import type {
   FeedScope,
   InsightRankingId,
   InsightRankings,
-  NormalizedPageRequest,
   NormalizedFeedRankingsRequest,
-  PageRequest,
   RankingMetricKey
 } from '../../Types/filehandlers.ts'
+import type { NormalizedPageRequest, PageRequest } from '../../Types/shared.ts'
 
 export const INSIGHT_METRIC_KEYS: Record<InsightRankingId, RankingMetricKey> = {
   duration: 'duration',
@@ -68,13 +67,16 @@ export function buildInsightRankingsFromTracks(
   const page = Number(request?.page) || 1
   const pageSize = Number(request?.pageSize) || 50
 
-  return Object.entries(INSIGHT_METRIC_KEYS).reduce<InsightRankings>((rankings, [tabId, metricKey]) => {
-    rankings[tabId as InsightRankingId] = buildRankingPageFromTracks(tracks, metricKey, {
-      page,
-      pageSize
-    })
-    return rankings
-  }, {})
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce<InsightRankings>(
+    (rankings, [tabId, metricKey]) => {
+      rankings[tabId as InsightRankingId] = buildRankingPageFromTracks(tracks, metricKey, {
+        page,
+        pageSize
+      })
+      return rankings
+    },
+    {}
+  )
 }
 
 export function normalizeCollectionPageRequest(request: PageRequest = {}): NormalizedPageRequest {
@@ -123,21 +125,29 @@ export function toNumber(value: unknown): number {
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 
-export function getDirectoryChildrenCount(directory: DirectoryWithChildrenCount | null | undefined): number {
+export function getDirectoryChildrenCount(
+  directory: DirectoryWithChildrenCount | null | undefined
+): number {
   return toNumber(directory?._count?.children ?? directory?.childrenCount)
 }
 
-export function getDirectoryKind(directory: DirectoryWithChildrenCount | null | undefined): DirectoryKind {
+export function getDirectoryKind(
+  directory: DirectoryWithChildrenCount | null | undefined
+): DirectoryKind {
   return toNumber(directory?.totalTracks) === 0 && getDirectoryChildrenCount(directory) > 0
     ? 'root'
     : 'normal'
 }
 
-export function isRootDirectoryRecord(directory: DirectoryWithChildrenCount | null | undefined): boolean {
+export function isRootDirectoryRecord(
+  directory: DirectoryWithChildrenCount | null | undefined
+): boolean {
   return getDirectoryKind(directory) === 'root'
 }
 
-export function getLatestIsoDate(values: Array<Date | string | null | undefined> = []): string | null {
+export function getLatestIsoDate(
+  values: Array<Date | string | null | undefined> = []
+): string | null {
   const latestTimestamp = values.reduce((latest, value) => {
     if (!value) {
       return latest

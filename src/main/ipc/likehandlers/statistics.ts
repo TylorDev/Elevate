@@ -12,17 +12,19 @@ import {
 } from './shared.ts'
 import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
-  AudioFileInfo,
-  CollectionSummary,
-  InsightRankingId,
-  PageRequest,
-  RankingMetricKey,
-  RankingPage,
   SongRecordWithPreferences,
   StatisticsOverviewResult,
   StatisticsRankingPageRequest,
   StatisticsRankingPageResult
 } from '../../Types/likeHandlers.ts'
+import type {
+  AudioFileInfo,
+  CollectionSummary,
+  InsightRankingId,
+  RankingMetricKey,
+  RankingPage
+} from '../../Types/filehandlers.ts'
+import type { PageRequest } from '../../Types/shared.ts'
 
 const db = prisma as unknown as PrismaClient
 const mapSongToFileInfo = mapSongRecordToFileInfo as (

@@ -5,17 +5,22 @@ import { vi } from 'vitest'
 const defaultRoot = path.join(process.cwd(), '.vitest-electron')
 const ipcHandlers = new Map()
 const ipcListeners = new Map()
+let nextWebContentsId = 1
 
 let pathOverrides = {}
 let openDialogResult = { canceled: true, filePaths: [] }
 
 function createWebContents() {
   return {
+    id: nextWebContentsId++,
     send: vi.fn(),
     on: vi.fn(),
     once: vi.fn(),
     openDevTools: vi.fn(),
-    isDestroyed: vi.fn(() => false)
+    isDestroyed: vi.fn(() => false),
+    isDevToolsOpened: vi.fn(() => false),
+    capturePage: vi.fn(() => Promise.resolve({})),
+    setWindowOpenHandler: vi.fn()
   }
 }
 
@@ -25,6 +30,13 @@ class MockBrowserWindow extends EventEmitter {
     this.options = options
     this.webContents = createWebContents()
     this.destroyed = false
+    this.visible = false
+    this.bounds = {
+      x: options.x ?? 100,
+      y: options.y ?? 100,
+      width: options.width ?? 900,
+      height: options.height ?? 870
+    }
     MockBrowserWindow.instances.push(this)
   }
 
@@ -50,14 +62,24 @@ class MockBrowserWindow extends EventEmitter {
     this.emit('close', { preventDefault: vi.fn() })
   }
 
-  show = vi.fn()
-  hide = vi.fn()
+  show = vi.fn(() => {
+    this.visible = true
+  })
+  hide = vi.fn(() => {
+    this.visible = false
+  })
   focus = vi.fn()
   minimize = vi.fn()
   maximize = vi.fn()
   unmaximize = vi.fn()
   restore = vi.fn()
   isMaximized = vi.fn(() => false)
+  isMinimized = vi.fn(() => false)
+  isVisible = vi.fn(() => this.visible)
+  getBounds = vi.fn(() => ({ ...this.bounds }))
+  setBounds = vi.fn((bounds) => {
+    this.bounds = { ...bounds }
+  })
   setMinimumSize = vi.fn()
   setAlwaysOnTop = vi.fn()
   isAlwaysOnTop = vi.fn(() => false)
@@ -65,6 +87,7 @@ class MockBrowserWindow extends EventEmitter {
   loadURL = vi.fn()
   loadFile = vi.fn()
   setThumbarButtons = vi.fn()
+  setThumbnailToolTip = vi.fn()
 }
 
 const appEmitter = new EventEmitter()
@@ -126,24 +149,46 @@ export const electronMock = {
     unregisterAll: vi.fn()
   },
   screen: {
-    getPrimaryDisplay: vi.fn(() => ({ workArea: { width: 1920, height: 1080 } }))
+    getPrimaryDisplay: vi.fn(() => ({
+      id: 1,
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+      workArea: { x: 0, y: 0, width: 1920, height: 1080 }
+    })),
+    getAllDisplays: vi.fn(() => [
+      {
+        id: 1,
+        bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+        workArea: { x: 0, y: 0, width: 1920, height: 1080 }
+      }
+    ]),
+    getDisplayMatching: vi.fn(() => ({
+      id: 1,
+      bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+      workArea: { x: 0, y: 0, width: 1920, height: 1080 }
+    }))
   },
   Menu: {
     buildFromTemplate: vi.fn((template) => template),
     setApplicationMenu: vi.fn()
   },
   Tray: vi.fn(function MockTray() {
+    this.destroyed = false
     this.setToolTip = vi.fn()
     this.setContextMenu = vi.fn()
     this.on = vi.fn()
-    this.destroy = vi.fn()
+    this.destroy = vi.fn(() => {
+      this.destroyed = true
+    })
+    this.isDestroyed = vi.fn(() => this.destroyed)
   }),
   nativeImage: {
-    createFromPath: vi.fn(() => ({ resize: vi.fn(() => ({})) }))
+    createFromPath: vi.fn(() => ({ resize: vi.fn(() => ({})), isEmpty: vi.fn(() => false) })),
+    createFromDataURL: vi.fn(() => ({ isEmpty: vi.fn(() => false) }))
   },
   clipboard: {
     writeText: vi.fn(),
-    readText: vi.fn(() => '')
+    readText: vi.fn(() => ''),
+    writeImage: vi.fn()
   },
   webUtils: {
     getPathForFile: vi.fn((file) => file?.path || '')
@@ -151,9 +196,11 @@ export const electronMock = {
 }
 
 export function resetElectronMock() {
+  appEmitter.removeAllListeners()
   ipcHandlers.clear()
   ipcListeners.clear()
   MockBrowserWindow.instances = []
+  nextWebContentsId = 1
   pathOverrides = {}
   openDialogResult = { canceled: true, filePaths: [] }
   electronMock.app.isPackaged = true

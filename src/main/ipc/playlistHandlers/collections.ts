@@ -1,10 +1,6 @@
 import path from 'path'
 import { buildCollectionSummaryFromFileInfos, processPlaylist } from '../../utils/utils.ts'
-import {
-  buildCoverConfig,
-  getEffectiveCover,
-  getTop10SuggestedCovers
-} from './covers.ts'
+import { buildCoverConfig, getEffectiveCover, getTop10SuggestedCovers } from './covers.ts'
 import { getPlaylist } from './repository.ts'
 import {
   buildInsightRankingsFromTracks,
@@ -12,15 +8,17 @@ import {
   normalizePageRequest
 } from './shared.ts'
 import type {
-  AudioCoverPayload,
-  AudioFileInfo,
-  PageRequest,
-  PlaylistCollectionSummary,
   PlaylistEditPayload,
   PlaylistListPayload,
-  PlaylistOverviewResult,
-  PlaylistTracksPage
+  PlaylistOverviewResult
 } from '../../Types/playlistHandlers.ts'
+import type {
+  AudioCoverPayload,
+  AudioFileInfo,
+  AudioFilesPage,
+  CollectionSummary
+} from '../../Types/filehandlers.ts'
+import type { PageRequest } from '../../Types/shared.ts'
 
 const processPlaylistTracks = processPlaylist as (
   filepath: string,
@@ -30,7 +28,7 @@ const processPlaylistTracks = processPlaylist as (
 const buildPlaylistCollectionSummary = buildCollectionSummaryFromFileInfos as (
   tracks: AudioFileInfo[],
   extras?: Record<string, unknown>
-) => PlaylistCollectionSummary
+) => CollectionSummary<AudioCoverPayload>
 
 function stripPictures(tracks: AudioFileInfo[]): AudioFileInfo[] {
   return tracks.map((song) => ({
@@ -79,7 +77,7 @@ export async function getPlaylistOverview(
 export async function getPlaylistTracksPage(
   filepath: string,
   request: PageRequest = {}
-): Promise<PlaylistTracksPage> {
+): Promise<AudioFilesPage> {
   const { page, pageSize } = normalizePageRequest(request)
   const baseDir = path.dirname(filepath)
   const tracks = stripPictures(await processPlaylistTracks(filepath, baseDir))

@@ -3,12 +3,10 @@ import type {
   AudioFileInfo,
   InsightRankingId,
   InsightRankings,
-  LikeInsightMetricKeys,
-  NormalizedPageRequest,
-  PageRequest,
-  PlaybackEventType,
   RankingMetricKey
-} from '../../Types/likeHandlers.ts'
+} from '../../Types/filehandlers.ts'
+import type { LikeInsightMetricKeys, PlaybackEventType } from '../../Types/likeHandlers.ts'
+import type { NormalizedPageRequest, PageRequest } from '../../Types/shared.ts'
 
 const buildAudioRankingPage = buildRankingPageFromTracks as (
   tracks: AudioFileInfo[],

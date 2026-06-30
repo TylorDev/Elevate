@@ -28,7 +28,6 @@ import {
 } from './shared.ts'
 import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
 import type {
-  AudioFileInfo,
   DuplicateImportedPlaylist,
   ExportPlaylistResult,
   PersistPlaylistRecordOptions,
@@ -40,6 +39,7 @@ import type {
   SavePlaylistResult,
   SavePlaylistToTargetRequest
 } from '../../Types/playlistHandlers.ts'
+import type { AudioFileInfo } from '../../Types/filehandlers.ts'
 
 const db = prisma as unknown as PrismaClient
 const processPlaylistTracks = processPlaylist as (
@@ -88,9 +88,7 @@ export async function saveDialog(nombre = ''): Promise<string | null> {
       filePath = selectedPath
     } else {
       console.debug(fileName)
-      console.log(
-        'The file name must be more than 5 and fewer than 15 characters. Try again.'
-      )
+      console.log('The file name must be more than 5 and fewer than 15 characters. Try again.')
     }
   }
 
@@ -131,7 +129,8 @@ export async function resolveUniquePlaylistPath({
   let candidateIndex = 1
 
   while (true) {
-    const candidateName = candidateIndex === 1 ? normalizedName : `${normalizedName} (${candidateIndex})`
+    const candidateName =
+      candidateIndex === 1 ? normalizedName : `${normalizedName} (${candidateIndex})`
     const candidatePath = path.join(resolvedDirectory, `${candidateName}.m3u`)
     const candidateExistsOnDisk = fs.existsSync(candidatePath)
     const candidateExistsInDb = await playlistIdentityExistsInDatabase(candidateName, candidatePath)
@@ -144,7 +143,10 @@ export async function resolveUniquePlaylistPath({
   }
 }
 
-export async function savePlaylist(filePath: string, filePaths: string[]): Promise<SavePlaylistResult> {
+export async function savePlaylist(
+  filePath: string,
+  filePaths: string[]
+): Promise<SavePlaylistResult> {
   const playlistName = extractPlaylistName(filePath)
   const m3uContent = createM3uContent(filePaths)
   const saveResult = await saveM3uFile(filePath, m3uContent)
@@ -261,10 +263,7 @@ export async function exportPlaylistToTarget({
 
   const exportPath = normalizedTargetPath
     ? normalizedTargetPath
-    : path.join(
-        normalizedTargetDirectory,
-        `${normalizePlaylistFileName(baseName)}.m3u`
-      )
+    : path.join(normalizedTargetDirectory, `${normalizePlaylistFileName(baseName)}.m3u`)
 
   const { success, error } = await savePlaylist(exportPath, normalizedFilePaths)
 
@@ -336,7 +335,11 @@ async function findDuplicateImportedPlaylist({
         }
       }
     } catch (error) {
-      console.warn('Could not compare playlist during import:', playlist.path, getErrorMessage(error))
+      console.warn(
+        'Could not compare playlist during import:',
+        playlist.path,
+        getErrorMessage(error)
+      )
     }
   }
 
@@ -470,12 +473,11 @@ export async function saveM3uRequest(
     return { success: false, error: 'Save canceled' }
   }
 
-  const effectiveTargetDirectory =
-    hasTargetDirectory
-      ? targetDirectory
-      : resolvedTargetPath
-        ? path.dirname(resolvedTargetPath)
-        : ''
+  const effectiveTargetDirectory = hasTargetDirectory
+    ? targetDirectory
+    : resolvedTargetPath
+      ? path.dirname(resolvedTargetPath)
+      : ''
 
   if (persist) {
     return savePlaylistToTarget({

@@ -1,16 +1,9 @@
-import {
-  getFileInfos,
-  getOrCreateSong
-} from '../../utils/utils.ts'
+import { getFileInfos, getOrCreateSong } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { prisma } from '../../prisma.ts'
-import {
-  getErrorMessage,
-  withoutPictures
-} from './shared.ts'
+import { getErrorMessage, withoutPictures } from './shared.ts'
 import type { Prisma, PrismaClient, Songs } from '../../generated/prisma/client.ts'
 import type {
-  AudioFileInfo,
   LikeSongPayload,
   PreferenceCollectionResult,
   PreferenceCriteria,
@@ -19,6 +12,7 @@ import type {
   SongPreferenceMutationResult,
   UpdateSongPreferenceAction
 } from '../../Types/likeHandlers.ts'
+import type { AudioFileInfo } from '../../Types/filehandlers.ts'
 
 const db = prisma as unknown as PrismaClient
 const getSong = getOrCreateSong as (
@@ -199,9 +193,7 @@ export function getListenLater(): Promise<PreferenceCollectionResult> {
   return getUserPreferencesByCriteria({ listen_later: true })
 }
 
-export function removeListenLater(
-  filepath?: string | null
-): Promise<SongPreferenceMutationResult> {
+export function removeListenLater(filepath?: string | null): Promise<SongPreferenceMutationResult> {
   return updateSongPreference(filepath, async (songId) => {
     await db.userPreferences.update({
       where: { song_id: songId },

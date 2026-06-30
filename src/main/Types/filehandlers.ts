@@ -1,52 +1,14 @@
-import type { IpcMainInvokeEvent } from 'electron'
 import type { Directory, Playlist, Songs } from '../generated/prisma/client.ts'
-
-export type Nullable<T> = T | null
-export type MaybePromise<T> = T | Promise<T>
-
-export type ErrorLike = {
-  message?: string
-}
-
-export type SuccessResponse<T extends object = object> = {
-  success: true
-  error?: never
-  message?: string
-} & T
-
-export type ErrorResponse = {
-  success: false
-  error?: string
-  message?: string
-}
-
-export type MutationResponse = SuccessResponse<{ message?: string }> | ErrorResponse
-
-export type PageRequest = {
-  page?: number | string | null
-  pageSize?: number | string | null
-}
-
-export type NormalizedPageRequest = {
-  page: number
-  pageSize: number
-}
-
-export type PageResult<T> = {
-  items: T[]
-  page: number
-  pageSize: number
-  total: number
-  hasMore: boolean
-}
-
-export type SearchPageRequest = PageRequest & {
-  query?: string | null
-}
-
-export type AudioPageRequest = number | PageRequest | null | undefined
-
-export type AudioCoverVariant = 'thumb' | 'full'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
+import type {
+  ErrorResponse,
+  MutationResponse,
+  PageRequest,
+  PageRequestInput,
+  PageResult,
+  SearchPageRequest,
+  SuccessResponse
+} from './shared.ts'
 
 export type AudioCoverPayload = {
   data: Buffer
@@ -167,7 +129,7 @@ export type CollectionRequest = PageRequest & {
   [key: string]: unknown
 }
 
-export type CollectionSummary = {
+export type CollectionSummary<TCover = Buffer> = {
   totalDuration: number
   totalShortViews: number
   totalLongViews: number
@@ -176,7 +138,7 @@ export type CollectionSummary = {
   totalSkips: number
   trackCount: number
   sourcePath?: string
-  cover?: Buffer | null
+  cover?: TCover | null
   [key: string]: unknown
 }
 
@@ -224,7 +186,10 @@ export type CollectionOverviewResult =
   | ErrorResponse
   | Record<string, unknown>
 
-export type CollectionTracksPageResult = PageResult<AudioFileInfo> | ErrorResponse | Record<string, unknown>
+export type CollectionTracksPageResult =
+  | PageResult<AudioFileInfo>
+  | ErrorResponse
+  | Record<string, unknown>
 
 export type FeedScope = 'mixed' | 'playlists' | 'directories'
 
@@ -333,25 +298,21 @@ export type FeedSourceSignaturePlaylist = Pick<
 
 export type SongDurationRecord = Pick<Songs, 'duration'>
 
-export type ExplorerActionResult = SuccessResponse | ErrorResponse
-
-export type AddDirectoryResult = unknown
-
 export type FilehandlerIpcContract = {
   'add-directory': {
     args: [providedPath?: string | null]
-    result: AddDirectoryResult | null
+    result: unknown | null
   }
   'get-new-audio-files': {
     args: []
     result: AudioFileInfo[]
   }
   'get-all-audio-files': {
-    args: [currentPage?: AudioPageRequest]
+    args: [currentPage?: PageRequestInput]
     result: AudioFileInfo[]
   }
   'get-all-audio-files-page': {
-    args: [request?: AudioPageRequest]
+    args: [request?: PageRequestInput]
     result: AudioFilesPage
   }
   'get-audio-cover-thumbnail': {
@@ -420,21 +381,17 @@ export type FilehandlerIpcContract = {
   }
   'reveal-path-in-explorer': {
     args: [targetPath?: string | null]
-    result: ExplorerActionResult
+    result: MutationResponse
   }
   'open-directory-in-explorer': {
     args: [targetPath?: string | null]
-    result: ExplorerActionResult
+    result: MutationResponse
   }
 }
 
-export type FilehandlerChannel = keyof FilehandlerIpcContract
-
-export type FilehandlerArgs<C extends FilehandlerChannel> = FilehandlerIpcContract[C]['args']
-
-export type FilehandlerResult<C extends FilehandlerChannel> = FilehandlerIpcContract[C]['result']
-
-export type FilehandlerInvokeHandler<C extends FilehandlerChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: FilehandlerArgs<C>
-) => MaybePromise<FilehandlerResult<C>>
+export type FilehandlerChannel = IpcChannel<FilehandlerIpcContract>
+export type FilehandlerArgs<C extends FilehandlerChannel> = IpcArgs<FilehandlerIpcContract, C>
+export type FilehandlerInvokeHandler<C extends FilehandlerChannel> = IpcInvokeHandler<
+  FilehandlerArgs<C>,
+  FilehandlerIpcContract[C]['result']
+>

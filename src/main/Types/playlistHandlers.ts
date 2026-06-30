@@ -1,29 +1,20 @@
-import type { IpcMainInvokeEvent, WebContents } from 'electron'
+import type { WebContents } from 'electron'
 import type { Playlist } from '../generated/prisma/client.ts'
 import type {
   AudioCoverPayload,
   AudioFileInfo,
+  CollectionSummary,
+  InsightRankings
+} from './filehandlers.ts'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
+import type {
+  CoverVariant,
   ErrorResponse,
   MaybePromise,
-  PageRequest,
   PageResult,
-  RankingPage,
+  SearchPageRequest,
   SuccessResponse
-} from './filehandlers.ts'
-
-export type {
-  AudioCoverPayload,
-  AudioFileInfo,
-  ErrorResponse,
-  MaybePromise,
-  MutationResponse,
-  PageRequest,
-  PageResult,
-  RankingPage,
-  SuccessResponse
-} from './filehandlers.ts'
-
-export type PlaylistCoverVariant = 'thumb' | 'full'
+} from './shared.ts'
 
 export type PlaylistCoverMode =
   | 'auto'
@@ -110,29 +101,6 @@ export type EnrichedPlaylist = Playlist & {
   coverConfig?: PlaylistCoverConfig | null
 }
 
-export type PlaylistCollectionSummary = {
-  totalDuration: number
-  totalShortViews: number
-  totalLongViews: number
-  totalAccumulatedDuration: number
-  totalRepeats: number
-  totalSkips: number
-  trackCount: number
-  sourcePath?: string
-  cover?: AudioCoverPayload | null
-  [key: string]: unknown
-}
-
-export type PlaylistInsightRankingId =
-  | 'duration'
-  | 'shortViews'
-  | 'longViews'
-  | 'accumulatedDuration'
-  | 'repeats'
-  | 'skips'
-
-export type PlaylistInsightRankings = Partial<Record<PlaylistInsightRankingId, RankingPage<AudioFileInfo>>>
-
 export type PlaylistOverviewResult = SuccessResponse<{
   type: 'playlist'
   meta: {
@@ -142,16 +110,14 @@ export type PlaylistOverviewResult = SuccessResponse<{
     totalplays: number
     editable: true
   }
-  summary: PlaylistCollectionSummary
-  rankings: PlaylistInsightRankings
+  summary: CollectionSummary<AudioCoverPayload>
+  rankings: InsightRankings
   playlistData: Playlist | null
   cover: null
   suggestedCovers: SuggestedCoverItem[]
   effectiveCover: AudioCoverPayload | null
   coverConfig: PlaylistCoverConfig | null
 }>
-
-export type PlaylistTracksPage = PageResult<AudioFileInfo>
 
 export type PlaylistEditPayload =
   | SuccessResponse<{
@@ -175,11 +141,13 @@ export type PlaylistListPayload = {
 export type PlaylistNameRecord = Pick<Playlist, 'nombre' | 'path'>
 export type PlaylistIdentityRecord = Pick<Playlist, 'id' | 'nombre' | 'path'>
 
-export type PlaylistDeleteQueuedResponse = SuccessResponse<{
-  queued: true
-  jobId: string
-  path: string
-}> | ErrorResponse
+export type PlaylistDeleteQueuedResponse =
+  | SuccessResponse<{
+      queued: true
+      jobId: string
+      path: string
+    }>
+  | ErrorResponse
 
 export type PlaylistDeleteCompletedPayload = {
   jobId: string
@@ -195,9 +163,7 @@ export type PlaylistDeleteResult =
       path: string
       notFound?: boolean
     }>
-  | (ErrorResponse & {
-      message?: string
-    })
+  | ErrorResponse
 
 export type PlaylistEnricher<TInput extends Playlist = Playlist, TOutput = EnrichedPlaylist> = (
   playlist: TInput,
@@ -218,10 +184,6 @@ export type PlaylistMinimal = Pick<
   cover: null
   effectiveCover: null
   coverConfig: PlaylistCoverConfig
-}
-
-export type PlaylistSearchRequest = PageRequest & {
-  query?: string | null
 }
 
 export type PlaylistSearchItem = {
@@ -321,17 +283,10 @@ export type ExportPlaylistResult =
     }>
   | ErrorResponse
 
-export type DuplicateImportedPlaylist =
-  | {
-      type: 'same-path' | 'same-name-and-tracks' | 'same-name'
-      playlist: Playlist | PlaylistIdentityRecord
-    }
-  | null
-
-export type DataUrlBufferResult = {
-  mimeType: string
-  buffer: Buffer
-}
+export type DuplicateImportedPlaylist = {
+  type: 'same-path' | 'same-name-and-tracks' | 'same-name'
+  playlist: Playlist | PlaylistIdentityRecord
+} | null
 
 export type RemoveTrackFromPlaylistRequest = {
   filePath: string
@@ -376,7 +331,7 @@ export type EnsurePlaylistCoverRequest =
   | string
   | {
       playlistPath?: string | null
-      variant?: PlaylistCoverVariant
+      variant?: CoverVariant
     }
   | null
   | undefined
@@ -422,7 +377,7 @@ export type PlaylistIpcContract = {
     result: PlaylistMinimal[]
   }
   'search-playlists-page': {
-    args: [request?: PlaylistSearchRequest]
+    args: [request?: SearchPageRequest]
     result: PlaylistSearchPage
   }
   'get-playlists-number': {
@@ -447,11 +402,11 @@ export type PlaylistIpcContract = {
   }
   'update-list': {
     args: [request: RemoveTrackFromPlaylistRequest]
-    result: UpsertPlaylistMetadataResult | ErrorResponse
+    result: UpsertPlaylistMetadataResult
   }
   'add-new-song': {
     args: [request: AddNewSongToPlaylistRequest]
-    result: (UpsertPlaylistMetadataResult & { songName?: string }) | ErrorResponse
+    result: UpsertPlaylistMetadataResult & { songName?: string }
   }
   'append-tracks-to-playlist': {
     args: [request?: AppendTracksToPlaylistRequest]
@@ -459,17 +414,13 @@ export type PlaylistIpcContract = {
   }
   'save-m3u': {
     args: [request?: SaveM3uRequest]
-    result: PersistPlaylistRecordResult | ExportPlaylistResult | ErrorResponse
+    result: PersistPlaylistRecordResult | ExportPlaylistResult
   }
 }
 
-export type PlaylistChannel = keyof PlaylistIpcContract
-
-export type PlaylistArgs<C extends PlaylistChannel> = PlaylistIpcContract[C]['args']
-
-export type PlaylistResult<C extends PlaylistChannel> = PlaylistIpcContract[C]['result']
-
-export type PlaylistInvokeHandler<C extends PlaylistChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: PlaylistArgs<C>
-) => MaybePromise<PlaylistResult<C>>
+export type PlaylistChannel = IpcChannel<PlaylistIpcContract>
+export type PlaylistArgs<C extends PlaylistChannel> = IpcArgs<PlaylistIpcContract, C>
+export type PlaylistInvokeHandler<C extends PlaylistChannel> = IpcInvokeHandler<
+  PlaylistArgs<C>,
+  PlaylistIpcContract[C]['result']
+>

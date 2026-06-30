@@ -1,5 +1,6 @@
-import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
-import type { AudioFileInfo, MaybePromise } from './filehandlers.ts'
+import type { BrowserWindow } from 'electron'
+import type { AudioFileInfo } from './filehandlers.ts'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
 
 export type LaunchEntryType = 'file' | 'directory' | 'playlist'
 
@@ -115,13 +116,9 @@ export type ArgvIpcContract = {
   }
 }
 
-export type ArgvChannel = keyof ArgvIpcContract
-
-export type ArgvArgs<C extends ArgvChannel> = ArgvIpcContract[C]['args']
-
-export type ArgvResult<C extends ArgvChannel> = ArgvIpcContract[C]['result']
-
-export type ArgvInvokeHandler<C extends ArgvChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: ArgvArgs<C>
-) => MaybePromise<ArgvResult<C>>
+export type ArgvChannel = IpcChannel<ArgvIpcContract>
+export type ArgvArgs<C extends ArgvChannel> = IpcArgs<ArgvIpcContract, C>
+export type ArgvInvokeHandler<C extends ArgvChannel> = IpcInvokeHandler<
+  ArgvArgs<C>,
+  ArgvIpcContract[C]['result']
+>

@@ -1,10 +1,6 @@
 import { ipcMain } from 'electron'
 import log from 'electron-log/main.js'
-import {
-  ensurePlaylistCover,
-  enrichPlaylistWithCover,
-  updatePlaylistMetadata
-} from './covers.ts'
+import { ensurePlaylistCover, enrichPlaylistWithCover, updatePlaylistMetadata } from './covers.ts'
 import {
   getPlaylistEditPayload,
   getPlaylistListPayload,
@@ -28,19 +24,15 @@ import {
   queuePlaylistDelete,
   searchPlaylistsPage
 } from './repository.ts'
-import {
-  addNewSongToPlaylist,
-  appendTracksToPlaylist,
-  removeTrackFromPlaylist
-} from './tracks.ts'
+import { addNewSongToPlaylist, appendTracksToPlaylist, removeTrackFromPlaylist } from './tracks.ts'
 import { getErrorMessage } from './shared.ts'
 import type {
   EnsurePlaylistCoverRequest,
   PlaylistArgs,
   PlaylistChannel,
-  PlaylistCoverVariant,
   PlaylistInvokeHandler
 } from '../../Types/playlistHandlers.ts'
+import type { CoverVariant } from '../../Types/shared.ts'
 
 export {
   exportPlaylistToTarget,
@@ -61,7 +53,7 @@ function handlePlaylist<C extends PlaylistChannel>(
 
 function parseCoverRequest(request: EnsurePlaylistCoverRequest): {
   playlistPath: string | null | undefined
-  variant: PlaylistCoverVariant
+  variant: CoverVariant
 } {
   const playlistPath = typeof request === 'string' ? request : request?.playlistPath
   const variant =

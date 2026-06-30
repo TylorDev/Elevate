@@ -1,7 +1,4 @@
-import type { IpcMainInvokeEvent, OpenDialogReturnValue } from 'electron'
-import type { MaybePromise } from './filehandlers.ts'
-
-export type { MaybePromise } from './filehandlers.ts'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
 
 export type ImageExtension = 'jpg' | 'jpeg' | 'png' | 'gif' | 'webp'
 
@@ -31,25 +28,18 @@ export type ImageSourceErrorResponse = {
   errorMessage: string
 }
 
-export type DataUrlPayload = {
-  mimeType: ImageMimeType | string
-  buffer: Buffer
-}
-
 export type DownloadedImageSuccess = {
   success: true
   buffer: Buffer
-  mimeType: ImageMimeType | string
+  mimeType: string
 }
 
-export type DownloadedImageResult = DownloadedImageSuccess | ImageSourceErrorResponse
-
-export type LocalImageResult = DownloadedImageSuccess | ImageSourceErrorResponse
+export type ImageLoadResult = DownloadedImageSuccess | ImageSourceErrorResponse
 
 export type ImagePreviewSuccess = {
   success: true
   resolvedUrl: string
-  mimeType: ImageMimeType | string
+  mimeType: string
 }
 
 export type LocalImagePreviewSuccess = ImagePreviewSuccess & {
@@ -60,14 +50,12 @@ export type ImagePreviewResult = ImagePreviewSuccess | ImageSourceErrorResponse
 
 export type LocalImagePreviewResult = LocalImagePreviewSuccess | ImageSourceErrorResponse
 
-export type LocalImageDialogResult = OpenDialogReturnValue
-
 export type BackgroundConfigItem = {
   id: string
   sourceType: ImageSourceType
   sourceValue: string
   resolvedAssetPath: string
-  mimeType: ImageMimeType | string
+  mimeType: string
   createdAt: string
   lastUsedAt: string
   status: BackgroundItemStatus
@@ -82,7 +70,7 @@ export type CreateBackgroundItemRequest = {
   sourceType: ImageSourceType
   sourceValue: string
   resolvedAssetPath: string
-  mimeType: ImageMimeType | string
+  mimeType: string
   existingItem?: Pick<BackgroundConfigItem, 'id' | 'createdAt'> | null
 }
 
@@ -90,7 +78,7 @@ export type UpsertBackgroundItemRequest = {
   sourceType: ImageSourceType
   sourceValue: string
   buffer: Buffer
-  mimeType: ImageMimeType | string
+  mimeType: string
 }
 
 export type MaterializedBackgroundItem = BackgroundConfigItem & {
@@ -169,13 +157,9 @@ export type ImageSourceIpcContract = {
   }
 }
 
-export type ImageSourceChannel = keyof ImageSourceIpcContract
-
-export type ImageSourceArgs<C extends ImageSourceChannel> = ImageSourceIpcContract[C]['args']
-
-export type ImageSourceResult<C extends ImageSourceChannel> = ImageSourceIpcContract[C]['result']
-
-export type ImageSourceInvokeHandler<C extends ImageSourceChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: ImageSourceArgs<C>
-) => MaybePromise<ImageSourceResult<C>>
+export type ImageSourceChannel = IpcChannel<ImageSourceIpcContract>
+export type ImageSourceArgs<C extends ImageSourceChannel> = IpcArgs<ImageSourceIpcContract, C>
+export type ImageSourceInvokeHandler<C extends ImageSourceChannel> = IpcInvokeHandler<
+  ImageSourceArgs<C>,
+  ImageSourceIpcContract[C]['result']
+>

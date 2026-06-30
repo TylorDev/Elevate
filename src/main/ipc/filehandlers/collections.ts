@@ -1,29 +1,22 @@
 import { buildCollectionSummaryFromFileInfos, getFileInfos } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { getLikesOverview, getLikesTracksPage } from '../likehandlers/index.ts'
-import {
-  getPlaylistOverview,
-  getPlaylistTracksPage
-} from '../playlistHandlers/index.ts'
+import { getPlaylistOverview, getPlaylistTracksPage } from '../playlistHandlers/index.ts'
 import {
   buildInsightRankingsFromTracks,
   getPathLeaf,
   normalizeCollectionPageRequest
 } from './shared.ts'
-import {
-  enrichDirectory,
-  getDirectoryAudioFiles,
-  getDirectoryByPath
-} from './directories.ts'
+import { enrichDirectory, getDirectoryAudioFiles, getDirectoryByPath } from './directories.ts'
 import type {
   AudioFileInfo,
   CollectionOverviewResult,
   CollectionRequest,
   CollectionSummary,
   CollectionTracksPageResult,
-  DirectoryCollectionOverviewSuccess,
-  PageResult
+  DirectoryCollectionOverviewSuccess
 } from '../../Types/filehandlers.ts'
+import type { PageResult } from '../../Types/shared.ts'
 
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],

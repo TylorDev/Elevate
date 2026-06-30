@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { getStoragePaths } from '../../storagePaths.ts'
+import { getStoragePaths } from '../storagePaths/index.ts'
 import type {
   BackgroundConfig,
   BackgroundConfigItem,

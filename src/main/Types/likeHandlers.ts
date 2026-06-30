@@ -1,38 +1,23 @@
-import type { IpcMainInvokeEvent } from 'electron'
 import type { Prisma, Songs, UserPreferences } from '../generated/prisma/client.ts'
 import type {
   AudioCoverPayload,
   AudioFileInfo,
   CollectionSummary,
-  ErrorResponse,
   InsightRankingId,
   InsightRankings,
+  RankingMetricKey,
+  RankingPage
+} from './filehandlers.ts'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
+import type {
+  ErrorResponse,
   MaybePromise,
   MutationResponse,
   PageRequest,
+  PageRequestInput,
   PageResult,
-  RankingMetricKey,
-  RankingPage,
   SuccessResponse
-} from './filehandlers.ts'
-
-export type {
-  AudioCoverPayload,
-  AudioFileInfo,
-  CollectionSummary,
-  ErrorResponse,
-  InsightRankingId,
-  InsightRankings,
-  MaybePromise,
-  MutationResponse,
-  PageRequest,
-  PageResult,
-  RankingMetricKey,
-  RankingPage,
-  SuccessResponse
-} from './filehandlers.ts'
-
-export type { NormalizedPageRequest } from './filehandlers.ts'
+} from './shared.ts'
 
 export type LikeSongPayload = {
   filePath: string
@@ -143,15 +128,9 @@ export type SongRecordWithPreferences = Songs & {
   UserPreferences?: UserPreferences[] | UserPreferences | null
 }
 
-export type HistoryPageRequest = number | PageRequest | null | undefined
-
-export type HistoryAudioFileInfo = AudioFileInfo & {
-  lastPlayedAt?: string | null
-}
-
 export type HistoryPageResult =
-  | (PageResult<HistoryAudioFileInfo> & {
-      fileInfos: HistoryAudioFileInfo[]
+  | (PageResult<AudioFileInfo> & {
+      fileInfos: AudioFileInfo[]
       maxPages: number
     })
   | ErrorResponse
@@ -251,8 +230,6 @@ export type LikeCollectionOverviewResult =
     }>
   | ErrorResponse
 
-export type LikesTracksPageResult = PageResult<AudioFileInfo>
-
 export type StatisticsOverviewResult =
   | SuccessResponse<{
       type: 'library'
@@ -308,7 +285,7 @@ export type LikeIpcContract = {
     result: PreferenceCollectionResult
   }
   'get-history': {
-    args: [request?: HistoryPageRequest]
+    args: [request?: PageRequestInput]
     result: HistoryPageResult
   }
   'history:get-song-timeline': {
@@ -341,13 +318,9 @@ export type LikeIpcContract = {
   }
 }
 
-export type LikeChannel = keyof LikeIpcContract
-
-export type LikeArgs<C extends LikeChannel> = LikeIpcContract[C]['args']
-
-export type LikeResult<C extends LikeChannel> = LikeIpcContract[C]['result']
-
-export type LikeInvokeHandler<C extends LikeChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: LikeArgs<C>
-) => MaybePromise<LikeResult<C>>
+export type LikeChannel = IpcChannel<LikeIpcContract>
+export type LikeArgs<C extends LikeChannel> = IpcArgs<LikeIpcContract, C>
+export type LikeInvokeHandler<C extends LikeChannel> = IpcInvokeHandler<
+  LikeArgs<C>,
+  LikeIpcContract[C]['result']
+>

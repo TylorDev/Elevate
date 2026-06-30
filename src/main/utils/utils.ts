@@ -3,7 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
 import { prisma } from '../prisma.ts'
-import { getStoragePaths } from '../storagePaths.ts'
+import { getStoragePaths } from '../ipc/storagePaths/index.ts'
 import { resolveImportableAudioPaths } from './mediaFileSupport.ts'
 
 let sharpModulePromise = null

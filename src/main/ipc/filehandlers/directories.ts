@@ -25,10 +25,9 @@ import type {
   DirectorySearchPage,
   DirectoryWithChildrenCount,
   EnrichedDirectory,
-  MutationResponse,
-  SearchPageRequest,
   SongDurationRecord
 } from '../../Types/filehandlers.ts'
+import type { MutationResponse, SearchPageRequest } from '../../Types/shared.ts'
 
 const db = prisma as unknown as PrismaClient
 const getAudioFileInfos = getFileInfos as (
@@ -100,8 +99,12 @@ export async function enrichDirectory(
 export async function enrichDirectories(
   directories: DirectoryWithChildrenCount[] = []
 ): Promise<EnrichedDirectory[]> {
-  const enrichedDirectories = await Promise.all(directories.map((directory) => enrichDirectory(directory)))
-  return enrichedDirectories.filter((directory): directory is EnrichedDirectory => Boolean(directory))
+  const enrichedDirectories = await Promise.all(
+    directories.map((directory) => enrichDirectory(directory))
+  )
+  return enrichedDirectories.filter((directory): directory is EnrichedDirectory =>
+    Boolean(directory)
+  )
 }
 
 export async function getDirectoryByPath(
@@ -337,21 +340,17 @@ export async function searchDirectoriesPage(
     }
   })) as DirectoryWithChildrenCount[]
 
-  const sortedDirectories = matchingDirectories
-    .slice()
-    .sort((left, right) =>
-      getPathLeaf(left.path).localeCompare(getPathLeaf(right.path), undefined, {
-        sensitivity: 'base'
-      })
-    )
+  const sortedDirectories = matchingDirectories.slice().sort((left, right) =>
+    getPathLeaf(left.path).localeCompare(getPathLeaf(right.path), undefined, {
+      sensitivity: 'base'
+    })
+  )
 
   const start = (page - 1) * pageSize
   const pagedDirectories = await enrichDirectories(sortedDirectories.slice(start, start + pageSize))
   const items: DirectorySearchItem[] = pagedDirectories.map((directory) => {
     const visibleTracks =
-      directory.directoryKind === 'root'
-        ? directory.recursiveTotalTracks
-        : directory.totalTracks
+      directory.directoryKind === 'root' ? directory.recursiveTotalTracks : directory.totalTracks
     const visibleDuration =
       directory.directoryKind === 'root'
         ? directory.recursiveTotalDuration

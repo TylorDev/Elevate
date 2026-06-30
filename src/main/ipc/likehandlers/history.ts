@@ -1,20 +1,15 @@
 import { getFileInfos } from '../../utils/utils.ts'
 import { prisma } from '../../prisma.ts'
-import {
-  getErrorMessage,
-  toDayKey
-} from './shared.ts'
+import { getErrorMessage, toDayKey } from './shared.ts'
 import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
-  AudioFileInfo,
-  ErrorResponse,
-  HistoryAudioFileInfo,
-  HistoryPageRequest,
   HistoryPageResult,
   SongHistoryDailyRecord,
   SongHistoryTimelineRequest,
   SongHistoryTimelineResult
 } from '../../Types/likeHandlers.ts'
+import type { AudioFileInfo } from '../../Types/filehandlers.ts'
+import type { ErrorResponse, PageRequestInput } from '../../Types/shared.ts'
 
 const db = prisma as unknown as PrismaClient
 const getAudioFileInfos = getFileInfos as (
@@ -26,7 +21,7 @@ function isStringTuple(value: [string, string] | null): value is [string, string
   return value !== null
 }
 
-function normalizeHistoryPageRequest(request: HistoryPageRequest): {
+function normalizeHistoryPageRequest(request: PageRequestInput): {
   page: number
   pageSize: number
   offset: number
@@ -77,7 +72,7 @@ export async function getMostPlayedSongsWithDetails(): Promise<string[] | ErrorR
 }
 
 export async function getPlayHistoryOrdered(
-  request: HistoryPageRequest = 1
+  request: PageRequestInput = 1
 ): Promise<HistoryPageResult> {
   const { page, pageSize, offset } = normalizeHistoryPageRequest(request)
 
@@ -137,9 +132,11 @@ export async function getPlayHistoryOrdered(
     const filePaths = songIds
       .map((songId) => songById.get(songId)?.filepath)
       .filter((filePath): filePath is string => Boolean(filePath))
-    const fileInfos: HistoryAudioFileInfo[] = (await getAudioFileInfos(filePaths, {
-      includePicture: false
-    })).map((fileInfo) => ({
+    const fileInfos: AudioFileInfo[] = (
+      await getAudioFileInfos(filePaths, {
+        includePicture: false
+      })
+    ).map((fileInfo) => ({
       ...fileInfo,
       lastPlayedAt: lastPlayedAtByPath.get(fileInfo.filePath) || null
     }))

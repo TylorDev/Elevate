@@ -2,7 +2,7 @@
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { getStoragePaths } from '../storagePaths.ts'
+import { getStoragePaths } from '../ipc/storagePaths/index.ts'
 
 export const AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.ogg'])
 export const VIDEO_AUDIO_SOURCE_EXTENSIONS = new Set(['.mp4'])

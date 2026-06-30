@@ -1,10 +1,10 @@
 import path from 'path'
 import type {
-  DataUrlPayload,
   ImageContentTypeCategory,
   ImageExtension,
   ImageMimeType
 } from '../../Types/imageSourceHandlers.ts'
+import type { MimeBufferPayload } from '../../Types/shared.ts'
 
 export const SUPPORTED_IMAGE_EXTENSIONS: ImageExtension[] = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 export const MAX_BACKGROUND_HISTORY_ITEMS = 20
@@ -21,7 +21,7 @@ export function isDataUrl(value: unknown): boolean {
   return typeof value === 'string' && value.startsWith('data:')
 }
 
-export function parseDataUrl(dataUrl: string): DataUrlPayload {
+export function parseDataUrl(dataUrl: string): MimeBufferPayload {
   const match = /^data:([^;,]+);base64,(.+)$/i.exec(dataUrl || '')
   if (!match) {
     throw new Error('invalid_data_url')
@@ -54,7 +54,9 @@ export function bufferToDataUrl(buffer: Buffer, mimeType: string): string {
   return `data:${mimeType};base64,${buffer.toString('base64')}`
 }
 
-export function getContentTypeCategory(contentType: string | null | undefined): ImageContentTypeCategory {
+export function getContentTypeCategory(
+  contentType: string | null | undefined
+): ImageContentTypeCategory {
   if (!contentType) return 'unknown'
   if (contentType.includes('text/html')) return 'html'
   if (contentType.startsWith('image/')) return 'image'

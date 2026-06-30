@@ -1,9 +1,6 @@
 import { ipcMain } from 'electron'
 import { getFileInfos } from '../../utils/utils.ts'
-import {
-  getLikesOverview,
-  getLikesTracksPage
-} from './collections.ts'
+import { getLikesOverview, getLikesTracksPage } from './collections.ts'
 import {
   getMostPlayedSongsWithDetails,
   getPlayHistoryOrdered,
@@ -22,23 +19,13 @@ import {
   unlikeSong
 } from './preferences.ts'
 import { searchSongsPage } from './search.ts'
-import {
-  getStatisticsOverview,
-  getStatisticsRankingPage
-} from './statistics.ts'
+import { getStatisticsOverview, getStatisticsRankingPage } from './statistics.ts'
 import { getErrorMessage } from './shared.ts'
-import type {
-  AudioFileInfo,
-  ErrorResponse,
-  LikeArgs,
-  LikeChannel,
-  LikeInvokeHandler
-} from '../../Types/likeHandlers.ts'
+import type { LikeArgs, LikeChannel, LikeInvokeHandler } from '../../Types/likeHandlers.ts'
+import type { AudioFileInfo } from '../../Types/filehandlers.ts'
+import type { ErrorResponse } from '../../Types/shared.ts'
 
-export {
-  getLikesOverview,
-  getLikesTracksPage
-}
+export { getLikesOverview, getLikesTracksPage }
 export type * from '../../Types/likeHandlers.ts'
 
 const getAudioFileInfos = getFileInfos as (
@@ -46,15 +33,14 @@ const getAudioFileInfos = getFileInfos as (
   options?: Record<string, unknown>
 ) => Promise<AudioFileInfo[]>
 
-function handleLike<C extends LikeChannel>(
-  channel: C,
-  handler: LikeInvokeHandler<C>
-): void {
+function handleLike<C extends LikeChannel>(channel: C, handler: LikeInvokeHandler<C>): void {
   ipcMain.handle(channel, (event, ...args) => handler(event, ...(args as LikeArgs<C>)))
 }
 
 function isErrorResponse(value: unknown): value is ErrorResponse {
-  return Boolean(value && typeof value === 'object' && 'success' in value && value.success === false)
+  return Boolean(
+    value && typeof value === 'object' && 'success' in value && value.success === false
+  )
 }
 
 export function setupLikeSongHandlers(): void {

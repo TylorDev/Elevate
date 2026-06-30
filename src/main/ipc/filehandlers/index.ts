@@ -15,21 +15,15 @@ import {
   getRandomDirectory,
   searchDirectoriesPage
 } from './directories.ts'
-import {
-  getCollectionOverview,
-  getCollectionTracksPage
-} from './collections.ts'
+import { getCollectionOverview, getCollectionTracksPage } from './collections.ts'
 import {
   getFeedCollectionCover,
   getFeedCollectionRankings,
   invalidateFeedCollectionsCache,
   refreshFeedCollectionRankings
 } from './feed.ts'
-import {
-  openDirectoryInExplorer,
-  revealPathInExplorer
-} from './explorer.ts'
-import { sendNotification } from '../../index.ts'
+import { openDirectoryInExplorer, revealPathInExplorer } from './explorer.ts'
+import { sendNotification } from '../../main/rendererEvents.ts'
 import { prisma } from '../../prisma.ts'
 import { addDirectoryToLibrary } from '../../utils/libraryIngestion.ts'
 import { setNotifyRenderer } from '../../utils/directoryWatcher.ts'
@@ -223,7 +217,10 @@ export function setupFilehandlers(): void {
       return await getFeedCollectionRankings(request)
     } catch (error) {
       console.error('Error retrieving feed collection rankings:', error)
-      return { success: false as const, error: getErrorMessage(error, 'No se pudo cargar el feed.') }
+      return {
+        success: false as const,
+        error: getErrorMessage(error, 'No se pudo cargar el feed.')
+      }
     }
   })
 

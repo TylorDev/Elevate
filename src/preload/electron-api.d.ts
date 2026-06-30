@@ -1,4 +1,17 @@
 import type { IpcRendererEvent } from 'electron'
+import type {
+  DiscordPresenceStatus,
+  DiscordPresenceUpdatePayload
+} from '../main/Types/discordPresence.ts'
+import type { StorageDiagnostics } from '../main/Types/storagePaths.ts'
+import type {
+  AppCommand,
+  GridPresetRequest,
+  GridPresetResult,
+  PrismaStatus,
+  TaskbarPlayerStateInput,
+  WindowStatePayload
+} from '../main/Types/main.ts'
 
 export type IpcCallback = (...args: unknown[]) => void
 export type Unsubscribe = () => void
@@ -14,19 +27,19 @@ export interface ElectronAPI {
     getPathForFile: (file: File) => string
   }
   windowControls: {
-    minimize: () => Promise<unknown>
-    toggleMaximize: () => Promise<unknown>
-    restore: () => Promise<unknown>
-    close: () => Promise<unknown>
-    openExternal: (url: string) => Promise<unknown>
-    quit: () => Promise<unknown>
-    getState: () => Promise<unknown>
-    toggleAlwaysOnTop: () => Promise<unknown>
-    setMinimumSize: (width: number, height: number) => Promise<unknown>
-    applyGridPreset: (selection: unknown) => Promise<unknown>
-    updateTaskbarPlayerState: (payload: unknown) => Promise<unknown>
-    onStateChange: (callback: (payload: unknown) => void) => Unsubscribe
-    onAppCommand: (callback: (command: unknown) => void) => Unsubscribe
+    minimize: () => Promise<void>
+    toggleMaximize: () => Promise<void>
+    restore: () => Promise<void>
+    close: () => Promise<void>
+    openExternal: (url: string) => Promise<boolean>
+    quit: () => Promise<void>
+    getState: () => Promise<WindowStatePayload>
+    toggleAlwaysOnTop: () => Promise<void>
+    setMinimumSize: (width: number, height: number) => Promise<void>
+    applyGridPreset: (selection: GridPresetRequest) => Promise<GridPresetResult>
+    updateTaskbarPlayerState: (payload: TaskbarPlayerStateInput) => Promise<void>
+    onStateChange: (callback: (payload: WindowStatePayload) => void) => Unsubscribe
+    onAppCommand: (callback: (command: AppCommand) => void) => Unsubscribe
   }
   imageSources: {
     validateRemote: (url: string) => Promise<unknown>
@@ -43,13 +56,13 @@ export interface ElectronAPI {
     migrateLegacy: (value: unknown) => Promise<unknown>
   }
   discordPresence: {
-    update: (payload: unknown) => Promise<unknown>
-    clear: () => Promise<unknown>
-    getStatus: () => Promise<unknown>
+    update: (payload: DiscordPresenceUpdatePayload) => Promise<void>
+    clear: () => Promise<void>
+    getStatus: () => Promise<DiscordPresenceStatus>
   }
   appDiagnostics: {
-    getStoragePaths: () => Promise<unknown>
-    getDatabaseStatus: () => Promise<unknown>
+    getStoragePaths: () => Promise<StorageDiagnostics>
+    getDatabaseStatus: () => Promise<PrismaStatus>
   }
 }
 

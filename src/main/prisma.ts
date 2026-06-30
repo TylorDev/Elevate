@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { promises as fs } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { getStoragePaths } from './storagePaths.ts'
+import { getStoragePaths } from './ipc/storagePaths/index.ts'
+import type { PrismaStatus } from './Types/main.ts'
 
 const DEFAULT_PRISMA_WAIT_TIMEOUT_MS = 15_000
 
@@ -42,7 +43,7 @@ async function pathExists(path) {
 }
 
 async function ensureDatabaseFile(databasePath) {
-  if (!databasePath || await pathExists(databasePath)) {
+  if (!databasePath || (await pathExists(databasePath))) {
     return
   }
 
@@ -99,7 +100,9 @@ async function getReadyPrismaClient(timeoutMs = DEFAULT_PRISMA_WAIT_TIMEOUT_MS) 
   }
 
   if (databaseState.error) {
-    throw createPrismaUnavailableError(databaseState.error?.message || 'Prisma initialization failed.')
+    throw createPrismaUnavailableError(
+      databaseState.error?.message || 'Prisma initialization failed.'
+    )
   }
 
   if (!initializePrismaPromise) {
@@ -155,7 +158,7 @@ function createDeferredPrismaAccessor(path = []) {
 
 export const prisma = createDeferredPrismaAccessor()
 
-export function getPrismaStatus() {
+export function getPrismaStatus(): PrismaStatus {
   return {
     isInitializing: databaseState.isInitializing,
     isReady: databaseState.isReady,
@@ -169,6 +172,13 @@ export function getPrismaStatus() {
     initStartedAt: databaseState.initStartedAt,
     initFinishedAt: databaseState.initFinishedAt
   }
+}
+
+export async function disconnectPrisma(): Promise<void> {
+  if (!prismaClient) return
+  await prismaClient.$disconnect()
+  prismaClient = null
+  databaseState.isReady = false
 }
 
 export async function waitForPrisma(options = {}) {

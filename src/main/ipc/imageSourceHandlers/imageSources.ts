@@ -6,16 +6,14 @@ import {
   getMimeTypeFromExtension,
   SUPPORTED_IMAGE_EXTENSIONS
 } from './shared.ts'
-import type { IpcMainInvokeEvent } from 'electron'
+import type { IpcMainInvokeEvent, OpenDialogReturnValue } from 'electron'
 import type {
-  DownloadedImageResult,
-  LocalImageDialogResult,
+  ImageLoadResult,
   LocalImagePreviewResult,
-  LocalImageResult,
   ImagePreviewResult
 } from '../../Types/imageSourceHandlers.ts'
 
-export async function downloadRemoteImage(url: string): Promise<DownloadedImageResult> {
+export async function downloadRemoteImage(url: string): Promise<ImageLoadResult> {
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     return {
       success: false,
@@ -70,7 +68,7 @@ export async function downloadRemoteImage(url: string): Promise<DownloadedImageR
   }
 }
 
-export function readLocalImageFile(filePath: string): LocalImageResult {
+export function readLocalImageFile(filePath: string): ImageLoadResult {
   try {
     const mimeType = getMimeTypeFromExtension(filePath)
     if (!mimeType) {
@@ -97,7 +95,7 @@ export function readLocalImageFile(filePath: string): LocalImageResult {
   }
 }
 
-export function pickLocalImageFile(event: IpcMainInvokeEvent): Promise<LocalImageDialogResult> {
+export function pickLocalImageFile(event: IpcMainInvokeEvent): Promise<OpenDialogReturnValue> {
   const win = BrowserWindow.fromWebContents(event.sender)
 
   return dialog.showOpenDialog(win, {

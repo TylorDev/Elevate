@@ -13,12 +13,11 @@ import type {
   AudioFileInfo,
   AudioCoverCacheEntry,
   AudioCoverPayload,
-  AudioCoverVariant,
   AudioFilesPage,
-  AudioPageRequest,
   AudioPathsCacheEntry,
   ExtractedAudioCover
 } from '../../Types/filehandlers.ts'
+import type { CoverVariant, PageRequestInput } from '../../Types/shared.ts'
 
 const db = prisma as unknown as PrismaClient
 const getAudioFileInfos = getFileInfos as (
@@ -89,7 +88,7 @@ export async function getUniqueAudioPaths(): Promise<string[]> {
   return [...new Set(allAudioFiles)]
 }
 
-export async function getAudioFilesPage(request: AudioPageRequest): Promise<AudioFilesPage> {
+export async function getAudioFilesPage(request: PageRequestInput): Promise<AudioFilesPage> {
   const { page, pageSize } = normalizeAudioPageRequest(request)
   const uniqueAudioFiles = await getUniqueAudioPaths()
   const start = (page - 1) * pageSize
@@ -107,7 +106,7 @@ export async function getAudioFilesPage(request: AudioPageRequest): Promise<Audi
 
 export async function getAudioCover(
   filePath: string | null | undefined,
-  variant: AudioCoverVariant = 'thumb'
+  variant: CoverVariant = 'thumb'
 ): Promise<AudioCoverPayload | null> {
   if (!filePath) return null
 

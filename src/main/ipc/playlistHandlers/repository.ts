@@ -21,11 +21,11 @@ import type {
   PlaylistNameRecord,
   PlaylistSearchItem,
   PlaylistSearchPage,
-  PlaylistSearchRequest,
   PlaylistSender,
   UpsertPlaylistMetadataInput,
   UpsertPlaylistMetadataResult
 } from '../../Types/playlistHandlers.ts'
+import type { SearchPageRequest } from '../../Types/shared.ts'
 
 const db = prisma as unknown as PrismaClient
 const pendingPlaylistRequests = new Map<string, Promise<EnrichedPlaylist[]>>()
@@ -243,7 +243,7 @@ async function processPlaylistsBatch<TOutput>(
 
 export async function getPlaylists<TOutput = EnrichedPlaylist>(
   { take = null, skip = null }: PlaylistListRequest = {},
-  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = (playlist) => playlist as TOutput
 ): Promise<TOutput[]> {
   const requestKey = JSON.stringify({ take, skip })
   const pendingRequest = pendingPlaylistRequests.get(requestKey)
@@ -300,7 +300,7 @@ export async function getPlaylistsMinimal(): Promise<PlaylistMinimal[]> {
 }
 
 export async function getRandomPlaylist<TOutput = EnrichedPlaylist>(
-  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = (playlist) => playlist as TOutput
 ): Promise<TOutput | null> {
   try {
     const totalPlaylists = await db.playlist.count()
@@ -358,7 +358,8 @@ export async function findPlaylistByNameInsensitive(
 
   return (
     playlists.find(
-      (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
+      (playlist) =>
+        normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
     ) || null
   )
 }
@@ -376,7 +377,8 @@ export async function findPlaylistsByNameInsensitive(
   })
 
   return playlists.filter(
-    (playlist) => normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
+    (playlist) =>
+      normalizePlaylistFileName(playlist.nombre).toLowerCase() === normalizedPlaylistName
   )
 }
 
@@ -397,7 +399,9 @@ export async function playlistNameExistsInDatabase(
   return true
 }
 
-export async function playlistPathExistsInDatabase(filePath: string | null | undefined): Promise<boolean> {
+export async function playlistPathExistsInDatabase(
+  filePath: string | null | undefined
+): Promise<boolean> {
   if (!filePath) {
     return false
   }
@@ -422,8 +426,8 @@ export async function playlistIdentityExistsInDatabase(
 }
 
 export async function searchPlaylistsPage<TOutput extends EnrichedPlaylist = EnrichedPlaylist>(
-  request: PlaylistSearchRequest = {},
-  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = ((playlist) => playlist as TOutput)
+  request: SearchPageRequest = {},
+  enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = (playlist) => playlist as TOutput
 ): Promise<PlaylistSearchPage> {
   const query = normalizeSearchQuery(request?.query)
   const page = Math.max(Number(request?.page) || 1, 1)
@@ -441,10 +445,7 @@ export async function searchPlaylistsPage<TOutput extends EnrichedPlaylist = Enr
 
   const matchingPlaylists = await db.playlist.findMany({
     where: {
-      OR: [
-        { nombre: { contains: query } },
-        { path: { contains: query } }
-      ]
+      OR: [{ nombre: { contains: query } }, { path: { contains: query } }]
     }
   })
 

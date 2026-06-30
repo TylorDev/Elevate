@@ -16,10 +16,10 @@ import type {
   AddNewSongToPlaylistRequest,
   AppendTracksToPlaylistRequest,
   AppendTracksToPlaylistResult,
-  ErrorResponse,
   RemoveTrackFromPlaylistRequest,
   UpsertPlaylistMetadataResult
 } from '../../Types/playlistHandlers.ts'
+import type { ErrorResponse } from '../../Types/shared.ts'
 import type { Playlist } from '../../generated/prisma/client.ts'
 
 type TrackMutationResult = UpsertPlaylistMetadataResult | ErrorResponse

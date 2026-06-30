@@ -10,19 +10,10 @@ import {
 } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { prisma } from '../../prisma.ts'
-import {
-  dataUrlToBuffer,
-  getErrorMessage,
-  isSourcePathValue
-} from './shared.ts'
-import {
-  getPlaylist,
-  invalidatePlaylistCache
-} from './repository.ts'
+import { dataUrlToBuffer, getErrorMessage, isSourcePathValue } from './shared.ts'
+import { getPlaylist, invalidatePlaylistCache } from './repository.ts'
 import type { Playlist, Prisma, PrismaClient } from '../../generated/prisma/client.ts'
 import type {
-  AudioCoverPayload,
-  AudioFileInfo,
   EnrichedPlaylist,
   EnsurePlaylistCoverResult,
   MaterializedPlaylistCover,
@@ -30,7 +21,6 @@ import type {
   PlaylistCoverMode,
   PlaylistCoverSelectionInput,
   PlaylistCoverUpdateExtras,
-  PlaylistCoverVariant,
   PlaylistSummary,
   SelectedCoverItem,
   StoredPlaylistCover,
@@ -38,6 +28,8 @@ import type {
   UpdatePlaylistMetadataRequest,
   UpdatePlaylistMetadataResult
 } from '../../Types/playlistHandlers.ts'
+import type { AudioCoverPayload, AudioFileInfo } from '../../Types/filehandlers.ts'
+import type { CoverVariant } from '../../Types/shared.ts'
 
 type SharpFactory = typeof import('sharp')
 
@@ -48,7 +40,7 @@ const getAudioCoverFromCache = getCoverFromCache as (
 ) => Promise<AudioCoverPayload | null>
 const getStoredPlaylistCover = getPlaylistCoverFromCache as (
   coverHash: string,
-  variant?: PlaylistCoverVariant
+  variant?: CoverVariant
 ) => Promise<AudioCoverPayload | null>
 const saveStoredPlaylistCover = savePlaylistCoverToCache as (
   buffer: Buffer
@@ -76,7 +68,9 @@ function parseCoverSelection(value: string | null): unknown | null {
   return JSON.parse(value)
 }
 
-export function buildCoverConfig(playlist: Playlist | null | undefined): PlaylistCoverConfig | null {
+export function buildCoverConfig(
+  playlist: Playlist | null | undefined
+): PlaylistCoverConfig | null {
   if (!playlist) {
     return null
   }
@@ -190,9 +184,9 @@ export async function generatePlaylistCoverFromSelectedImages(
 
     const sharp = await getSharp()
     const resizedImages = await Promise.all(
-      imageBuffers.slice(0, 4).map((buffer) =>
-        sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer()
-      )
+      imageBuffers
+        .slice(0, 4)
+        .map((buffer) => sharp(buffer).resize(250, 250, { fit: 'cover' }).toBuffer())
     )
 
     const canvas = sharp({
@@ -233,7 +227,8 @@ export async function persistPlaylistCoverForMode(
   }
 
   const oldCoverHash = playlist.customCoverHash || null
-  const nextMode: PlaylistCoverMode = mode || (playlist.customCoverMode as PlaylistCoverMode) || null
+  const nextMode: PlaylistCoverMode =
+    mode || (playlist.customCoverMode as PlaylistCoverMode) || null
   const updateData: Prisma.PlaylistUpdateInput = {
     customCoverMode: nextMode,
     customCoverHash: savedCover.coverHash,
@@ -286,7 +281,10 @@ async function materializeStoredPlaylistCover(
   let nextCoverValue: string | null | undefined
   let nextCoverSelection: string | null | undefined
 
-  if (typeof playlist.customCoverValue === 'string' && playlist.customCoverValue.startsWith('data:')) {
+  if (
+    typeof playlist.customCoverValue === 'string' &&
+    playlist.customCoverValue.startsWith('data:')
+  ) {
     const parsed = dataUrlToBuffer(playlist.customCoverValue)
     if (parsed?.buffer) {
       coverBuffer = parsed.buffer
@@ -298,7 +296,10 @@ async function materializeStoredPlaylistCover(
             : playlist.customCoverValue
     }
   } else if (playlist.customCoverMode === 'local-image') {
-    if (isSourcePathValue(playlist.customCoverValue || '') && fs.existsSync(playlist.customCoverValue || '')) {
+    if (
+      isSourcePathValue(playlist.customCoverValue || '') &&
+      fs.existsSync(playlist.customCoverValue || '')
+    ) {
       const sharp = await getSharp()
       coverBuffer = await sharp(playlist.customCoverValue || '')
         .resize(500, 500, { fit: 'cover' })
@@ -310,7 +311,9 @@ async function materializeStoredPlaylistCover(
     if (isSourcePathValue(playlist.customCoverValue || '')) {
       const sharp = await getSharp()
       const axios = (await import('axios')).default
-      const response = await axios.get(playlist.customCoverValue || '', { responseType: 'arraybuffer' })
+      const response = await axios.get(playlist.customCoverValue || '', {
+        responseType: 'arraybuffer'
+      })
       coverBuffer = await sharp(Buffer.from(response.data))
         .resize(500, 500, { fit: 'cover' })
         .png()
@@ -331,10 +334,12 @@ async function materializeStoredPlaylistCover(
     allowAutoGenerate &&
     (playlist.customCoverMode === 'auto-generated' || !playlist.customCoverMode)
   ) {
-    const tracks = (await processPlaylistTracks(playlist.path, path.dirname(playlist.path))).map((song) => ({
-      ...song,
-      picture: undefined
-    }))
+    const tracks = (await processPlaylistTracks(playlist.path, path.dirname(playlist.path))).map(
+      (song) => ({
+        ...song,
+        picture: undefined
+      })
+    )
 
     if (tracks.length > 0) {
       coverBuffer = (await generateCollectionCoverFromTracks(tracks)) as Buffer | null
@@ -377,8 +382,11 @@ export async function getEffectiveCover(
 
 export async function ensurePlaylistCover(
   playlistPath: string | null | undefined,
-  { variant = 'full', allowAutoGenerate = true }: {
-    variant?: PlaylistCoverVariant
+  {
+    variant = 'full',
+    allowAutoGenerate = true
+  }: {
+    variant?: CoverVariant
     allowAutoGenerate?: boolean
   } = {}
 ): Promise<EnsurePlaylistCoverResult> {
@@ -402,9 +410,7 @@ export async function ensurePlaylistCover(
 
     const coverHash = updatedPlaylist?.customCoverHash || playlist.customCoverHash || null
     const variantCover =
-      coverHash && variant !== 'full'
-        ? await getStoredPlaylistCover(coverHash, variant)
-        : cover
+      coverHash && variant !== 'full' ? await getStoredPlaylistCover(coverHash, variant) : cover
 
     return {
       success: true,
@@ -493,7 +499,10 @@ export async function updatePlaylistMetadata({
             }))
 
           if (selectedItems.length !== 4) {
-            return { success: false, error: 'No se pudieron resolver las 4 selecciones del collage' }
+            return {
+              success: false,
+              error: 'No se pudieron resolver las 4 selecciones del collage'
+            }
           }
 
           const collageBuffer = await generatePlaylistCoverFromSelectedImages(selectedItems)
@@ -507,7 +516,10 @@ export async function updatePlaylistMetadata({
             }
           )) as Playlist
         } else {
-          return { success: false, error: 'Para collage sugerido se requieren exactamente 4 selecciones' }
+          return {
+            success: false,
+            error: 'Para collage sugerido se requieren exactamente 4 selecciones'
+          }
         }
       } else if (coverMode === 'local-image' || coverMode === 'remote-image') {
         if (!coverValue) {
@@ -521,10 +533,7 @@ export async function updatePlaylistMetadata({
           }
 
           const sharp = await getSharp()
-          sourceBuffer = await sharp(coverValue)
-            .resize(500, 500, { fit: 'cover' })
-            .png()
-            .toBuffer()
+          sourceBuffer = await sharp(coverValue).resize(500, 500, { fit: 'cover' }).png().toBuffer()
         } else {
           const sharp = await getSharp()
           const axios = (await import('axios')).default
@@ -535,10 +544,15 @@ export async function updatePlaylistMetadata({
             .toBuffer()
         }
 
-        updatedPlaylist = (await persistPlaylistCoverForMode(existingPlaylist, sourceBuffer, coverMode, {
-          customCoverSelection: null,
-          customCoverValue: coverValue
-        })) as Playlist
+        updatedPlaylist = (await persistPlaylistCoverForMode(
+          existingPlaylist,
+          sourceBuffer,
+          coverMode,
+          {
+            customCoverSelection: null,
+            customCoverValue: coverValue
+          }
+        )) as Playlist
       } else if (coverMode === 'auto' || coverMode === null || coverMode === '') {
         oldCoverHashToDelete = existingPlaylist.customCoverHash || null
         updateData.customCoverMode = null

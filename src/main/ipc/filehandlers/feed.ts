@@ -9,7 +9,7 @@ import {
 } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
 import { prisma } from '../../prisma.ts'
-import { getStoragePaths } from '../../storagePaths.ts'
+import { getStoragePaths } from '../storagePaths/index.ts'
 import { getCachedAudioFiles } from './audioLibrary.ts'
 import {
   getDirectoryAudioFiles,

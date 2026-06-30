@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import type { AppCommand, WindowStatePayload } from '../main/Types/main.ts'
 import type { ElectronAPI, IpcBridgeListener, IpcCallback, RendererAPI } from './electron-api'
 
 // Custom APIs for renderer
@@ -15,7 +16,8 @@ const electronAPI: ElectronAPI = {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
     on: (channel, callback) => {
       const listener: IpcBridgeListener = (_event, ...args) => callback(...args)
-      const channelListeners = listenerWrappers.get(callback) ?? new Map<string, IpcBridgeListener>()
+      const channelListeners =
+        listenerWrappers.get(callback) ?? new Map<string, IpcBridgeListener>()
       channelListeners.set(channel, listener)
       listenerWrappers.set(callback, channelListeners)
       ipcRenderer.on(channel, listener)
@@ -55,18 +57,21 @@ const electronAPI: ElectronAPI = {
     quit: () => ipcRenderer.invoke('window:quit'),
     getState: () => ipcRenderer.invoke('window:get-state'),
     toggleAlwaysOnTop: () => ipcRenderer.invoke('window:toggle-always-on-top'),
-    setMinimumSize: (width, height) => ipcRenderer.invoke('window:set-minimum-size', { width, height }),
+    setMinimumSize: (width, height) =>
+      ipcRenderer.invoke('window:set-minimum-size', { width, height }),
     applyGridPreset: (selection) => ipcRenderer.invoke('window:apply-grid-preset', selection),
-    updateTaskbarPlayerState: (payload) => ipcRenderer.invoke('window:update-taskbar-player-state', payload),
+    updateTaskbarPlayerState: (payload) =>
+      ipcRenderer.invoke('window:update-taskbar-player-state', payload),
     onStateChange: (callback) => {
-      const listener: IpcBridgeListener = (_event, payload) => callback(payload)
+      const listener: IpcBridgeListener = (_event, payload) =>
+        callback(payload as WindowStatePayload)
       ipcRenderer.on(windowStateChannel, listener)
       return () => {
         ipcRenderer.removeListener(windowStateChannel, listener)
       }
     },
     onAppCommand: (callback) => {
-      const listener: IpcBridgeListener = (_event, command) => callback(command)
+      const listener: IpcBridgeListener = (_event, command) => callback(command as AppCommand)
       ipcRenderer.on(appCommandChannel, listener)
       return () => {
         ipcRenderer.removeListener(appCommandChannel, listener)

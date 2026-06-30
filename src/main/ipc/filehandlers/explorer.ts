@@ -1,8 +1,8 @@
 import { shell } from 'electron'
 import { getErrorMessage } from './shared.ts'
-import type { ExplorerActionResult } from '../../Types/filehandlers.ts'
+import type { MutationResponse } from '../../Types/shared.ts'
 
-export function revealPathInExplorer(targetPath: string | null | undefined): ExplorerActionResult {
+export function revealPathInExplorer(targetPath: string | null | undefined): MutationResponse {
   try {
     if (!targetPath || typeof targetPath !== 'string') {
       return { success: false, error: 'Path is required' }
@@ -18,7 +18,7 @@ export function revealPathInExplorer(targetPath: string | null | undefined): Exp
 
 export async function openDirectoryInExplorer(
   targetPath: string | null | undefined
-): Promise<ExplorerActionResult> {
+): Promise<MutationResponse> {
   try {
     if (!targetPath || typeof targetPath !== 'string') {
       return { success: false, error: 'Path is required' }

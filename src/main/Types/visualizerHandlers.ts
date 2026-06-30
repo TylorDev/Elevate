@@ -1,6 +1,4 @@
-import type { IpcMainInvokeEvent } from 'electron'
 import type {
-  Prisma,
   PrismaClient,
   VisualizerPlaybackSourceType as DatabaseVisualizerSourceType,
   VisualizerPresetList,
@@ -8,7 +6,8 @@ import type {
   VisualizerPresetSourceMode as DatabaseVisualizerPresetSourceMode,
   VisualizerSettings
 } from '../generated/prisma/client.ts'
-import type { MaybePromise } from './filehandlers.ts'
+import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
+import type { RequiredErrorResponse, SuccessResponse } from './shared.ts'
 
 export type VisualizerPresetSourceMode = 'all' | 'favorites' | 'list'
 
@@ -63,29 +62,17 @@ export type VisualizerAssociateSourcePayload = {
   listId?: string | null
 }
 
-export type VisualizerErrorResponse = {
-  success: false
-  error: string
-}
-
-export type VisualizerStateSuccessResponse = {
-  success: true
+export type VisualizerStateSuccessResponse = SuccessResponse<{
   state: VisualizerState
-}
+}>
 
-export type VisualizerStateResult = VisualizerStateSuccessResponse | VisualizerErrorResponse
+export type VisualizerStateResult = VisualizerStateSuccessResponse | RequiredErrorResponse
 
 export type VisualizerCreateListSuccessResponse = VisualizerStateSuccessResponse & {
   list: VisualizerPresetListState
 }
 
-export type VisualizerCreateListResult =
-  | VisualizerCreateListSuccessResponse
-  | VisualizerErrorResponse
-
-export type VisualizerPresetListWithItems = Prisma.VisualizerPresetListGetPayload<{
-  include: { items: true }
-}>
+export type VisualizerCreateListResult = VisualizerCreateListSuccessResponse | RequiredErrorResponse
 
 export type VisualizerDataClient = Pick<
   PrismaClient,
@@ -97,8 +84,6 @@ export type VisualizerDataClient = Pick<
 >
 
 export type VisualizerPrismaClient = PrismaClient
-
-export type VisualizerTransactionClient = Prisma.TransactionClient
 
 export type VisualizerSettingsMutationData = Partial<
   Pick<VisualizerSettings, 'cycleDurationMs' | 'presetSourceMode' | 'presetSourceListId'>
@@ -168,13 +153,9 @@ export type VisualizerIpcContract = {
   }
 }
 
-export type VisualizerChannel = keyof VisualizerIpcContract
-
-export type VisualizerArgs<C extends VisualizerChannel> = VisualizerIpcContract[C]['args']
-
-export type VisualizerResult<C extends VisualizerChannel> = VisualizerIpcContract[C]['result']
-
-export type VisualizerInvokeHandler<C extends VisualizerChannel> = (
-  event: IpcMainInvokeEvent,
-  ...args: VisualizerArgs<C>
-) => MaybePromise<VisualizerResult<C>>
+export type VisualizerChannel = IpcChannel<VisualizerIpcContract>
+export type VisualizerArgs<C extends VisualizerChannel> = IpcArgs<VisualizerIpcContract, C>
+export type VisualizerInvokeHandler<C extends VisualizerChannel> = IpcInvokeHandler<
+  VisualizerArgs<C>,
+  VisualizerIpcContract[C]['result']
+>

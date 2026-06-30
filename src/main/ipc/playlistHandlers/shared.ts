@@ -2,13 +2,13 @@ import path from 'path'
 import { buildRankingPageFromTracks } from '../../utils/utils.ts'
 import type {
   AudioFileInfo,
-  DataUrlBufferResult,
-  PageRequest,
-  PlaylistInsightRankingId,
-  PlaylistInsightRankings
-} from '../../Types/playlistHandlers.ts'
+  InsightRankingId,
+  InsightRankings,
+  RankingMetricKey
+} from '../../Types/filehandlers.ts'
+import type { MimeBufferPayload, PageRequest } from '../../Types/shared.ts'
 
-export const INSIGHT_METRIC_KEYS: Record<PlaylistInsightRankingId, keyof AudioFileInfo> = {
+export const INSIGHT_METRIC_KEYS: Record<InsightRankingId, RankingMetricKey> = {
   duration: 'duration',
   shortViews: 'short_view_count',
   longViews: 'long_view_count',
@@ -53,7 +53,9 @@ function hasControlCharacters(value: string): boolean {
 }
 
 export function stripControlCharacters(value: string): string {
-  return Array.from(value).filter((character) => character.charCodeAt(0) > 31).join('')
+  return Array.from(value)
+    .filter((character) => character.charCodeAt(0) > 31)
+    .join('')
 }
 
 export function getErrorMessage(error: unknown, fallback = 'Unexpected error.'): string {
@@ -63,27 +65,33 @@ export function getErrorMessage(error: unknown, fallback = 'Unexpected error.'):
 export function buildInsightRankingsFromTracks(
   tracks: AudioFileInfo[] = [],
   request: PageRequest = {}
-): PlaylistInsightRankings {
+): InsightRankings {
   const page = Number(request?.page) || 1
   const pageSize = Number(request?.pageSize) || 50
 
-  return Object.entries(INSIGHT_METRIC_KEYS).reduce<PlaylistInsightRankings>((rankings, [tabId, metricKey]) => {
-    rankings[tabId as PlaylistInsightRankingId] = buildRankingPageFromTracks(tracks, metricKey, {
-      page,
-      pageSize
-    })
-    return rankings
-  }, {})
+  return Object.entries(INSIGHT_METRIC_KEYS).reduce<InsightRankings>(
+    (rankings, [tabId, metricKey]) => {
+      rankings[tabId as InsightRankingId] = buildRankingPageFromTracks(tracks, metricKey, {
+        page,
+        pageSize
+      })
+      return rankings
+    },
+    {}
+  )
 }
 
-export function normalizePageRequest(request: PageRequest = {}): { page: number; pageSize: number } {
+export function normalizePageRequest(request: PageRequest = {}): {
+  page: number
+  pageSize: number
+} {
   return {
     page: Math.max(Number(request?.page) || 1, 1),
     pageSize: Math.min(Math.max(Number(request?.pageSize) || 50, 1), 200)
   }
 }
 
-export function dataUrlToBuffer(dataUrl: unknown): DataUrlBufferResult | null {
+export function dataUrlToBuffer(dataUrl: unknown): MimeBufferPayload | null {
   if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
     return null
   }
@@ -112,7 +120,9 @@ export function extractPlaylistName(filePath: string): string {
 }
 
 export function stripPlaylistExtension(nombre = ''): string {
-  return String(nombre).trim().replace(/\.m3u$/i, '')
+  return String(nombre)
+    .trim()
+    .replace(/\.m3u$/i, '')
 }
 
 export function normalizePlaylistFileName(nombre = ''): string {
@@ -191,7 +201,9 @@ export function sanitizePlaylistTrackPaths(filePaths: unknown = []): string[] {
 }
 
 export function hasDuplicatePlaylistTrackPaths(filePaths: unknown = []): boolean {
-  return Array.isArray(filePaths) && sanitizePlaylistTrackPaths(filePaths).length !== filePaths.length
+  return (
+    Array.isArray(filePaths) && sanitizePlaylistTrackPaths(filePaths).length !== filePaths.length
+  )
 }
 
 export function getPlaylistTrackSignature(filePaths: unknown = []): string {
