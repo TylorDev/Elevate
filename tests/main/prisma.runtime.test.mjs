@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
-import { createPrismaTestContext } from './helpers/runtime.mjs'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createPrismaTestContext, importFreshProject } from './helpers/runtime.mjs'
 
 let context = null
 
@@ -63,5 +63,32 @@ describe('main prisma runtime', () => {
 
     const afterDevDbMtime = fs.existsSync(devDbPath) ? fs.statSync(devDbPath).mtimeMs : null
     expect(afterDevDbMtime).toBe(beforeDevDbMtime)
+  })
+
+  it('preserves records when reopening an existing database', async () => {
+    context = await createPrismaTestContext()
+    const existingPath = path.join(context.root, 'existing.mp3')
+    await context.client.songs.create({
+      data: {
+        filepath: existingPath,
+        filename: 'existing',
+        title: 'Existing record',
+        metadataLoaded: true
+      }
+    })
+    await context.client.$disconnect()
+    vi.resetModules()
+
+    const prismaModule = await importFreshProject('src/main/prisma.ts')
+    const reopenedClient = await prismaModule.initializePrisma()
+    const existingRecord = await reopenedClient.songs.findUnique({
+      where: { filepath: existingPath }
+    })
+
+    expect(existingRecord).toMatchObject({
+      filepath: existingPath,
+      title: 'Existing record'
+    })
+    await prismaModule.disconnectPrisma()
   })
 })

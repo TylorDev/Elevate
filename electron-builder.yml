@@ -24,6 +24,7 @@ win:
       to: redist/vc_redist.x64.exe
 nsis:
   include: build/installer.nsh
+  deleteAppDataOnUninstall: false
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
