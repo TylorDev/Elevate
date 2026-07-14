@@ -5,8 +5,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ES2024", "DOM"],
     "types": ["node", "electron-vite/node"],
-    "allowJs": true,
-    "checkJs": false,
+    "jsx": "react-jsx",
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
@@ -20,8 +19,6 @@
     "electron.vite.config.mjs",
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.js",
-    "src/**/*.jsx",
     "src/**/*.mjs",
     "tests/**/*.mjs"
   ],
