@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { LuCheck, LuFolderOpen, LuListMusic, LuSearch, LuSettings2, LuUserRoundSearch } from 'react-icons/lu'
 import { Cola } from '../Cola/Cola'
 import { useGlobalSearch } from '../../Contexts/GlobalSearchContext'
 import { useI18n } from '../../Contexts/I18nContext'
+import type { GlobalSearchFilterId } from '../../Types/GlobalSearchContextTypes/index.ts'
+import { GLOBAL_SEARCH_FILTERS } from '../../Contexts/GlobalSearchContext/searchConfig.ts'
 import SearchEntityList from './SearchEntityList'
 
-const FILTERS = [
-  { id: 'directory', labelKey: 'search.directory', icon: <LuFolderOpen /> },
-  { id: 'playlist', labelKey: 'search.playlist', icon: <LuListMusic /> },
-  { id: 'artist', labelKey: 'search.artist', icon: <LuUserRoundSearch /> },
-  { id: 'name', labelKey: 'search.name', icon: <LuSearch /> },
-  { id: 'configuration', labelKey: 'search.configuration', icon: <LuSettings2 /> }
-]
+const FILTER_ICONS: Record<GlobalSearchFilterId, ReactNode> = {
+  directory: <LuFolderOpen />,
+  playlist: <LuListMusic />,
+  artist: <LuUserRoundSearch />,
+  name: <LuSearch />,
+  configuration: <LuSettings2 />
+}
+
+const FILTERS = GLOBAL_SEARCH_FILTERS.map((filter) => ({
+  ...filter,
+  icon: FILTER_ICONS[filter.id]
+}))
 
 function SearchSection({
   section,
