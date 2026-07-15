@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Cola } from '../../components/Cola/Cola'
 import { useMini } from '../../Contexts/MiniContext'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { LuClock, LuActivity, LuSparkles } from 'react-icons/lu'
 import './Search.scss'
 

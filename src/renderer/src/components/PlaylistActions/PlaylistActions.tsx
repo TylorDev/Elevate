@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import './PlaylistActions.scss'
 
 import { useQueue } from '../../Contexts/QueueContext'

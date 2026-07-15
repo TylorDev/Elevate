@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LuArrowLeft, LuArrowRight, LuFolderOpen, LuMoveUp } from 'react-icons/lu'
 import Modal from '../Modal/Modal'
 import { useI18n } from '../../Contexts/I18nContext'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import ExploremItem from './ExploremItem'
 import './PlaylistSaveModal.scss'
 

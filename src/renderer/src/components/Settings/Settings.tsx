@@ -17,7 +17,7 @@ import {
 import { useSuper } from '../../Contexts/SupeContext'
 import { useBackground } from '../../Contexts/BackgroundContext'
 import { useMini } from '../../Contexts/MiniContext'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import './Settings.scss'
 

@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { PlaylistsProvider, usePlaylists } from '../../../src/renderer/src/Contexts/PlaylistsContex.tsx'
+import { PlaylistsProvider, usePlaylists } from '../../../src/renderer/src/Contexts/PlaylistContext/index.ts'
 import { getPlaylistContextValue } from '../../../src/renderer/src/Contexts/PlaylistContext/PlaylistsProvider.tsx'
-import { PlaylistsProvider as FolderProvider } from '../../../src/renderer/src/Contexts/PlaylistContext/index.ts'
 
 describe('PlaylistContext public contract', () => {
-  it('preserves the legacy facade exports', () => {
-    expect(PlaylistsProvider).toBe(FolderProvider)
+  it('preserves the canonical context exports', () => {
+    expect(PlaylistsProvider).toBeTypeOf('function')
     expect(usePlaylists).toBeTypeOf('function')
   })
 

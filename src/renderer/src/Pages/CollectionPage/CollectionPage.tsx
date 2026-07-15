@@ -13,7 +13,7 @@ import {
 import { Bounce, toast } from 'react-toastify'
 import { useImages } from '../../Contexts/ImagesContext'
 import { useQueue } from '../../Contexts/QueueContext'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { Button } from '../../components/Button/Button'
 import { CollectionInsightsPanel } from '../../components/CollectionInsights/CollectionInsightsPanel'

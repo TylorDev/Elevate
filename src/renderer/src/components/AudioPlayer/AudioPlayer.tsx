@@ -25,7 +25,7 @@ import { useSuper } from '../../Contexts/SupeContext'
 import { usePlaybackProgress } from '../../Contexts/PlaybackProgressContext'
 import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { useLikes } from '../../Contexts/LikeContext'
 
 import { AudioPlayerButton } from './AudioPlayerButton'

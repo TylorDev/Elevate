@@ -1,4 +1,4 @@
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import './FormAddTo.scss'
 
 export function FormAddTo({ file }) {

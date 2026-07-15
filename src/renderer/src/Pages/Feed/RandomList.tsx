@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import './RandomList.scss'
 import { useNavigate } from 'react-router-dom'
 import { useImages } from '../../Contexts/ImagesContext'

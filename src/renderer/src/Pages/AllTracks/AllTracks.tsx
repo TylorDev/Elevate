@@ -1,6 +1,6 @@
 import './AllTracks.scss'
 
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { VirtualizedCola } from '../../components/Cola/VirtualizedCola'
 import { useParams } from 'react-router-dom'
 import { useSuper } from '../../Contexts/SupeContext'

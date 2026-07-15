@@ -3,7 +3,7 @@ import { Bounce, toast } from 'react-toastify'
 import { LuListPlus, LuPlus, LuRefreshCw } from 'react-icons/lu'
 import Modal from '../Modal/Modal'
 import { PlaylistSaveModal } from '../PlaylistSaveModal/PlaylistSaveModal'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import './CollectionAddToPlaylistModal.scss'
 
 export function CollectionAddToPlaylistModal({

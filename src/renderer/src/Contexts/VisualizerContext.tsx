@@ -10,7 +10,7 @@ import {
 import { useLocation } from 'react-router-dom'
 import { usePlayback } from './PlaybackContext'
 import { useMini } from './MiniContext'
-import { usePlaylists } from './PlaylistsContex'
+import { usePlaylists } from './PlaylistContext'
 import { useQueue } from './QueueContext'
 import { visualizerService } from './visualizerService'
 import {

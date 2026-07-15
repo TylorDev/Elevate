@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { usePlaylists } from './PlaylistsContex'
+import { usePlaylists } from './PlaylistContext'
 import { useMini } from './MiniContext'
 import { useQueue } from './QueueContext'
 

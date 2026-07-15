@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { RiShuffleLine } from 'react-icons/ri'
 import { useI18n } from '../../../Contexts/I18nContext'
-import { usePlaylists } from '../../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../../Contexts/PlaylistContext'
 import { useQueue } from '../../../Contexts/QueueContext'
 import Cola from '../../Cola/Cola'
 import QueueEmptyState from '../QueueEmptyState'

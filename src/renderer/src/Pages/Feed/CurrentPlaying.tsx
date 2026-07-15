@@ -3,7 +3,7 @@ import { formatTimestamp } from '../../../timeUtils'
 import { Button } from '../../Components/Button/Button'
 import { MediaTimeDisplay } from '../../Components/MediaTimeDisplay/MediaTimeDisplay'
 import './CurrentPlaying.scss'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { usePlayback } from '../../Contexts/PlaybackContext'
 import { useQueue } from '../../Contexts/QueueContext'
 

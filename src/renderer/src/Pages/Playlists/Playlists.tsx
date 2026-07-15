@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 
 import './Playlists.scss'
 
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 
 import { PlaylistItem } from './PlaylistItem'
 import { PlaylistActions } from '../../Components/PlaylistActions/PlaylistActions'

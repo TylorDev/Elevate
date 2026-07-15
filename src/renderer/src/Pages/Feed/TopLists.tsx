@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { PlaylistItem } from '../Playlists/PlaylistItem'
 import './TopLists.scss'
 

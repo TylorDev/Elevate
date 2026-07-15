@@ -1,6 +1,6 @@
 import './Lista.scss'
 
-import { usePlaylists } from '../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../Contexts/PlaylistContext'
 import { Cola } from '../../Components/Cola/Cola'
 
 import { PlaylistActions } from '../../Components/PlaylistActions/PlaylistActions'

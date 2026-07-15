@@ -1,7 +1,7 @@
 import { Cola } from '../../../Components/Cola/Cola'
 import './Aside.scss'
 import { useMini } from '../../../Contexts/MiniContext'
-import { usePlaylists } from '../../../Contexts/PlaylistsContex'
+import { usePlaylists } from '../../../Contexts/PlaylistContext'
 
 import { Section } from './Section'
 import { useEffect } from 'react'
