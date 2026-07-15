@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     fileParallelism: false,
-    include: ['tests/main/**/*.test.mjs'],
+    include: ['tests/main/**/*.test.mjs', 'tests/renderer/**/*.test.mjs'],
     setupFiles: ['tests/main/setup.mjs'],
     testTimeout: 60_000,
     hookTimeout: 60_000

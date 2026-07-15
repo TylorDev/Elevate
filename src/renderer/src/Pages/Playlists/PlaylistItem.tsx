@@ -1,4 +1,5 @@
 import { formatDuration } from '../../../timeUtils'
+import type { PlaylistListPayload } from '../../../../main/Types/playlistHandlers.ts'
 import { FaTrash } from 'react-icons/fa'
 import { LuDownload, LuLink, LuListMusic, LuPencil, LuUnlink } from 'react-icons/lu'
 import { Bounce, toast } from 'react-toastify'
@@ -161,7 +162,7 @@ export const PlaylistItem = memo(function PlaylistItem({
       setIsEditLoading(true)
 
       try {
-        const playlistData = await new Promise((resolve) => {
+        const playlistData = await new Promise<PlaylistListPayload>((resolve) => {
           getUniqueList(resolve, playlist.path)
         })
 
@@ -181,7 +182,7 @@ export const PlaylistItem = memo(function PlaylistItem({
     if (optionId === 'export') {
       setIsExportLoading(true)
       try {
-        const playlistData = await new Promise((resolve) => {
+        const playlistData = await new Promise<PlaylistListPayload>((resolve) => {
           getUniqueList(resolve, playlist.path)
         })
         const tracks = playlistData?.processedData || []
