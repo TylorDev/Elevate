@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   FAVORITES_STORAGE_KEY,
   createBrowserVisualizerPersistence
-} from '../../../src/ElevateViz/sandbox/src/services/browserVisualizerPersistence.ts'
+} from '../../../src/renderer/src/ElevateViz/sandbox/src/services/browserVisualizerPersistence.ts'
 
 function createStorage(initial = {}) {
   const values = new Map(Object.entries(initial))

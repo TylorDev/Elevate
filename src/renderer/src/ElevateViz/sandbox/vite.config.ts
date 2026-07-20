@@ -19,7 +19,7 @@ export default defineConfig({
         additionalData: (source, filename) => {
           const normalizedFilename = filename.replaceAll('\\', '/')
           const theme =
-            normalizedFilename.includes('/src/ElevateViz/sandbox/')
+            normalizedFilename.includes('/src/renderer/src/ElevateViz/sandbox/')
               ? '@sandbox/styles/theme'
               : '@elevate-viz-theme'
           return `@use "${theme}" as *;\n${source}`
@@ -33,7 +33,7 @@ export default defineConfig({
     open: true
   },
   build: {
-    outDir: fileURLToPath(new URL('../../../dist/elevate-viz-sandbox', import.meta.url)),
+    outDir: fileURLToPath(new URL('../../../../../dist/elevate-viz-sandbox', import.meta.url)),
     emptyOutDir: true
   }
 })

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { visualizerService } from '../../../src/ElevateViz/services/visualizerService.ts'
+import { visualizerService } from '../../../src/renderer/src/ElevateViz/services/visualizerService.ts'
 
 afterEach(() => vi.unstubAllGlobals())
 

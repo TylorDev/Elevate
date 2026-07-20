@@ -4,7 +4,9 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   resolve: {
     alias: {
-      '@elevate-viz': fileURLToPath(new URL('./src/ElevateViz/index.ts', import.meta.url))
+      '@elevate-viz': fileURLToPath(
+        new URL('./src/renderer/src/ElevateViz/index.ts', import.meta.url)
+      )
     }
   },
   test: {

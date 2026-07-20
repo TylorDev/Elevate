@@ -5,7 +5,7 @@ import {
   createMp3Asset,
   createPlaceholderCoverDataUrl,
   isMp3File
-} from '../../../src/ElevateViz/sandbox/src/utils/mp3Asset.ts'
+} from '../../../src/renderer/src/ElevateViz/sandbox/src/utils/mp3Asset.ts'
 
 const mp3 = (name = 'track.mp3') => new File([new Uint8Array([73, 68, 51])], name, {
   type: 'audio/mpeg'

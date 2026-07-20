@@ -12,7 +12,7 @@ import {
   normalizeVisualizerState,
   resolveEffectivePresetSource,
   shuffleArray
-} from '../../../src/ElevateViz/utils/visualizerUtils.ts'
+} from '../../../src/renderer/src/ElevateViz/utils/visualizerUtils.ts'
 
 afterEach(() => vi.restoreAllMocks())
 
