@@ -24,6 +24,8 @@
     "test:generate": "npm run prisma:generate && npm test",
     "start": "node scripts/electron-vite.mjs preview",
     "dev": "node scripts/electron-vite.mjs dev",
+    "viz:sandbox": "vite --config src/ElevateViz/sandbox/vite.config.ts",
+    "viz:sandbox:build": "vite build --config src/ElevateViz/sandbox/vite.config.ts",
     "test:main": "vitest run --configLoader runner --config vitest.config.mjs",
     "test:main:watch": "vitest --configLoader runner --config vitest.config.mjs",
     "prebuild": "node scripts/clean-build.mjs && node scripts/prepare-template-db.mjs",

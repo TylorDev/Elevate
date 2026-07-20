@@ -16,10 +16,8 @@ import Modal from '../../components/Modal/Modal'
 import PlaylistForm from '../../components/PlaylistForm/PlaylistForm'
 import PlaylistSaveModal from '../../components/PlaylistSaveModal/PlaylistSaveModal'
 import {
-  getSourceKey,
-  useVisualizerListActions,
-  useVisualizerSources
-} from '../../components/Render/useVisualizerPresets'
+  useElevateVizAssociations
+} from '@elevate-viz'
 
 export const PlaylistItem = memo(function PlaylistItem({
   playlist,
@@ -47,12 +45,17 @@ export const PlaylistItem = memo(function PlaylistItem({
   const [isExportVisible, setIsExportVisible] = useState(false)
   const [exportTracks, setExportTracks] = useState([])
   const [isExportLoading, setIsExportLoading] = useState(false)
-  const { presetLists, sourceAssociations } = useVisualizerSources()
-  const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
+  const {
+    associateSource,
+    getSourceKey,
+    presetLists,
+    removeSourceAssociation,
+    sourceAssociations
+  } = useElevateVizAssociations()
   const playlistPath = playlist?.path || ''
   const playlistSource = useMemo(
     () => ({
-      type: 'playlist',
+      type: 'playlist' as const,
       id: playlistPath
     }),
     [playlistPath]
@@ -148,7 +151,7 @@ export const PlaylistItem = memo(function PlaylistItem({
           return
         }
 
-        void associateSourceToList(playlistSource, selectedId)
+        void associateSource(playlistSource, selectedId)
       }
     },
     { id: 'edit', label: t('actions.editPlaylist'), icon: <LuPencil /> },

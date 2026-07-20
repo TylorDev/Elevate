@@ -3,7 +3,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { AudioPlayer } from '../../Components/AudioPlayer/AudioPlayer'
 import Header from '../../Components/Header/Header'
 import Background from '../../Components/Background/Background'
-import { VisualizerProvider } from '../../Contexts/VisualizerContext'
+import { ElevateVizBridge } from '../../components/ElevateVizBridge/ElevateVizBridge'
 import StatusBar from '../../components/StatusBar/StatusBar'
 import './Main.scss'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
@@ -199,7 +199,7 @@ function Main() {
 
   return (
     <div className={mainClassName}>
-      <VisualizerProvider>
+      <ElevateVizBridge>
         <Background />
         <div className="Main__status">
           <StatusBar
@@ -242,7 +242,7 @@ function Main() {
         <aside className="Main__queue">
           <QueueTabsPanel />
         </aside>
-      </VisualizerProvider>
+      </ElevateVizBridge>
       <ToastContainer
         position="bottom-right"
         autoClose={3000}

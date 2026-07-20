@@ -1,0 +1,18 @@
+[data-elevate-viz-root] {
+  box-sizing: border-box;
+  color: inherit;
+  font: inherit;
+}
+
+[data-elevate-viz-root] *,
+[data-elevate-viz-root] *::before,
+[data-elevate-viz-root] *::after {
+  box-sizing: border-box;
+}
+
+[data-elevate-viz-root] button,
+[data-elevate-viz-root] input,
+[data-elevate-viz-root] textarea,
+[data-elevate-viz-root] select {
+  font: inherit;
+}

@@ -1,0 +1,509 @@
+.root {}
+
+:global {
+
+.Music {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: #000000;
+  border-radius: $border-radius;
+
+
+  &.no-visualizer {}
+
+  .visualizer-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+  }
+
+  .cover-as-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    background-color: $primary-color;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .blurred-cover-background {
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    right: -20px;
+    bottom: -20px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    filter: blur(4px);
+    opacity: 0.4;
+  }
+
+  .music-right-click-hint {
+    position: absolute;
+    z-index: 3;
+    min-width: 108px;
+    padding: 0.45rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(10, 10, 10, 0.84);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.76rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+    transform: translate3d(0, 0, 0);
+  }
+
+  .Player-main {
+    flex: 1;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .cover-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 60vh;
+      transform: scale(0.72);
+      aspect-ratio: 1 / 1;
+      padding: 0;
+      border: 0;
+      border-radius: $border-radius;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+      border-radius: $border-radius;
+      transition:
+        transform 220ms ease,
+        box-shadow 220ms ease;
+
+      &.is-clickable {
+        cursor: pointer;
+      }
+
+      &:disabled {
+        cursor: default;
+      }
+
+      .cover-container {
+        width: 100%;
+        height: 100%;
+        background: #111;
+
+        .album-cover {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .no-cover {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #555;
+          font-size: 1.2rem;
+        }
+      }
+
+      &.is-clickable:hover {
+        transform: scale(0.76);
+        box-shadow: 0 30px 64px rgba(0, 0, 0, 0.9);
+      }
+    }
+  }
+
+  .controls-visibility-btn,
+  .current-preset-name,
+  .visualizer-control-btn,
+  .preset-nav-btn,
+  .current-preset-name__favorite,
+  .current-preset-name__remove {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: $border-radius;
+    background: rgba(0, 0, 0, 0.62);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(10px);
+    color: $text-primary;
+  }
+
+  .controls-visibility-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 5;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover {
+      background: $hover;
+    }
+  }
+
+  .visualizer-controls-panel {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    max-width: min(70vw, 900px);
+  }
+
+  .visualizer-control-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 42px;
+    padding: 0 0.95rem;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:not(:disabled):hover {
+      background: $hover;
+    }
+
+    &.is-active {
+      border-color: color-mix(in srgb, $primary-color 45%, transparent);
+      background: color-mix(in srgb, $primary-color 14%, transparent);
+      color: $primary-color;
+    }
+
+    &.is-saved {
+      border-color: color-mix(in srgb, $primary-color 45%, transparent);
+      background: color-mix(in srgb, $primary-color 14%, transparent);
+      color: $primary-color;
+    }
+
+    &.is-error {
+      border-color: rgba(255, 84, 84, 0.35);
+      background: rgba(255, 84, 84, 0.14);
+      color: #ff8a8a;
+    }
+  }
+
+  .visualizer-duration-select {
+    min-width: 140px;
+    display: grid;
+    gap: 0.35rem;
+
+    &__label {
+      padding-left: 0.2rem;
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    &__trigger {
+      min-height: 42px;
+      padding: 0 0.95rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: $border-radius;
+      background: rgba(0, 0, 0, 0.62);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(10px);
+      color: $text-primary;
+
+      &:hover {
+        background: $hover;
+      }
+    }
+  }
+
+  .current-preset-name {
+    position: absolute;
+    left: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 4;
+    max-width: min(26rem, calc(100vw - 8rem));
+    padding: 0.6rem 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: $text-primary;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+    pointer-events: auto;
+
+    &__text {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    &__favorite {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+
+      &:hover {
+        background: $hover;
+      }
+
+      &.is-active {
+        color: #ff6b6b;
+      }
+    }
+
+    &__remove {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.82);
+
+      &:hover {
+        background: rgba(255, 84, 84, 0.14);
+        color: #ff8a8a;
+      }
+    }
+  }
+
+  .preset-nav-controls {
+    position: absolute;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .preset-nav-btn {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover {
+      background: $hover;
+    }
+  }
+
+  &.Music--picture-in-picture {
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+    -webkit-app-region: drag;
+
+    .visualizer-background {
+      z-index: 1;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .pip-drag-surface {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+   
+      cursor: grab;
+      -webkit-app-region: drag;
+
+   
+    }
+
+    .pip-empty-state {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 0.92rem;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .pip-close-btn,
+    .pip-control-btn,
+    .pip-controls,
+    .pip-timeline,
+    .waveform {
+      -webkit-app-region: no-drag;
+    }
+
+    .pip-close-btn,
+    .pip-control-btn {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: $border-radius;
+      background: rgba(0, 0, 0, 0);
+      box-shadow:
+        0 14px 30px rgba(0, 0, 0, 0.34),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: $text-primary;
+      cursor: pointer;
+      transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        background 160ms ease,
+        color 160ms ease;
+
+      &:hover {
+        border-color: color-mix(in srgb, $primary-color 40%, rgba(255, 255, 255, 0.14));
+        background: rgba(12, 12, 12, 0.78);
+        color: $primary-color;
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+        transform: none;
+      }
+    }
+
+    .pip-close-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      z-index: 4;
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pip-controls {
+      position: absolute;
+      left: 50%;
+      bottom: 1rem;
+      z-index: 4;
+      width: min(42rem, calc(100vw - 2rem));
+      display: grid;
+      grid-template-columns: auto auto auto minmax(10rem, 1fr);
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.75rem;
+
+      border-radius: $border-radius;
+ 
+       background-color: color-mix(in srgb, black 60%, transparent),;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(18px);
+      transform: translateX(-50%);
+      opacity: 0.0;
+      pointer-events: auto;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+      
+    .pip-control-btn {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        width: 1.1rem;
+        height: 1.1rem;
+        fill: currentColor;
+      }
+    }
+
+    .pip-control-btn--play {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(
+        145deg,
+        color-mix(in srgb, $primary-color 86%, white),
+        color-mix(in srgb, $primary-color 74%, black)
+      );
+      color: $activeIcon;
+
+      svg {
+        width: 1.25rem;
+        height: 1.25rem;
+        fill: currentColor;
+      }
+
+      &:hover {
+        color: $activeIcon;
+          background: linear-gradient(
+        145deg,
+        color-mix(in srgb, $primary-color 86%, white),
+        color-mix(in srgb, $primary-color 74%, black)
+      );
+       filter: brightness(1.2);
+      }
+    }
+
+    .pip-timeline {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: auto minmax(7rem, 1fr) auto;
+      align-items: center;
+      gap: 0.65rem;
+
+      .waveform {
+        grid-area: auto;
+      }
+    }
+
+    .pip-time {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 0.72rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      white-space: nowrap;
+
+      &:first-child {
+        color: var(--Dynamic-color, #ff6b6b);
+      }
+    }
+  }
+}
+
+}

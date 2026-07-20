@@ -11,10 +11,8 @@ import { useImages } from '../../Contexts/ImagesContext'
 import { memo, useMemo, useState } from 'react'
 import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import {
-  getSourceKey,
-  useVisualizerListActions,
-  useVisualizerSources
-} from '../Render/useVisualizerPresets'
+  useElevateVizAssociations
+} from '@elevate-viz'
 
 export const DirItem = memo(function DirItem({ directory, onSelect, disableNavigation = false, style }) {
   const navigate = useNavigate()
@@ -22,12 +20,17 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
   const { deleteDirectoryList } = usePlaylists()
   const { getCollectionCoverUrl } = useImages()
   const [isConfirmVisible, setIsConfirmVisible] = useState(false)
-  const { presetLists, sourceAssociations } = useVisualizerSources()
-  const { associateSourceToList, removeSourceAssociation } = useVisualizerListActions()
+  const {
+    associateSource,
+    getSourceKey,
+    presetLists,
+    removeSourceAssociation,
+    sourceAssociations
+  } = useElevateVizAssociations()
   const directoryPath = directory?.path || ''
   const directorySource = useMemo(
     () => ({
-      type: 'directory',
+      type: 'directory' as const,
       id: directoryPath
     }),
     [directoryPath]
@@ -144,7 +147,7 @@ export const DirItem = memo(function DirItem({ directory, onSelect, disableNavig
           return
         }
 
-        void associateSourceToList(directorySource, selectedId)
+        void associateSource(directorySource, selectedId)
       }
     },
     ...(!isRootDirectory

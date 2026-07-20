@@ -1,0 +1,27 @@
+.bar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: $spacing-2 $spacing-4;
+  padding: $spacing-2 $spacing-4;
+  color: $color-text-secondary;
+  border: $border-width-default solid $border-color-default;
+  border-radius: $border-radius-md;
+  background: rgb(21 23 27 / 78%);
+  font-size: $font-size-xs;
+
+  span {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: $spacing-1;
+  }
+}
+
+.warning {
+  max-width: 28rem;
+  overflow: hidden;
+  color: $color-warning;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

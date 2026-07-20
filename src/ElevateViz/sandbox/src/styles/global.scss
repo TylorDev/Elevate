@@ -1,0 +1,44 @@
+@use './theme' as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  font-family: $font-family-primary;
+  background: $color-background;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  color: $color-text-primary;
+  background:
+    radial-gradient(circle at 20% -10%, rgb(127 92 255 / 18%), transparent 34rem),
+    $color-background;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+label {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  color: $color-background;
+  background: $color-primary;
+}
+
+#root {
+  min-height: 100vh;
+}

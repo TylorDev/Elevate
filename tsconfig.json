@@ -3,6 +3,9 @@
     "target": "ES2024",
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": {
+      "@elevate-viz": ["./src/ElevateViz/index.ts"]
+    },
     "lib": ["ES2024", "DOM"],
     "types": ["node", "electron-vite/node"],
     "jsx": "react-jsx",

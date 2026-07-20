@@ -1,0 +1,35 @@
+.layout {
+  display: grid;
+  min-height: 100vh;
+  grid-template-rows: auto auto minmax(32rem, 1fr);
+  gap: $spacing-3;
+  padding: $spacing-4;
+}
+
+.header {
+  width: min(100%, $content-width-lg);
+  margin-inline: auto;
+}
+
+.diagnostics {
+  width: min(100%, $content-width-lg);
+  margin-inline: auto;
+}
+
+.main {
+  width: min(100%, $content-width-lg);
+  min-height: 0;
+  margin-inline: auto;
+  overflow: hidden;
+  border: $border-width-default solid $border-color-default;
+  border-radius: $border-radius-lg;
+  background: $color-surface;
+  box-shadow: $shadow-lg;
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .layout {
+    grid-template-rows: auto auto minmax(28rem, 1fr);
+    padding: $spacing-2;
+  }
+}
