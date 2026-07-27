@@ -11,7 +11,8 @@ out
 *.log*
 .db
 /src/main/generated/prisma
-
+*.db-shm
+*.db-wal
 # Images
 *.png
 *.jpg
