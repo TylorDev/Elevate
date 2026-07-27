@@ -20,10 +20,12 @@ import {
   getSourceKey,
   getSourceLabel,
   mapPresetNamesToItems,
+  normalizePresetCatalog,
   normalizePlaybackSource,
   normalizePresetSource,
   normalizeVisualizerState,
   resolveEffectivePresetSource,
+  resolvePresetNavigationOrder,
   shuffleArray
 } from '../utils/visualizerUtils'
 
@@ -33,8 +35,10 @@ export {
   getSourceKey,
   getSourceLabel,
   mapPresetNamesToItems,
+  normalizePresetCatalog,
   normalizePlaybackSource,
-  normalizePresetSource
+  normalizePresetSource,
+  resolvePresetNavigationOrder
 }
 
 let PRESET_CATALOG = {}
@@ -44,8 +48,17 @@ let presetCatalogPromise = null
 async function loadPresetCatalog() {
   if (!presetCatalogPromise) {
     presetCatalogPromise = import('butterchurn-presets/lib/elevate.min.js').then((module) => {
-      PRESET_CATALOG = module.default || module
+      PRESET_CATALOG = normalizePresetCatalog(module)
       ALL_PRESET_KEYS = Object.keys(PRESET_CATALOG)
+
+      if (ALL_PRESET_KEYS.length === 0) {
+        throw new Error('Butterchurn preset catalog loaded without presets')
+      }
+
+      if (import.meta.env?.DEV) {
+        console.debug(`[ElevateViz] Loaded ${ALL_PRESET_KEYS.length} presets`)
+      }
+
       return PRESET_CATALOG
     })
   }
@@ -387,6 +400,7 @@ function VisualizerPlaybackProvider({ children }) {
   const [isShuffled, setIsShuffled] = useState(false)
   const [shuffledOrder, setShuffledOrder] = useState([])
   const [currentPresetIndex, setCurrentPresetIndex] = useState(0)
+  const [selectedPresetName, setSelectedPresetName] = useState('')
   const [isPresetPaused, setIsPresetPaused] = useState(false)
   const [isVisualizerVisibleForCycling, setIsVisualizerVisibleForCycling] = useState(false)
   const presetIntervalRef = useRef(null)
@@ -414,12 +428,22 @@ function VisualizerPlaybackProvider({ children }) {
     setShuffledOrder([])
   }, [activePresetNames, isShuffled])
 
-  const currentOrder = useMemo(() => {
+  const activeNavigationOrder = useMemo(() => {
     if (isShuffled) {
       return shuffledOrder
     }
     return activePresetNames
   }, [activePresetNames, isShuffled, shuffledOrder])
+
+  const currentOrder = useMemo(
+    () =>
+      resolvePresetNavigationOrder(
+        activeNavigationOrder,
+        ALL_PRESET_KEYS,
+        selectedPresetName
+      ),
+    [activeNavigationOrder, selectedPresetName]
+  )
   const shouldAutoCyclePresets =
     isPlaying &&
     isVisualizerVisibleForCycling &&
@@ -429,10 +453,15 @@ function VisualizerPlaybackProvider({ children }) {
   const currentPresetName = currentOrder[currentPresetIndex] || ''
 
   useEffect(() => {
-    if (currentOrder.length > 0 && (!currentPresetName || !currentOrder.includes(currentPresetName))) {
+    if (currentOrder.length === 0 && currentPresetIndex !== 0) {
+      setCurrentPresetIndex(0)
+      return
+    }
+
+    if (currentOrder.length > 0 && currentPresetIndex >= currentOrder.length) {
       setCurrentPresetIndex(0)
     }
-  }, [currentOrder, currentPresetName, isShuffled, presetSource])
+  }, [currentOrder.length, currentPresetIndex, isShuffled, presetSource])
 
   const nextPreset = useCallback(() => {
     if (currentOrder.length === 0) return
@@ -483,19 +512,31 @@ function VisualizerPlaybackProvider({ children }) {
     (index) => {
       if (index >= 0 && index < currentOrder.length) {
         setCurrentPresetIndex(index)
+        setSelectedPresetName(currentOrder[index] || '')
       }
     },
-    [currentOrder.length]
+    [currentOrder]
   )
 
   const setPresetByName = useCallback(
     (name) => {
-      const index = currentOrder.indexOf(name)
+      if (!ALL_PRESET_KEYS.includes(name)) {
+        return
+      }
+
+      const nextOrder = resolvePresetNavigationOrder(
+        activeNavigationOrder,
+        ALL_PRESET_KEYS,
+        name
+      )
+      const index = nextOrder.indexOf(name)
+
       if (index >= 0) {
+        setSelectedPresetName(name)
         setCurrentPresetIndex(index)
       }
     },
-    [currentOrder]
+    [activeNavigationOrder]
   )
 
   const playbackValue = useMemo(

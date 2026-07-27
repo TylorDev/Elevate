@@ -3,20 +3,42 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildAssociationSources,
   createPresetByNameMap,
+  getAdjacentPresetName,
   findAssociatedPresetList,
   getAdjacentPresetIndex,
   getSourceKey,
   mapPresetNamesToItems,
   normalizePlaybackSource,
+  normalizePresetCatalog,
   normalizePresetSource,
   normalizeVisualizerState,
   resolveEffectivePresetSource,
+  resolvePresetNavigationOrder,
   shuffleArray
 } from '../../../src/renderer/src/ElevateViz/utils/visualizerUtils.ts'
 
 afterEach(() => vi.restoreAllMocks())
 
 describe('ElevateViz domain helpers', () => {
+  it('normalizes Butterchurn catalog export shapes without losing presets', () => {
+    const catalog = { 'preset-a': {}, 'preset-b': {} }
+
+    expect(normalizePresetCatalog({ default: { default: catalog } })).toBe(catalog)
+    expect(normalizePresetCatalog({ default: catalog })).toBe(catalog)
+    expect(normalizePresetCatalog(catalog)).toBe(catalog)
+    expect(normalizePresetCatalog({})).toEqual({})
+  })
+
+  it('resolves navigation order for filtered sources and direct selections', () => {
+    const all = ['one', 'two', 'three']
+    expect(resolvePresetNavigationOrder(['one', 'three'], all, '')).toEqual(['one', 'three'])
+    expect(resolvePresetNavigationOrder(['one'], all, 'two')).toEqual(all)
+    expect(resolvePresetNavigationOrder([], all, '')).toEqual(all)
+    expect(getAdjacentPresetName('three', all, 1)).toBe('one')
+    expect(getAdjacentPresetName('one', all, -1)).toBe('three')
+    expect(getAdjacentPresetName('missing', all, 1)).toBe('one')
+  })
+
   it('normalizes Player queue names into neutral visualizer sources', () => {
     expect(normalizePlaybackSource('folder:C:\\Music')).toEqual({
       type: 'directory',

@@ -15,6 +15,53 @@ export function shuffleArray(array) {
   return shuffled
 }
 
+export function normalizePresetCatalog(rawCatalog) {
+  const candidates = [
+    rawCatalog?.default?.default,
+    rawCatalog?.default,
+    rawCatalog,
+    globalThis?.elevateButterchurnPresets
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+      continue
+    }
+
+    const keys = Object.keys(candidate)
+    if (keys.length > 0) {
+      return candidate
+    }
+  }
+
+  return {}
+}
+
+export function resolvePresetNavigationOrder(
+  activePresetNames = [],
+  allPresetNames = [],
+  selectedPresetName = ''
+) {
+  const activeOrder = Array.isArray(activePresetNames) ? activePresetNames : []
+  const allOrder = Array.isArray(allPresetNames) ? allPresetNames : []
+
+  if (selectedPresetName && !activeOrder.includes(selectedPresetName)) {
+    return allOrder.includes(selectedPresetName) ? allOrder : activeOrder
+  }
+
+  return activeOrder.length > 0 ? activeOrder : allOrder
+}
+
+export function getAdjacentPresetName(currentName, presetNames = [], direction = 1) {
+  if (!Array.isArray(presetNames) || presetNames.length === 0) {
+    return ''
+  }
+
+  const currentIndex = presetNames.indexOf(currentName)
+  const anchorIndex = currentIndex >= 0 ? currentIndex : direction > 0 ? -1 : 0
+  return presetNames[getAdjacentPresetIndex(anchorIndex, presetNames.length, direction)] || ''
+}
+
 export function createStableId(prefix) {
   if (globalThis?.crypto?.randomUUID) {
     return `${prefix}-${globalThis.crypto.randomUUID()}`
