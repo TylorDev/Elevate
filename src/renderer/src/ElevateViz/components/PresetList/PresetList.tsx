@@ -2,7 +2,7 @@
 import React from 'react'
 import { FixedSizeList } from 'react-window'
 import PresetItem from '../PresetItem/PresetItem'
-import './PresetList.module.scss'
+import styles from './PresetList.module.scss'
 
 function PresetList({
   activePresetName = '',
@@ -22,7 +22,7 @@ function PresetList({
       itemKey={(index) => itemKey(items[index], index)}
       overscanCount={8}
       width="100%"
-      className="preset-list"
+      className={`${styles.root} preset-list`}
     >
       {({ index, style }) => {
         const preset = items[index]

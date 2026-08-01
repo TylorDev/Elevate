@@ -11,7 +11,7 @@ import {
 import { createPortal } from 'react-dom'
 import { HiChevronLeft, HiChevronRight, HiOutlineDotsVertical } from 'react-icons/hi'
 import { LuCheck } from 'react-icons/lu'
-import './OverflowMenu.module.scss'
+import styles from './OverflowMenu.module.scss'
 
 function isSubmenuOption(option) {
   return option?.type === 'single-select' || option?.type === 'multi-select'
@@ -92,8 +92,7 @@ export const OverflowMenu = memo(
           const resolvedMenuWidth = Number(menuWidth) || 240
 
           let top = rect.bottom + 5
-          let left =
-            horizontalAlign === 'end' ? rect.right - resolvedMenuWidth : rect.left - 190
+          let left = horizontalAlign === 'end' ? rect.right - resolvedMenuWidth : rect.left - 190
 
           if (spaceBelow < menuHeight && rect.top > menuHeight) {
             top = rect.top - menuHeight - 5
@@ -166,7 +165,7 @@ export const OverflowMenu = memo(
     const renderedOptions = activeSubmenu?.items || options
 
     return (
-      <div className={`overflow-menu-container ${className}`}>
+      <div className={`${styles.root} overflow-menu-container ${className}`}>
         {showButton && (
           <button
             className="overflow-menu-btn"

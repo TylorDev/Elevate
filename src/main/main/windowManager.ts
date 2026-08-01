@@ -1,9 +1,8 @@
 import { fileURLToPath } from 'node:url'
-import { join } from 'node:path'
 import { app, BrowserWindow, clipboard, shell, type WebContents } from 'electron'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending } from '../ipc/argv/index.ts'
-import { resolveMainIconPath } from '../utils/windowAssets.ts'
+import { resolveMainIconPath, resolveWindowEntryPaths } from '../utils/windowAssets.ts'
 import { getMainWindow, mainContext, setMainWindow } from './context.ts'
 import { sendWindowState } from './rendererEvents.ts'
 import { updateTaskbarControls } from './taskbar.ts'
@@ -12,7 +11,6 @@ import { flushWindowState, loadWindowState, scheduleWindowStateSave } from './wi
 type RendererLogMethod = 'debug' | 'info' | 'warn' | 'error'
 
 const mainDir = fileURLToPath(new URL('.', import.meta.url))
-const rendererDir = fileURLToPath(new URL('../renderer', import.meta.url))
 
 function getConsoleLogMethod(level: number): RendererLogMethod {
   if (level >= 3) return 'error'
@@ -75,6 +73,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   markLaunchWindowPending()
   const savedState = await loadWindowState()
   const iconPath = resolveMainIconPath(mainDir)
+  const { preloadPath, rendererPath } = resolveWindowEntryPaths(app.getAppPath())
   const mainWindow = new BrowserWindow({
     x: savedState?.x ?? 100,
     y: savedState?.y ?? 100,
@@ -90,7 +89,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     backgroundColor: '#000000',
     icon: iconPath || undefined,
     webPreferences: {
-      preload: fileURLToPath(new URL('../preload/index.mjs', import.meta.url)),
+      preload: preloadPath,
       sandbox: false,
       webSecurity: false
     }
@@ -147,7 +146,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
-    void mainWindow.loadFile(join(rendererDir, 'index.html'))
+    void mainWindow.loadFile(rendererPath)
   }
 
   return mainWindow

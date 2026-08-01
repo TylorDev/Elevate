@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { LuMusic } from 'react-icons/lu'
-import './PresetItem.module.scss'
+import styles from './PresetItem.module.scss'
 
 function PresetItem({
   active = false,
@@ -15,6 +15,7 @@ function PresetItem({
   style
 }: any) {
   const classNames = [
+    styles.root,
     'preset-item',
     active ? 'active' : '',
     isStatic ? 'is-static' : '',

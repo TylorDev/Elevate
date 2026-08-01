@@ -1,6 +1,18 @@
 import fs from 'node:fs'
 import { join } from 'node:path'
 
+export interface WindowEntryPaths {
+  preloadPath: string
+  rendererPath: string
+}
+
+export function resolveWindowEntryPaths(appPath: string): WindowEntryPaths {
+  return {
+    preloadPath: join(appPath, 'out', 'preload', 'index.mjs'),
+    rendererPath: join(appPath, 'out', 'renderer', 'index.html')
+  }
+}
+
 export function resolveMainIconPath(
   mainDir: string,
   resourcesPath = process.resourcesPath

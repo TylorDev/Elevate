@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import './PresetCard.module.scss'
+import styles from './PresetCard.module.scss'
 
 function PresetCard({ children, className = '', header = null }: any) {
-  const classNames = ['preset-card', className].filter(Boolean).join(' ')
+  const classNames = [styles.root, 'preset-card', className].filter(Boolean).join(' ')
 
   return (
     <section className={classNames}>

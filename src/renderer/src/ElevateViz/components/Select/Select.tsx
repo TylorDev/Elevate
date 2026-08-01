@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { Select as BaseSelect } from '@base-ui/react/select'
-import './Select.module.scss'
+import styles from './Select.module.scss'
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
@@ -14,7 +14,11 @@ const SelectTrigger = React.forwardRef<any, any>(function SelectTrigger(
   ref
 ) {
   return (
-    <BaseSelect.Trigger className={cx('ui-select__trigger', className)} ref={ref} {...props}>
+    <BaseSelect.Trigger
+      className={cx(styles.root, 'ui-select__trigger', className)}
+      ref={ref}
+      {...props}
+    >
       {children}
       <BaseSelect.Icon className="ui-select__icon" aria-hidden="true">
         <svg viewBox="0 0 16 16" fill="none">
@@ -40,7 +44,11 @@ const SelectContent = React.forwardRef<any, any>(function SelectContent(
         className="ui-select__positioner"
         sideOffset={sideOffset}
       >
-        <BaseSelect.Popup className={cx('ui-select__content', className)} ref={ref} {...props}>
+        <BaseSelect.Popup
+          className={cx(styles.root, 'ui-select__content', className)}
+          ref={ref}
+          {...props}
+        >
           <BaseSelect.List className="ui-select__list">{children}</BaseSelect.List>
         </BaseSelect.Popup>
       </BaseSelect.Positioner>
@@ -54,7 +62,10 @@ const SelectGroup = ({ children, className, ...props }: any) => (
   </BaseSelect.Group>
 )
 
-const SelectItem = React.forwardRef<any, any>(function SelectItem({ children, className, ...props }, ref) {
+const SelectItem = React.forwardRef<any, any>(function SelectItem(
+  { children, className, ...props },
+  ref
+) {
   return (
     <BaseSelect.Item className={cx('ui-select__item', className)} ref={ref} {...props}>
       <BaseSelect.ItemText className="ui-select__item-text">{children}</BaseSelect.ItemText>

@@ -19,11 +19,11 @@ asarUnpack:
 win:
   executableName: elevate
   icon: build/elevate.ico
-  extraResources:
-    - from: build/redist/vc_redist.x64.exe
-      to: redist/vc_redist.x64.exe
 nsis:
   include: build/installer.nsh
+  oneClick: false
+  perMachine: false
+  runAfterFinish: true
   deleteAppDataOnUninstall: false
   artifactName: ${productName}-${version}-setup.${ext}
   shortcutName: ${productName}

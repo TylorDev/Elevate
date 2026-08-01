@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import './EmptyState.module.scss'
+import styles from './EmptyState.module.scss'
 
 function EmptyState({ icon: Icon, title, description, className = '', compact = true }: any) {
   return (
-    <div className={`empty-state ${compact ? 'empty-state--compact' : ''} ${className}`.trim()}>
+    <div
+      className={`${styles.root} empty-state ${compact ? 'empty-state--compact' : ''} ${className}`.trim()}
+    >
       {Icon ? (
         <div className="empty-state__icon-wrap">
           <Icon className="empty-icon" />

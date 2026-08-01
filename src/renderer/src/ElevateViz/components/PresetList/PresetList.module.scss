@@ -1,7 +1,8 @@
-:global {
-
-.preset-list {
-  scrollbar-gutter: stable;
+.root {
 }
 
+:global {
+  .preset-list {
+    scrollbar-gutter: stable;
+  }
 }

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import './PresetButton.module.scss'
+import styles from './PresetButton.module.scss'
 
 function PresetButton({
   children,
@@ -10,18 +10,12 @@ function PresetButton({
   type = 'button',
   variant = 'default'
 }: any) {
-  const classNames = ['preset-button', `preset-button--${variant}`, className]
+  const classNames = [styles.root, 'preset-button', `preset-button--${variant}`, className]
     .filter(Boolean)
     .join(' ')
 
   return (
-    <button
-      className={classNames}
-      disabled={disabled}
-      onClick={onClick}
-      title={title}
-      type={type}
-    >
+    <button className={classNames} disabled={disabled} onClick={onClick} title={title} type={type}>
       {children}
     </button>
   )
