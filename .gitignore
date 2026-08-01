@@ -9,10 +9,11 @@ build/redist/*.exe
 out
 .DS_Store
 *.log*
-.db
-/src/main/generated/prisma
+*.db
+*.db-journal
 *.db-shm
 *.db-wal
+/src/main/generated/prisma
 # Images
 *.png
 *.jpg

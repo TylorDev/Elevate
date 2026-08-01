@@ -1,10 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import type {
   VisualizerPresetSource,
   VisualizerPresetSourceModeMap,
   VisualizerPresetSourceModeReverseMap,
-  VisualizerPrismaClient,
   VisualizerSource,
   VisualizerSourceTypeMap,
   VisualizerSourceTypeReverseMap
@@ -37,7 +36,7 @@ export const SOURCE_TYPE_FROM_DB: VisualizerSourceTypeReverseMap = {
   DIRECTORY: 'directory'
 }
 
-export const visualizerDb = prisma as unknown as VisualizerPrismaClient
+export const visualizerDb = getPrismaClient
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object')

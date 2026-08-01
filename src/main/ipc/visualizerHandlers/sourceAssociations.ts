@@ -16,7 +16,7 @@ export async function associateVisualizerSource(
     return { success: false, error: 'Source and list id are required.' }
   }
 
-  await visualizerDb.visualizerSourceAssociation.upsert({
+  await visualizerDb().visualizerSourceAssociation.upsert({
     where: {
       sourceType_sourceId: {
         sourceType: SOURCE_TYPE_TO_DB[source.type],
@@ -42,7 +42,7 @@ export async function removeVisualizerSourceAssociation(
     return { success: false, error: 'Source is required.' }
   }
 
-  await visualizerDb.visualizerSourceAssociation.deleteMany({
+  await visualizerDb().visualizerSourceAssociation.deleteMany({
     where: {
       sourceType: SOURCE_TYPE_TO_DB[source.type],
       sourceId: source.id
@@ -56,7 +56,7 @@ export async function pruneVisualizerSourceAssociations(
   sourceKeys: string[] = []
 ): Promise<VisualizerStateResult> {
   const existingSourceKeys = new Set(Array.isArray(sourceKeys) ? sourceKeys : [])
-  const associations = await visualizerDb.visualizerSourceAssociation.findMany()
+  const associations = await visualizerDb().visualizerSourceAssociation.findMany()
   const staleAssociationIds = associations
     .filter((association) => {
       const sourceKey = getSourceKey(association.sourceType, association.sourceId)
@@ -65,7 +65,7 @@ export async function pruneVisualizerSourceAssociations(
     .map((association) => association.id)
 
   if (staleAssociationIds.length > 0) {
-    await visualizerDb.visualizerSourceAssociation.deleteMany({
+    await visualizerDb().visualizerSourceAssociation.deleteMany({
       where: { id: { in: staleAssociationIds } }
     })
   }

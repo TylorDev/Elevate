@@ -10,16 +10,16 @@ export async function toggleVisualizerFavorite(
     return { success: false, error: 'Preset name is required.' }
   }
 
-  const existing = await visualizerDb.visualizerPresetFavorite.findUnique({
+  const existing = await visualizerDb().visualizerPresetFavorite.findUnique({
     where: { presetName: normalizedPresetName }
   })
 
   if (existing) {
-    await visualizerDb.visualizerPresetFavorite.delete({
+    await visualizerDb().visualizerPresetFavorite.delete({
       where: { presetName: normalizedPresetName }
     })
   } else {
-    await visualizerDb.visualizerPresetFavorite.create({
+    await visualizerDb().visualizerPresetFavorite.create({
       data: { presetName: normalizedPresetName }
     })
   }

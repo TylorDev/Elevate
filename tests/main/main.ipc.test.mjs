@@ -40,6 +40,8 @@ describe('main IPC handlers', () => {
       'window:quit',
       'window:get-state',
       'app:get-database-status',
+      'app:retry-database',
+      'app:open-database-backups',
       'window:toggle-always-on-top',
       'window:set-minimum-size',
       'window:apply-grid-preset',

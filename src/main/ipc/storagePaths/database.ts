@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { dirname, join, resolve, sep } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { app } from 'electron'
 import { getResolvedUserDataRoot } from './runtime.ts'
 
@@ -17,11 +17,20 @@ function getStableMainModuleDirectory(): string {
 
 export function getDatabasePath(): string {
   if (process.env.DATABASE_URL?.startsWith('file:')) {
-    return resolve(process.env.DATABASE_URL.replace(/^file:/, ''))
+    return resolveFileDatabaseUrl(process.env.DATABASE_URL)
   }
 
   if (!app.isPackaged) return resolve('prisma/dev.db')
   return join(getResolvedUserDataRoot(), 'elevate.db')
+}
+
+export function resolveFileDatabaseUrl(databaseUrl: string, basePath = process.cwd()): string {
+  if (!databaseUrl.startsWith('file:')) {
+    throw new Error('Only local file: SQLite URLs are supported.')
+  }
+
+  const baseUrl = pathToFileURL(`${resolve(basePath)}${sep}`)
+  return fileURLToPath(new URL(databaseUrl, baseUrl))
 }
 
 export function getTemplateDatabaseCandidates(): string[] {
@@ -35,4 +44,14 @@ export function getTemplateDatabaseCandidates(): string[] {
 
 export function findTemplateDatabasePath(): string | null {
   return getTemplateDatabaseCandidates().find((candidate) => existsSync(candidate)) || null
+}
+
+export function getSchemaVersionCandidates(): string[] {
+  return getTemplateDatabaseCandidates().map((candidate) =>
+    join(dirname(candidate), 'schema-version.json')
+  )
+}
+
+export function findSchemaVersionPath(): string | null {
+  return getSchemaVersionCandidates().find((candidate) => existsSync(candidate)) || null
 }

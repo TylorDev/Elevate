@@ -1,10 +1,7 @@
 import { getOrCreateSong } from '../../utils/utils.ts'
-import { prisma } from '../../prisma.ts'
-import {
-  PLAYBACK_EVENT_TYPES,
-  STAT_SELECT
-} from './shared.ts'
-import type { Prisma, PrismaClient, Songs } from '../../generated/prisma/client.ts'
+import { getPrismaClient } from '../../prisma.ts'
+import { PLAYBACK_EVENT_TYPES, STAT_SELECT } from './shared.ts'
+import type { Prisma, Songs } from '../../generated/prisma/client.ts'
 import type {
   PlaybackEventType,
   PlaybackIncrementUpdate,
@@ -13,7 +10,7 @@ import type {
   PlaybackRecordResult
 } from '../../Types/likeHandlers.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getSong = getOrCreateSong as (
   filepath?: string | null,
   filename?: string | null
@@ -45,8 +42,7 @@ export async function recordPlaybackStats(
   const song = await getSong(filePath, fileName || '')
   const duration = normalizePlaybackNumber(payload?.duration, Number(song.duration) || 0)
   const activeListeningSeconds = normalizePlaybackNumber(payload?.activeListeningSeconds, 0)
-  const countAsRepeat =
-    eventType === 'playback-finalize' && Boolean(payload?.countAsRepeat)
+  const countAsRepeat = eventType === 'playback-finalize' && Boolean(payload?.countAsRepeat)
   const updateData: PlaybackIncrementUpdate = {}
   const createData: PlaybackPreferenceCreate = { song_id: song.song_id }
   let shouldCreatePlayHistory = false
@@ -87,7 +83,7 @@ export async function recordPlaybackStats(
     createData.consecutive_repeat_count = 1
   }
 
-  await db.$transaction(async (tx) => {
+  await db().$transaction(async (tx) => {
     await tx.userPreferences.upsert({
       where: { song_id: song.song_id },
       update: updateData as Prisma.UserPreferencesUncheckedUpdateInput,
@@ -104,7 +100,7 @@ export async function recordPlaybackStats(
     }
   })
 
-  const stats = await db.userPreferences.findUnique({
+  const stats = await db().userPreferences.findUnique({
     where: { song_id: song.song_id },
     select: STAT_SELECT
   })

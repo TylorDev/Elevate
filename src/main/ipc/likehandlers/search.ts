@@ -1,10 +1,7 @@
 import { getLastPlayedAtBySongId } from '../../utils/utils.ts'
-import { prisma } from '../../prisma.ts'
-import {
-  normalizeSearchQuery,
-  STAT_SELECT
-} from './shared.ts'
-import type { PrismaClient, Songs, UserPreferences } from '../../generated/prisma/client.ts'
+import { getPrismaClient } from '../../prisma.ts'
+import { normalizeSearchQuery, STAT_SELECT } from './shared.ts'
+import type { Songs, UserPreferences } from '../../generated/prisma/client.ts'
 import type {
   NormalizedSearchSongsFilters,
   ParsedArtistTitle,
@@ -20,7 +17,7 @@ type SearchableSong = Songs & {
   UserPreferences?: Partial<UserPreferences>[] | null
 }
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getLastPlayedAt = getLastPlayedAtBySongId as (
   songIds: Array<number | null | undefined>
 ) => Promise<Map<number, string>>
@@ -185,16 +182,14 @@ export async function searchSongsPage(
   const queryInfo = createQueryInfo(query)
 
   try {
-    const songs = await db.songs.findMany({
+    const songs = (await db().songs.findMany({
       include: {
         UserPreferences: {
           select: STAT_SELECT
         }
       }
-    }) as SearchableSong[]
-    const lastPlayedAtBySongId = await getLastPlayedAt(
-      songs.map((song) => song.song_id)
-    )
+    })) as SearchableSong[]
+    const lastPlayedAtBySongId = await getLastPlayedAt(songs.map((song) => song.song_id))
 
     const matchedSongs = songs
       .map((song) => ({

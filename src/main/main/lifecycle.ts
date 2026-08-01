@@ -2,10 +2,10 @@ import { app, BrowserWindow, globalShortcut } from 'electron'
 import log from 'electron-log/main.js'
 import { initDiscordPresence, shutdownDiscordPresence } from '../ipc/discordPresence/index.ts'
 import { processAndDispatchLaunchArgs } from '../ipc/argv/index.ts'
-import { disconnectPrisma, getPrismaStatus, initializePrisma } from '../prisma.ts'
-import { initializeWatchers, stopAll as stopDirectoryWatchers } from '../utils/directoryWatcher.ts'
+import { disconnectPrisma, getPrismaStatus } from '../prisma.ts'
+import { stopAll as stopDirectoryWatchers } from '../utils/directoryWatcher.ts'
 import { getMainWindow, mainContext } from './context.ts'
-import { sendDatabaseStatus, sendNotification } from './rendererEvents.ts'
+import { sendNotification } from './rendererEvents.ts'
 import { destroyTray } from './tray.ts'
 import { flushWindowState } from './windowState.ts'
 
@@ -46,35 +46,20 @@ export function requestShutdown(): Promise<void> {
   return shutdownPromise
 }
 
-export function startBackgroundServices(): void {
-  console.time('startup:prisma-init')
-  void initializePrisma()
-    .then(() => {
-      console.timeEnd('startup:prisma-init')
-      const status = getPrismaStatus()
-      log.info('Prisma initialized successfully:', JSON.stringify(status))
-      sendDatabaseStatus('database:ready', status)
-    })
-    .catch((error) => {
-      console.timeEnd('startup:prisma-init')
-      log.error('Prisma initialization failed:', error)
-      sendDatabaseStatus('database:error', getPrismaStatus())
-    })
-
+export function startBackgroundServices(databaseReady: boolean): void {
   void initDiscordPresence().catch((error) =>
     log.error('Discord presence initialization failed:', error)
   )
-  void initializeWatchers().catch((error) =>
-    log.error('Error initializing directory watchers:', error)
-  )
 
   console.info('[argv/main] initial process.argv', process.argv)
-  void processAndDispatchLaunchArgs(process.argv.slice(1), {
-    mainWindow: getMainWindow(),
-    workingDirectory: process.cwd(),
-    notifyRenderer: sendNotification,
-    batchWindowMs: 0
-  })
+  if (databaseReady) {
+    void processAndDispatchLaunchArgs(process.argv.slice(1), {
+      mainWindow: getMainWindow(),
+      workingDirectory: process.cwd(),
+      notifyRenderer: sendNotification,
+      batchWindowMs: 0
+    })
+  }
 }
 
 export function registerApplicationLifecycle(createWindow: () => Promise<BrowserWindow>): void {
@@ -85,11 +70,13 @@ export function registerApplicationLifecycle(createWindow: () => Promise<Browser
       if (mainWindow.isMinimized()) mainWindow.restore()
       mainWindow.focus()
     }
-    void processAndDispatchLaunchArgs(commandLine.slice(1), {
-      mainWindow,
-      workingDirectory,
-      notifyRenderer: sendNotification
-    })
+    if (getPrismaStatus().isReady) {
+      void processAndDispatchLaunchArgs(commandLine.slice(1), {
+        mainWindow,
+        workingDirectory,
+        notifyRenderer: sendNotification
+      })
+    }
   })
 
   app.on('activate', () => {

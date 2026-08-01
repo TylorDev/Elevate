@@ -6,9 +6,9 @@ import {
 } from '../../utils/utils.ts'
 import { scanDirectoryAsync } from '../../utils/directoryScanner.ts'
 import { resolveImportableAudioPaths } from '../../utils/mediaFileSupport.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { normalizeAudioPageRequest } from './shared.ts'
-import type { Directory, PrismaClient } from '../../generated/prisma/client.ts'
+import type { Directory } from '../../generated/prisma/client.ts'
 import type {
   AudioFileInfo,
   AudioCoverCacheEntry,
@@ -19,7 +19,7 @@ import type {
 } from '../../Types/filehandlers.ts'
 import type { CoverVariant, PageRequestInput } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],
   options?: Record<string, unknown>
@@ -76,7 +76,7 @@ export async function getCachedAudioFiles(
 }
 
 export async function getUniqueAudioPaths(): Promise<string[]> {
-  const directories = (await db.directory.findMany()) as Directory[]
+  const directories = (await db().directory.findMany()) as Directory[]
 
   if (!directories.length) return []
 

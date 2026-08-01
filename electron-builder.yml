@@ -62,10 +62,5 @@ extraResources:
   - from: prisma
     to: prisma
     filter:
-      - "**/*"
-      - "!dev.db"
-      - "!dev.db-journal"
-      - "!dev.db-shm"
-      - "!dev.db-wal"
-      - "!migrations/**"
-  - src/main/generated/prisma/**/*
+      - 'template.db'
+      - 'schema-version.json'

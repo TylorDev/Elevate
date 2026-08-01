@@ -6,7 +6,6 @@ import { vi } from 'vitest'
 import { configureElectronPaths } from './electronMock.mjs'
 
 const PROJECT_ROOT = process.cwd()
-let schemaSql = null
 let baselineDatabasePath = null
 
 function prismaCliArgs(args) {
@@ -31,59 +30,19 @@ function restoreEnv(previousEnv) {
   }
 }
 
-function getSchemaSql() {
-  if (schemaSql) {
-    return schemaSql
-  }
-
-  const schemaRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'elevate-prisma-schema-'))
-  const sqlPath = path.join(schemaRoot, 'schema.sql')
-  const schemaPath = path.join(schemaRoot, 'schema.prisma')
-  const projectSchema = fs.readFileSync(path.join(PROJECT_ROOT, 'prisma', 'schema.prisma'), 'utf8')
-  const schemaWithUrl = projectSchema.replace(
-    /datasource db\s*\{\s*provider\s*=\s*"sqlite"\s*\}/,
-    'datasource db {\n  provider = "sqlite"\n  url      = "file:./schema-placeholder.db"\n}'
-  )
-
-  fs.writeFileSync(schemaPath, schemaWithUrl, 'utf8')
+function createDatabaseWithPrismaCli(databasePath) {
+  fs.writeFileSync(databasePath, '')
 
   execFileSync(
     process.execPath,
-    prismaCliArgs([
-      'migrate',
-      'diff',
-      '--from-empty',
-      '--to-schema-datamodel',
-      schemaPath,
-      '--script',
-      '--output',
-      sqlPath
-    ]),
+    prismaCliArgs(['migrate', 'deploy', '--config', path.join(PROJECT_ROOT, 'prisma.config.ts')]),
     {
       cwd: PROJECT_ROOT,
-      env: { ...process.env },
+      env: {
+        ...process.env,
+        DATABASE_URL: toFileUrl(databasePath)
+      },
       stdio: 'pipe'
-    }
-  )
-
-  schemaSql = fs.readFileSync(sqlPath, 'utf8')
-  return schemaSql
-}
-
-function createDatabaseWithPrismaCli(databasePath) {
-  const sqlPath = path.join(path.dirname(databasePath), 'schema.sql')
-  fs.writeFileSync(sqlPath, getSchemaSql(), 'utf8')
-
-  execFileSync(
-    process.execPath,
-    prismaCliArgs(['db', 'execute', '--url', toFileUrl(databasePath), '--file', sqlPath]),
-    {
-    cwd: PROJECT_ROOT,
-    env: {
-      ...process.env,
-      DATABASE_URL: toFileUrl(databasePath)
-    },
-    stdio: 'pipe'
     }
   )
 }
@@ -157,7 +116,7 @@ export async function createPrismaTestContext() {
     prismaModule,
     client,
     async cleanup() {
-      await client.$disconnect()
+      await prismaModule.disconnectPrisma()
       await runtime.cleanup()
     }
   }
@@ -189,7 +148,9 @@ export async function seedSong(client, data = {}) {
   const song = await client.songs.create({
     data: {
       filepath: data.filepath,
-      filename: data.filename || path.basename(data.filepath || 'song.mp3', path.extname(data.filepath || '.mp3')),
+      filename:
+        data.filename ||
+        path.basename(data.filepath || 'song.mp3', path.extname(data.filepath || '.mp3')),
       title: data.title || null,
       artist: data.artist || null,
       album: data.album || null,

@@ -42,7 +42,7 @@ export function serializeSettings(
 }
 
 export async function ensureSettings(
-  client: VisualizerDataClient = visualizerDb
+  client: VisualizerDataClient = visualizerDb()
 ): Promise<VisualizerSettings> {
   return client.visualizerSettings.upsert({
     where: { id: 1 },
@@ -52,7 +52,7 @@ export async function ensureSettings(
 }
 
 export async function loadVisualizerState(
-  client: VisualizerDataClient = visualizerDb
+  client: VisualizerDataClient = visualizerDb()
 ): Promise<VisualizerState> {
   const [settings, favorites, presetLists, associations] = await Promise.all([
     ensureSettings(client),

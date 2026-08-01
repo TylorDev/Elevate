@@ -2,7 +2,7 @@
 import path from 'path'
 import fs from 'fs'
 import crypto from 'crypto'
-import { prisma } from '../prisma.ts'
+import { getPrismaClient } from '../prisma.ts'
 import { getStoragePaths } from '../ipc/storagePaths/index.ts'
 import { resolveImportableAudioPaths } from './mediaFileSupport.ts'
 
@@ -67,9 +67,7 @@ export async function savePlaylistCoverToCache(buffer) {
   }
 
   const sharp = await getSharp()
-  const normalizedBuffer = await sharp(buffer)
-    .jpeg({ quality: 85 })
-    .toBuffer()
+  const normalizedBuffer = await sharp(buffer).jpeg({ quality: 85 }).toBuffer()
   const coverHash = hashBuffer(normalizedBuffer)
   const thumbPath = getPlaylistCoverPath(coverHash, 'thumb')
   const fullPath = getPlaylistCoverPath(coverHash, 'full')
@@ -110,7 +108,7 @@ export async function getPlaylistCoverFromCache(coverHash, variant = 'full') {
 export async function deletePlaylistCoverFromCache(coverHash) {
   if (!coverHash) return false
 
-  const references = await prisma.playlist.count({
+  const references = await getPrismaClient().playlist.count({
     where: {
       customCoverHash: coverHash
     }
@@ -136,7 +134,6 @@ export async function deletePlaylistCoverFromCache(coverHash) {
   return true
 }
 
-
 // ─── Song CRUD with metadata caching ─────────────────────────────────
 
 /**
@@ -144,7 +141,7 @@ export async function deletePlaylistCoverFromCache(coverHash) {
  * and stores everything in the DB. On subsequent calls, returns DB data directly.
  */
 export async function getOrCreateSong(filepath, filename) {
-  const existing = await prisma.songs.findUnique({ where: { filepath } })
+  const existing = await getPrismaClient().songs.findUnique({ where: { filepath } })
 
   if (existing && existing.metadataLoaded) {
     return existing
@@ -174,9 +171,7 @@ export async function getOrCreateSong(filepath, filename) {
       if (!fs.existsSync(fullPath)) {
         // Save full cover as-is (jpeg compressed for consistency)
         const sharp = await getSharp()
-        const fullBuffer = await sharp(Buffer.from(picture.data))
-          .jpeg({ quality: 85 })
-          .toBuffer()
+        const fullBuffer = await sharp(Buffer.from(picture.data)).jpeg({ quality: 85 }).toBuffer()
         fs.writeFileSync(fullPath, fullBuffer)
       }
     }
@@ -198,7 +193,7 @@ export async function getOrCreateSong(filepath, filename) {
     metadata = { metadataLoaded: true }
   }
 
-  const song = await prisma.songs.upsert({
+  const song = await getPrismaClient().songs.upsert({
     where: { filepath },
     update: metadata,
     create: {
@@ -209,7 +204,7 @@ export async function getOrCreateSong(filepath, filename) {
   })
 
   // Ensure UserPreferences exist
-  await prisma.userPreferences.upsert({
+  await getPrismaClient().userPreferences.upsert({
     where: { song_id: song.song_id },
     update: {},
     create: { song_id: song.song_id }
@@ -289,7 +284,7 @@ export async function getLastPlayedAtBySongId(songIds = []) {
     return new Map()
   }
 
-  const historyRecords = await prisma.playHistory.groupBy({
+  const historyRecords = await getPrismaClient().playHistory.groupBy({
     by: ['song_id'],
     where: {
       song_id: {
@@ -336,7 +331,11 @@ export function buildCollectionSummaryFromFileInfos(tracks = [], extras = {}) {
   )
 }
 
-export function buildRankingPageFromTracks(tracks = [], metricKey, { page = 1, pageSize = 50 } = {}) {
+export function buildRankingPageFromTracks(
+  tracks = [],
+  metricKey,
+  { page = 1, pageSize = 50 } = {}
+) {
   const safePage = Math.max(Number(page) || 1, 1)
   const safePageSize = Math.min(Math.max(Number(pageSize) || 50, 1), 200)
   const rankedTracks = tracks
@@ -376,7 +375,7 @@ export async function getFileInfosBulk(filePaths = [], { concurrency = 6 } = {})
   })
   const uniqueFilePaths = [...new Set(validFilePaths)]
 
-  const songs = await prisma.songs.findMany({
+  const songs = await getPrismaClient().songs.findMany({
     where: {
       filepath: {
         in: uniqueFilePaths
@@ -392,18 +391,22 @@ export async function getFileInfosBulk(filePaths = [], { concurrency = 6 } = {})
   const missingFilePaths = uniqueFilePaths.filter((filePath) => !songByPath.has(filePath))
 
   if (missingFilePaths.length > 0) {
-    const missingInfos = await mapWithConcurrency(missingFilePaths, concurrency, async (filePath) => {
-      try {
-        const fileName = path.basename(filePath, path.extname(filePath))
-        return await getOrCreateSong(filePath, fileName)
-      } catch (error) {
-        console.error(`Error processing file ${filePath}:`, error.message)
-        return null
+    const missingInfos = await mapWithConcurrency(
+      missingFilePaths,
+      concurrency,
+      async (filePath) => {
+        try {
+          const fileName = path.basename(filePath, path.extname(filePath))
+          return await getOrCreateSong(filePath, fileName)
+        } catch (error) {
+          console.error(`Error processing file ${filePath}:`, error.message)
+          return null
+        }
       }
-    })
+    )
     const createdSongIds = missingInfos.filter(Boolean).map((song) => song.song_id)
     const hydratedSongs = createdSongIds.length
-      ? await prisma.songs.findMany({
+      ? await getPrismaClient().songs.findMany({
           where: {
             song_id: {
               in: createdSongIds
@@ -459,7 +462,7 @@ export async function getFileInfo(filePath) {
 export async function extractAudioCover(filePath) {
   try {
     // Check if we have a coverHash in the DB
-    const song = await prisma.songs.findUnique({
+    const song = await getPrismaClient().songs.findUnique({
       where: { filepath: filePath },
       select: { coverHash: true }
     })
@@ -498,7 +501,7 @@ export async function extractAudioCover(filePath) {
 
 export async function getCoverFromCache(filePath, variant = 'thumb') {
   try {
-    const song = await prisma.songs.findUnique({
+    const song = await getPrismaClient().songs.findUnique({
       where: { filepath: filePath },
       select: { coverHash: true }
     })

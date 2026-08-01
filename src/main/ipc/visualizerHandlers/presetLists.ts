@@ -17,21 +17,19 @@ export async function compactListPositions(
     orderBy: [{ position: 'asc' }, { id: 'asc' }]
   })
 
-  await Promise.all(
-    items.map((item, index) =>
-      client.visualizerPresetListItem.update({
-        where: { id: item.id },
-        data: { position: index }
-      })
-    )
-  )
+  for (const [index, item] of items.entries()) {
+    await client.visualizerPresetListItem.update({
+      where: { id: item.id },
+      data: { position: index }
+    })
+  }
 }
 
 export async function createVisualizerPresetList(
   name?: string | null
 ): Promise<VisualizerCreateListResult> {
   const trimmedName = String(name || '').trim() || 'Nueva lista'
-  const list = await visualizerDb.visualizerPresetList.create({
+  const list = await visualizerDb().visualizerPresetList.create({
     data: {
       id: createStableId('preset-list'),
       name: trimmedName
@@ -52,7 +50,7 @@ export async function renameVisualizerPresetList(
     return { success: false, error: 'List id and name are required.' }
   }
 
-  await visualizerDb.visualizerPresetList.update({
+  await visualizerDb().visualizerPresetList.update({
     where: { id: listId },
     data: { name }
   })
@@ -68,7 +66,7 @@ export async function deleteVisualizerPresetList(
     return { success: false, error: 'List id is required.' }
   }
 
-  await visualizerDb.$transaction(async (transaction) => {
+  await visualizerDb().$transaction(async (transaction) => {
     const settings = await transaction.visualizerSettings.findUnique({ where: { id: 1 } })
 
     await transaction.visualizerPresetList.delete({
@@ -100,7 +98,7 @@ export async function togglePresetInVisualizerList(
     return { success: false, error: 'List id and preset name are required.' }
   }
 
-  await visualizerDb.$transaction(async (transaction) => {
+  await visualizerDb().$transaction(async (transaction) => {
     const existing = await transaction.visualizerPresetListItem.findUnique({
       where: {
         listId_presetName: {

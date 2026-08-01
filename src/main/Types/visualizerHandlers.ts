@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   PrismaClient,
   VisualizerPlaybackSourceType as DatabaseVisualizerSourceType,
   VisualizerPresetList,
@@ -74,14 +75,16 @@ export type VisualizerCreateListSuccessResponse = VisualizerStateSuccessResponse
 
 export type VisualizerCreateListResult = VisualizerCreateListSuccessResponse | RequiredErrorResponse
 
-export type VisualizerDataClient = Pick<
-  PrismaClient,
+type VisualizerDelegate =
   | 'visualizerSettings'
   | 'visualizerPresetFavorite'
   | 'visualizerPresetList'
   | 'visualizerPresetListItem'
   | 'visualizerSourceAssociation'
->
+
+export type VisualizerDataClient =
+  | Pick<PrismaClient, VisualizerDelegate>
+  | Pick<Prisma.TransactionClient, VisualizerDelegate>
 
 export type VisualizerPrismaClient = PrismaClient
 

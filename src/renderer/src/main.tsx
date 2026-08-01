@@ -15,37 +15,40 @@ import { PlaylistsProvider } from './Contexts/PlaylistContext'
 import { ArgvProvider } from './Contexts/ArgvContext'
 import { GlobalSearchProvider } from './Contexts/GlobalSearchContext'
 import { I18nProvider } from './Contexts/I18nContext'
+import DatabaseGate from './components/DatabaseGate/DatabaseGate'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <I18nProvider>
-        <QueueProvider>
-          <PlaybackProvider>
-            <PlaybackProgressProvider>
-              <BackgroundProvider>
-                <ImagesProvider>
-                  <SuperProvider>
-                    <MiniProvider>
-                      <PlaylistsProvider>
-                        <ArgvProvider>
-                          <GlobalSearchProvider>
-                            <LikesProvider>
-                              <AudioProvider>
-                                <App />
-                              </AudioProvider>
-                            </LikesProvider>
-                          </GlobalSearchProvider>
-                        </ArgvProvider>
-                      </PlaylistsProvider>
-                    </MiniProvider>
-                  </SuperProvider>
-                </ImagesProvider>
-              </BackgroundProvider>
-            </PlaybackProgressProvider>
-          </PlaybackProvider>
-        </QueueProvider>
-      </I18nProvider>
+      <DatabaseGate>
+        <I18nProvider>
+          <QueueProvider>
+            <PlaybackProvider>
+              <PlaybackProgressProvider>
+                <BackgroundProvider>
+                  <ImagesProvider>
+                    <SuperProvider>
+                      <MiniProvider>
+                        <PlaylistsProvider>
+                          <ArgvProvider>
+                            <GlobalSearchProvider>
+                              <LikesProvider>
+                                <AudioProvider>
+                                  <App />
+                                </AudioProvider>
+                              </LikesProvider>
+                            </GlobalSearchProvider>
+                          </ArgvProvider>
+                        </PlaylistsProvider>
+                      </MiniProvider>
+                    </SuperProvider>
+                  </ImagesProvider>
+                </BackgroundProvider>
+              </PlaybackProgressProvider>
+            </PlaybackProvider>
+          </QueueProvider>
+        </I18nProvider>
+      </DatabaseGate>
     </HashRouter>
   </React.StrictMode>
 )

@@ -8,13 +8,10 @@ import {
   processPlaylist
 } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { getStoragePaths } from '../storagePaths/index.ts'
 import { getCachedAudioFiles } from './audioLibrary.ts'
-import {
-  getDirectoryAudioFiles,
-  getDirectoryByPath
-} from './directories.ts'
+import { getDirectoryAudioFiles, getDirectoryByPath } from './directories.ts'
 import {
   FEED_RANKING_TABS,
   FEED_SCOPE_VALUES,
@@ -26,7 +23,7 @@ import {
   normalizeFeedRankingsRequest,
   toNumber
 } from './shared.ts'
-import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
+import type { Playlist } from '../../generated/prisma/client.ts'
 import type {
   AudioCoverPayload,
   AudioFileInfo,
@@ -48,7 +45,7 @@ import type {
   FeedSourceSignaturePlaylist
 } from '../../Types/filehandlers.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],
   options?: Record<string, unknown>
@@ -76,10 +73,7 @@ function getFeedSnapshotPath(scope: FeedScope): string {
 }
 
 function getFeedCoverCachePath(coverKey: string, coverSignature = ''): string {
-  const hash = crypto
-    .createHash('sha1')
-    .update(`${coverKey}|${coverSignature}`)
-    .digest('hex')
+  const hash = crypto.createHash('sha1').update(`${coverKey}|${coverSignature}`).digest('hex')
   return path.join(getFeedCacheDir(), 'covers', `${hash}.png`)
 }
 
@@ -223,7 +217,7 @@ async function getFeedSourceSignature(scope: FeedScope): Promise<string> {
   const signatureParts: unknown[] = []
 
   if (shouldLoadPlaylists) {
-    const playlists = (await db.playlist.findMany({
+    const playlists = (await db().playlist.findMany({
       select: {
         id: true,
         path: true,
@@ -250,7 +244,7 @@ async function getFeedSourceSignature(scope: FeedScope): Promise<string> {
   }
 
   if (shouldLoadDirectories) {
-    const directories = (await db.directory.findMany({
+    const directories = (await db().directory.findMany({
       select: {
         id: true,
         path: true,
@@ -290,7 +284,9 @@ async function mapFeedEntitiesInBatches<T>(
   for (let index = 0; index < items.length; index += FEED_ENTITY_BATCH_SIZE) {
     const batch = items.slice(index, index + FEED_ENTITY_BATCH_SIZE)
     const batchEntities = await Promise.all(batch.map((item) => mapper(item)))
-    entities.push(...batchEntities.filter((entity): entity is FeedCollectionEntity => Boolean(entity)))
+    entities.push(
+      ...batchEntities.filter((entity): entity is FeedCollectionEntity => Boolean(entity))
+    )
     await delayFeedBatch()
   }
 
@@ -308,26 +304,24 @@ function buildCollectionEntityRankings(
       : (Object.entries(FEED_RANKING_TABS) as Array<[FeedRankingTabId, FeedRankingTab]>)
 
   return tabEntries.reduce<FeedRankings>((rankings, [currentTabId, tab]) => {
-    const sortedItems = collections
-      .slice()
-      .sort((left, right) => {
-        const leftValue =
-          tab.direction === 'date'
-            ? new Date((left?.[tab.metricKey] as string | number | null) || 0).getTime()
-            : toNumber(left?.[tab.metricKey])
-        const rightValue =
-          tab.direction === 'date'
-            ? new Date((right?.[tab.metricKey] as string | number | null) || 0).getTime()
-            : toNumber(right?.[tab.metricKey])
+    const sortedItems = collections.slice().sort((left, right) => {
+      const leftValue =
+        tab.direction === 'date'
+          ? new Date((left?.[tab.metricKey] as string | number | null) || 0).getTime()
+          : toNumber(left?.[tab.metricKey])
+      const rightValue =
+        tab.direction === 'date'
+          ? new Date((right?.[tab.metricKey] as string | number | null) || 0).getTime()
+          : toNumber(right?.[tab.metricKey])
 
-        if (rightValue !== leftValue) {
-          return rightValue - leftValue
-        }
+      if (rightValue !== leftValue) {
+        return rightValue - leftValue
+      }
 
-        return String(left?.name || '').localeCompare(String(right?.name || ''), undefined, {
-          sensitivity: 'base'
-        })
+      return String(left?.name || '').localeCompare(String(right?.name || ''), undefined, {
+        sensitivity: 'base'
       })
+    })
     const offset = (page - 1) * pageSize
     const items = sortedItems.slice(offset, offset + pageSize)
 
@@ -422,10 +416,12 @@ async function buildPlaylistFeedEntity(
   lastOpenedAt: string | null = null
 ): Promise<FeedCollectionEntity> {
   const baseDir = path.dirname(playlist.path)
-  const tracks = ((await processPlaylist(playlist.path, baseDir)) as AudioFileInfo[]).map((song) => ({
-    ...song,
-    picture: undefined
-  }))
+  const tracks = ((await processPlaylist(playlist.path, baseDir)) as AudioFileInfo[]).map(
+    (song) => ({
+      ...song,
+      picture: undefined
+    })
+  )
   const coverSignature = getPlaylistFeedCoverSignature(playlist)
   const summary = buildCollectionSummaryFromFileInfos(tracks, {
     sourcePath: playlist.path
@@ -444,12 +440,14 @@ async function buildPlaylistFeedEntity(
   })
 }
 
-async function getPlaylistHistoryDatesById(playlistIds: number[] = []): Promise<Map<number, string>> {
+async function getPlaylistHistoryDatesById(
+  playlistIds: number[] = []
+): Promise<Map<number, string>> {
   if (!playlistIds.length) {
     return new Map()
   }
 
-  const historyRecords = await db.historial.groupBy({
+  const historyRecords = await db().historial.groupBy({
     by: ['playlistId'],
     where: {
       playlistId: {
@@ -477,20 +475,18 @@ async function buildFeedCollectionEntities(scope: FeedScope): Promise<FeedCollec
   const collections: FeedCollectionEntity[] = []
 
   if (shouldLoadPlaylists) {
-    const playlists = (await db.playlist.findMany()) as Playlist[]
+    const playlists = (await db().playlist.findMany()) as Playlist[]
     const lastOpenedAtByPlaylistId = await getPlaylistHistoryDatesById(
       playlists.map((playlist) => playlist.id)
     )
-    const playlistEntities = await mapFeedEntitiesInBatches(
-      playlists,
-      (playlist) =>
-        buildPlaylistFeedEntity(playlist, lastOpenedAtByPlaylistId.get(playlist.id) || null)
+    const playlistEntities = await mapFeedEntitiesInBatches(playlists, (playlist) =>
+      buildPlaylistFeedEntity(playlist, lastOpenedAtByPlaylistId.get(playlist.id) || null)
     )
     collections.push(...playlistEntities)
   }
 
   if (shouldLoadDirectories) {
-    const directories = (await db.directory.findMany({
+    const directories = (await db().directory.findMany({
       include: {
         _count: {
           select: {

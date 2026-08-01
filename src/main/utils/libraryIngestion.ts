@@ -1,7 +1,11 @@
 // @ts-nocheck
 import path from 'path'
-import { prisma } from '../prisma.ts'
-import { discoverSubdirectories, indexDirectoryIncrementally, scanDirectoryAsync } from './directoryScanner.ts'
+import { getPrismaClient } from '../prisma.ts'
+import {
+  discoverSubdirectories,
+  indexDirectoryIncrementally,
+  scanDirectoryAsync
+} from './directoryScanner.ts'
 import { startWatching } from './directoryWatcher.ts'
 import { getFileInfos } from './utils.ts'
 import {
@@ -17,21 +21,19 @@ function uniquePaths(paths) {
 }
 
 function getPathDepth(dirPath) {
-  return path
-    .normalize(dirPath)
-    .split(path.sep)
-    .filter(Boolean).length
+  return path.normalize(dirPath).split(path.sep).filter(Boolean).length
 }
 
 async function registerDirectoryTree(rootPath, audioDirs) {
   // Check if the parent directory is already registered in the library.
   // If it is, this import is a child of an existing branch, not a new root.
   const parentPath = path.dirname(rootPath)
-  const existingParent = parentPath !== rootPath
-    ? await prisma.directory.findUnique({ where: { path: parentPath } })
-    : null
+  const existingParent =
+    parentPath !== rootPath
+      ? await getPrismaClient().directory.findUnique({ where: { path: parentPath } })
+      : null
 
-  const rootDirectory = await prisma.directory.upsert({
+  const rootDirectory = await getPrismaClient().directory.upsert({
     where: { path: rootPath },
     update: { parentId: existingParent?.id ?? null },
     create: { path: rootPath, parentId: existingParent?.id ?? null }
@@ -55,11 +57,11 @@ async function registerDirectoryTree(rootPath, audioDirs) {
     }
 
     const parentPath = path.dirname(dirPath)
-    const parentRecord = await prisma.directory.findUnique({
+    const parentRecord = await getPrismaClient().directory.findUnique({
       where: { path: parentPath }
     })
 
-    await prisma.directory.upsert({
+    await getPrismaClient().directory.upsert({
       where: { path: dirPath },
       update: {
         parentId: parentRecord?.id || rootDirectory.id
@@ -87,7 +89,7 @@ function startBackgroundIndexing(dirPaths, notifyRenderer) {
           )
         })
 
-        await prisma.directory.updateMany({
+        await getPrismaClient().directory.updateMany({
           where: { path: dirPath },
           data: {
             totalTracks: stats.totalTracks,
@@ -106,17 +108,14 @@ function startBackgroundIndexing(dirPaths, notifyRenderer) {
 
 export async function addDirectoryToLibrary(
   rootPath,
-  {
-    notifyRenderer = () => {},
-    invalidateDirectoryCache = () => {}
-  } = {}
+  { notifyRenderer = () => {}, invalidateDirectoryCache = () => {} } = {}
 ) {
   const normalizedRootPath = path.normalize(rootPath)
 
   // If this directory is already registered in the library (as root or child),
   // skip re-registration to avoid detaching it from its branch or causing
   // redundant re-indexing.
-  const existingDirectory = await prisma.directory.findUnique({
+  const existingDirectory = await getPrismaClient().directory.findUnique({
     where: { path: normalizedRootPath }
   })
 

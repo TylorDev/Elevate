@@ -1,5 +1,5 @@
 import { createRequire } from 'node:module'
-import type { AppCommand, WindowStatePayload } from '../main/Types/main.ts'
+import type { AppCommand, PrismaStatus, WindowStatePayload } from '../main/Types/main.ts'
 import type { ElectronAPI, IpcBridgeListener, IpcCallback, RendererAPI } from './electron-api'
 
 // Custom APIs for renderer
@@ -99,7 +99,23 @@ const electronAPI: ElectronAPI = {
   },
   appDiagnostics: {
     getStoragePaths: () => ipcRenderer.invoke('app:get-storage-paths'),
-    getDatabaseStatus: () => ipcRenderer.invoke('app:get-database-status')
+    getDatabaseStatus: () => ipcRenderer.invoke('app:get-database-status'),
+    retryDatabase: () => ipcRenderer.invoke('app:retry-database'),
+    openDatabaseBackups: () => ipcRenderer.invoke('app:open-database-backups'),
+    onDatabaseStatus: (callback) => {
+      const channels = ['database:ready', 'database:error', 'database:reset'] as const
+      const listeners = channels.map((channel) => {
+        const listener: IpcBridgeListener = (_event, status) => callback(status as PrismaStatus)
+        ipcRenderer.on(channel, listener)
+        return { channel, listener }
+      })
+
+      return () => {
+        for (const { channel, listener } of listeners) {
+          ipcRenderer.removeListener(channel, listener)
+        }
+      }
+    }
   }
 }
 

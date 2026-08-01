@@ -9,10 +9,10 @@ import {
   savePlaylistCoverToCache
 } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { dataUrlToBuffer, getErrorMessage, isSourcePathValue } from './shared.ts'
 import { getPlaylist, invalidatePlaylistCache } from './repository.ts'
-import type { Playlist, Prisma, PrismaClient } from '../../generated/prisma/client.ts'
+import type { Playlist, Prisma } from '../../generated/prisma/client.ts'
 import type {
   EnrichedPlaylist,
   EnsurePlaylistCoverResult,
@@ -33,7 +33,7 @@ import type { CoverVariant } from '../../Types/shared.ts'
 
 type SharpFactory = typeof import('sharp')
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioCoverFromCache = getCoverFromCache as (
   filePath: string,
   variant?: 'thumb' | 'full'
@@ -247,7 +247,7 @@ export async function persistPlaylistCoverForMode(
     updateData.customCoverValue = playlist.customCoverValue || null
   }
 
-  const updatedPlaylist = await db.playlist.update({
+  const updatedPlaylist = await db().playlist.update({
     where: { path: playlist.path },
     data: updateData
   })
@@ -464,7 +464,7 @@ export async function updatePlaylistMetadata({
       return { success: false, error: 'filepath is required' }
     }
 
-    const existingPlaylist = await db.playlist.findUnique({
+    const existingPlaylist = await db().playlist.findUnique({
       where: { path: filepath }
     })
 
@@ -565,7 +565,7 @@ export async function updatePlaylistMetadata({
     }
 
     if (updatedPlaylist !== existingPlaylist && Object.keys(updateData).length > 0) {
-      updatedPlaylist = await db.playlist.update({
+      updatedPlaylist = await db().playlist.update({
         where: { path: filepath },
         data: updateData
       })
@@ -575,7 +575,7 @@ export async function updatePlaylistMetadata({
       if (coverModeChanged) {
         updateData.customCoverUpdatedAt = new Date()
       }
-      updatedPlaylist = await db.playlist.update({
+      updatedPlaylist = await db().playlist.update({
         where: { path: filepath },
         data: updateData
       })

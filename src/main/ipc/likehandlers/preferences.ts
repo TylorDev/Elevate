@@ -1,8 +1,8 @@
 import { getFileInfos, getOrCreateSong } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { getErrorMessage, withoutPictures } from './shared.ts'
-import type { Prisma, PrismaClient, Songs } from '../../generated/prisma/client.ts'
+import type { Prisma, Songs } from '../../generated/prisma/client.ts'
 import type {
   LikeSongPayload,
   PreferenceCollectionResult,
@@ -14,7 +14,7 @@ import type {
 } from '../../Types/likeHandlers.ts'
 import type { AudioFileInfo } from '../../Types/filehandlers.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getSong = getOrCreateSong as (
   filepath?: string | null,
   filename?: string | null
@@ -36,7 +36,7 @@ export async function markUserPreference(
     [preferenceField]: preferenceValue
   }
 
-  await db.userPreferences.upsert({
+  await db().userPreferences.upsert({
     where: { song_id: songId },
     update: preferenceData as Prisma.UserPreferencesUncheckedUpdateInput,
     create: {
@@ -47,7 +47,7 @@ export async function markUserPreference(
 }
 
 export async function isSongLiked(songId: number): Promise<boolean> {
-  const preference = await db.userPreferences.findUnique({
+  const preference = await db().userPreferences.findUnique({
     where: { song_id: songId },
     select: { is_favorite: true }
   })
@@ -58,7 +58,7 @@ export async function getUserPreferencesByCriteria(
   criteria: PreferenceCriteria
 ): Promise<PreferenceCollectionResult> {
   try {
-    const userPreferences = await db.userPreferences.findMany({
+    const userPreferences = await db().userPreferences.findMany({
       where: criteria,
       select: {
         Songs: {
@@ -92,7 +92,7 @@ export async function updateSongPreference(
   updateData?: unknown
 ): Promise<SongPreferenceMutationResult> {
   try {
-    const song = await db.songs.findUnique({
+    const song = await db().songs.findUnique({
       where: { filepath: filepath || '' }
     })
 
@@ -103,7 +103,7 @@ export async function updateSongPreference(
 
     const songId = song.song_id
 
-    const preference = await db.userPreferences.findUnique({
+    const preference = await db().userPreferences.findUnique({
       where: { song_id: songId }
     })
 
@@ -151,7 +151,7 @@ export async function checkSongLiked(
 
 export function unlikeSong(common: LikeSongPayload): Promise<SongPreferenceMutationResult> {
   return updateSongPreference(common.filePath, async (songId) => {
-    await db.userPreferences.update({
+    await db().userPreferences.update({
       where: { song_id: songId },
       data: { is_favorite: false }
     })
@@ -164,7 +164,7 @@ export async function getLikes(): Promise<PreferenceCollectionResult> {
 
 export async function getLikesNumber(): Promise<number> {
   try {
-    return db.userPreferences.count({
+    return db().userPreferences.count({
       where: { is_favorite: true }
     })
   } catch (error) {
@@ -195,7 +195,7 @@ export function getListenLater(): Promise<PreferenceCollectionResult> {
 
 export function removeListenLater(filepath?: string | null): Promise<SongPreferenceMutationResult> {
   return updateSongPreference(filepath, async (songId) => {
-    await db.userPreferences.update({
+    await db().userPreferences.update({
       where: { song_id: songId },
       data: { listen_later: false }
     })

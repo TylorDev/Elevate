@@ -24,13 +24,12 @@ import {
 } from './feed.ts'
 import { openDirectoryInExplorer, revealPathInExplorer } from './explorer.ts'
 import { sendNotification } from '../../main/rendererEvents.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { addDirectoryToLibrary } from '../../utils/libraryIngestion.ts'
 import { setNotifyRenderer } from '../../utils/directoryWatcher.ts'
 import { getFileInfos } from '../../utils/utils.ts'
 import { getPlaylistEditPayload } from '../playlistHandlers/index.ts'
 import { getErrorMessage } from './shared.ts'
-import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
   AudioFileInfo,
   FilehandlerArgs,
@@ -40,7 +39,7 @@ import type {
 
 export type * from '../../Types/filehandlers.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],
   options?: Record<string, unknown>
@@ -104,7 +103,7 @@ export function setupFilehandlers(): void {
 
   handleFilehandler('get-new-audio-files', async () => {
     try {
-      const recentAudioFiles = (await db.songs.findMany({
+      const recentAudioFiles = (await db().songs.findMany({
         orderBy: {
           timestamp: 'desc'
         },

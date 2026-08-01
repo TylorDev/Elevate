@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { updateDirectoryStats } from '../../utils/directoryScanner.ts'
 import { stopWatching } from '../../utils/directoryWatcher.ts'
 import { getFileInfos } from '../../utils/utils.ts'
@@ -13,7 +13,6 @@ import {
   normalizeSearchQuery,
   toNumber
 } from './shared.ts'
-import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
   AudioFileInfo,
   DeleteDirectoryBranchRequest,
@@ -29,7 +28,7 @@ import type {
 } from '../../Types/filehandlers.ts'
 import type { MutationResponse, SearchPageRequest } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],
   options?: Record<string, unknown>
@@ -52,7 +51,7 @@ async function getDirectoryRecursiveStats(directoryPath: string): Promise<Direct
     }
   }
 
-  const songs = (await db.songs.findMany({
+  const songs = (await db().songs.findMany({
     where: {
       filepath: {
         in: audioFiles
@@ -110,7 +109,7 @@ export async function enrichDirectories(
 export async function getDirectoryByPath(
   directoryPath: string
 ): Promise<DirectoryWithChildrenCount | null> {
-  return db.directory.findUnique({
+  return db().directory.findUnique({
     where: { path: directoryPath },
     include: {
       _count: {
@@ -123,7 +122,7 @@ export async function getDirectoryByPath(
 }
 
 export async function getDirectoryBranch(directoryId: number): Promise<DirectoryBranchRecord[]> {
-  const directories = (await db.directory.findMany({
+  const directories = (await db().directory.findMany({
     select: {
       id: true,
       path: true,
@@ -202,7 +201,7 @@ export async function deleteDirectory(
     }
 
     await stopWatching(dirPath)
-    await db.directory.delete({
+    await db().directory.delete({
       where: { path: dirPath }
     })
     invalidateDirectoryCache(dirPath)
@@ -239,7 +238,7 @@ export async function deleteDirectoryBranch(
       })
     }
 
-    await db.directory.delete({
+    await db().directory.delete({
       where: { path: dirPath }
     })
 
@@ -263,7 +262,7 @@ export async function getAllDirectories(): Promise<EnrichedDirectory[]> {
   }
 
   pendingDirectoriesRequest = (async () => {
-    const directories = (await db.directory.findMany({
+    const directories = (await db().directory.findMany({
       include: {
         _count: {
           select: {
@@ -295,7 +294,7 @@ export async function getAllDirectories(): Promise<EnrichedDirectory[]> {
 }
 
 export async function getDirectoriesNumber(): Promise<number> {
-  const directories = (await db.directory.findMany({
+  const directories = (await db().directory.findMany({
     include: {
       _count: {
         select: {
@@ -325,7 +324,7 @@ export async function searchDirectoriesPage(
     }
   }
 
-  const matchingDirectories = (await db.directory.findMany({
+  const matchingDirectories = (await db().directory.findMany({
     where: {
       path: {
         contains: query
@@ -390,7 +389,7 @@ export async function searchDirectoriesPage(
 
 export async function getRandomDirectory(): Promise<EnrichedDirectory | null> {
   try {
-    const directories = (await db.directory.findMany({
+    const directories = (await db().directory.findMany({
       include: {
         _count: {
           select: {

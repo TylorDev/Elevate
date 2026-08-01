@@ -1,5 +1,6 @@
 import path from 'path'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
+import type { AppDb } from '../../prisma.ts'
 import { deletePlaylistCoverFromCache } from '../../utils/utils.ts'
 import {
   extractPlaylistName,
@@ -8,7 +9,7 @@ import {
   normalizePlaylistFileName,
   normalizeSearchQuery
 } from './shared.ts'
-import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
+import type { Playlist } from '../../generated/prisma/client.ts'
 import type {
   EnrichedPlaylist,
   PlaylistDeleteCompletedPayload,
@@ -27,7 +28,7 @@ import type {
 } from '../../Types/playlistHandlers.ts'
 import type { SearchPageRequest } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const pendingPlaylistRequests = new Map<string, Promise<EnrichedPlaylist[]>>()
 let deletePlaylistJobCounter = 0
 
@@ -40,14 +41,14 @@ export async function upsertPlaylistMetadataPreservingName(
   data: UpsertPlaylistMetadataInput
 ): Promise<UpsertPlaylistMetadataResult> {
   try {
-    const existingPlaylist = await db.playlist.findUnique({
+    const existingPlaylist = await db().playlist.findUnique({
       where: {
         path: filepath
       }
     })
 
     if (existingPlaylist) {
-      const updatedPlaylist = await db.playlist.update({
+      const updatedPlaylist = await db().playlist.update({
         where: {
           path: filepath
         },
@@ -61,11 +62,11 @@ export async function upsertPlaylistMetadataPreservingName(
       return { success: true, playlist: updatedPlaylist }
     }
 
-    const newPlaylist = await db.playlist.create({
+    const newPlaylist = await db().playlist.create({
       data: {
         ...data,
         path: filepath
-      } as Parameters<typeof db.playlist.create>[0]['data']
+      } as Parameters<AppDb['playlist']['create']>[0]['data']
     })
     invalidatePlaylistCache()
 
@@ -83,7 +84,7 @@ export async function updatePlaylist(
   numElementos = 0,
   totalplays = 0
 ): Promise<Playlist> {
-  const playlist = await db.playlist.upsert({
+  const playlist = await db().playlist.upsert({
     where: { path: playlistPath },
     update: {
       nombre,
@@ -110,7 +111,7 @@ export async function getPlaylist(filePath: string | null | undefined): Promise<
   }
 
   try {
-    return await db.playlist.findUnique({
+    return await db().playlist.findUnique({
       where: { path: filePath }
     })
   } catch (error) {
@@ -121,14 +122,15 @@ export async function getPlaylist(filePath: string | null | undefined): Promise<
 
 export async function incrementCounter(playlistId: number): Promise<void> {
   try {
-    await db.historial.create({
-      data: { playlistId }
-    })
-
-    await db.playlist.update({
-      where: { id: playlistId },
-      data: { totalplays: { increment: 1 } }
-    })
+    await db().$transaction([
+      db().historial.create({
+        data: { playlistId }
+      }),
+      db().playlist.update({
+        where: { id: playlistId },
+        data: { totalplays: { increment: 1 } }
+      })
+    ])
   } catch (error) {
     console.error('Error updating playlist:', error)
   }
@@ -140,12 +142,12 @@ function isPrismaRecordNotFound(error: unknown): boolean {
 
 async function deletePlaylist(filePath: string): Promise<PlaylistDeleteResult> {
   try {
-    const existingPlaylist = await db.playlist.findUnique({
+    const existingPlaylist = await db().playlist.findUnique({
       where: { path: filePath },
       select: { customCoverHash: true }
     })
 
-    await db.playlist.delete({
+    await db().playlist.delete({
       where: { path: filePath }
     })
     invalidatePlaylistCache()
@@ -204,7 +206,7 @@ export async function getPlays(filePath: string): Promise<number> {
       return 0
     }
 
-    return await db.historial.count({
+    return await db().historial.count({
       where: { playlistId: playlist.id }
     })
   } catch (error) {
@@ -252,7 +254,7 @@ export async function getPlaylists<TOutput = EnrichedPlaylist>(
     return pendingRequest as Promise<TOutput[]>
   }
 
-  const options: Parameters<typeof db.playlist.findMany>[0] = {
+  const options: Parameters<AppDb['playlist']['findMany']>[0] = {
     orderBy: {
       totalplays: 'desc'
     }
@@ -261,8 +263,8 @@ export async function getPlaylists<TOutput = EnrichedPlaylist>(
   if (take !== null) options.take = take
   if (skip !== null) options.skip = skip
 
-  const request = db.playlist
-    .findMany(options)
+  const request = db()
+    .playlist.findMany(options)
     .then((playlists) => processPlaylistsBatch(playlists, 3, enrichPlaylist))
     .finally(() => {
       pendingPlaylistRequests.delete(requestKey)
@@ -273,7 +275,7 @@ export async function getPlaylists<TOutput = EnrichedPlaylist>(
 }
 
 export async function getPlaylistsMinimal(): Promise<PlaylistMinimal[]> {
-  const playlists = await db.playlist.findMany({
+  const playlists = await db().playlist.findMany({
     select: {
       id: true,
       path: true,
@@ -303,7 +305,7 @@ export async function getRandomPlaylist<TOutput = EnrichedPlaylist>(
   enrichPlaylist: PlaylistEnricher<Playlist, TOutput> = (playlist) => playlist as TOutput
 ): Promise<TOutput | null> {
   try {
-    const totalPlaylists = await db.playlist.count()
+    const totalPlaylists = await db().playlist.count()
     if (totalPlaylists === 0) return null
 
     const randomIndex = getRandomIndex(totalPlaylists)
@@ -318,7 +320,7 @@ export async function getRandomPlaylist<TOutput = EnrichedPlaylist>(
 
 export async function getPlaylistsNumber(): Promise<number> {
   try {
-    return await db.playlist.count()
+    return await db().playlist.count()
   } catch (error) {
     console.error('Error retrieving playlists count:', error)
     throw error
@@ -331,7 +333,7 @@ export async function createPlaylistRecord(
   totalTracks: number,
   totalDuration = 0
 ): Promise<Playlist> {
-  const playlist = await db.playlist.create({
+  const playlist = await db().playlist.create({
     data: {
       path: filePath,
       nombre: playlistName,
@@ -349,7 +351,7 @@ export async function findPlaylistByNameInsensitive(
   playlistName: string
 ): Promise<PlaylistNameRecord | null> {
   const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
-  const playlists = await db.playlist.findMany({
+  const playlists = await db().playlist.findMany({
     select: {
       nombre: true,
       path: true
@@ -368,7 +370,7 @@ export async function findPlaylistsByNameInsensitive(
   playlistName: string
 ): Promise<PlaylistIdentityRecord[]> {
   const normalizedPlaylistName = normalizePlaylistFileName(playlistName).toLowerCase()
-  const playlists = await db.playlist.findMany({
+  const playlists = await db().playlist.findMany({
     select: {
       id: true,
       nombre: true,
@@ -406,7 +408,7 @@ export async function playlistPathExistsInDatabase(
     return false
   }
 
-  const conflictingPlaylist = await db.playlist.findUnique({
+  const conflictingPlaylist = await db().playlist.findUnique({
     where: { path: path.resolve(filePath) }
   })
 
@@ -443,7 +445,7 @@ export async function searchPlaylistsPage<TOutput extends EnrichedPlaylist = Enr
     }
   }
 
-  const matchingPlaylists = await db.playlist.findMany({
+  const matchingPlaylists = await db().playlist.findMany({
     where: {
       OR: [{ nombre: { contains: query } }, { path: { contains: query } }]
     }
@@ -493,7 +495,7 @@ export async function searchPlaylistsPage<TOutput extends EnrichedPlaylist = Enr
 }
 
 export async function getPlaylistByPathOrNull(filePath: string): Promise<Playlist | null> {
-  return db.playlist.findUnique({
+  return db().playlist.findUnique({
     where: { path: filePath }
   })
 }

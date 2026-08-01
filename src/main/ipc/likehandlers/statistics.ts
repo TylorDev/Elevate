@@ -4,13 +4,12 @@ import {
   mapSongRecordToFileInfo,
   USER_PREFERENCE_TRACK_SELECT
 } from '../../utils/utils.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import {
   buildInsightRankingsFromTracks,
   INSIGHT_METRIC_KEYS,
   normalizeRankingPageRequest
 } from './shared.ts'
-import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
   SongRecordWithPreferences,
   StatisticsOverviewResult,
@@ -26,7 +25,7 @@ import type {
 } from '../../Types/filehandlers.ts'
 import type { PageRequest } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const mapSongToFileInfo = mapSongRecordToFileInfo as (
   song: SongRecordWithPreferences | null | undefined
 ) => AudioFileInfo | null
@@ -42,7 +41,7 @@ const buildAudioRankingPage = buildRankingPageFromTracks as (
 export async function getStatisticsOverview(
   request: PageRequest = {}
 ): Promise<StatisticsOverviewResult> {
-  const songs = await db.songs.findMany({
+  const songs = await db().songs.findMany({
     include: {
       UserPreferences: {
         select: USER_PREFERENCE_TRACK_SELECT
@@ -74,7 +73,7 @@ export async function getStatisticsRankingPage(
     return { success: false, error: 'Invalid ranking tab' }
   }
 
-  const songs = await db.songs.findMany({
+  const songs = await db().songs.findMany({
     include: {
       UserPreferences: {
         select: USER_PREFERENCE_TRACK_SELECT

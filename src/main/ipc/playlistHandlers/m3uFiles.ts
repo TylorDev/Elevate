@@ -1,7 +1,7 @@
 import { app, dialog } from 'electron'
 import fs from 'fs'
 import path from 'path'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { processPlaylist } from '../../utils/utils.ts'
 import {
   createPlaylistRecord,
@@ -26,7 +26,7 @@ import {
   stripControlCharacters,
   stripPlaylistExtension
 } from './shared.ts'
-import type { Playlist, PrismaClient } from '../../generated/prisma/client.ts'
+import type { Playlist } from '../../generated/prisma/client.ts'
 import type {
   DuplicateImportedPlaylist,
   ExportPlaylistResult,
@@ -41,7 +41,7 @@ import type {
 } from '../../Types/playlistHandlers.ts'
 import type { AudioFileInfo } from '../../Types/filehandlers.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const processPlaylistTracks = processPlaylist as (
   filepath: string,
   baseDir: string,
@@ -164,7 +164,7 @@ export async function persistPlaylistRecord(
 ): Promise<PersistPlaylistRecordResult> {
   const playlistName = extractPlaylistName(filePath)
   const [existingPlaylistByPath, conflictingPlaylistByName] = await Promise.all([
-    db.playlist.findUnique({ where: { path: filePath } }),
+    db().playlist.findUnique({ where: { path: filePath } }),
     findPlaylistByNameInsensitive(playlistName)
   ])
 
@@ -310,7 +310,7 @@ async function findDuplicateImportedPlaylist({
   path: string
   trackSignature: string
 }): Promise<DuplicateImportedPlaylist> {
-  const samePathPlaylist = await db.playlist.findUnique({
+  const samePathPlaylist = await db().playlist.findUnique({
     where: { path: importedPath }
   })
 
@@ -358,7 +358,7 @@ async function persistImportedPlaylistRecord(
   filePaths: string[]
 ): Promise<PersistPlaylistRecordResult> {
   const playlistName = extractPlaylistName(filePath)
-  const existingPlaylistByPath = await db.playlist.findUnique({
+  const existingPlaylistByPath = await db().playlist.findUnique({
     where: { path: filePath }
   })
 

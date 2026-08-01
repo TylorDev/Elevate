@@ -41,7 +41,7 @@ export function sendAppCommand(command: AppCommand): void {
 }
 
 export function sendDatabaseStatus(
-  channel: 'database:ready' | 'database:error',
+  channel: 'database:ready' | 'database:error' | 'database:reset',
   status: PrismaStatus
 ): void {
   sendRendererEvent(channel, status)

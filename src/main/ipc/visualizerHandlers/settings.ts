@@ -3,6 +3,7 @@ import type {
   VisualizerStateResult,
   VisualizerUpdateSettingsPayload
 } from '../../Types/visualizerHandlers.ts'
+import { withDatabaseWriteRetry } from '../../database/retry.ts'
 import { loadVisualizerState } from './state.ts'
 import { normalizePresetSource, SOURCE_MODE_TO_DB, visualizerDb } from './shared.ts'
 
@@ -21,7 +22,7 @@ export async function updateVisualizerSettings(
     let listId: string | null = null
 
     if (presetSource.mode === 'list' && presetSource.listId) {
-      const list = await visualizerDb.visualizerPresetList.findUnique({
+      const list = await visualizerDb().visualizerPresetList.findUnique({
         where: { id: presetSource.listId },
         select: { id: true }
       })
@@ -38,11 +39,13 @@ export async function updateVisualizerSettings(
     data.presetSourceListId = listId
   }
 
-  await visualizerDb.visualizerSettings.upsert({
-    where: { id: 1 },
-    update: data,
-    create: { id: 1, ...data }
-  })
+  await withDatabaseWriteRetry(() =>
+    visualizerDb().visualizerSettings.upsert({
+      where: { id: 1 },
+      update: data,
+      create: { id: 1, ...data }
+    })
+  )
 
   return { success: true, state: await loadVisualizerState() }
 }

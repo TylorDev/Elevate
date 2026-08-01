@@ -1,15 +1,33 @@
 import type { BrowserWindow, Rectangle, Tray } from 'electron'
 import type { LaunchNotification } from './argv.ts'
 import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
-import type { SerializedNativeError } from './nativeDiagnostics.ts'
 import type { RequiredErrorResponse, SuccessResponse } from './shared.ts'
 
-export type PrismaStatusError = Pick<SerializedNativeError, 'message' | 'code' | 'stack'>
+export type PrismaPhase = 'idle' | 'preparing' | 'ready' | 'failed' | 'disconnecting'
+
+export type PrismaStatusError = {
+  message: string
+  code: string
+  retryable: boolean
+}
+
+export type PrismaRecovery = {
+  resetPerformed: boolean
+  resetReason:
+    | 'integrity-check-failed'
+    | 'foreign-key-violation'
+    | 'schema-version-mismatch'
+    | 'migration-metadata-missing'
+    | null
+  backupAvailable: boolean
+}
 
 export type PrismaStatus = {
+  phase: PrismaPhase
   isInitializing: boolean
   isReady: boolean
   error: PrismaStatusError | null
+  recovery: PrismaRecovery
   initStartedAt: string | null
   initFinishedAt: string | null
 }
@@ -89,6 +107,7 @@ export type MainRendererEventMap = {
   'app:command': AppCommand
   'database:ready': PrismaStatus
   'database:error': PrismaStatus
+  'database:reset': PrismaStatus
 }
 
 export type MainRendererEventChannel = keyof MainRendererEventMap
@@ -102,6 +121,8 @@ export type MainIpcContract = {
   'window:quit': { args: []; result: void }
   'window:get-state': { args: []; result: WindowStatePayload }
   'app:get-database-status': { args: []; result: PrismaStatus }
+  'app:retry-database': { args: []; result: PrismaStatus }
+  'app:open-database-backups': { args: []; result: boolean }
   'window:toggle-always-on-top': { args: []; result: void }
   'window:set-minimum-size': { args: [payload?: MinimumWindowSizeRequest | null]; result: void }
   'window:apply-grid-preset': {

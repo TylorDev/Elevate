@@ -62,12 +62,12 @@ The easiest way to install Elevate is to use a packaged Windows release.
 
 Packaged Windows installs keep mutable user data outside the install directory:
 
-| Data | Location |
-| --- | --- |
-| App install | `%LOCALAPPDATA%\Programs\Elevate\` |
-| User data | `%APPDATA%\Elevate\` |
-| Local database | `%APPDATA%\Elevate\elevate.db` |
-| Cover cache | `%APPDATA%\Elevate\covers\` |
+| Data           | Location                           |
+| -------------- | ---------------------------------- |
+| App install    | `%LOCALAPPDATA%\Programs\Elevate\` |
+| User data      | `%APPDATA%\Elevate\`               |
+| Local database | `%APPDATA%\Elevate\elevate.db`     |
+| Cover cache    | `%APPDATA%\Elevate\covers\`        |
 
 To reset the packaged app, remove the contents of `%APPDATA%\Elevate\`. Uninstalling the app alone does not remove your user data.
 
@@ -112,6 +112,16 @@ ELECTRON_REMOTE_DEBUGGING_PORT=8315
 
 `DATABASE_URL` is required by Prisma. `ELECTRON_REMOTE_DEBUGGING_PORT` is optional, but useful when debugging the Electron renderer.
 
+Create a fresh development database from the current migration baseline:
+
+```sh
+npm run prisma:dev-db
+```
+
+The command regenerates `template.db`, backs up an existing development database under
+`prisma/dev-backups/`, and replaces `dev.db` atomically. These databases, their WAL/SHM
+sidecars, `.env`, and the generated Prisma Client are intentionally not tracked by Git.
+
 ### Start Development
 
 ```sh
@@ -122,16 +132,23 @@ This starts Electron through the local Electron Vite wrapper.
 
 ## Useful Scripts
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the app in development mode. |
-| `npm start` | Preview the built app with Electron Vite. |
-| `npm run build` | Clean build output, prepare the template database, and build the app. |
-| `npm run build:win` | Build and package the Windows installer. |
-| `npm run build:unpack` | Build an unpacked desktop app directory. |
-| `npm run electron:rebuild` | Rebuild/install native Electron app dependencies. |
-| `npm run lint` | Run ESLint with automatic fixes. |
-| `npm run format` | Run Prettier across the repository. |
+| Command                         | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `npm run dev`                   | Start the app in development mode.                                    |
+| `npm start`                     | Preview the built app with Electron Vite.                             |
+| `npm run build`                 | Clean build output, prepare the template database, and build the app. |
+| `npm run build:win`             | Build and package the Windows installer.                              |
+| `npm run build:unpack`          | Build an unpacked desktop app directory.                              |
+| `npm run electron:rebuild`      | Rebuild/install native Electron app dependencies.                     |
+| `npm run prisma:validate`       | Validate the Prisma schema with the pinned local CLI.                 |
+| `npm run prisma:generate`       | Generate the Prisma Client explicitly.                                |
+| `npm run prisma:migrate:dev`    | Create/apply an incremental development migration.                    |
+| `npm run prisma:migrate:status` | Check migration status for `DATABASE_URL`.                            |
+| `npm run prisma:template`       | Build and validate the packaged SQLite template using migrations.     |
+| `npm run prisma:dev-db`         | Back up and recreate the local development database.                  |
+| `npm run prisma:check`          | Validate, generate, deploy, status-check, and drift-check Prisma.     |
+| `npm run lint`                  | Run ESLint with automatic fixes.                                      |
+| `npm run format`                | Run Prettier across the repository.                                   |
 
 ## Build And Package
 
@@ -155,6 +172,16 @@ npm run build:win
 ```
 
 Build output is written to `dist/`.
+
+The packaged app contains only `prisma/template.db` and
+`prisma/schema-version.json`. It does not ship migration sources or Prisma CLI. Whenever
+`schema.prisma` changes, add an incremental migration and increment the positive integer in
+`schema-version.json`; never edit the published `0001_baseline`.
+
+At runtime, Elevate checks SQLite integrity and the schema version before registering data
+IPC or starting directory watchers. An incompatible Elevate-managed database is backed up
+under `database-backups/` in the user-data directory and recreated from the packaged
+template. A custom development `DATABASE_URL` is never reset automatically.
 
 ## Project Structure
 

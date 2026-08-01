@@ -1,5 +1,7 @@
 import { ipcMain, screen, shell } from 'electron'
-import { getPrismaStatus } from '../prisma.ts'
+import { promises as fs } from 'node:fs'
+import { getDatabaseBackupsPath } from '../database/preparation.ts'
+import { getPrismaStatus, initializePrisma } from '../prisma.ts'
 import type { MainIpcArgs, MainIpcChannel, MainIpcHandler } from '../Types/main.ts'
 import { calculateGridPresetBounds } from '../utils/windowGrid.ts'
 import { getMainWindow } from './context.ts'
@@ -16,7 +18,14 @@ function isPositiveFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
-export function setupMainIpcHandlers(requestShutdown: () => Promise<void>): void {
+type MainDatabaseActions = {
+  retryDatabase?: () => Promise<ReturnType<typeof getPrismaStatus>>
+}
+
+export function setupMainIpcHandlers(
+  requestShutdown: () => Promise<void>,
+  databaseActions: MainDatabaseActions = {}
+): void {
   handleMain('window:minimize', () => {
     const mainWindow = getMainWindow()
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize()
@@ -40,6 +49,23 @@ export function setupMainIpcHandlers(requestShutdown: () => Promise<void>): void
   handleMain('window:quit', () => requestShutdown())
   handleMain('window:get-state', getWindowStatePayload)
   handleMain('app:get-database-status', getPrismaStatus)
+  handleMain('app:retry-database', async () => {
+    if (databaseActions.retryDatabase) {
+      return databaseActions.retryDatabase()
+    }
+
+    try {
+      await initializePrisma()
+    } catch {
+      // Status contains the sanitized failure.
+    }
+    return getPrismaStatus()
+  })
+  handleMain('app:open-database-backups', async () => {
+    const backupsPath = getDatabaseBackupsPath()
+    await fs.mkdir(backupsPath, { recursive: true })
+    return (await shell.openPath(backupsPath)) === ''
+  })
   handleMain('window:toggle-always-on-top', () => {
     const mainWindow = getMainWindow()
     if (!mainWindow || mainWindow.isDestroyed()) return

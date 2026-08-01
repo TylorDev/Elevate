@@ -1,7 +1,6 @@
 import { getFileInfos } from '../../utils/utils.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { getErrorMessage, toDayKey } from './shared.ts'
-import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
   HistoryPageResult,
   SongHistoryDailyRecord,
@@ -11,7 +10,7 @@ import type {
 import type { AudioFileInfo } from '../../Types/filehandlers.ts'
 import type { ErrorResponse, PageRequestInput } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const getAudioFileInfos = getFileInfos as (
   filePaths: string[],
   options?: Record<string, unknown>
@@ -41,7 +40,7 @@ function normalizeHistoryPageRequest(request: PageRequestInput): {
 
 export async function getMostPlayedSongsWithDetails(): Promise<string[] | ErrorResponse> {
   try {
-    const userPreferences = await db.userPreferences.findMany({
+    const userPreferences = await db().userPreferences.findMany({
       orderBy: {
         short_view_count: 'desc'
       },
@@ -77,14 +76,14 @@ export async function getPlayHistoryOrdered(
   const { page, pageSize, offset } = normalizeHistoryPageRequest(request)
 
   try {
-    const uniqueHistoryRows = await db.playHistory.groupBy({
+    const uniqueHistoryRows = await db().playHistory.groupBy({
       by: ['song_id']
     })
     const totalRecords = uniqueHistoryRows.length
 
     const maxPages = Math.ceil(totalRecords / pageSize)
 
-    const playHistoryRecords = await db.playHistory.groupBy({
+    const playHistoryRecords = await db().playHistory.groupBy({
       by: ['song_id'],
       _max: {
         timestamp: true
@@ -105,7 +104,7 @@ export async function getPlayHistoryOrdered(
 
     const songIds = playHistoryRecords.map((record) => record.song_id)
     const songs = songIds.length
-      ? await db.songs.findMany({
+      ? await db().songs.findMany({
           where: {
             song_id: {
               in: songIds
@@ -166,7 +165,7 @@ export async function getSongHistoryTimeline(
   }
 
   try {
-    const songRecord = await db.songs.findUnique({
+    const songRecord = await db().songs.findUnique({
       where: { filepath: filePath },
       select: {
         song_id: true,
@@ -179,7 +178,7 @@ export async function getSongHistoryTimeline(
       return { success: false, error: 'No se encontro esta cancion en la biblioteca.' }
     }
 
-    const historyRecords = await db.playHistory.findMany({
+    const historyRecords = await db().playHistory.findMany({
       where: { song_id: songRecord.song_id },
       orderBy: { timestamp: 'asc' },
       select: { timestamp: true }
@@ -230,7 +229,7 @@ export async function getSongHistoryTimeline(
 
 export async function getRecentHistoryOrdered(): Promise<AudioFileInfo[] | ErrorResponse> {
   try {
-    const playHistoryRecords = await db.playHistory.findMany({
+    const playHistoryRecords = await db().playHistory.findMany({
       orderBy: {
         timestamp: 'desc'
       },

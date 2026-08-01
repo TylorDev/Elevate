@@ -63,6 +63,9 @@ export interface ElectronAPI {
   appDiagnostics: {
     getStoragePaths: () => Promise<StorageDiagnostics>
     getDatabaseStatus: () => Promise<PrismaStatus>
+    retryDatabase: () => Promise<PrismaStatus>
+    openDatabaseBackups: () => Promise<boolean>
+    onDatabaseStatus: (callback: (status: PrismaStatus) => void) => Unsubscribe
   }
 }
 

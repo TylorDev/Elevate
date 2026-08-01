@@ -4,9 +4,8 @@ import {
   USER_PREFERENCE_TRACK_SELECT
 } from '../../utils/utils.ts'
 import { generateCollectionCoverFromTracks } from '../../utils/collectionDetail.ts'
-import { prisma } from '../../prisma.ts'
+import { getPrismaClient } from '../../prisma.ts'
 import { buildInsightRankingsFromTracks, normalizeRankingPageRequest } from './shared.ts'
-import type { PrismaClient } from '../../generated/prisma/client.ts'
 import type {
   LikeCollectionOverviewResult,
   SongRecordWithPreferences
@@ -14,7 +13,7 @@ import type {
 import type { AudioFileInfo, AudioFilesPage, CollectionSummary } from '../../Types/filehandlers.ts'
 import type { PageRequest } from '../../Types/shared.ts'
 
-const db = prisma as unknown as PrismaClient
+const db = getPrismaClient
 const mapSongToFileInfo = mapSongRecordToFileInfo as (
   song: SongRecordWithPreferences | null | undefined
 ) => AudioFileInfo | null
@@ -29,7 +28,7 @@ const generateCollectionCover = generateCollectionCoverFromTracks as (
 export async function getLikesOverview(
   request: PageRequest = {}
 ): Promise<LikeCollectionOverviewResult> {
-  const favorites = await db.userPreferences.findMany({
+  const favorites = await db().userPreferences.findMany({
     where: { is_favorite: true },
     include: {
       Songs: {
@@ -61,10 +60,10 @@ export async function getLikesOverview(
 export async function getLikesTracksPage(request: PageRequest = {}): Promise<AudioFilesPage> {
   const { page, pageSize } = normalizeRankingPageRequest(request)
   const offset = (page - 1) * pageSize
-  const total = await db.userPreferences.count({
+  const total = await db().userPreferences.count({
     where: { is_favorite: true }
   })
-  const favorites = await db.userPreferences.findMany({
+  const favorites = await db().userPreferences.findMany({
     where: { is_favorite: true },
     skip: offset,
     take: pageSize,

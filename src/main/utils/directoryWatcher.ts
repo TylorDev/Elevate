@@ -1,6 +1,6 @@
 // @ts-nocheck
 import path from 'path'
-import { prisma } from '../prisma.ts'
+import { getPrismaClient } from '../prisma.ts'
 import { getOrCreateSong } from './utils.ts'
 import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.ts'
 import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.ts'
@@ -30,10 +30,7 @@ function uniquePaths(paths) {
 }
 
 function getPathDepth(dirPath) {
-  return path
-    .normalize(dirPath)
-    .split(path.sep)
-    .filter(Boolean).length
+  return path.normalize(dirPath).split(path.sep).filter(Boolean).length
 }
 
 // ─── Public API ──────────────────────────────────────────────────────
@@ -105,7 +102,7 @@ export async function stopAll() {
  */
 export async function initializeWatchers() {
   try {
-    const directories = await prisma.directory.findMany({
+    const directories = await getPrismaClient().directory.findMany({
       where: { parentId: null },
       select: { path: true }
     })
@@ -164,11 +161,11 @@ async function onDirAdded(newDirPath, rootDirPath) {
       if (discoveredDirectories.length === 0) return
 
       for (const dirPath of directoriesToRegister) {
-        const parent = await prisma.directory.findFirst({
+        const parent = await getPrismaClient().directory.findFirst({
           where: { path: path.dirname(dirPath) }
         })
 
-        await prisma.directory.upsert({
+        await getPrismaClient().directory.upsert({
           where: { path: dirPath },
           update: {
             parentId: parent?.id || null
@@ -193,9 +190,11 @@ async function onDirAdded(newDirPath, rootDirPath) {
 async function onDirRemoved(removedDirPath, rootDirPath) {
   try {
     // Delete the directory and its children (cascade) from DB
-    const directory = await prisma.directory.findUnique({ where: { path: removedDirPath } })
+    const directory = await getPrismaClient().directory.findUnique({
+      where: { path: removedDirPath }
+    })
     if (directory) {
-      await prisma.directory.delete({ where: { path: removedDirPath } })
+      await getPrismaClient().directory.delete({ where: { path: removedDirPath } })
       console.debug(`[watcher] Removed directory: ${removedDirPath}`)
       notifyRenderer?.('[directory-changed]')
     }
@@ -246,9 +245,7 @@ async function flushChanges() {
       // Process removals — no song deletion needed (songs persist),
       // but we update the directory stats
       if (changes.removed.size > 0) {
-        console.debug(
-          `[watcher] ${changes.removed.size} files removed from ${ownerDir}`
-        )
+        console.debug(`[watcher] ${changes.removed.size} files removed from ${ownerDir}`)
       }
 
       // Update stats for affected directories
@@ -261,7 +258,7 @@ async function flushChanges() {
       }
 
       for (const dirPath of affectedDirs) {
-        const dirRecord = await prisma.directory.findUnique({ where: { path: dirPath } })
+        const dirRecord = await getPrismaClient().directory.findUnique({ where: { path: dirPath } })
         if (dirRecord) {
           await updateDirectoryStats(dirPath)
         }

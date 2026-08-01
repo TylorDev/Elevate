@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import { getOrCreateSong } from './utils.ts'
-import { prisma } from '../prisma.ts'
+import { getPrismaClient } from '../prisma.ts'
 import {
   isSupportedMediaFile,
   resolveImportableAudioPath,
@@ -158,7 +158,7 @@ export async function updateDirectoryStats(dirPath) {
   const audioFiles = await scanDirectoryAsync(dirPath, false)
 
   if (audioFiles.length === 0) {
-    await prisma.directory.updateMany({
+    await getPrismaClient().directory.updateMany({
       where: { path: dirPath },
       data: { totalTracks: 0, totalDuration: 0, lastScannedAt: new Date() }
     })
@@ -168,7 +168,7 @@ export async function updateDirectoryStats(dirPath) {
   // Query durations from the DB for files we already indexed
   const importableAudioFiles = await resolveImportableAudioPaths(audioFiles)
 
-  const songs = await prisma.songs.findMany({
+  const songs = await getPrismaClient().songs.findMany({
     where: { filepath: { in: importableAudioFiles } },
     select: { duration: true }
   })
@@ -176,7 +176,7 @@ export async function updateDirectoryStats(dirPath) {
   const totalTracks = audioFiles.length
   const totalDuration = songs.reduce((sum, s) => sum + (s.duration || 0), 0)
 
-  await prisma.directory.updateMany({
+  await getPrismaClient().directory.updateMany({
     where: { path: dirPath },
     data: { totalTracks, totalDuration, lastScannedAt: new Date() }
   })
