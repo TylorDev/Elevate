@@ -7,6 +7,7 @@ import { getMainWindow, mainContext, setMainWindow } from './context.ts'
 import { sendWindowState } from './rendererEvents.ts'
 import { updateTaskbarControls } from './taskbar.ts'
 import { flushWindowState, loadWindowState, scheduleWindowStateSave } from './windowState.ts'
+import { recordPlaybackWindowState } from '../diagnostics/playbackDiagnostics.ts'
 
 type RendererLogMethod = 'debug' | 'info' | 'warn' | 'error'
 
@@ -57,6 +58,7 @@ export function restoreMainWindow(): void {
   if (mainWindow.isMinimized()) mainWindow.restore()
   if (!mainWindow.isVisible()) mainWindow.show()
   mainWindow.focus()
+  recordPlaybackWindowState(mainWindow, 'restore-main-window')
   sendWindowState()
   updateTaskbarControls()
 }
@@ -66,6 +68,7 @@ export function hideMainWindowToTray(): void {
   if (!mainWindow || mainWindow.isDestroyed()) return
   scheduleWindowStateSave(mainWindow)
   mainWindow.hide()
+  recordPlaybackWindowState(mainWindow, 'hide-to-tray')
   sendWindowState()
 }
 
@@ -104,6 +107,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     else mainWindow.show()
     sendWindowState()
     updateTaskbarControls()
+    recordPlaybackWindowState(mainWindow, 'ready-to-show')
   })
 
   mainWindow.webContents.on('before-input-event', (_event, input) => {
@@ -127,16 +131,21 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   })
 
   const scheduleSave = () => scheduleWindowStateSave(mainWindow)
-  const scheduleSaveAndNotify = () => {
+  const scheduleSaveAndNotify = (cause: string) => {
     scheduleWindowStateSave(mainWindow)
     sendWindowState()
+    recordPlaybackWindowState(mainWindow, cause)
   }
   mainWindow.on('resize', scheduleSave)
   mainWindow.on('move', scheduleSave)
-  mainWindow.on('maximize', scheduleSaveAndNotify)
-  mainWindow.on('unmaximize', scheduleSaveAndNotify)
-  mainWindow.on('minimize', scheduleSaveAndNotify)
-  mainWindow.on('restore', scheduleSaveAndNotify)
+  mainWindow.on('maximize', () => scheduleSaveAndNotify('maximize'))
+  mainWindow.on('unmaximize', () => scheduleSaveAndNotify('unmaximize'))
+  mainWindow.on('minimize', () => scheduleSaveAndNotify('minimize'))
+  mainWindow.on('restore', () => scheduleSaveAndNotify('restore'))
+  mainWindow.on('show', () => recordPlaybackWindowState(mainWindow, 'show'))
+  mainWindow.on('hide', () => recordPlaybackWindowState(mainWindow, 'hide'))
+  mainWindow.on('focus', () => recordPlaybackWindowState(mainWindow, 'focus'))
+  mainWindow.on('blur', () => recordPlaybackWindowState(mainWindow, 'blur'))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)

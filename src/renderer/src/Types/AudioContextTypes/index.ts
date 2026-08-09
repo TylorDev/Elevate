@@ -7,6 +7,7 @@ import type {
   PlaybackRecordResult,
   PlaybackStats
 } from '../../../../main/Types/likeHandlers.ts'
+import type { PlaybackDiagnosticAppendPayload } from '../../../../main/Types/playbackDiagnostics.ts'
 
 export type AudioProviderProps = {
   children: ReactNode
@@ -16,6 +17,10 @@ export type AudioElementSnapshot = Pick<HTMLAudioElement, 'currentTime' | 'durat
 
 export type PlaybackSession = {
   id: string
+  sessionId: string
+  cycleId: string
+  cycleSequence: number
+  eventSequence: number
   file: AudioFileInfo
   duration: number
   activeListeningMs: number
@@ -33,7 +38,11 @@ export type PendingReplay = {
   filePath: string
 }
 
-export type PlaybackSessionEndReason = 'change' | 'ended' | 'track-change' | 'audio-provider-unmount'
+export type PlaybackSessionEndReason =
+  | 'change'
+  | 'ended'
+  | 'track-change'
+  | 'audio-provider-unmount'
 
 export type AudioPlaybackRecordPayload = PlaybackRecordPayload & {
   shortViewAwarded?: boolean
@@ -42,7 +51,17 @@ export type AudioPlaybackRecordPayload = PlaybackRecordPayload & {
 
 export type PlaybackRecordExtras = Omit<
   Partial<AudioPlaybackRecordPayload>,
-  'eventType' | 'filePath' | 'fileName' | 'duration'
+  | 'eventType'
+  | 'filePath'
+  | 'fileName'
+  | 'duration'
+  | 'requestId'
+  | 'sessionId'
+  | 'cycleId'
+  | 'cycleSequence'
+  | 'eventSequence'
+  | 'occurredAt'
+  | 'diagnosticSnapshot'
 >
 
 export type PlaybackRecordInvoker = (
@@ -54,8 +73,9 @@ export type PlaybackStatsUpdater = (filePath: string, stats: Partial<PlaybackSta
 export type AudioTrackingDependencies = {
   invokePlaybackRecord: PlaybackRecordInvoker
   updateCurrentFileStats: PlaybackStatsUpdater
-  notifyShortView: () => void
-  notifyLongView: () => void
+  notifyShortView: (session: PlaybackSession, requestId: string | null) => void
+  notifyLongView: (session: PlaybackSession, requestId: string | null) => void
+  appendDiagnostic?: (event: PlaybackDiagnosticAppendPayload) => void
 }
 
 export type AudioTrackingController = {

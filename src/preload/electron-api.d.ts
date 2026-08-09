@@ -5,6 +5,10 @@ import type {
 } from '../main/Types/discordPresence.ts'
 import type { StorageDiagnostics } from '../main/Types/storagePaths.ts'
 import type {
+  PlaybackDiagnosticAppendPayload,
+  PlaybackDiagnosticsExportResult
+} from '../main/Types/playbackDiagnostics.ts'
+import type {
   AppCommand,
   GridPresetRequest,
   GridPresetResult,
@@ -65,6 +69,8 @@ export interface ElectronAPI {
     getDatabaseStatus: () => Promise<PrismaStatus>
     retryDatabase: () => Promise<PrismaStatus>
     openDatabaseBackups: () => Promise<boolean>
+    appendPlaybackEvent: (payload: PlaybackDiagnosticAppendPayload) => void
+    exportPlaybackDiagnostics: () => Promise<PlaybackDiagnosticsExportResult>
     onDatabaseStatus: (callback: (status: PrismaStatus) => void) => Unsubscribe
   }
 }

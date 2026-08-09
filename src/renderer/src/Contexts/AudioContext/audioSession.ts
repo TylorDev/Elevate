@@ -12,17 +12,24 @@ import {
   SKIP_WINDOW_MS,
   toNonNegativeNumber
 } from './audioUtils'
+import { createPlaybackDiagnosticId } from './audioDiagnostics'
 
 export function createPlaybackSession(
   file: AudioFileInfo | null | undefined,
-  now = Date.now()
+  _now = Date.now()
 ): PlaybackSession | null {
   if (!file?.filePath) {
     return null
   }
 
+  const sessionId = createPlaybackDiagnosticId()
+
   return {
-    id: `${file.filePath}|${now}`,
+    id: sessionId,
+    sessionId,
+    cycleId: createPlaybackDiagnosticId(),
+    cycleSequence: 1,
+    eventSequence: 0,
     file,
     duration: toNonNegativeNumber(file.duration),
     activeListeningMs: 0,
@@ -78,6 +85,8 @@ export function resetPlaybackCycle(
   const currentTime = toNonNegativeNumber(audio?.currentTime)
 
   session.activeListeningMs = 0
+  session.cycleId = createPlaybackDiagnosticId()
+  session.cycleSequence += 1
   session.activeSegmentStartedAt = audio && !audio.paused ? now : null
   session.lastKnownCurrentTime = currentTime
   session.shortViewAwarded = false
@@ -123,10 +132,7 @@ export function hasReachedLongViewCompletion(session: PlaybackSession): boolean 
   const durationSeconds = toNonNegativeNumber(session.duration)
   const currentTime = toNonNegativeNumber(session.lastKnownCurrentTime)
 
-  return (
-    durationSeconds > 0 &&
-    currentTime / durationSeconds >= LONG_VIEW_COMPLETION_THRESHOLD
-  )
+  return durationSeconds > 0 && currentTime / durationSeconds >= LONG_VIEW_COMPLETION_THRESHOLD
 }
 
 export function shouldAwardSkip(

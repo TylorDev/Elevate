@@ -9,6 +9,7 @@ import type {
   RankingPage
 } from './filehandlers.ts'
 import type { IpcArgs, IpcChannel, IpcInvokeHandler } from './ipc.ts'
+import type { PlaybackDiagnosticSnapshot } from './playbackDiagnostics.ts'
 import type {
   ErrorResponse,
   MaybePromise,
@@ -68,6 +69,13 @@ export type PlaybackRecordPayload = {
   duration?: number | string | null
   activeListeningSeconds?: number | string | null
   countAsRepeat?: boolean | null
+  requestId?: string | null
+  sessionId?: string | null
+  cycleId?: string | null
+  cycleSequence?: number | string | null
+  eventSequence?: number | string | null
+  occurredAt?: string | null
+  diagnosticSnapshot?: PlaybackDiagnosticSnapshot | null
 }
 
 export type PlaybackStats = Pick<
@@ -90,6 +98,9 @@ export type PlaybackRecordResult =
       songId: number
       eventType: PlaybackEventType
       isConsecutiveRepeat: boolean
+      requestId: string | null
+      sessionId: string | null
+      cycleId: string | null
       stats: Partial<PlaybackStats>
     }>
   | ErrorResponse

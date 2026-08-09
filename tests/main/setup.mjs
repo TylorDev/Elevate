@@ -7,16 +7,21 @@ mockRequire('electron', electronMock)
 vi.mock('electron', () => electronMock)
 
 vi.mock('electron-log/main.js', () => {
-  const logger = {
+  const createLogger = () => ({
     info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
     debug: vi.fn(),
+    initialize: vi.fn(),
     transports: {
-      file: {},
+      file: {
+        getFile: vi.fn(() => ({ path: 'main.log' }))
+      },
       console: {}
     }
-  }
+  })
+  const logger = createLogger()
+  logger.create = vi.fn(() => createLogger())
 
   return {
     default: logger,

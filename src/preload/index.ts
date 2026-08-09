@@ -102,6 +102,10 @@ const electronAPI: ElectronAPI = {
     getDatabaseStatus: () => ipcRenderer.invoke('app:get-database-status'),
     retryDatabase: () => ipcRenderer.invoke('app:retry-database'),
     openDatabaseBackups: () => ipcRenderer.invoke('app:open-database-backups'),
+    appendPlaybackEvent: (payload) => {
+      void ipcRenderer.invoke('playback-diagnostics:append', payload).catch(() => undefined)
+    },
+    exportPlaybackDiagnostics: () => ipcRenderer.invoke('playback-diagnostics:export'),
     onDatabaseStatus: (callback) => {
       const channels = ['database:ready', 'database:error', 'database:reset'] as const
       const listeners = channels.map((channel) => {

@@ -5,6 +5,7 @@
     --secondary: #363636;
     --background: #0A0A0A;
     --activeIcon: black;
+    --error: #ff8d8d;
     /* ── States ── */
     --hover: #272727;
     --selected: #505050;
@@ -48,4 +49,5 @@ $hover: var(--hover);
 $selected: var(--selected);
 $highlight: var(--highlight);
 $activeIcon: var(--activeIcon);
+$color-error: var(--error);
 $border-radius: 5px;

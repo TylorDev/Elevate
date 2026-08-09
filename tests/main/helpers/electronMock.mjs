@@ -9,6 +9,7 @@ let nextWebContentsId = 1
 
 let pathOverrides = {}
 let openDialogResult = { canceled: true, filePaths: [] }
+let saveDialogResult = { canceled: true, filePath: undefined }
 
 function createWebContents() {
   return {
@@ -20,7 +21,8 @@ function createWebContents() {
     isDestroyed: vi.fn(() => false),
     isDevToolsOpened: vi.fn(() => false),
     capturePage: vi.fn(() => Promise.resolve({})),
-    setWindowOpenHandler: vi.fn()
+    setWindowOpenHandler: vi.fn(),
+    getBackgroundThrottling: vi.fn(() => true)
   }
 }
 
@@ -76,6 +78,7 @@ class MockBrowserWindow extends EventEmitter {
   isMaximized = vi.fn(() => false)
   isMinimized = vi.fn(() => false)
   isVisible = vi.fn(() => this.visible)
+  isFocused = vi.fn(() => false)
   getBounds = vi.fn(() => ({ ...this.bounds }))
   setBounds = vi.fn((bounds) => {
     this.bounds = { ...bounds }
@@ -102,6 +105,7 @@ export const electronMock = {
     getAppPath: vi.fn(() => process.cwd()),
     getPath: vi.fn((name) => pathOverrides[name] || path.join(defaultRoot, name)),
     getVersion: vi.fn(() => '0.0.0-test'),
+    getName: vi.fn(() => 'Elevate'),
     setAppUserModelId: vi.fn(),
     requestSingleInstanceLock: vi.fn(() => true),
     whenReady: vi.fn(() => Promise.resolve()),
@@ -137,7 +141,8 @@ export const electronMock = {
   },
   BrowserWindow: MockBrowserWindow,
   dialog: {
-    showOpenDialog: vi.fn(() => Promise.resolve(openDialogResult))
+    showOpenDialog: vi.fn(() => Promise.resolve(openDialogResult)),
+    showSaveDialog: vi.fn(() => Promise.resolve(saveDialogResult))
   },
   shell: {
     openExternal: vi.fn(() => Promise.resolve()),
@@ -148,6 +153,7 @@ export const electronMock = {
     register: vi.fn(),
     unregisterAll: vi.fn()
   },
+  powerMonitor: new EventEmitter(),
   screen: {
     getPrimaryDisplay: vi.fn(() => ({
       id: 1,
@@ -203,6 +209,8 @@ export function resetElectronMock() {
   nextWebContentsId = 1
   pathOverrides = {}
   openDialogResult = { canceled: true, filePaths: [] }
+  saveDialogResult = { canceled: true, filePath: undefined }
+  electronMock.powerMonitor.removeAllListeners()
   electronMock.app.isPackaged = true
   vi.clearAllMocks()
 }
@@ -222,6 +230,10 @@ export function configureElectronPaths(root) {
 
 export function setOpenDialogResult(result) {
   openDialogResult = result
+}
+
+export function setSaveDialogResult(result) {
+  saveDialogResult = result
 }
 
 export function getRegisteredIpcChannels() {

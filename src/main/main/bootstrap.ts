@@ -7,6 +7,7 @@ import { setupImageSourceHandlers } from '../ipc/imageSourceHandlers/index.ts'
 import { setupLikeSongHandlers, setupMusicHandlers } from '../ipc/likehandlers/index.ts'
 import { setupPlaylistHandlers } from '../ipc/playlistHandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from '../ipc/playlistSaveExplorerHandlers/index.ts'
+import { setupPlaybackDiagnosticsHandlers } from '../ipc/playbackDiagnostics/index.ts'
 import { setupStoragePathHandlers } from '../ipc/storagePaths/index.ts'
 import { setupVisualizerHandlers } from '../ipc/visualizerHandlers/index.ts'
 import { getPrismaStatus, initializePrisma } from '../prisma.ts'
@@ -22,6 +23,7 @@ import {
 import { createTray } from './tray.ts'
 import { createMainWindow } from './windowManager.ts'
 import { sendDatabaseStatus } from './rendererEvents.ts'
+import { initializePlaybackDiagnostics } from '../diagnostics/playbackDiagnostics.ts'
 
 let dataIpcRegistered = false
 let watchersStarted = false
@@ -34,6 +36,7 @@ function registerCoreIpcHandlers(
   setupImageSourceHandlers()
   setupDiscordPresenceHandlers()
   setupStoragePathHandlers()
+  setupPlaybackDiagnosticsHandlers()
 }
 
 function registerDataIpcHandlers(): void {
@@ -81,6 +84,7 @@ async function activateDatabaseServices(
 async function handleAppReady(): Promise<void> {
   console.time('startup:app-ready')
   app.setAppUserModelId('com.electron')
+  initializePlaybackDiagnostics()
   log.info('App started, version:', process.versions.node)
   registerCoreIpcHandlers(() => activateDatabaseServices(true))
   createTray(requestShutdown)

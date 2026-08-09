@@ -52,9 +52,9 @@ export function setupLikeSongHandlers(): void {
     return checkSongLiked(filepath, filename)
   })
 
-  handleLike('playback:record', async (_event, payload) => {
+  handleLike('playback:record', async (event, payload) => {
     try {
-      return await recordPlaybackStats(payload)
+      return await recordPlaybackStats(payload, { webContentsId: event.sender.id })
     } catch (error) {
       console.error('Error recording playback stats:', error)
       return { success: false, error: getErrorMessage(error) }

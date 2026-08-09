@@ -27,6 +27,7 @@ import {
   syncPlaybackSession
 } from './audioSession'
 import { createAudioTrackingController } from './audioTracking'
+import { createPlaybackDiagnosticEvent } from './audioDiagnostics'
 import {
   REPLAY_WRAP_BACKTRACK_MS,
   TOAST_OPTIONS,
@@ -67,13 +68,47 @@ export function AudioProvider({ children }: AudioProviderProps) {
     return result as PlaybackRecordResult
   }, [])
 
-  const notifyShortView = useCallback(() => {
-    toast.success('+1 short views', TOAST_OPTIONS)
-  }, [])
+  const appendPlaybackDiagnostic = useCallback(
+    (event: Parameters<typeof window.electron.appDiagnostics.appendPlaybackEvent>[0]) => {
+      window.electron.appDiagnostics.appendPlaybackEvent(event)
+    },
+    []
+  )
 
-  const notifyLongView = useCallback(() => {
-    toast.success('+1 long views', TOAST_OPTIONS)
-  }, [])
+  const emitSessionDiagnostic = useCallback(
+    (
+      session: PlaybackSession | null,
+      name: Parameters<typeof createPlaybackDiagnosticEvent>[1],
+      audio: HTMLAudioElement | null = mediaRef.current,
+      options: Omit<Parameters<typeof createPlaybackDiagnosticEvent>[2], 'audio'> = {}
+    ) => {
+      if (!session) return
+      appendPlaybackDiagnostic(createPlaybackDiagnosticEvent(session, name, { ...options, audio }))
+    },
+    [appendPlaybackDiagnostic, mediaRef]
+  )
+
+  const notifyShortView = useCallback(
+    (session: PlaybackSession, requestId: string | null) => {
+      const toastId = toast.success('+1 short views', TOAST_OPTIONS)
+      emitSessionDiagnostic(session, 'toast.emit', null, {
+        requestId,
+        details: { eventType: 'short-view-award', toastId: String(toastId) }
+      })
+    },
+    [emitSessionDiagnostic]
+  )
+
+  const notifyLongView = useCallback(
+    (session: PlaybackSession, requestId: string | null) => {
+      const toastId = toast.success('+1 long views', TOAST_OPTIONS)
+      emitSessionDiagnostic(session, 'toast.emit', null, {
+        requestId,
+        details: { eventType: 'long-view-award', toastId: String(toastId) }
+      })
+    },
+    [emitSessionDiagnostic]
+  )
 
   const tracking = useMemo<AudioTrackingController>(
     () =>
@@ -81,16 +116,29 @@ export function AudioProvider({ children }: AudioProviderProps) {
         invokePlaybackRecord,
         updateCurrentFileStats,
         notifyShortView,
-        notifyLongView
+        notifyLongView,
+        appendDiagnostic: appendPlaybackDiagnostic
       }),
-    [invokePlaybackRecord, notifyLongView, notifyShortView, updateCurrentFileStats]
+    [
+      appendPlaybackDiagnostic,
+      invokePlaybackRecord,
+      notifyLongView,
+      notifyShortView,
+      updateCurrentFileStats
+    ]
   )
 
-  const openPlaybackSession = useCallback((file: AudioFileInfo | null | undefined) => {
-    const session = createPlaybackSession(file)
-    playbackSessionRef.current = session
-    return session
-  }, [])
+  const openPlaybackSession = useCallback(
+    (file: AudioFileInfo | null | undefined) => {
+      const session = createPlaybackSession(file)
+      playbackSessionRef.current = session
+      emitSessionDiagnostic(session, 'session.open', null, {
+        details: { cause: 'track-selected' }
+      })
+      return session
+    },
+    [emitSessionDiagnostic]
+  )
 
   const ensureSession = useCallback(() => {
     return (
@@ -132,11 +180,15 @@ export function AudioProvider({ children }: AudioProviderProps) {
       }
 
       pendingReplayRef.current = null
+      const previousCycleId = session.cycleId
       resetPlaybackCycle(session, audio)
       session.replayCyclePendingCompletionRepeat = true
+      emitSessionDiagnostic(session, 'session.reset', audio, {
+        details: { cause: 'qualified-replay', previousCycleId }
+      })
       return true
     },
-    [mediaRef, syncSessionFromAudio, tracking]
+    [emitSessionDiagnostic, mediaRef, syncSessionFromAudio, tracking]
   )
 
   const confirmPendingReplayStart = useCallback(
@@ -179,11 +231,15 @@ export function AudioProvider({ children }: AudioProviderProps) {
       }
 
       pendingReplayRef.current = null
+      const previousCycleId = session.cycleId
       resetPlaybackCycle(session, audio)
       session.replayCyclePendingCompletionRepeat = true
+      emitSessionDiagnostic(session, 'session.reset', audio, {
+        details: { cause: 'pending-replay', previousCycleId }
+      })
       return true
     },
-    [ensureSession, mediaRef, tracking]
+    [emitSessionDiagnostic, ensureSession, mediaRef, tracking]
   )
 
   const finalizePlaybackSession = useCallback(
@@ -263,6 +319,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
 
     const handlePlay = () => {
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
+      emitSessionDiagnostic(session, 'audio.play', audio)
       void (async () => {
         await confirmPendingReplayStart(audio)
         await tracking.evaluateSessionAwards(playbackSessionRef.current || session)
@@ -272,6 +329,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
     const handlePause = () => {
       const session = syncSessionFromAudio(audio)
       stopActiveSegment(session)
+      emitSessionDiagnostic(session, 'audio.pause', audio)
       void tracking.evaluateSessionAwards(session)
     }
 
@@ -291,6 +349,9 @@ export function AudioProvider({ children }: AudioProviderProps) {
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
 
       if (didWrapToReplayStart) {
+        emitSessionDiagnostic(session, 'audio.replay-detected', audio, {
+          details: { cause: 'timeupdate-wrap', previousTime, currentTime }
+        })
         void confirmQualifiedCycleAndRestart(audio)
         return
       }
@@ -308,16 +369,20 @@ export function AudioProvider({ children }: AudioProviderProps) {
       const previousTime = toNonNegativeNumber(sessionBeforeSeek?.lastKnownCurrentTime)
       const session = syncSessionFromAudio(audio, { allowSegmentStart: !audio.paused })
       const currentTime = toNonNegativeNumber(audio.currentTime)
-      const durationSeconds = Math.max(
-        0,
-        Number(audio.duration) || Number(session?.duration) || 0
-      )
+      const durationSeconds = Math.max(0, Number(audio.duration) || Number(session?.duration) || 0)
       const didReplaySeek =
         Boolean(sessionBeforeSeek?.longViewAwarded) &&
         previousTime > currentTime &&
         isReplayStartPosition(currentTime, durationSeconds)
 
+      emitSessionDiagnostic(session, 'audio.seeked', audio, {
+        details: { previousTime, currentTime, replayCandidate: didReplaySeek }
+      })
+
       if (didReplaySeek) {
+        emitSessionDiagnostic(session, 'audio.replay-detected', audio, {
+          details: { cause: 'seeked', previousTime, currentTime }
+        })
         void confirmQualifiedCycleAndRestart(audio)
         return
       }
@@ -328,7 +393,10 @@ export function AudioProvider({ children }: AudioProviderProps) {
     const handleEnded = () => {
       const session = syncSessionFromAudio(audio)
       stopActiveSegment(session)
-      void tracking.evaluateSessionAwards(session).then(() => finalizePlaybackSession('ended', audio))
+      emitSessionDiagnostic(session, 'audio.ended', audio)
+      void tracking
+        .evaluateSessionAwards(session)
+        .then(() => finalizePlaybackSession('ended', audio))
     }
 
     audio.addEventListener('play', handlePlay)
@@ -352,11 +420,36 @@ export function AudioProvider({ children }: AudioProviderProps) {
   }, [
     confirmPendingReplayStart,
     confirmQualifiedCycleAndRestart,
+    emitSessionDiagnostic,
     finalizePlaybackSession,
     mediaElement,
     syncSessionFromAudio,
     tracking
   ])
+
+  useEffect(() => {
+    const emitDocumentEvent = (
+      name: 'renderer.visibility' | 'renderer.focus' | 'renderer.blur',
+      cause: string
+    ) => {
+      emitSessionDiagnostic(playbackSessionRef.current, name, mediaRef.current, {
+        details: { cause }
+      })
+    }
+    const handleVisibility = () =>
+      emitDocumentEvent('renderer.visibility', document.visibilityState)
+    const handleFocus = () => emitDocumentEvent('renderer.focus', 'window-focus')
+    const handleBlur = () => emitDocumentEvent('renderer.blur', 'window-blur')
+
+    document.addEventListener('visibilitychange', handleVisibility)
+    window.addEventListener('focus', handleFocus)
+    window.addEventListener('blur', handleBlur)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('blur', handleBlur)
+    }
+  }, [emitSessionDiagnostic, mediaRef])
 
   useEffect(() => {
     if (!autoplayRequestId || !path || !mediaElement) {

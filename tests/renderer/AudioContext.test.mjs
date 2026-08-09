@@ -66,7 +66,7 @@ describe('AudioContext session helpers', () => {
     expect(getActiveListeningMs(session, 15_000)).toBe(13_000)
   })
 
-  it('resets cycle metrics while preserving the session identity', () => {
+  it('resets cycle metrics with a new cycle identity while preserving the session identity', () => {
     const session = createSession({
       activeListeningMs: 30_000,
       lastKnownCurrentTime: 80,
@@ -75,10 +75,15 @@ describe('AudioContext session helpers', () => {
       skipAwarded: true,
       finalizing: true
     })
+    const sessionId = session.sessionId
+    const firstCycleId = session.cycleId
 
     resetPlaybackCycle(session, { currentTime: 2, duration: 100, paused: false }, 500)
 
-    expect(session.id).toBe('C:\\Music\\song.mp3|0')
+    expect(session.id).toBe(sessionId)
+    expect(session.sessionId).toBe(sessionId)
+    expect(session.cycleId).not.toBe(firstCycleId)
+    expect(session.cycleSequence).toBe(2)
     expect(session.activeListeningMs).toBe(0)
     expect(session.activeSegmentStartedAt).toBe(500)
     expect(session.lastKnownCurrentTime).toBe(2)
@@ -162,6 +167,36 @@ describe('AudioContext tracking', () => {
 
     releaseRequest({ success: true, stats: {} })
     await expect(firstAward).resolves.toBe(true)
+  })
+
+  it('turns a timeupdate-style burst into one short-view request for the cycle', async () => {
+    let releaseRequest
+    const invokePlaybackRecord = vi.fn(() => new Promise((resolve) => (releaseRequest = resolve)))
+    const { controller } = createTracking({ invokePlaybackRecord })
+    const session = createSession({ activeListeningMs: 10_000 })
+
+    const attempts = Array.from({ length: 25 }, () => controller.maybeAwardShortView(session))
+    expect(invokePlaybackRecord).toHaveBeenCalledTimes(1)
+    releaseRequest({ success: true, requestId: 'request-1', stats: {} })
+
+    const results = await Promise.all(attempts)
+    expect(results.filter(Boolean)).toHaveLength(1)
+    expect(session.shortViewAwarded).toBe(true)
+  })
+
+  it('propagates UUID correlation and a monotonic session sequence to playback IPC', async () => {
+    const { controller, dependencies } = createTracking()
+    const session = createSession({ activeListeningMs: 10_000 })
+
+    await controller.maybeAwardShortView(session)
+    const payload = dependencies.invokePlaybackRecord.mock.calls[0][0]
+
+    expect(payload.requestId).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(payload.sessionId).toBe(session.sessionId)
+    expect(payload.cycleId).toBe(session.cycleId)
+    expect(payload.cycleSequence).toBe(1)
+    expect(payload.eventSequence).toBeGreaterThan(0)
+    expect(payload.occurredAt).toMatch(/^\d{4}-\d{2}-\d{2}T/)
   })
 
   it('keeps session flags unchanged when IPC recording fails', async () => {

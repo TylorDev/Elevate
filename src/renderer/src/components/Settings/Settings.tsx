@@ -12,20 +12,23 @@ import {
   LuLibrary,
   LuListMusic,
   LuMessageSquare,
-  LuRotateCcw
+  LuRotateCcw,
+  LuBug
 } from 'react-icons/lu'
 import { useSuper } from '../../Contexts/SupeContext'
 import { useBackground } from '../../Contexts/BackgroundContext'
 import { useMini } from '../../Contexts/MiniContext'
 import { usePlaylists } from '../../Contexts/PlaylistContext'
 import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
+import { PlaybackDiagnostics } from '../PlaybackDiagnostics/PlaybackDiagnostics'
 import './Settings.scss'
 
 const TABS = [
   { id: 'library', label: 'Library', icon: <LuLibrary /> },
   { id: 'colors', label: 'Colors', icon: <LuPalette /> },
   { id: 'background', label: 'Background', icon: <LuImage /> },
-  { id: 'waveform', label: 'Waveform', icon: <LuAudioWaveform /> }
+  { id: 'waveform', label: 'Waveform', icon: <LuAudioWaveform /> },
+  { id: 'diagnostics', label: 'Diagnostics', icon: <LuBug /> }
 ]
 
 const WAVEFORM_OPTIONS = [
@@ -653,6 +656,8 @@ function Settings() {
             </div>
           </section>
         )}
+
+        {activeTab === 'diagnostics' && <PlaybackDiagnostics />}
       </div>
 
       <section className="settings-section settings-section--reset">
