@@ -7,21 +7,42 @@ import { usePlaylists } from './Contexts/PlaylistContext'
 import DebugOverlay from './Components/DebugOverlay/DebugOverlay'
 import MusicRouteSkeleton from './components/MusicRouteSkeleton/MusicRouteSkeleton'
 import RouteSkeleton from './components/RouteSkeleton/RouteSkeleton'
+import { beginRendererOperation } from './diagnostics/performanceDiagnostics'
+
+function diagnosticLazy(routeName, importer) {
+  return lazy(async () => {
+    const operation = beginRendererOperation('renderer.lazy-route-import', { routeName })
+    try {
+      const module = await importer()
+      operation.end()
+      return module
+    } catch (error) {
+      operation.end(error)
+      throw error
+    }
+  })
+}
 
 // Lazy-loaded pages — each page loads as a separate chunk on demand
-const Feed = lazy(() => import('./Pages/Feed/Feed'))
-const ListenLater = lazy(() => import('./Pages/ListenLater/ListenLater'))
-const AllTracks = lazy(() => import('./Pages/AllTracks/AllTracks'))
-const History = lazy(() => import('./Pages/History/History'))
-const HistorySong = lazy(() => import('./Pages/History/HistorySong'))
-const Statistics = lazy(() => import('./Pages/Statistics/Statistics'))
-const Playlists = lazy(() => import('./Pages/Playlists/Playlists'))
-const Directories = lazy(() => import('./Pages/Directories/Directories'))
-const Music = lazy(() => import('./Pages/Music/Music'))
-const VisualizerPresets = lazy(() => import('./Pages/VisualizerPresets/VisualizerPresets'))
-const CollectionPage = lazy(() => import('./Pages/CollectionPage/CollectionPage'))
-const Settings = lazy(() => import('./Components/Settings/Settings'))
-const Lista = lazy(() => import('./Pages/Lista/Lista'))
+const Feed = diagnosticLazy('feed', () => import('./Pages/Feed/Feed'))
+const ListenLater = diagnosticLazy('listen-later', () => import('./Pages/ListenLater/ListenLater'))
+const AllTracks = diagnosticLazy('all-tracks', () => import('./Pages/AllTracks/AllTracks'))
+const History = diagnosticLazy('history', () => import('./Pages/History/History'))
+const HistorySong = diagnosticLazy('history-song', () => import('./Pages/History/HistorySong'))
+const Statistics = diagnosticLazy('statistics', () => import('./Pages/Statistics/Statistics'))
+const Playlists = diagnosticLazy('playlists', () => import('./Pages/Playlists/Playlists'))
+const Directories = diagnosticLazy('directories', () => import('./Pages/Directories/Directories'))
+const Music = diagnosticLazy('music', () => import('./Pages/Music/Music'))
+const VisualizerPresets = diagnosticLazy(
+  'visualizer-presets',
+  () => import('./Pages/VisualizerPresets/VisualizerPresets')
+)
+const CollectionPage = diagnosticLazy(
+  'collection',
+  () => import('./Pages/CollectionPage/CollectionPage')
+)
+const Settings = diagnosticLazy('settings', () => import('./Components/Settings/Settings'))
+const Lista = diagnosticLazy('lista', () => import('./Pages/Lista/Lista'))
 
 function PageLoader() {
   return <RouteSkeleton />

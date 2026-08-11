@@ -28,7 +28,7 @@ const TABS = [
   { id: 'colors', label: 'Colors', icon: <LuPalette /> },
   { id: 'background', label: 'Background', icon: <LuImage /> },
   { id: 'waveform', label: 'Waveform', icon: <LuAudioWaveform /> },
-  { id: 'diagnostics', label: 'Diagnostics', icon: <LuBug /> }
+  { id: 'diagnostics', label: 'Application diagnostics', icon: <LuBug /> }
 ]
 
 const WAVEFORM_OPTIONS = [
@@ -117,9 +117,11 @@ function getDirectoryTreeStats(directory) {
     hasChildren,
     tracks,
     duration,
-    affectedDirectories: 1 + (directory.children || []).reduce((total, child) => {
-      return total + getDirectoryTreeStats(child).affectedDirectories
-    }, 0)
+    affectedDirectories:
+      1 +
+      (directory.children || []).reduce((total, child) => {
+        return total + getDirectoryTreeStats(child).affectedDirectories
+      }, 0)
   }
 }
 
@@ -668,8 +670,8 @@ function Settings() {
           <div className="settings-card__content">
             <h3>Restablecer preferencias</h3>
             <p>
-              Borra solo las preferencias guardadas en este dispositivo. No elimina datos de la
-              base de datos ni el cache de covers.
+              Borra solo las preferencias guardadas en este dispositivo. No elimina datos de la base
+              de datos ni el cache de covers.
             </p>
           </div>
           <button
@@ -696,9 +698,7 @@ function Settings() {
             : `This removes "${getPathLeaf(directoryDeleteTarget?.directory?.path)}" from Elevate. Your files and song stats will not be deleted.`
         }
         confirmLabel={
-          directoryDeleteTarget?.mode === 'branch'
-            ? 'Remove directory branch'
-            : 'Remove directory'
+          directoryDeleteTarget?.mode === 'branch' ? 'Remove directory branch' : 'Remove directory'
         }
         onCancel={closeDirectoryDeleteConfirm}
         onConfirm={confirmDirectoryDelete}

@@ -4,6 +4,7 @@ import { getPrismaClient } from '../prisma.ts'
 import { getOrCreateSong } from './utils.ts'
 import { updateDirectoryStats, discoverSubdirectories } from './directoryScanner.ts'
 import { isSupportedMediaFile, resolveImportableAudioPath } from './mediaFileSupport.ts'
+import { beginPerformanceOperation } from '../diagnostics/performanceDiagnostics.ts'
 
 const DEBOUNCE_MS = 500
 
@@ -47,29 +48,54 @@ export function setNotifyRenderer(fn) {
  * Start watching a directory recursively.
  * Idempotent — calling with an already-watched path is a no-op.
  */
-export async function startWatching(dirPath) {
-  if (watchers.has(dirPath)) return
+export async function startWatching(dirPath, onReady) {
+  if (watchers.has(dirPath)) {
+    onReady?.(null)
+    return
+  }
 
-  const chokidar = await getChokidar()
-  const watcher = chokidar.watch(dirPath, {
-    persistent: true,
-    ignoreInitial: true,
-    awaitWriteFinish: {
-      stabilityThreshold: 1000,
-      pollInterval: 200
-    },
-    depth: Infinity,
-    ignored: /(^|[/\\])\./
+  const operation = beginPerformanceOperation('watcher.start-root', {
+    always: true,
+    details: { directoryPath: dirPath }
   })
+  try {
+    const chokidar = await getChokidar()
+    const watcher = chokidar.watch(dirPath, {
+      persistent: true,
+      ignoreInitial: true,
+      awaitWriteFinish: {
+        stabilityThreshold: 1000,
+        pollInterval: 200
+      },
+      depth: Infinity,
+      ignored: /(^|[/\\])\./
+    })
 
-  watcher.on('add', (filePath) => onFileAdded(filePath, dirPath))
-  watcher.on('unlink', (filePath) => onFileRemoved(filePath, dirPath))
-  watcher.on('addDir', (newDirPath) => onDirAdded(newDirPath, dirPath))
-  watcher.on('unlinkDir', (removedDirPath) => onDirRemoved(removedDirPath, dirPath))
-  watcher.on('error', (error) => console.error(`Watcher error for ${dirPath}:`, error.message))
+    watcher.on('add', (filePath) => onFileAdded(filePath, dirPath))
+    watcher.on('unlink', (filePath) => onFileRemoved(filePath, dirPath))
+    watcher.on('addDir', (newDirPath) => onDirAdded(newDirPath, dirPath))
+    watcher.on('unlinkDir', (removedDirPath) => onDirRemoved(removedDirPath, dirPath))
+    let settled = false
+    const settle = (error = null) => {
+      if (settled) return
+      settled = true
+      if (error) operation.end({ error })
+      else operation.end()
+      onReady?.(error)
+    }
+    watcher.once('ready', () => settle())
+    watcher.on('error', (error) => {
+      console.error(`Watcher error for ${dirPath}:`, error.message)
+      settle(error)
+    })
 
-  watchers.set(dirPath, watcher)
-  console.debug(`[watcher] Watching: ${dirPath}`)
+    watchers.set(dirPath, watcher)
+    console.debug(`[watcher] Watching: ${dirPath}`)
+  } catch (error) {
+    operation.end({ error })
+    onReady?.(error)
+    throw error
+  }
 }
 
 /**
@@ -101,18 +127,33 @@ export async function stopAll() {
  * Initialize watchers for all directories currently in the DB.
  */
 export async function initializeWatchers() {
+  const operation = beginPerformanceOperation('watcher.initialize-all', { always: true })
   try {
     const directories = await getPrismaClient().directory.findMany({
       where: { parentId: null },
       select: { path: true }
     })
 
+    let readyCount = 0
+    let failureCount = 0
+    const handleReady = (error) => {
+      readyCount += 1
+      if (error) failureCount += 1
+      if (readyCount === directories.length) {
+        operation.end({ details: { rootCount: directories.length, failureCount } })
+      }
+    }
+
     for (const dir of directories) {
-      await startWatching(dir.path)
+      await startWatching(dir.path, handleReady)
     }
 
     console.debug(`[watcher] Initialized ${directories.length} root watchers`)
+    if (directories.length === 0) {
+      operation.end({ details: { rootCount: 0, failureCount: 0 } })
+    }
   } catch (error) {
+    operation.end({ error })
     console.error('[watcher] Error initializing watchers:', error)
   }
 }
@@ -230,16 +271,37 @@ function queueChange(type, filePath, ownerDir, rootDirPath) {
 async function flushChanges() {
   const snapshot = new Map(pendingChanges)
   pendingChanges.clear()
+  const totalAdded = [...snapshot.values()].reduce(
+    (total, changes) => total + changes.added.size,
+    0
+  )
+  const totalRemoved = [...snapshot.values()].reduce(
+    (total, changes) => total + changes.removed.size,
+    0
+  )
+  const operation = beginPerformanceOperation('watcher.flush-batch', {
+    always: false,
+    details: { directoryCount: snapshot.size, totalAdded, totalRemoved }
+  })
 
   for (const [ownerDir, changes] of snapshot) {
     try {
       // Process additions — index new songs
       for (const filePath of changes.added) {
-        const importablePath = await resolveImportableAudioPath(filePath)
-        const fileName = path.basename(importablePath, path.extname(importablePath))
-        await getOrCreateSong(importablePath, fileName).catch((err) => {
-          console.error(`[watcher] Error indexing ${filePath}:`, err.message)
+        const indexOperation = beginPerformanceOperation('watcher.index-file', {
+          always: false,
+          parentOperationId: operation.operationId,
+          details: { filePath }
         })
+        try {
+          const importablePath = await resolveImportableAudioPath(filePath)
+          const fileName = path.basename(importablePath, path.extname(importablePath))
+          await getOrCreateSong(importablePath, fileName)
+          indexOperation.end({ details: { importablePath } })
+        } catch (err) {
+          indexOperation.end({ error: err })
+          console.error(`[watcher] Error indexing ${filePath}:`, err.message)
+        }
       }
 
       // Process removals — no song deletion needed (songs persist),
@@ -269,4 +331,5 @@ async function flushChanges() {
       console.error(`[watcher] Error flushing changes for ${ownerDir}:`, error.message)
     }
   }
+  operation.end()
 }

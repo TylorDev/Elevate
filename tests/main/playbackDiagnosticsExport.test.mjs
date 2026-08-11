@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { exportPlaybackDiagnostics } from '../../src/main/diagnostics/playbackExport.ts'
 import { getPlaybackDiagnosticsPaths } from '../../src/main/diagnostics/playbackDiagnostics.ts'
+import { getPerformanceDiagnosticsPaths } from '../../src/main/diagnostics/performanceDiagnostics.ts'
+import { getPerformanceTracePaths } from '../../src/main/diagnostics/performanceTrace.ts'
 import { configureElectronPaths, setSaveDialogResult } from './helpers/electronMock.mjs'
 
 let root
@@ -24,11 +26,16 @@ describe('playback diagnostics ZIP export', () => {
   it('streams current and rotated logs plus manifest, summary and guide without the database', async () => {
     const outputPath = path.join(root, 'diagnostics.zip')
     const playbackPaths = getPlaybackDiagnosticsPaths()
+    const performancePaths = getPerformanceDiagnosticsPaths()
+    const tracePaths = getPerformanceTracePaths()
     const generalPath = path.join(root, 'logs', 'main.log')
     await mkdir(path.dirname(playbackPaths.current), { recursive: true })
     await Promise.all([
       writeFile(playbackPaths.current, '{"name":"db.commit"}\n'),
       writeFile(playbackPaths.old, '{"name":"award.request"}\n'),
+      writeFile(performancePaths.current, '{"name":"metrics.summary"}\n'),
+      writeFile(performancePaths.old, '{"name":"renderer.unresponsive"}\n'),
+      writeFile(tracePaths.captured, '{"traceEvents":[]}\n'),
       writeFile(generalPath, 'general log\n')
     ])
     log.transports.file.getFile.mockReturnValue({ path: generalPath })
@@ -43,9 +50,13 @@ describe('playback diagnostics ZIP export', () => {
     const names = Object.keys(zip.files)
     expect(names).toContain('logs/playback-diagnostics.log')
     expect(names).toContain('logs/playback-diagnostics.old.log')
+    expect(names).toContain('logs/performance-diagnostics.log')
+    expect(names).toContain('logs/performance-diagnostics.old.log')
     expect(names).toContain('logs/general-main.log')
+    expect(names).toContain('traces/performance-trace.json')
     expect(names).toContain('manifest.json')
     expect(names).toContain('playback-summary.json')
+    expect(names).toContain('performance-summary.json')
     expect(names).toContain('README.txt')
     expect(names.some((name) => /\.sqlite$|\.db$/i.test(name))).toBe(false)
 
@@ -53,6 +64,7 @@ describe('playback diagnostics ZIP export', () => {
     const summary = JSON.parse(await zip.file('playback-summary.json').async('string'))
     expect(manifest.appRunId).toMatch(/^[0-9a-f-]{36}$/i)
     expect(manifest.logging.playbackMaxFileBytes).toBe(10 * 1024 * 1024)
+    expect(manifest.logging.performanceMaxFileBytes).toBe(10 * 1024 * 1024)
     expect(summary).toMatchObject({ limit: 50, tracks: [] })
   })
 

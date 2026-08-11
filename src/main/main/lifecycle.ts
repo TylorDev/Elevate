@@ -7,7 +7,14 @@ import { stopAll as stopDirectoryWatchers } from '../utils/directoryWatcher.ts'
 import { getMainWindow, mainContext } from './context.ts'
 import { sendNotification } from './rendererEvents.ts'
 import { destroyTray } from './tray.ts'
+import { restoreMainWindow } from './windowManager.ts'
 import { flushWindowState } from './windowState.ts'
+import {
+  createPerformanceDiagnostic,
+  shutdownPerformanceDiagnostics,
+  writePerformanceDiagnostic
+} from '../diagnostics/performanceDiagnostics.ts'
+import { stopPerformanceTrace } from '../diagnostics/performanceTrace.ts'
 
 let shutdownPromise: Promise<void> | null = null
 
@@ -32,6 +39,7 @@ export function requestShutdown(): Promise<void> {
   mainContext.isQuitting = true
   shutdownPromise = (async () => {
     await runCleanupStep('saving window state', () => flushWindowState())
+    await runCleanupStep('saving performance trace', () => stopPerformanceTrace('app-shutdown'))
     await runCleanupStep('stopping watchers', stopDirectoryWatchers)
     await runCleanupStep('shutting down Discord presence', shutdownDiscordPresence)
     if (getPrismaStatus().isReady) {
@@ -39,6 +47,7 @@ export function requestShutdown(): Promise<void> {
     }
     destroyTray()
     globalShortcut.unregisterAll()
+    shutdownPerformanceDiagnostics()
     mainContext.shutdownComplete = true
     app.quit()
   })()
@@ -67,8 +76,7 @@ export function registerApplicationLifecycle(createWindow: () => Promise<Browser
     console.info('[argv/main] second-instance event', { commandLine, workingDirectory })
     const mainWindow = getMainWindow()
     if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+      restoreMainWindow()
     }
     if (getPrismaStatus().isReady) {
       void processAndDispatchLaunchArgs(commandLine.slice(1), {
@@ -80,6 +88,12 @@ export function registerApplicationLifecycle(createWindow: () => Promise<Browser
   })
 
   app.on('activate', () => {
+    const mainWindow = getMainWindow()
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      restoreMainWindow()
+      return
+    }
+
     if (BrowserWindow.getAllWindows().length === 0) {
       void createWindow().catch((error) => log.error('Failed to recreate main window:', error))
     }
@@ -106,10 +120,29 @@ export function registerApplicationLifecycle(createWindow: () => Promise<Browser
         )
       })
     )
+    writePerformanceDiagnostic(
+      createPerformanceDiagnostic('renderer.render-process-gone', {
+        level: 'error',
+        processType: 'renderer',
+        details: {
+          reason: details?.reason || null,
+          exitCode: details?.exitCode ?? null,
+          webContentsId,
+          target
+        }
+      })
+    )
   })
 
   app.on('child-process-gone', (_event, details) => {
     log.error('Child process gone:', JSON.stringify(details))
+    writePerformanceDiagnostic(
+      createPerformanceDiagnostic('process.child-gone', {
+        level: 'error',
+        pid: null,
+        details: { ...details }
+      })
+    )
   })
 
   app.on('will-quit', () => {

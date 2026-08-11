@@ -5,6 +5,7 @@ import crypto from 'crypto'
 import { getPrismaClient } from '../prisma.ts'
 import { getStoragePaths } from '../ipc/storagePaths/index.ts'
 import { resolveImportableAudioPaths } from './mediaFileSupport.ts'
+import { beginPerformanceOperation } from '../diagnostics/performanceDiagnostics.ts'
 
 let sharpModulePromise = null
 let musicMetadataModulePromise = null
@@ -18,12 +19,23 @@ async function getSharp() {
 }
 
 async function parseAudioFile(filePath) {
+  const operation = beginPerformanceOperation('metadata.parse-file', {
+    always: false,
+    details: { filePath }
+  })
   if (!musicMetadataModulePromise) {
     musicMetadataModulePromise = import('music-metadata')
   }
 
-  const { parseFile } = await musicMetadataModulePromise
-  return parseFile(filePath)
+  try {
+    const { parseFile } = await musicMetadataModulePromise
+    const result = await parseFile(filePath)
+    operation.end()
+    return result
+  } catch (error) {
+    operation.end({ error })
+    throw error
+  }
 }
 
 // ─── Cover cache directory ───────────────────────────────────────────
@@ -45,11 +57,22 @@ export function ensureCoverDir() {
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 export async function resizeCover(buffer, size = 128) {
-  const sharp = await getSharp()
-  return sharp(buffer)
-    .resize(size, size, { fit: 'cover' })
-    .jpeg({ quality: 78, mozjpeg: true })
-    .toBuffer()
+  const operation = beginPerformanceOperation('cover.resize', {
+    always: false,
+    details: { inputBytes: buffer?.length || 0, size }
+  })
+  try {
+    const sharp = await getSharp()
+    const result = await sharp(buffer)
+      .resize(size, size, { fit: 'cover' })
+      .jpeg({ quality: 78, mozjpeg: true })
+      .toBuffer()
+    operation.end({ details: { outputBytes: result.length } })
+    return result
+  } catch (error) {
+    operation.end({ error })
+    throw error
+  }
 }
 
 function hashBuffer(buffer) {
@@ -141,76 +164,100 @@ export async function deletePlaylistCoverFromCache(coverHash) {
  * and stores everything in the DB. On subsequent calls, returns DB data directly.
  */
 export async function getOrCreateSong(filepath, filename) {
-  const existing = await getPrismaClient().songs.findUnique({ where: { filepath } })
-
-  if (existing && existing.metadataLoaded) {
-    return existing
-  }
-
-  // Parse metadata from the actual file (only happens once per song)
-  let metadata = {}
+  const operation = beginPerformanceOperation('library.get-or-create-song', {
+    always: false,
+    details: { filePath: filepath, fileName: filename }
+  })
   try {
-    const stats = fs.statSync(filepath)
-    const { common, format } = await parseAudioFile(filepath)
+    const existing = await getPrismaClient().songs.findUnique({ where: { filepath } })
 
-    // Extract cover hash if cover exists
-    let coverHash = null
-    const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
-    if (picture) {
-      coverHash = hashBuffer(Buffer.from(picture.data))
-
-      // Save cover to disk cache if not already there
-      const cacheDir = ensureCoverDir()
-      const thumbPath = path.join(cacheDir, 'thumb', `${coverHash}.jpg`)
-      const fullPath = path.join(cacheDir, 'full', `${coverHash}.jpg`)
-
-      if (!fs.existsSync(thumbPath)) {
-        const thumbBuffer = await resizeCover(Buffer.from(picture.data), 128)
-        fs.writeFileSync(thumbPath, thumbBuffer)
-      }
-      if (!fs.existsSync(fullPath)) {
-        // Save full cover as-is (jpeg compressed for consistency)
-        const sharp = await getSharp()
-        const fullBuffer = await sharp(Buffer.from(picture.data)).jpeg({ quality: 85 }).toBuffer()
-        fs.writeFileSync(fullPath, fullBuffer)
-      }
+    if (existing && existing.metadataLoaded) {
+      operation.end({ details: { cacheHit: true } })
+      return existing
     }
 
-    metadata = {
-      title: common.title || null,
-      artist: common.artist || null,
-      album: common.album || null,
-      genre: common.genre?.[0] || null,
-      year: common.year || null,
-      duration: format.duration || 0,
-      size: stats.size,
-      trackNumber: common.track?.no || null,
-      coverHash,
-      metadataLoaded: true
+    // Parse metadata from the actual file (only happens once per song)
+    let metadata = {}
+    try {
+      const stats = fs.statSync(filepath)
+      const { common, format } = await parseAudioFile(filepath)
+
+      // Extract cover hash if cover exists
+      let coverHash = null
+      const picture = common.picture?.find((item) => item?.data && item.type !== 'Other')
+      if (picture) {
+        coverHash = hashBuffer(Buffer.from(picture.data))
+
+        // Save cover to disk cache if not already there
+        const cacheDir = ensureCoverDir()
+        const thumbPath = path.join(cacheDir, 'thumb', `${coverHash}.jpg`)
+        const fullPath = path.join(cacheDir, 'full', `${coverHash}.jpg`)
+
+        if (!fs.existsSync(thumbPath)) {
+          const thumbBuffer = await resizeCover(Buffer.from(picture.data), 128)
+          fs.writeFileSync(thumbPath, thumbBuffer)
+        }
+        if (!fs.existsSync(fullPath)) {
+          // Save full cover as-is (jpeg compressed for consistency)
+          const coverOperation = beginPerformanceOperation('cover.normalize-full', {
+            always: false,
+            parentOperationId: operation.operationId,
+            details: { filePath: filepath, inputBytes: picture.data.length }
+          })
+          try {
+            const sharp = await getSharp()
+            const fullBuffer = await sharp(Buffer.from(picture.data))
+              .jpeg({ quality: 85 })
+              .toBuffer()
+            fs.writeFileSync(fullPath, fullBuffer)
+            coverOperation.end({ details: { outputBytes: fullBuffer.length } })
+          } catch (error) {
+            coverOperation.end({ error })
+            throw error
+          }
+        }
+      }
+
+      metadata = {
+        title: common.title || null,
+        artist: common.artist || null,
+        album: common.album || null,
+        genre: common.genre?.[0] || null,
+        year: common.year || null,
+        duration: format.duration || 0,
+        size: stats.size,
+        trackNumber: common.track?.no || null,
+        coverHash,
+        metadataLoaded: true
+      }
+    } catch (error) {
+      console.error(`Error parsing metadata for ${filepath}:`, error.message)
+      metadata = { metadataLoaded: true }
     }
+
+    const song = await getPrismaClient().songs.upsert({
+      where: { filepath },
+      update: metadata,
+      create: {
+        filepath,
+        filename,
+        ...metadata
+      }
+    })
+
+    // Ensure UserPreferences exist
+    await getPrismaClient().userPreferences.upsert({
+      where: { song_id: song.song_id },
+      update: {},
+      create: { song_id: song.song_id }
+    })
+
+    operation.end({ details: { cacheHit: false, songId: song.song_id } })
+    return song
   } catch (error) {
-    console.error(`Error parsing metadata for ${filepath}:`, error.message)
-    metadata = { metadataLoaded: true }
+    operation.end({ error })
+    throw error
   }
-
-  const song = await getPrismaClient().songs.upsert({
-    where: { filepath },
-    update: metadata,
-    create: {
-      filepath,
-      filename,
-      ...metadata
-    }
-  })
-
-  // Ensure UserPreferences exist
-  await getPrismaClient().userPreferences.upsert({
-    where: { song_id: song.song_id },
-    update: {},
-    create: { song_id: song.song_id }
-  })
-
-  return song
 }
 
 // ─── Batch file info (reads from DB, no parseFile) ───────────────────

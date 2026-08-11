@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { beginRendererOperation } from '../diagnostics/performanceDiagnostics'
 
 const BackgroundContext = createContext(null)
 
@@ -38,6 +39,7 @@ export const BackgroundProvider = ({ children }) => {
 
     const initializeBackgroundHistory = async () => {
       setBackgroundLoading(true)
+      const operation = beginRendererOperation('renderer.background-history-initialize', {}, true)
 
       try {
         const legacyBackground = localStorage.getItem('backgroundImageUrl')
@@ -59,7 +61,12 @@ export const BackgroundProvider = ({ children }) => {
         if (alive) {
           applyBackgroundState(state)
         }
+        operation.end(undefined, {
+          itemCount: Array.isArray(state?.items) ? state.items.length : 0,
+          migratedLegacy: Boolean(legacyBackground)
+        })
       } catch (error) {
+        operation.end(error)
         console.error('Error initializing background history:', error)
       } finally {
         if (alive) {

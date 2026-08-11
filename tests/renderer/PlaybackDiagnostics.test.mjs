@@ -14,13 +14,15 @@ function renderState(exportState) {
 }
 
 describe('PlaybackDiagnostics component states', () => {
-  it('renders the full-path privacy warning and enabled export action initially', () => {
+  it('renders application, trace, audio, and export diagnostics initially', () => {
     const markup = renderState(INITIAL_DIAGNOSTIC_EXPORT_STATE)
 
     expect(markup).toContain('Export diagnostic ZIP')
     expect(markup).toContain('full local music paths')
     expect(markup).toContain('never includes the SQLite database')
-    expect(markup).not.toContain('disabled=""')
+    expect(markup).toContain('Capture no-sound snapshot')
+    expect(markup).toContain('Start 5-minute trace now')
+    expect(markup).toContain('Arm trace for next launch')
   })
 
   it('disables the action and exposes progress while exporting', () => {

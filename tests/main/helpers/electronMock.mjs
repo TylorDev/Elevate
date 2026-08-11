@@ -22,7 +22,12 @@ function createWebContents() {
     isDevToolsOpened: vi.fn(() => false),
     capturePage: vi.fn(() => Promise.resolve({})),
     setWindowOpenHandler: vi.fn(),
-    getBackgroundThrottling: vi.fn(() => true)
+    getBackgroundThrottling: vi.fn(() => true),
+    getOSProcessId: vi.fn(() => 4321),
+    isAudioMuted: vi.fn(() => false),
+    isCurrentlyAudible: vi.fn(() => true),
+    isLoading: vi.fn(() => false),
+    isCrashed: vi.fn(() => false)
   }
 }
 
@@ -106,6 +111,7 @@ export const electronMock = {
     getPath: vi.fn((name) => pathOverrides[name] || path.join(defaultRoot, name)),
     getVersion: vi.fn(() => '0.0.0-test'),
     getName: vi.fn(() => 'Elevate'),
+    getAppMetrics: vi.fn(() => []),
     setAppUserModelId: vi.fn(),
     requestSingleInstanceLock: vi.fn(() => true),
     whenReady: vi.fn(() => Promise.resolve()),
@@ -135,6 +141,7 @@ export const electronMock = {
   },
   ipcRenderer: {
     invoke: vi.fn(),
+    send: vi.fn(),
     on: vi.fn(),
     removeListener: vi.fn(),
     removeAllListeners: vi.fn()
@@ -154,6 +161,10 @@ export const electronMock = {
     unregisterAll: vi.fn()
   },
   powerMonitor: new EventEmitter(),
+  contentTracing: {
+    startRecording: vi.fn(() => Promise.resolve()),
+    stopRecording: vi.fn((filePath) => Promise.resolve(filePath))
+  },
   screen: {
     getPrimaryDisplay: vi.fn(() => ({
       id: 1,

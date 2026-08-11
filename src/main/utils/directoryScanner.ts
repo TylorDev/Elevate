@@ -8,6 +8,7 @@ import {
   resolveImportableAudioPath,
   resolveImportableAudioPaths
 } from './mediaFileSupport.ts'
+import { beginPerformanceOperation } from '../diagnostics/performanceDiagnostics.ts'
 
 const WALK_YIELD_EVERY = 50
 const INDEX_BATCH_SIZE = 20
@@ -19,9 +20,19 @@ const INDEX_BATCH_SIZE = 20
  * Yields control back to the event loop every WALK_YIELD_EVERY entries.
  */
 export async function scanDirectoryAsync(dirPath, recursive = false) {
+  const operation = beginPerformanceOperation('library.scan-directory', {
+    always: false,
+    details: { directoryPath: dirPath, recursive }
+  })
   const audioFiles = []
-  await walkAsync(dirPath, audioFiles, recursive)
-  return audioFiles
+  try {
+    await walkAsync(dirPath, audioFiles, recursive)
+    operation.end({ details: { audioFileCount: audioFiles.length } })
+    return audioFiles
+  } catch (error) {
+    operation.end({ error })
+    throw error
+  }
 }
 
 async function walkAsync(dir, audioFiles, recursive) {
@@ -60,9 +71,19 @@ async function walkAsync(dir, audioFiles, recursive) {
  * Empty directories (no audio at any level) are excluded.
  */
 export async function discoverSubdirectories(rootPath) {
+  const operation = beginPerformanceOperation('library.discover-subdirectories', {
+    always: false,
+    details: { directoryPath: rootPath }
+  })
   const result = []
-  await discoverRecursive(rootPath, result)
-  return result
+  try {
+    await discoverRecursive(rootPath, result)
+    operation.end({ details: { directoryCount: result.length } })
+    return result
+  } catch (error) {
+    operation.end({ error })
+    throw error
+  }
 }
 
 async function discoverRecursive(dir, result) {
@@ -108,6 +129,10 @@ async function discoverRecursive(dir, result) {
  * Returns { totalTracks, totalDuration }.
  */
 export async function indexDirectoryIncrementally(dirPath, onProgress) {
+  const operation = beginPerformanceOperation('library.index-directory', {
+    always: false,
+    details: { directoryPath: dirPath, batchSize: INDEX_BATCH_SIZE }
+  })
   // Use recursive=false because we index each sub-directory individually
   // via the loop in add-directory.
   const audioFiles = await scanDirectoryAsync(dirPath, false)
@@ -143,6 +168,7 @@ export async function indexDirectoryIncrementally(dirPath, onProgress) {
     await new Promise((resolve) => setImmediate(resolve))
   }
 
+  operation.end({ details: { totalTracks: processed, totalDuration } })
   return { totalTracks: processed, totalDuration }
 }
 

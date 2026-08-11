@@ -34,6 +34,9 @@ import {
   sanitizePath,
   toNonNegativeNumber
 } from './audioUtils'
+import { appendPerformanceEvent } from '../../diagnostics/performanceDiagnostics'
+import { captureAudioPipelineSnapshot, probeAudioSignal } from '../../utils/audioVisualizer'
+import { randomUUID } from '../../diagnostics/runtimeIds'
 
 export function AudioProvider({ children }: AudioProviderProps) {
   const { currentFile, setCurrentFile } = useQueue()
@@ -320,6 +323,63 @@ export function AudioProvider({ children }: AudioProviderProps) {
     const handlePlay = () => {
       const session = syncSessionFromAudio(audio, { allowSegmentStart: true })
       emitSessionDiagnostic(session, 'audio.play', audio)
+      appendPerformanceEvent('audio.media-event', {
+        sessionId: session?.sessionId,
+        cycleId: session?.cycleId,
+        songId: session?.file?.song_id,
+        filePath: session?.file?.filePath || audio.currentSrc,
+        details: {
+          event: 'play',
+          currentTime: audio.currentTime,
+          duration: Number.isFinite(audio.duration) ? audio.duration : null,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+          volume: audio.volume,
+          muted: audio.muted,
+          playbackRate: audio.playbackRate
+        }
+      })
+      const probeStartedAt = Number(audio.currentTime) || 0
+      void probeAudioSignal(audio, 'media-play')
+        .then(async (signal) => {
+          const snapshot = await captureAudioPipelineSnapshot(
+            audio,
+            'media-play',
+            signal,
+            probeStartedAt
+          )
+          const highConfidenceProblem =
+            snapshot.resumeRejected ||
+            (!audio.paused && (snapshot.audio.progressedSeconds ?? 0) < 0.25) ||
+            Boolean(snapshot.audio.contextState && snapshot.audio.contextState !== 'running') ||
+            snapshot.audio.sourceConnected === false ||
+            snapshot.audio.analyserConnected === false ||
+            snapshot.audio.destinationConnected === false
+          if (!highConfidenceProblem) return
+          await window.electron.appDiagnostics.captureNoSound({
+            occurredAt: new Date().toISOString(),
+            incidentId: randomUUID(),
+            sessionId: session?.sessionId,
+            cycleId: session?.cycleId,
+            songId: session?.file?.song_id,
+            filePath: session?.file?.filePath || audio.currentSrc,
+            manual: false,
+            resumeRejected: snapshot.resumeRejected,
+            audio: snapshot.audio
+          })
+        })
+        .catch((error) => {
+          appendPerformanceEvent('audio.signal-probe', {
+            level: 'error',
+            sessionId: session?.sessionId,
+            cycleId: session?.cycleId,
+            filePath: session?.file?.filePath || audio.currentSrc,
+            details: {
+              cause: 'media-play',
+              error: error instanceof Error ? error.message : String(error)
+            }
+          })
+        })
       void (async () => {
         await confirmPendingReplayStart(audio)
         await tracking.evaluateSessionAwards(playbackSessionRef.current || session)
@@ -399,6 +459,25 @@ export function AudioProvider({ children }: AudioProviderProps) {
         .then(() => finalizePlaybackSession('ended', audio))
     }
 
+    const handleError = () => {
+      const session = playbackSessionRef.current
+      appendPerformanceEvent('audio.media-event', {
+        level: 'error',
+        sessionId: session?.sessionId,
+        cycleId: session?.cycleId,
+        songId: session?.file?.song_id,
+        filePath: session?.file?.filePath || audio.currentSrc,
+        details: {
+          event: 'error',
+          mediaErrorCode: audio.error?.code || null,
+          mediaErrorMessage: audio.error?.message || null,
+          currentTime: audio.currentTime,
+          readyState: audio.readyState,
+          networkState: audio.networkState
+        }
+      })
+    }
+
     audio.addEventListener('play', handlePlay)
     audio.addEventListener('pause', handlePause)
     audio.addEventListener('timeupdate', handleTimeUpdate)
@@ -406,6 +485,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
     audio.addEventListener('loadedmetadata', handleLoadedMetadata)
     audio.addEventListener('seeked', handleSeeked)
     audio.addEventListener('ended', handleEnded)
+    audio.addEventListener('error', handleError)
 
     return () => {
       audio.removeEventListener('play', handlePlay)
@@ -415,6 +495,7 @@ export function AudioProvider({ children }: AudioProviderProps) {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata)
       audio.removeEventListener('seeked', handleSeeked)
       audio.removeEventListener('ended', handleEnded)
+      audio.removeEventListener('error', handleError)
       void finalizePlaybackSession('audio-provider-unmount', audio)
     }
   }, [

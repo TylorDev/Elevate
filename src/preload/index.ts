@@ -105,7 +105,30 @@ const electronAPI: ElectronAPI = {
     appendPlaybackEvent: (payload) => {
       void ipcRenderer.invoke('playback-diagnostics:append', payload).catch(() => undefined)
     },
+    appendPerformanceEvent: (payload) => {
+      ipcRenderer.send('performance-diagnostics:append', payload)
+    },
+    reportRendererHeartbeat: (payload) => {
+      ipcRenderer.send('performance-diagnostics:heartbeat', payload)
+    },
+    getPerformanceTraceState: () => ipcRenderer.invoke('performance-diagnostics:get-state'),
+    startPerformanceTrace: (mode) =>
+      ipcRenderer.invoke('performance-diagnostics:trace-start', mode),
+    stopPerformanceTrace: () => ipcRenderer.invoke('performance-diagnostics:trace-stop'),
+    captureNoSound: (payload) =>
+      ipcRenderer.invoke('performance-diagnostics:capture-no-sound', payload),
+    exportDiagnostics: () => ipcRenderer.invoke('app-diagnostics:export'),
     exportPlaybackDiagnostics: () => ipcRenderer.invoke('playback-diagnostics:export'),
+    onPerformanceTraceState: (callback) => {
+      const listener: IpcBridgeListener = (_event, nextStatus) =>
+        callback(
+          nextStatus as import('../main/Types/performanceDiagnostics.ts').PerformanceTraceStatus
+        )
+      ipcRenderer.on('performance-diagnostics:state', listener)
+      return () => {
+        ipcRenderer.removeListener('performance-diagnostics:state', listener)
+      }
+    },
     onDatabaseStatus: (callback) => {
       const channels = ['database:ready', 'database:error', 'database:reset'] as const
       const listeners = channels.map((channel) => {

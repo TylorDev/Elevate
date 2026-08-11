@@ -1,6 +1,7 @@
 import type { AudioFileInfo } from '../../../../main/Types/filehandlers.ts'
 
 import type { ManualQueueOrders, QueueState } from '../../Types/QueueContextTypes/index.ts'
+import { beginRendererOperation } from '../../diagnostics/performanceDiagnostics'
 
 export const EMPTY_QUEUE_STATE: QueueState = {
   currentQueue: [],
@@ -10,19 +11,19 @@ export const EMPTY_QUEUE_STATE: QueueState = {
 
 export type StorageValueParser<T> = (value: unknown) => T
 
-export function readStorageValue<T>(
-  key: string,
-  fallback: T,
-  parse: StorageValueParser<T>
-): T {
+export function readStorageValue<T>(key: string, fallback: T, parse: StorageValueParser<T>): T {
   if (typeof localStorage === 'undefined') {
     return fallback
   }
 
+  const operation = beginRendererOperation('renderer.local-storage-read', { key })
   try {
     const saved = localStorage.getItem(key)
-    return saved === null ? fallback : parse(JSON.parse(saved))
+    const result = saved === null ? fallback : parse(JSON.parse(saved))
+    operation.end(undefined, { bytes: saved?.length || 0 })
+    return result
   } catch (error) {
+    operation.end(error)
     console.error(`Error loading ${key} from localStorage`, error)
     return fallback
   }
@@ -33,9 +34,13 @@ export function writeStorageValue<T>(key: string, value: T): void {
     return
   }
 
+  const operation = beginRendererOperation('renderer.local-storage-write', { key })
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    const serialized = JSON.stringify(value)
+    localStorage.setItem(key, serialized)
+    operation.end(undefined, { bytes: serialized.length })
   } catch (error) {
+    operation.end(error)
     console.error(`Error saving ${key} to localStorage`, error)
   }
 }

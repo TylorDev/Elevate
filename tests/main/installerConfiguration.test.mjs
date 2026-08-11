@@ -6,6 +6,18 @@ import { importFreshProject } from './helpers/runtime.mjs'
 const PROJECT_ROOT = process.cwd()
 
 describe('Windows installer prerequisites', () => {
+  it('uses the packaged app id for the Windows process identity', () => {
+    const config = fs.readFileSync(path.join(PROJECT_ROOT, 'electron-builder.yml'), 'utf8')
+    const bootstrap = fs.readFileSync(
+      path.join(PROJECT_ROOT, 'src', 'main', 'main', 'bootstrap.ts'),
+      'utf8'
+    )
+    const appId = config.match(/^appId:\s*(\S+)$/m)?.[1]
+
+    expect(appId).toBe('com.tylordev.elevate')
+    expect(bootstrap).toContain(`app.setAppUserModelId('${appId}')`)
+  })
+
   it('uses an assisted per-user installer with a checked launch option', () => {
     const config = fs.readFileSync(path.join(PROJECT_ROOT, 'electron-builder.yml'), 'utf8')
 

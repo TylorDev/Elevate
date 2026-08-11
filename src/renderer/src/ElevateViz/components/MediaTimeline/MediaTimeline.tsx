@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import styles from './MediaTimeline.module.scss'
 import { useElevateVizIntegration } from '../../contexts/ElevateVizHostContext'
+import { resumeGlobalAudioContext } from '../../../utils/audioVisualizer'
 
 const CANVAS_WAVEFORM_VARIANTS = new Set(['mirrored', 'oscilloscope'])
 const SEEK_COLOR = '#ffffff'
@@ -110,7 +111,6 @@ export const MediaTimeline = ({ variant = 'oscilloscope' }) => {
     if (!canvas) return undefined
 
     let cancelled = false
-    let activeAudioContext
     let retryTimer
     let media
 
@@ -129,7 +129,6 @@ export const MediaTimeline = ({ variant = 'oscilloscope' }) => {
         const analyzer = analyser
         if (!ctx || !analyzer) return
 
-        activeAudioContext = ctx
         const analyserNode = analyzer
 
         analyserRef.current = analyserNode
@@ -145,9 +144,7 @@ export const MediaTimeline = ({ variant = 'oscilloscope' }) => {
     }
 
     const resumeAudioContext = () => {
-      if (activeAudioContext?.state === 'suspended') {
-        activeAudioContext.resume()
-      }
+      resumeGlobalAudioContext(media, 'media-timeline-play')?.catch(() => undefined)
     }
 
     // Get context once outside the loop

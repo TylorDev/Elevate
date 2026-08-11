@@ -15,6 +15,21 @@ import {
   getPlaybackDiagnosticsPaths,
   writePlaybackDiagnostic
 } from './playbackDiagnostics.ts'
+import {
+  createPerformanceDiagnostic,
+  getPerformanceDiagnosticsPaths,
+  getPerformanceDiagnosticsSnapshot,
+  PERFORMANCE_CPU_THRESHOLD,
+  PERFORMANCE_EVENT_LOOP_DELAY_MS,
+  PERFORMANCE_LOG_MAX_SIZE,
+  PERFORMANCE_MEMORY_ABSOLUTE_KB,
+  PERFORMANCE_MEMORY_GROWTH_KB,
+  PERFORMANCE_RING_BUFFER_MS,
+  PERFORMANCE_SAMPLE_INTERVAL_MS,
+  PERFORMANCE_SLOW_OPERATION_MS,
+  writePerformanceDiagnostic
+} from './performanceDiagnostics.ts'
+import { getPerformanceTracePaths, getPerformanceTraceStatus } from './performanceTrace.ts'
 
 const SUMMARY_LIMIT = 50
 
@@ -129,8 +144,10 @@ function getWindowState(window: BrowserWindow | null) {
 }
 
 function createReadme(): string {
-  return `Elevate playback diagnostics\n\n\
+  return `Elevate application diagnostics\n\n\
 The playback-diagnostics*.log files are NDJSON: one JSON event per line.\n\
+The performance-diagnostics*.log files contain startup spans, process samples, renderer stalls,\n\
+Web Audio state, signal summaries, and trace lifecycle events.\n\
 Use appRunId to separate application launches, sessionId for a selected track, cycleId for one\n\
 play/replay cycle, requestId for one IPC request, and eventSequence to reconstruct renderer order.\n\n\
 Important events:\n\
@@ -141,13 +158,59 @@ Important events:\n\
 Full local file paths are intentionally included. The SQLite database itself is not included.\n`
 }
 
+export function buildPerformanceDiagnosticsSummary(): Record<string, unknown> {
+  const snapshot = getPerformanceDiagnosticsSnapshot()
+  const startup = snapshot.summaryEvents.filter(
+    (event) => event.name === 'startup.milestone' || event.name === 'renderer.ready'
+  )
+  const hangs = snapshot.summaryEvents.filter((event) =>
+    ['renderer.stall-suspected', 'renderer.unresponsive', 'renderer.responsive'].includes(
+      event.name
+    )
+  )
+  const audioIncidents = snapshot.summaryEvents.filter((event) =>
+    ['audio.no-sound-incident', 'audio.context-resume-result', 'audio.graph-failure'].includes(
+      event.name
+    )
+  )
+  const slowOperations = snapshot.summaryEvents
+    .filter((event) => event.name === 'operation.end')
+    .sort(
+      (left, right) =>
+        Number(right.details?.durationMs || 0) - Number(left.details?.durationMs || 0)
+    )
+    .slice(0, 50)
+  const processPeaks = new Map<number, { cpuPercent: number; workingSetKb: number; type: string }>()
+  for (const sample of snapshot.recentMetrics) {
+    for (const metric of sample.processes) {
+      const previous = processPeaks.get(metric.pid)
+      processPeaks.set(metric.pid, {
+        cpuPercent: Math.max(previous?.cpuPercent || 0, metric.cpuPercent),
+        workingSetKb: Math.max(previous?.workingSetKb || 0, metric.workingSetKb || 0),
+        type: metric.type
+      })
+    }
+  }
+  return {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    startup,
+    hangs,
+    audioIncidents,
+    slowOperations,
+    processPeaks: [...processPeaks.entries()].map(([pid, peak]) => ({ pid, ...peak })),
+    recentMetrics: snapshot.recentMetrics,
+    rendererHeartbeats: snapshot.heartbeats
+  }
+}
+
 export async function exportPlaybackDiagnostics(
   window: BrowserWindow | null
 ): Promise<PlaybackDiagnosticsExportResult> {
   const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
-  const suggestedName = `Elevate-playback-diagnostics-${timestamp}.zip`
+  const suggestedName = `Elevate-diagnostics-${timestamp}.zip`
   const dialogOptions = {
-    title: 'Export playback diagnostics',
+    title: 'Export application diagnostics',
     defaultPath: join(app.getPath('documents'), suggestedName),
     filters: [{ name: 'ZIP archive', extensions: ['zip'] }]
   }
@@ -161,16 +224,24 @@ export async function exportPlaybackDiagnostics(
 
   const outputPath = selection.filePath
   writePlaybackDiagnostic(createMainDiagnostic('export.start', { details: { outputPath } }))
+  writePerformanceDiagnostic(
+    createPerformanceDiagnostic('export.start', { details: { outputPath } })
+  )
 
   try {
     const storagePaths = getStoragePaths()
     const playbackPaths = getPlaybackDiagnosticsPaths()
+    const performancePaths = getPerformanceDiagnosticsPaths()
+    const tracePaths = getPerformanceTracePaths()
     const generalPaths = getGeneralLogPaths(storagePaths.logsRoot)
     const candidateLogs = [
       { archiveName: basename(playbackPaths.current), path: playbackPaths.current },
       { archiveName: basename(playbackPaths.old), path: playbackPaths.old },
+      { archiveName: basename(performancePaths.current), path: performancePaths.current },
+      { archiveName: basename(performancePaths.old), path: performancePaths.old },
       { archiveName: `general-${basename(generalPaths.current)}`, path: generalPaths.current },
-      { archiveName: `general-${basename(generalPaths.old)}`, path: generalPaths.old }
+      { archiveName: `general-${basename(generalPaths.old)}`, path: generalPaths.old },
+      { archiveName: basename(tracePaths.captured), path: tracePaths.captured, trace: true }
     ]
     const [summary, ...resolvedLogs] = await Promise.all([
       buildPlaybackDiagnosticsSummary(),
@@ -201,19 +272,33 @@ export async function exportPlaybackDiagnostics(
         schemaVersion: 1,
         playbackMaxFileBytes: 10 * 1024 * 1024,
         playbackRetentionFiles: 2,
+        performanceMaxFileBytes: PERFORMANCE_LOG_MAX_SIZE,
+        performanceRetentionFiles: 2,
+        sampleIntervalMs: PERFORMANCE_SAMPLE_INTERVAL_MS,
+        ringBufferMs: PERFORMANCE_RING_BUFFER_MS,
+        slowOperationThresholdMs: PERFORMANCE_SLOW_OPERATION_MS,
+        cpuThresholdPercent: PERFORMANCE_CPU_THRESHOLD,
+        memoryGrowthThresholdKb: PERFORMANCE_MEMORY_GROWTH_KB,
+        memoryAbsoluteThresholdKb: PERFORMANCE_MEMORY_ABSOLUTE_KB,
+        eventLoopDelayThresholdMs: PERFORMANCE_EVENT_LOOP_DELAY_MS,
         shortViewBurstThreshold: 5,
         shortViewBurstWindowSeconds: 600,
         includedLogs,
         missingLogs: candidateLogs.filter((_candidate, index) => !resolvedLogs[index])
-      }
+      },
+      performanceTrace: getPerformanceTraceStatus()
     }
 
     const zip = new JSZip()
-    for (const { archiveName, path } of includedLogs) {
-      zip.file(`logs/${archiveName}`, createReadStream(path))
+    for (const { archiveName, path, trace } of includedLogs) {
+      zip.file(trace ? `traces/${archiveName}` : `logs/${archiveName}`, createReadStream(path))
     }
     zip.file('manifest.json', `${JSON.stringify(manifest, null, 2)}\n`)
     zip.file('playback-summary.json', `${JSON.stringify(summary, null, 2)}\n`)
+    zip.file(
+      'performance-summary.json',
+      `${JSON.stringify(buildPerformanceDiagnosticsSummary(), null, 2)}\n`
+    )
     zip.file('README.txt', createReadme())
 
     await pipeline(
@@ -230,12 +315,23 @@ export async function exportPlaybackDiagnostics(
         details: { outputPath, includedLogCount: includedLogs.length }
       })
     )
+    writePerformanceDiagnostic(
+      createPerformanceDiagnostic('export.complete', {
+        details: { outputPath, includedFileCount: includedLogs.length }
+      })
+    )
     return { success: true, filePath: outputPath }
   } catch (error) {
     await rm(outputPath, { force: true }).catch(() => undefined)
     const message = error instanceof Error ? error.message : String(error || 'Export failed')
     writePlaybackDiagnostic(
       createMainDiagnostic('export.failure', {
+        level: 'error',
+        details: { outputPath, error: message.slice(0, 2_048) }
+      })
+    )
+    writePerformanceDiagnostic(
+      createPerformanceDiagnostic('export.failure', {
         level: 'error',
         details: { outputPath, error: message.slice(0, 2_048) }
       })

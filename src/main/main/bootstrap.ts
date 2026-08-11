@@ -8,6 +8,7 @@ import { setupLikeSongHandlers, setupMusicHandlers } from '../ipc/likehandlers/i
 import { setupPlaylistHandlers } from '../ipc/playlistHandlers/index.ts'
 import { setupPlaylistSaveExplorerHandlers } from '../ipc/playlistSaveExplorerHandlers/index.ts'
 import { setupPlaybackDiagnosticsHandlers } from '../ipc/playbackDiagnostics/index.ts'
+import { setupPerformanceDiagnosticsHandlers } from '../ipc/performanceDiagnostics/index.ts'
 import { setupStoragePathHandlers } from '../ipc/storagePaths/index.ts'
 import { setupVisualizerHandlers } from '../ipc/visualizerHandlers/index.ts'
 import { getPrismaStatus, initializePrisma } from '../prisma.ts'
@@ -24,9 +25,16 @@ import { createTray } from './tray.ts'
 import { createMainWindow } from './windowManager.ts'
 import { sendDatabaseStatus } from './rendererEvents.ts'
 import { initializePlaybackDiagnostics } from '../diagnostics/playbackDiagnostics.ts'
+import {
+  beginPerformanceOperation,
+  initializePerformanceDiagnostics,
+  recordStartupMilestone
+} from '../diagnostics/performanceDiagnostics.ts'
+import { initializePerformanceTrace } from '../diagnostics/performanceTrace.ts'
 
 let dataIpcRegistered = false
 let watchersStarted = false
+const processStartedAt = Date.now()
 
 function registerCoreIpcHandlers(
   retryDatabase: () => Promise<ReturnType<typeof getPrismaStatus>>
@@ -37,6 +45,7 @@ function registerCoreIpcHandlers(
   setupDiscordPresenceHandlers()
   setupStoragePathHandlers()
   setupPlaybackDiagnosticsHandlers()
+  setupPerformanceDiagnosticsHandlers()
 }
 
 function registerDataIpcHandlers(): void {
@@ -54,12 +63,43 @@ function registerDataIpcHandlers(): void {
 async function activateDatabaseServices(
   publishStatus = true
 ): Promise<ReturnType<typeof getPrismaStatus>> {
+  const databaseOperation = beginPerformanceOperation('startup.database-services', {
+    always: true,
+    details: { publishStatus }
+  })
   try {
-    await initializePrisma()
+    const prismaOperation = beginPerformanceOperation('startup.prisma-initialize', {
+      always: true,
+      parentOperationId: databaseOperation.operationId
+    })
+    try {
+      await initializePrisma()
+      prismaOperation.end({ details: { status: getPrismaStatus() } })
+    } catch (error) {
+      prismaOperation.end({ error })
+      throw error
+    }
+
+    const ipcOperation = beginPerformanceOperation('startup.data-ipc-registration', {
+      always: true,
+      parentOperationId: databaseOperation.operationId
+    })
+    const wasRegistered = dataIpcRegistered
     registerDataIpcHandlers()
+    ipcOperation.end({ details: { alreadyRegistered: wasRegistered } })
 
     if (!watchersStarted) {
-      await initializeWatchers()
+      const watchersOperation = beginPerformanceOperation('startup.watchers-initialize', {
+        always: true,
+        parentOperationId: databaseOperation.operationId
+      })
+      try {
+        await initializeWatchers()
+        watchersOperation.end()
+      } catch (error) {
+        watchersOperation.end({ error })
+        throw error
+      }
       watchersStarted = true
     }
 
@@ -70,8 +110,10 @@ async function activateDatabaseServices(
         sendDatabaseStatus('database:reset', status)
       }
     }
+    databaseOperation.end({ details: { ready: status.isReady } })
     return status
   } catch (error) {
+    databaseOperation.end({ error })
     log.error('Prisma initialization failed:', error)
     const status = getPrismaStatus()
     if (publishStatus) {
@@ -82,20 +124,27 @@ async function activateDatabaseServices(
 }
 
 async function handleAppReady(): Promise<void> {
-  console.time('startup:app-ready')
-  app.setAppUserModelId('com.electron')
+  app.setAppUserModelId('com.tylordev.elevate')
   initializePlaybackDiagnostics()
+  initializePerformanceDiagnostics()
+  recordStartupMilestone('app.ready', { elapsedSinceProcessStartMs: Date.now() - processStartedAt })
+  await initializePerformanceTrace()
   log.info('App started, version:', process.versions.node)
+  const coreOperation = beginPerformanceOperation('startup.core-services', { always: true })
   registerCoreIpcHandlers(() => activateDatabaseServices(true))
   createTray(requestShutdown)
+  coreOperation.end()
 
-  console.time('startup:prisma-init')
   const databaseStatus = await activateDatabaseServices(false)
-  console.timeEnd('startup:prisma-init')
 
-  console.time('startup:create-window')
-  await createMainWindow()
-  console.timeEnd('startup:create-window')
+  const windowOperation = beginPerformanceOperation('startup.create-main-window', { always: true })
+  try {
+    await createMainWindow()
+    windowOperation.end()
+  } catch (error) {
+    windowOperation.end({ error })
+    throw error
+  }
 
   if (databaseStatus.isReady) {
     sendDatabaseStatus('database:ready', databaseStatus)
@@ -107,7 +156,10 @@ async function handleAppReady(): Promise<void> {
   }
 
   startBackgroundServices(databaseStatus.isReady)
-  console.timeEnd('startup:app-ready')
+  recordStartupMilestone('startup.main-complete', {
+    elapsedSinceProcessStartMs: Date.now() - processStartedAt,
+    databaseReady: databaseStatus.isReady
+  })
 }
 
 export function startApplication(): void {

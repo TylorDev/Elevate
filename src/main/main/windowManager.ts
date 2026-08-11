@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import { app, BrowserWindow, clipboard, shell, type WebContents } from 'electron'
 import log from 'electron-log/main.js'
 import { markLaunchWindowPending } from '../ipc/argv/index.ts'
@@ -8,6 +9,13 @@ import { sendWindowState } from './rendererEvents.ts'
 import { updateTaskbarControls } from './taskbar.ts'
 import { flushWindowState, loadWindowState, scheduleWindowStateSave } from './windowState.ts'
 import { recordPlaybackWindowState } from '../diagnostics/playbackDiagnostics.ts'
+import {
+  forgetRendererHeartbeat,
+  recordPerformanceWindowLifecycle,
+  recordRendererHang,
+  recordStartupMilestone
+} from '../diagnostics/performanceDiagnostics.ts'
+import { stopPerformanceTrace } from '../diagnostics/performanceTrace.ts'
 
 type RendererLogMethod = 'debug' | 'info' | 'warn' | 'error'
 
@@ -22,6 +30,7 @@ function getConsoleLogMethod(level: number): RendererLogMethod {
 
 export function registerRendererDiagnostics(webContents: WebContents): void {
   mainContext.mainRendererWebContentsId = webContents.id
+  let unresponsiveIncident: { id: string; startedAt: number } | null = null
 
   webContents.on('console-message', (details) => {
     const level = Number(details.level ?? 0)
@@ -49,6 +58,21 @@ export function registerRendererDiagnostics(webContents: WebContents): void {
 
   webContents.on('unresponsive', () => {
     log.error('[renderer unresponsive]', JSON.stringify({ webContentsId: webContents.id }))
+    if (unresponsiveIncident) return
+    unresponsiveIncident = { id: randomUUID(), startedAt: Date.now() }
+    recordRendererHang(webContents, 'unresponsive', unresponsiveIncident.id)
+    void stopPerformanceTrace('renderer-unresponsive')
+  })
+
+  webContents.on('responsive', () => {
+    if (!unresponsiveIncident) return
+    const incident = unresponsiveIncident
+    recordRendererHang(webContents, 'responsive', incident.id, Date.now() - incident.startedAt)
+    unresponsiveIncident = null
+  })
+
+  webContents.once('destroyed', () => {
+    forgetRendererHeartbeat(webContents.id)
   })
 }
 
@@ -59,6 +83,7 @@ export function restoreMainWindow(): void {
   if (!mainWindow.isVisible()) mainWindow.show()
   mainWindow.focus()
   recordPlaybackWindowState(mainWindow, 'restore-main-window')
+  recordPerformanceWindowLifecycle(mainWindow, 'restore-main-window')
   sendWindowState()
   updateTaskbarControls()
 }
@@ -69,6 +94,7 @@ export function hideMainWindowToTray(): void {
   scheduleWindowStateSave(mainWindow)
   mainWindow.hide()
   recordPlaybackWindowState(mainWindow, 'hide-to-tray')
+  recordPerformanceWindowLifecycle(mainWindow, 'hide-to-tray')
   sendWindowState()
 }
 
@@ -108,7 +134,17 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     sendWindowState()
     updateTaskbarControls()
     recordPlaybackWindowState(mainWindow, 'ready-to-show')
+    recordPerformanceWindowLifecycle(mainWindow, 'ready-to-show')
+    recordStartupMilestone('window.ready-to-show')
   })
+
+  mainWindow.webContents.on('did-start-loading', () =>
+    recordStartupMilestone('window.did-start-loading')
+  )
+  mainWindow.webContents.on('dom-ready', () => recordStartupMilestone('window.dom-ready'))
+  mainWindow.webContents.on('did-finish-load', () =>
+    recordStartupMilestone('window.did-finish-load')
+  )
 
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.key !== 'F12' || input.type !== 'keyDown') return
@@ -135,6 +171,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     scheduleWindowStateSave(mainWindow)
     sendWindowState()
     recordPlaybackWindowState(mainWindow, cause)
+    recordPerformanceWindowLifecycle(mainWindow, cause)
   }
   mainWindow.on('resize', scheduleSave)
   mainWindow.on('move', scheduleSave)
@@ -142,10 +179,14 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   mainWindow.on('unmaximize', () => scheduleSaveAndNotify('unmaximize'))
   mainWindow.on('minimize', () => scheduleSaveAndNotify('minimize'))
   mainWindow.on('restore', () => scheduleSaveAndNotify('restore'))
-  mainWindow.on('show', () => recordPlaybackWindowState(mainWindow, 'show'))
-  mainWindow.on('hide', () => recordPlaybackWindowState(mainWindow, 'hide'))
-  mainWindow.on('focus', () => recordPlaybackWindowState(mainWindow, 'focus'))
-  mainWindow.on('blur', () => recordPlaybackWindowState(mainWindow, 'blur'))
+  const recordWindowEvent = (cause: string) => {
+    recordPlaybackWindowState(mainWindow, cause)
+    recordPerformanceWindowLifecycle(mainWindow, cause)
+  }
+  mainWindow.on('show', () => recordWindowEvent('show'))
+  mainWindow.on('hide', () => recordWindowEvent('hide'))
+  mainWindow.on('focus', () => recordWindowEvent('focus'))
+  mainWindow.on('blur', () => recordWindowEvent('blur'))
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     void shell.openExternal(url)
@@ -153,8 +194,10 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   })
 
   if (!app.isPackaged && process.env.ELECTRON_RENDERER_URL) {
+    recordStartupMilestone('window.load-requested', { target: 'development-url' })
     void mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
+    recordStartupMilestone('window.load-requested', { target: 'packaged-file' })
     void mainWindow.loadFile(rendererPath)
   }
 

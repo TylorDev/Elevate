@@ -16,6 +16,12 @@ import { ArgvProvider } from './Contexts/ArgvContext'
 import { GlobalSearchProvider } from './Contexts/GlobalSearchContext'
 import { I18nProvider } from './Contexts/I18nContext'
 import DatabaseGate from './components/DatabaseGate/DatabaseGate'
+import {
+  markRendererMounted,
+  startRendererPerformanceDiagnostics
+} from './diagnostics/performanceDiagnostics'
+
+startRendererPerformanceDiagnostics()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -52,3 +58,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </HashRouter>
   </React.StrictMode>
 )
+
+markRendererMounted()

@@ -13,6 +13,7 @@ import {
   isSupportedMediaFile,
   resolveImportableAudioPaths
 } from './mediaFileSupport.ts'
+import { beginPerformanceOperation } from '../diagnostics/performanceDiagnostics.ts'
 
 export { isSupportedAudioFile, isSupportedMediaFile }
 
@@ -78,6 +79,11 @@ async function registerDirectoryTree(rootPath, audioDirs) {
 
 function startBackgroundIndexing(dirPaths, notifyRenderer) {
   setTimeout(async () => {
+    const operation = beginPerformanceOperation('library.background-indexing', {
+      always: true,
+      details: { directoryCount: dirPaths.length }
+    })
+    let failureCount = 0
     for (const dirPath of dirPaths) {
       try {
         const stats = await indexDirectoryIncrementally(dirPath, (progress) => {
@@ -98,11 +104,13 @@ function startBackgroundIndexing(dirPaths, notifyRenderer) {
           }
         })
       } catch (error) {
+        failureCount += 1
         console.error(`Error indexing ${dirPath}:`, error.message)
       }
     }
 
     notifyRenderer('[directory-changed]')
+    operation.end({ details: { failureCount } })
   }, 0)
 }
 

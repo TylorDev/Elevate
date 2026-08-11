@@ -9,6 +9,15 @@ import type {
   PlaybackDiagnosticsExportResult
 } from '../main/Types/playbackDiagnostics.ts'
 import type {
+  NoSoundCapturePayload,
+  NoSoundCaptureResult,
+  PerformanceDiagnosticAppendPayload,
+  PerformanceDiagnosticsExportResult,
+  PerformanceTraceStartResult,
+  PerformanceTraceStatus,
+  RendererHeartbeatPayload
+} from '../main/Types/performanceDiagnostics.ts'
+import type {
   AppCommand,
   GridPresetRequest,
   GridPresetResult,
@@ -70,7 +79,15 @@ export interface ElectronAPI {
     retryDatabase: () => Promise<PrismaStatus>
     openDatabaseBackups: () => Promise<boolean>
     appendPlaybackEvent: (payload: PlaybackDiagnosticAppendPayload) => void
+    appendPerformanceEvent: (payload: PerformanceDiagnosticAppendPayload) => void
+    reportRendererHeartbeat: (payload: RendererHeartbeatPayload) => void
+    getPerformanceTraceState: () => Promise<PerformanceTraceStatus>
+    startPerformanceTrace: (mode: 'now' | 'next-launch') => Promise<PerformanceTraceStartResult>
+    stopPerformanceTrace: () => Promise<PerformanceTraceStatus>
+    captureNoSound: (payload: NoSoundCapturePayload) => Promise<NoSoundCaptureResult>
+    exportDiagnostics: () => Promise<PerformanceDiagnosticsExportResult>
     exportPlaybackDiagnostics: () => Promise<PlaybackDiagnosticsExportResult>
+    onPerformanceTraceState: (callback: (status: PerformanceTraceStatus) => void) => Unsubscribe
     onDatabaseStatus: (callback: (status: PrismaStatus) => void) => Unsubscribe
   }
 }

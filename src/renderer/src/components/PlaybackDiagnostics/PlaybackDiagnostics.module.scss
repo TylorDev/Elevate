@@ -61,6 +61,53 @@
   }
 }
 
+.group {
+  display: grid;
+  gap: 0.8rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, $text-primary 9%, transparent);
+}
+
+.groupHeader {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  h3 {
+    margin: 0 0 0.25rem;
+    font-size: var(--fs-sm);
+  }
+
+  p {
+    margin: 0;
+    color: $text-secondary;
+    font-size: var(--fs-xs);
+    line-height: 1.5;
+  }
+}
+
+.badge {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.55rem;
+  color: $text-secondary;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  background: color-mix(in srgb, $text-primary 6%, transparent);
+  border-radius: $border-radius;
+
+  &[data-state='recording'],
+  &[data-state='saving'] {
+    color: $primary-color;
+    background: color-mix(in srgb, $primary-color 12%, transparent);
+  }
+
+  &[data-state='failed'] {
+    color: $color-error;
+  }
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -103,6 +150,12 @@
   }
 }
 
+.secondary {
+  color: $text-primary;
+  background: transparent;
+  border-color: color-mix(in srgb, $text-primary 18%, transparent);
+}
+
 .spinner {
   animation: spin 800ms linear infinite;
 }
@@ -127,7 +180,8 @@
 }
 
 .idle,
-.exporting {
+.exporting,
+.working {
   color: $text-secondary;
 }
 

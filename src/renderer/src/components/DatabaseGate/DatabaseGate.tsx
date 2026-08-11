@@ -2,6 +2,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'react-toastify'
 import type { PrismaStatus } from '../../../../main/Types/main'
 import styles from './DatabaseGate.module.scss'
+import {
+  appendPerformanceEvent,
+  beginRendererOperation
+} from '../../diagnostics/performanceDiagnostics'
 
 type DatabaseGateProps = {
   children: ReactNode
@@ -11,14 +15,27 @@ export default function DatabaseGate({ children }: DatabaseGateProps) {
   const [status, setStatus] = useState<PrismaStatus | null>(null)
   const [isRetrying, setIsRetrying] = useState(false)
   const notifiedReset = useRef(false)
+  const reportedReady = useRef(false)
 
   useEffect(() => {
     let mounted = true
-    void window.electron.appDiagnostics.getDatabaseStatus().then((nextStatus) => {
-      if (mounted) setStatus(nextStatus)
-    })
+    const operation = beginRendererOperation('renderer.database-gate-status', {}, true)
+    void window.electron.appDiagnostics
+      .getDatabaseStatus()
+      .then((nextStatus) => {
+        operation.end(undefined, { ready: nextStatus.isReady, phase: nextStatus.phase })
+        if (mounted) setStatus(nextStatus)
+      })
+      .catch((error) => operation.end(error))
 
     const unsubscribe = window.electron.appDiagnostics.onDatabaseStatus((nextStatus) => {
+      appendPerformanceEvent('startup.milestone', {
+        details: {
+          milestone: 'renderer.database-status-event',
+          ready: nextStatus.isReady,
+          phase: nextStatus.phase
+        }
+      })
       if (mounted) setStatus(nextStatus)
     })
 
@@ -27,6 +44,14 @@ export default function DatabaseGate({ children }: DatabaseGateProps) {
       unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (!status?.isReady || reportedReady.current) return
+    reportedReady.current = true
+    appendPerformanceEvent('startup.milestone', {
+      details: { milestone: 'renderer.database-gate-ready', phase: status.phase }
+    })
+  }, [status])
 
   useEffect(() => {
     if (!status?.isReady || !status.recovery.resetPerformed || notifiedReset.current) return
